@@ -27,7 +27,8 @@ type Board struct {
 	IsPublic       bool      `json:"is_public"`
 	NumberTemplate int       `json:"number_template"`
 	CreatedAt      time.Time `json:"created_at"`
-	// Contributers   []User    `json:"contributers"` // под вопросом, так как возможно лучше делать отдельный запрос
+	Contributers   []User    `json:"contributers"` // под вопросом, так как возможно лучше
+	// делать отдельный запрос, чтобы не было перегруженного запрса
 }
 
 type Section struct {
