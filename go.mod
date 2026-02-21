@@ -1,4 +1,4 @@
-module Trello
+module github.com/go-park-mail-ru/2026_1_Clac_Clac
 
 go 1.25.6
 

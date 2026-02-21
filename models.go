@@ -15,8 +15,8 @@ type User struct {
 }
 
 type MemberBoard struct {
-	BoardId uuid.UUID `json:"board_id"`
-	UserId  uuid.UUID `json:"user_id"`
+	BoardID uuid.UUID `json:"board_id"`
+	UserID  uuid.UUID `json:"user_id"`
 	Level   int       `json:"level"`
 }
 
@@ -33,7 +33,7 @@ type Board struct {
 
 type Section struct {
 	ID          uuid.UUID `json:"id"`
-	BoardId     uuid.UUID `json:"board_id"` // чтобы быстро дсотавать инфорамацию
+	BoardID     uuid.UUID `json:"board_id"` // чтобы быстро дсотавать инфорамацию
 	SectionName string    `json:"section_name"`
 	Position    int       `json:"position"`
 	MaxTasks    *int      `json:"max_tasks"`
@@ -42,9 +42,9 @@ type Section struct {
 
 type Task struct {
 	ID          uuid.UUID  `json:"id"`
-	Worker      uuid.UUID  `json:"worker"`
-	SectionId   uuid.UUID  `json:"section_id"`
-	BoardId     uuid.UUID  `json:"board_id"`
+	SectionID   uuid.UUID  `json:"section_id"`
+	BoardID     uuid.UUID  `json:"board_id"`
+	AuthorID    uuid.UUID  `json:"author_id"`
 	Title       string     `json:"title"`
 	Description *string    `json:"description"`
 	StoryPoints int        `json:"rating"`
@@ -55,6 +55,11 @@ type Task struct {
 }
 
 type WorkerTask struct {
-	UserId uuid.UUID `json:"user_id"`
-	TaskId uuid.UUID `json:"task_id"`
+	AssigneeID uuid.UUID `json:"assignee_id"`
+	TaskID     uuid.UUID `json:"task_id"`
+}
+
+type ListenerTask struct {
+	ListenerID uuid.UUID `json:"listener_id"`
+	TaskID     uuid.UUID `json:"task_id"`
 }
