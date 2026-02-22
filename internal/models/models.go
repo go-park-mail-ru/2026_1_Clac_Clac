@@ -1,4 +1,4 @@
-package entry
+package models
 
 import (
 	"time"
@@ -9,6 +9,7 @@ import (
 type User struct {
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name"`
+	Surname  string    `json:"surname"`
 	Password string    `json:"password"`
 	Email    string    `json:"email"`
 	Boards   []Board   `json:"boards"`
