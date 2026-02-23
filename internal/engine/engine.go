@@ -2,101 +2,97 @@ package engine
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 )
 
 type Engine struct {
+	config *config.EngineConfig
 	server *http.Server
 	router *mux.Router
 	logger *zerolog.Logger
+	// Хук, вызывается когда порт успешно открыт
+	OnListen func(addr string)
 }
 
-func New(logger *zerolog.Logger) *Engine {
-	engine := &Engine{
-		router: mux.NewRouter(),
+func New(config *config.EngineConfig, logger *zerolog.Logger, router *mux.Router) *Engine {
+	return &Engine{
+		config: config,
 		logger: logger,
+		router: router,
+	}
+}
+
+func (e *Engine) Start(ctx context.Context) error {
+	// Запрашиваем порт у ОС через net.Listen
+	ln, err := net.Listen("tcp", e.config.Addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", e.config.Addr, err)
 	}
 
-	// Установка middleware
-	engine.Use(engine.recoveryMiddleware)
-	engine.Use(engine.loggerMiddleware)
+	actualAddr := ln.Addr().String()
 
-	return engine
-}
-
-func (e *Engine) Start(addr string) {
 	e.server = &http.Server{
-		Addr:         addr,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:         actualAddr,
+		WriteTimeout: time.Duration(e.config.WriteTimeout) * time.Second,
+		ReadTimeout:  time.Duration(e.config.ReadTimeout) * time.Second,
+		IdleTimeout:  time.Duration(e.config.IdleTimeout) * time.Second,
 		Handler:      e.router,
 	}
 
-	// Graceful shutdown
-	go func() {
-		e.logger.Info().Msg("server started")
+	// Вызываем хук, когда удалось получить адрес
+	if e.OnListen != nil {
+		e.OnListen(actualAddr)
+	}
 
-		if err := e.server.ListenAndServe(); err != nil {
-			e.logger.Error().Err(err).Msg("error when shutdown the http.Server")
-		}
-	}()
+	e.logger.Info().Str("addr", ln.Addr().String()).Msg("server started")
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // SIGTERM нужен для Docker
+	// Перехватываем сигналы, чтобы программа не завершилась сразу
+	interruptCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM) // SIGTERM нужен для Docker
 	defer stop()
 
-	<-ctx.Done()
+	// errgroup, чтобы вытащить ошибку из горутины
+	g, gCtx := errgroup.WithContext(interruptCtx)
 
-	e.logger.Info().Msg("shutdown started, wait...")
+	// Graceful shutdown
+	g.Go(func() error {
+		<-gCtx.Done()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+		e.logger.Info().Msg("shutdown, wait...")
 
-	e.server.Shutdown(ctx)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.config.GracefulShutdownTimeout)*time.Second)
+		defer cancel()
 
-	e.logger.Info().Msg("server stopped")
-}
+		if err := e.server.Shutdown(ctx); err != nil {
+			return fmt.Errorf("error while graceful shutdown: %w", err)
+		}
 
-// Добавления обработчика GET запросов
-func (e *Engine) GET(path string, handler func(w http.ResponseWriter, r *http.Request)) {
-	e.router.HandleFunc(path, handler).Methods(http.MethodGet)
-}
-
-// Добавления обработчика POST запросов
-func (e *Engine) POST(path string, handler func(w http.ResponseWriter, r *http.Request)) {
-	e.router.HandleFunc(path, handler).Methods(http.MethodPost)
-}
-
-// Метод для добавления своих Middleware
-func (e *Engine) Use(middleware ...mux.MiddlewareFunc) {
-	e.router.Use(middleware...)
-}
-
-// Middleware для пробрасывания логгера в запрос.
-// Чтобы получить логгер в обработчике, используйте engine.GetLoggerFromRequest
-func (e *Engine) loggerMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := e.logger.WithContext(r.Context())
-		next.ServeHTTP(w, r.WithContext(ctx))
+		return nil
 	})
-}
-
-// Middleware для отлова паники
-func (e *Engine) recoveryMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				e.logger.Error().Interface("panic", err).Msg("it's toast")
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-		next.ServeHTTP(w, r)
+	// Если вызывать Server.Serve вне гоуртины, то не получится перехватить прерывание
+	g.Go(func() error {
+		if err := e.server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("error while serving: %w", err)
+		}
+		return nil
 	})
+
+	if err := g.Wait(); err != nil {
+		e.logger.Error().Err(err).Msg("engine.Start")
+		return fmt.Errorf("engine.Start: %w", err)
+	}
+
+	e.logger.Info().Msg("stopped")
+	return nil
 }

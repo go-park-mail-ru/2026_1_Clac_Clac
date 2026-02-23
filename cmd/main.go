@@ -1,53 +1,65 @@
 package main
 
 import (
-	"net/http"
+	"context"
+	"fmt"
+	"io"
 	"os"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	"github.com/spf13/viper"
 )
 
-// Сделано в качетсве теста и примера
-type ExampleUser struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-func init() {
-	// TODO: Добавить Debug и Production режимы
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-}
-
 func main() {
-	// TODO: Прокидывать логгер в Engine через конфиг
-	loggerOutput := zerolog.ConsoleWriter{Out: os.Stdout}
+	// Настройка viper
+	mainViper := viper.New()
+	mainViper.SetConfigName("config")
+	mainViper.SetConfigType("yaml")
+	mainViper.AddConfigPath(".")
+
+	if err := mainViper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("cannot read config file: %w", err))
+	}
+
+	// Чтение конфигов
+	appConfig := config.DefaultApplicationConfig()
+	if err := config.ReadWithViper(mainViper, appConfig); err != nil {
+		panic(fmt.Errorf("error while setting app config: %w", err))
+	}
+
+	engineConfig := config.DefaultEngineConfig()
+	if err := config.ReadWithViper(mainViper, engineConfig); err != nil {
+		panic(fmt.Errorf("error while setting engine config: %w", err))
+	}
+
+	// Настройка логера
+	var loggerOutput io.Writer
+	if appConfig.Debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		loggerOutput = os.Stdout
+	}
+
 	logger := zerolog.New(loggerOutput).With().Timestamp().Logger()
 
-	e := engine.New(&logger)
+	// Добавление рутов и мидлваре
+	router := mux.NewRouter()
 
-	// Сделано в качетсве теста и примера
-	e.GET("/hello", func(w http.ResponseWriter, r *http.Request) {
-		err := engine.RespondWithString(w, http.StatusOK, "Hello, World!")
-		if err != nil {
-			engine.GetLoggerFromRequest(r).Error().Err(err).Msg("/hello")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-	})
+	router.Use(middleware.RecoveryMiddleware(&logger))
+	router.Use(middleware.LoggerMiddleware(&logger))
 
-	// Сделано в качетсве теста и примера
-	e.GET("/user", func(w http.ResponseWriter, r *http.Request) {
-		user := ExampleUser{ID: 5, Name: "Vova"}
-		logger := engine.GetLoggerFromRequest(r)
+	router.HandleFunc("/healthcheck", handlers.HealthcheckHandler)
 
-		logger.Info().Str("username", user.Name).Msg("Access")
-
-		err := engine.RespondWithJSON(w, http.StatusOK, user)
-		if err != nil {
-			engine.GetLoggerFromRequest(r).Error().Err(err).Msg("/user")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-	})
-
-	e.Start("localhost:8080")
+	// Создание и запуск сервера
+	e := engine.New(engineConfig, &logger, router)
+	if err := e.Start(context.Background()); err != nil {
+		logger.Err(err).Msg("engine error")
+	}
 }

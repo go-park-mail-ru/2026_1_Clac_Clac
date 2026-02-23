@@ -1,11 +1,9 @@
-package engine
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/rs/zerolog"
 )
 
 // HTTP заголовки
@@ -32,8 +30,8 @@ func SetContentType(w http.ResponseWriter, contentType string) {
 // Записывает переданную строку в ответ, устанавливает статус ответа.
 // В качетсве Content-Type устанавливает text/plain.
 // Данная функция также записывает заголовок.
-// // Вернет ошибку, если запись не удалась
-func RespondWithString(w http.ResponseWriter, statusCode int, content string) error {
+// Вернет ошибку, если запись не удалась
+func RespondString(w http.ResponseWriter, statusCode int, content string) error {
 	SetContentType(w, MIMETextPlain)
 	w.WriteHeader(statusCode)
 
@@ -49,7 +47,7 @@ func RespondWithString(w http.ResponseWriter, statusCode int, content string) er
 // В качетсве Content-Type устанавливает application/json.
 // Данная функция также записывает заголовок.
 // Вернет ошибку, если запись не удалась
-func RespondWithJSON(w http.ResponseWriter, statusCode int, payload any) error {
+func RespondJSON(w http.ResponseWriter, statusCode int, payload any) error {
 	bytes, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("cannot marshal object to json: %w", err)
@@ -64,11 +62,4 @@ func RespondWithJSON(w http.ResponseWriter, statusCode int, payload any) error {
 	}
 
 	return nil
-}
-
-// Дастает zerlog.Logger из контекста запроса.
-// Если логгер не установлен, вернет стандартный.
-// Чтобы установить свой логгер, используйте Engine.loggerMiddleware
-func GetLoggerFromRequest(r *http.Request) *zerolog.Logger {
-	return zerolog.Ctx(r.Context())
 }
