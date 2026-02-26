@@ -13,7 +13,7 @@ type Database interface {
 	AddUser(ctx context.Context, user models.User) error
 }
 
-func CreateMapDatabase() *MapDatabase {
+func NewMapDB() *MapDatabase {
 	return &MapDatabase{
 		database: make(map[string]models.User),
 	}

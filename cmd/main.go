@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	handlers "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/registration"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
+	handlers "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/auth"
+	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/auth"
+	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/rs/zerolog"
 )
 
@@ -14,10 +14,8 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	registrationRepository := repository.CreateMapDatabase()
-
+	registrationRepository := repository.NewMapDB()
 	registrationService := service.CreateRegistrationService(registrationRepository, service.HashPassword)
-
 	registrationHandler := handlers.CreatedRegisterHandler(registrationService)
 
 	mux := http.NewServeMux()

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +28,7 @@ func TestAddUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := CreateMapDatabase()
+			repoUsers := NewMapDB()
 
 			var err error
 			ctx := context.Background()
