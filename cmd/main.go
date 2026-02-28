@@ -15,7 +15,8 @@ func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	registrationRepository := repository.NewMapDB()
-	registrationService := service.CreateRegistrationService(registrationRepository, service.HashPassword)
+
+	registrationService := service.CreateRegistrationService(registrationRepository, service.HashPassword, service.GenerateSessionID)
 	registrationHandler := handlers.CreatedRegisterHandler(registrationService)
 
 	mux := http.NewServeMux()

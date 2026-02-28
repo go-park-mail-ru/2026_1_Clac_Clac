@@ -9,10 +9,10 @@ import (
 type User struct {
 	ID       uuid.UUID `json:"id"`
 	Name     string    `json:"name"`
-	Surname  string    `json:"surname"`
-	Password string    `json:"password"`
+	Surname  string    `json:"surname,omitempty"`
+	Password string    `json:"-"`
 	Email    string    `json:"email"`
-	Boards   []Board   `json:"boards"`
+	Boards   []Board   `json:"boards,omitempty"`
 }
 
 type MemberBoard struct {
