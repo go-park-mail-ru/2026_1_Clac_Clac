@@ -8,5 +8,5 @@ import (
 
 // Обработчик healthcheck приложения
 func HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
-	api.RespondString(w, http.StatusOK, "im ok")
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

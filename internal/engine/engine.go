@@ -66,20 +66,7 @@ func (e *Engine) Start(ctx context.Context) error {
 	g, gCtx := errgroup.WithContext(interruptCtx)
 
 	// Graceful shutdown
-	g.Go(func() error {
-		<-gCtx.Done()
-
-		e.logger.Info().Msg("shutdown, wait...")
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.config.GracefulShutdownTimeout)*time.Second)
-		defer cancel()
-
-		if err := e.server.Shutdown(ctx); err != nil {
-			return fmt.Errorf("error while graceful shutdown: %w", err)
-		}
-
-		return nil
-	})
+	g.Go(e.gracefulShutdown(gCtx))
 	// Если вызывать Server.Serve вне гоуртины, то не получится перехватить прерывание
 	g.Go(func() error {
 		if err := e.server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -95,4 +82,21 @@ func (e *Engine) Start(ctx context.Context) error {
 
 	e.logger.Info().Msg("stopped")
 	return nil
+}
+
+func (e *Engine) gracefulShutdown(errgroupCtx context.Context) func() error {
+	return func() error {
+		<-errgroupCtx.Done()
+
+		e.logger.Info().Msg("shutdown, wait...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.config.GracefulShutdownTimeout)*time.Second)
+		defer cancel()
+
+		if err := e.server.Shutdown(ctx); err != nil {
+			return fmt.Errorf("error while graceful shutdown: %w", err)
+		}
+
+		return nil
+	}
 }

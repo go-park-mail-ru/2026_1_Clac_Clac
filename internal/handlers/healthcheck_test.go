@@ -10,14 +10,15 @@ import (
 )
 
 func TestHealthcheck(t *testing.T) {
-	res := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
-	if err != nil {
-		t.Fatalf("error when creating request: %v", err)
-	}
+	t.Run("ok status", func(t *testing.T) {
+		res := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/", nil)
 
-	h := http.HandlerFunc(handlers.HealthcheckHandler)
-	h.ServeHTTP(res, req)
+		require.NoError(t, err, "cannot create request")
 
-	require.Equal(t, http.StatusOK, res.Code)
+		h := http.HandlerFunc(handlers.HealthcheckHandler)
+		h.ServeHTTP(res, req)
+
+		require.Equal(t, http.StatusOK, res.Code)
+	})
 }

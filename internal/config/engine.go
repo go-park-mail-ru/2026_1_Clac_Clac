@@ -1,7 +1,6 @@
 package config
 
 const (
-	engineConfigSection            = "http"
 	defaultAddr                    = "localhost:8080"
 	defaultWriteTimeout            = 15
 	defaultReadTimout              = 15
@@ -18,16 +17,12 @@ type EngineConfig struct {
 	GracefulShutdownTimeout int    `mapstructure:"graceful_shutdown_timeout"`
 }
 
-func DefaultEngineConfig() *EngineConfig {
-	return &EngineConfig{
+func DefaultEngineConfig() EngineConfig {
+	return EngineConfig{
 		Addr:                    defaultAddr,
 		WriteTimeout:            defaultWriteTimeout,
 		ReadTimeout:             defaultReadTimout,
 		IdleTimeout:             defaultIdleTimeout,
 		GracefulShutdownTimeout: defaultGracefulShutdownTimeout,
 	}
-}
-
-func (c *EngineConfig) Section() string {
-	return engineConfigSection
 }

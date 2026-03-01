@@ -9,15 +9,15 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRecoverMiddleware(t *testing.T) {
 	t.Run("handler without error", func(t *testing.T) {
 		res := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
-		if err != nil {
-			t.Fatalf("error when creating request: %v", err)
-		}
+
+		require.NoError(t, err, "cannot create request")
 
 		logger := zerolog.New(nil)
 
@@ -34,9 +34,8 @@ func TestRecoverMiddleware(t *testing.T) {
 	t.Run("handler with panic", func(t *testing.T) {
 		res := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
-		if err != nil {
-			t.Fatalf("error when creating request: %v", err)
-		}
+
+		require.NoError(t, err, "cannot create request")
 
 		buf := &bytes.Buffer{}
 		logger := zerolog.New(buf)

@@ -11,27 +11,17 @@ import (
 )
 
 func TestApplicationConfig(t *testing.T) {
-	t.Run("test section", func(t *testing.T) {
-		conf := config.DefaultApplicationConfig()
-		assert.Equal(t, "app", conf.Section())
-	})
-
 	t.Run("test unmarshal", func(t *testing.T) {
-		want := &config.ApplicationConfig{
+		want := config.ApplicationConfig{
 			Debug: false,
 		}
-		var yamlTest = []byte(`
-app:
-  debug: false
-`)
+		var yamlTest = []byte(`debug: false`)
 
 		viper.SetConfigType("yaml")
 		viper.ReadConfig(bytes.NewBuffer(yamlTest))
 
 		conf := config.DefaultApplicationConfig()
-		appSection := viper.Sub(conf.Section())
-
-		err := appSection.Unmarshal(conf)
+		err := viper.Unmarshal(&conf)
 
 		require.NoError(t, err, "viper.Unmarshal should not return error")
 		assert.Equal(t, want, conf)

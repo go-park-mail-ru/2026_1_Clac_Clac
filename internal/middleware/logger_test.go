@@ -8,14 +8,14 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoggerMiddleware(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
-	if err != nil {
-		t.Fatalf("error when creating request: %v", err)
-	}
+
+	require.NoError(t, err, "cannot create request")
 
 	logger := zerolog.New(nil)
 

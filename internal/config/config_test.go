@@ -2,6 +2,8 @@ package config_test
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
@@ -10,39 +12,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReadWithViper(t *testing.T) {
-	want := &config.ApplicationConfig{
-		Debug: false,
+func TestConfigReading(t *testing.T) {
+	expectedConfig := config.Config{
+		AppConfig: config.ApplicationConfig{
+			Debug: false,
+		},
+		EngineConfig: config.EngineConfig{
+			Addr:                    ":8080",
+			WriteTimeout:            30,
+			ReadTimeout:             30,
+			IdleTimeout:             90,
+			GracefulShutdownTimeout: 25,
+		},
 	}
-	var yamlTest = []byte(`
-app:
-  debug: false
-`)
 
-	v := viper.New()
-	v.SetConfigType("yaml")
-	err := v.ReadConfig(bytes.NewBuffer(yamlTest))
-
-	require.NoError(t, err, "reading should not returt error")
-
-	conf := config.DefaultApplicationConfig()
-	err = config.ReadWithViper(v, conf)
-
-	require.NoError(t, err, "should not return error")
-	assert.Equal(t, want, conf)
-}
-
-func TestMultipleConfigReading(t *testing.T) {
-	expectedAppConfig := &config.ApplicationConfig{
-		Debug: false,
-	}
-	expectedEngineConfig := &config.EngineConfig{
-		Addr:                    ":8080",
-		WriteTimeout:            30,
-		ReadTimeout:             30,
-		IdleTimeout:             90,
-		GracefulShutdownTimeout: 25,
-	}
 	var yamlTest = []byte(`
 app:
   debug: false
@@ -61,15 +44,45 @@ http:
 
 	require.NoError(t, err, "reading should not returt error")
 
-	appConf := config.DefaultApplicationConfig()
-	err = config.ReadWithViper(v, appConf)
+	conf := config.DefaultConfig()
+	err = v.Unmarshal(&conf)
 
-	require.NoError(t, err, "error while setting app config")
-	assert.Equal(t, expectedAppConfig, appConf)
+	require.NoError(t, err, "error while reading config")
+	assert.Equal(t, expectedConfig, conf)
+}
 
-	engineConf := config.DefaultEngineConfig()
-	err = config.ReadWithViper(v, engineConf)
+func TestSetupViper(t *testing.T) {
+	t.Run("no error", func(t *testing.T) {
+		const configFilename = "config.yaml"
 
-	require.NoError(t, err, "error while setting engine config")
-	assert.Equal(t, expectedEngineConfig, engineConf)
+		var yamlTest = []byte(`
+app:
+  debug: false
+
+http:
+  addr: ":8080"
+  write_timeout: 30
+  read_timeout: 30
+  idle_timeout: 90
+  graceful_shutdown_timeout: 25
+`)
+		tempDir := t.TempDir()
+		os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
+
+		v, err := config.SetupViper(tempDir)
+
+		require.NoError(t, err, "must not return error")
+
+		conf := config.DefaultConfig()
+		err = v.Unmarshal(&conf)
+
+		require.NoError(t, err, "error while reading config")
+	})
+
+	t.Run("error", func(t *testing.T) {
+		const currentDir = "."
+		_, err := config.SetupViper(currentDir)
+
+		require.Error(t, err, "must return error")
+	})
 }
