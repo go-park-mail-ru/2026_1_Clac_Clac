@@ -12,12 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	DebugLevel = "debug"
+	InfoLevel  = "info"
+)
+
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
-		AppConfig: config.ApplicationConfig{
-			Debug: false,
+		App: config.Application{
+			LogLevel: DebugLevel,
 		},
-		EngineConfig: config.EngineConfig{
+		Engine: config.Engine{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
 			ReadTimeout:             30,
@@ -28,9 +33,9 @@ func TestConfigReading(t *testing.T) {
 
 	var yamlTest = []byte(`
 app:
-  debug: false
+  log_level: debug
 
-http:
+engine:
   addr: ":8080"
   write_timeout: 30
   read_timeout: 30
@@ -57,9 +62,9 @@ func TestSetupViper(t *testing.T) {
 
 		var yamlTest = []byte(`
 app:
-  debug: false
+  log_level: debug
 
-http:
+engine:
   addr: ":8080"
   write_timeout: 30
   read_timeout: 30

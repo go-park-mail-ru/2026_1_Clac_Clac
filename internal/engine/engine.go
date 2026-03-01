@@ -18,7 +18,7 @@ import (
 )
 
 type Engine struct {
-	config *config.EngineConfig
+	config *config.Engine
 	server *http.Server
 	router *mux.Router
 	logger *zerolog.Logger
@@ -26,7 +26,7 @@ type Engine struct {
 	OnListen func(addr string)
 }
 
-func New(config *config.EngineConfig, logger *zerolog.Logger, router *mux.Router) *Engine {
+func New(config *config.Engine, logger *zerolog.Logger, router *mux.Router) *Engine {
 	return &Engine{
 		config: config,
 		logger: logger,

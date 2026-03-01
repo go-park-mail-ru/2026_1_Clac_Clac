@@ -14,7 +14,7 @@ import (
 
 func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second
-	cfg := &config.EngineConfig{
+	cfg := &config.Engine{
 		Addr:                    ":0",
 		WriteTimeout:            15,
 		ReadTimeout:             15,

@@ -7,14 +7,14 @@ import (
 )
 
 type Config struct {
-	AppConfig    ApplicationConfig `mapstructure:"app"`
-	EngineConfig EngineConfig      `mapstructure:"http"`
+	App    Application `mapstructure:"app"`
+	Engine Engine      `mapstructure:"engine"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		AppConfig:    DefaultApplicationConfig(),
-		EngineConfig: DefaultEngineConfig(),
+		App:    DefaultApplicationConfig(),
+		Engine: DefaultEngineConfig(),
 	}
 }
 

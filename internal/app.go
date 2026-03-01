@@ -21,8 +21,8 @@ type App struct {
 
 // Создает приложение, настраивает его компоненты
 func NewApp(conf *config.Config) *App {
-	logger := setupLogger(&conf.AppConfig)
-	e := setupEngine(&conf.EngineConfig, logger)
+	logger := setupLogger(&conf.App)
+	e := setupEngine(&conf.Engine, logger)
 
 	return &App{
 		Config: conf,
@@ -39,7 +39,7 @@ func (a *App) Run() {
 }
 
 // Настройка сервера и рутов
-func setupEngine(conf *config.EngineConfig, logger *zerolog.Logger) *engine.Engine {
+func setupEngine(conf *config.Engine, logger *zerolog.Logger) *engine.Engine {
 	router := mux.NewRouter()
 
 	// Добавление мидлваре
@@ -55,11 +55,11 @@ func setupEngine(conf *config.EngineConfig, logger *zerolog.Logger) *engine.Engi
 }
 
 // Настройка логера
-func setupLogger(conf *config.ApplicationConfig) *zerolog.Logger {
+func setupLogger(conf *config.Application) *zerolog.Logger {
 	var loggerOutput io.Writer
 
 	// В зависимости от режима работы разные форматы вывода
-	if conf.Debug {
+	if config.IsDebug(conf.LogLevel) {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
 	} else {

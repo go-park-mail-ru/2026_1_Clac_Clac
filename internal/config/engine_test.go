@@ -12,7 +12,7 @@ import (
 
 func TestEngineConfig(t *testing.T) {
 	t.Run("test unmarshal", func(t *testing.T) {
-		want := config.EngineConfig{
+		want := config.Engine{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
 			ReadTimeout:             30,

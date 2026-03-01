@@ -1,16 +1,25 @@
 package config
 
 const (
-	defaultDebug = true
+	DebugLevel = "debug"
+	InfoLevel  = "info"
+)
+
+const (
+	defaultLogLevel = DebugLevel
 )
 
 // Конфиг для настройки приложения
-type ApplicationConfig struct {
-	Debug bool `mapstructure:"debug"`
+type Application struct {
+	LogLevel string `mapstructure:"log_level"`
 }
 
-func DefaultApplicationConfig() ApplicationConfig {
-	return ApplicationConfig{
-		Debug: defaultDebug,
+func DefaultApplicationConfig() Application {
+	return Application{
+		LogLevel: defaultLogLevel,
 	}
+}
+
+func IsDebug(level string) bool {
+	return level == DebugLevel
 }

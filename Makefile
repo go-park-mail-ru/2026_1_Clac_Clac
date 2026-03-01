@@ -21,9 +21,9 @@ export LOGO_TEXT
 
 define CONFIG_TEMPLATE
 app:
-  debug:
+  log_level:
 
-http:
+engine:
   addr:
   write_timeout:
   read_timeout:

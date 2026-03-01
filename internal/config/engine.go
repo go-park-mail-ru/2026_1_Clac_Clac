@@ -9,7 +9,7 @@ const (
 )
 
 // Конфиг для настройки сервера
-type EngineConfig struct {
+type Engine struct {
 	Addr                    string `mapstructure:"addr"`
 	WriteTimeout            int    `mapstructure:"write_timeout"`
 	ReadTimeout             int    `mapstructure:"read_timeout"`
@@ -17,8 +17,8 @@ type EngineConfig struct {
 	GracefulShutdownTimeout int    `mapstructure:"graceful_shutdown_timeout"`
 }
 
-func DefaultEngineConfig() EngineConfig {
-	return EngineConfig{
+func DefaultEngineConfig() Engine {
+	return Engine{
 		Addr:                    defaultAddr,
 		WriteTimeout:            defaultWriteTimeout,
 		ReadTimeout:             defaultReadTimout,
