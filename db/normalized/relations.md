@@ -1,4 +1,4 @@
-# Архитектура и нормализация базы данных (BuisnesClac)
+# Архитектура и нормализация базы данных (NeXus)
 
 Данный документ описывает структуру реляционной базы данных для проекта NeXus, функциональные зависимости отношений и доказательство соответствия схемы Нормальной форме Бойса-Кодда (НФБК).
 
@@ -109,75 +109,75 @@ erDiagram
     User ||--o{ WorkerTask : assigned_to
     User ||--o{ ListenerTask : listens_to
     User {
-        ID PK
-        Login UK
-        Link UK
-        DisplayName
-        Password
-        Email UK
-        Avatar
+        attr ID PK
+        attr Login UK
+        attr Link UK
+        attr DisplayName
+        attr Password
+        attr Email UK
+        attr Avatar
     }
 
     Board ||--o{ BoardVersion : has_history
     Board ||--o{ MemberBoard : has_members
     Board ||--o{ Section : contains
     Board {
-        ID PK
-        Link UK
-        CreatedAt
+        attr ID PK
+        attr Link UK
+        attr CreatedAt
     }
 
     BoardVersion {
-        ID PK
-        BoardID FK
-        BoardName
-        Description
-        Background
-        ValidFrom
-        ValidTo
+        attr ID PK
+        attr BoardID FK
+        attr BoardName
+        attr Description
+        attr Background
+        attr ValidFrom
+        attr ValidTo
     }
 
     MemberBoard {
-        BoardID PK, FK
-        UserID PK, FK
-        Level
-        IsLike
-        IsArchive
+        attr BoardID PK,FK
+        attr UserID PK,FK
+        attr Level
+        attr IsLike
+        attr IsArchive
     }
 
     BoardTemplate ||--o{ SectionTemplate : defines_sections
     BoardTemplate {
-        ID PK
-        AuthorID FK
-        TemplateName
+        attr ID PK
+        attr AuthorID FK
+        attr TemplateName
     }
 
     SectionTemplate {
-        ID PK
-        TemplateID FK
-        SectionName
-        Position
-        IsMandatory
-        MaxTasks
+        attr ID PK
+        attr TemplateID FK
+        attr SectionName
+        attr Position
+        attr IsMandatory
+        attr MaxTasks
     }
 
     Section ||--o{ SectionVersion : has_history
     Section ||--o{ TaskVersion : holds_tasks
     Section {
-        ID PK
-        BoardID FK
-        Link UK
+        attr ID PK
+        attr BoardID FK
+        attr Link UK
     }
 
     SectionVersion {
-        ID PK
-        SectionID FK
-        SectionName
-        Position
-        IsMandatory
-        MaxTasks
-        ValidFrom
-        ValidTo
+        attr ID PK
+        attr SectionID FK
+        attr SectionName
+        attr Position
+        attr IsMandatory
+        attr MaxTasks
+        attr ValidFrom
+        attr ValidTo
     }
 
     Task ||--o{ TaskVersion : has_history
@@ -188,55 +188,55 @@ erDiagram
     Task ||--o{ TaskDependency : blocks
     Task ||--o{ TaskDependency : is_blocked_by
     Task {
-        ID PK
-        AuthorID FK
-        Link UK
-        CreatedAt
+        attr ID PK
+        attr AuthorID FK
+        attr Link UK
+        attr CreatedAt
     }
 
     TaskVersion {
-        ID PK
-        TaskID FK
-        SectionID FK
-        Title
-        Description
-        Position
-        TaskStartAt
-        Duedate
-        ValidFrom
-        ValidTo
+        attr ID PK
+        attr TaskID FK
+        attr SectionID FK
+        attr Title
+        attr Description
+        attr Position
+        attr TaskStartAt
+        attr Duedate
+        attr ValidFrom
+        attr ValidTo
     }
 
     WorkerTask {
-        AssigneeID PK, FK
-        TaskID PK, FK
+        attr AssigneeID PK,FK
+        attr TaskID PK,FK
     }
 
     ListenerTask {
-        ListenerID PK, FK
-        TaskID PK, FK
+        attr ListenerID PK,FK
+        attr TaskID PK,FK
     }
 
     SubTask {
-        ID PK
-        TaskID FK
-        Link UK
-        Description
-        IsDone
-        Position
+        attr ID PK
+        attr TaskID FK
+        attr Link UK
+        attr Description
+        attr IsDone
+        attr Position
     }
 
     TaskDependency {
-        BlockingTaskID PK, FK
-        BlockedTaskID PK, FK
+        attr BlockingTaskID PK,FK
+        attr BlockedTaskID PK,FK
     }
 
     CommentTask ||--o{ CommentTask : replies_to
     CommentTask {
-        ID PK
-        TaskID FK
-        ParentID FK
-        Link UK
-        Text
-        CreatedAt
+        attr ID PK
+        attr TaskID FK
+        attr ParentID FK
+        attr Link UK
+        attr Text
+        attr CreatedAt
     }
