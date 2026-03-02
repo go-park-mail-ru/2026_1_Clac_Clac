@@ -55,7 +55,7 @@
 `{ID} -> SectionID, SectionName, Position, IsMandatory, MaxTasks, ValidFrom, ValidTo`
 
 **Relation Task:**
-`{ID} -> AuthorID, Link, CreatedAt`
+`{ID} -> AuthorID, SectionID, Link, CreatedAt`
 
 **Relation TaskVersion:**
 `{ID} -> TaskID, SectionID, Title, Description, Position, TaskStartAt, Duedate, ValidFrom, ValidTo`
