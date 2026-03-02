@@ -87,6 +87,7 @@ type SectionVersion struct {
 type Task struct {
 	ID        uuid.UUID  `json:"id"`
 	AuthorID  uuid.UUID  `json:"author_id"`
+	SectionID uuid.UUID  `json:"section_id"`
 	CreatedAt *time.Time `json:"created_at,omitempty"`
 }
 

@@ -103,140 +103,160 @@
 
 ```mermaid
 erDiagram
-    User ||--o{ MemberBoard : joins
-    User ||--o{ BoardTemplate : creates
-    User ||--o{ Task : authors
-    User ||--o{ WorkerTask : assigned_to
-    User ||--o{ ListenerTask : listens_to
+    %% Внешние хранилища
+    S3 {
+        string Storage "Для хранения медиа"
+    }
+    Redis {
+        string Session "Для хранения сессий"
+    }
+
+    %% Сущности
     User {
-        attr ID PK
-        attr Login UK
-        attr Link UK
-        attr DisplayName
-        attr Password
-        attr Email UK
-        attr Avatar
+        int ID PK
+        string Login
+        uuid Link
+        string DisplayName
+        hash Password
+        string Email
+        string Avatar
     }
 
-    Board ||--o{ BoardVersion : has_history
-    Board ||--o{ MemberBoard : has_members
-    Board ||--o{ Section : contains
-    Board {
-        attr ID PK
-        attr Link UK
-        attr CreatedAt
-    }
-
-    BoardVersion {
-        attr ID PK
-        attr BoardID FK
-        attr BoardName
-        attr Description
-        attr Background
-        attr ValidFrom
-        attr ValidTo
-    }
-
-    MemberBoard {
-        attr BoardID PK,FK
-        attr UserID PK,FK
-        attr Level
-        attr IsLike
-        attr IsArchive
-    }
-
-    BoardTemplate ||--o{ SectionTemplate : defines_sections
     BoardTemplate {
-        attr ID PK
-        attr AuthorID FK
-        attr TemplateName
+        int ID PK
+        int AuthorID FK
+        string TemplateName
     }
 
     SectionTemplate {
-        attr ID PK
-        attr TemplateID FK
-        attr SectionName
-        attr Position
-        attr IsMandatory
-        attr MaxTasks
+        int TemplateID FK
+        int Position
+        boolean IsMandatory
+        int MaxTasks
+        string SectionName
     }
 
-    Section ||--o{ SectionVersion : has_history
-    Section ||--o{ TaskVersion : holds_tasks
+    MemberBoard {
+        int BoardID FK
+        int UserID FK
+        boolean IsLike
+        boolean IsArchive
+        int Level
+    }
+
+    Board {
+        int ID PK
+        uuid Link "uuid"
+        timestamp CreatedAt
+    }
+
+    BoardVersion {
+        int ID PK
+        int BoardID FK
+        string BoardName
+        string Description
+        string BackGround
+        timestamp ValidFrom
+        timestamp ValidTo
+    }
+
     Section {
-        attr ID PK
-        attr BoardID FK
-        attr Link UK
+        int ID PK
+        int BoardID FK
+        uuid Link
     }
 
     SectionVersion {
-        attr ID PK
-        attr SectionID FK
-        attr SectionName
-        attr Position
-        attr IsMandatory
-        attr MaxTasks
-        attr ValidFrom
-        attr ValidTo
-    }
-
-    Task ||--o{ TaskVersion : has_history
-    Task ||--o{ SubTask : has
-    Task ||--o{ WorkerTask : has_workers
-    Task ||--o{ ListenerTask : has_listeners
-    Task ||--o{ CommentTask : has_comments
-    Task ||--o{ TaskDependency : blocks
-    Task ||--o{ TaskDependency : is_blocked_by
-    Task {
-        attr ID PK
-        attr AuthorID FK
-        attr Link UK
-        attr CreatedAt
-    }
-
-    TaskVersion {
-        attr ID PK
-        attr TaskID FK
-        attr SectionID FK
-        attr Title
-        attr Description
-        attr Position
-        attr TaskStartAt
-        attr Duedate
-        attr ValidFrom
-        attr ValidTo
+        int ID PK
+        int SectionID FK
+        string SectionName
+        int Position
+        boolean IsMandatory
+        int MaxTasks
+        timestamp ValidFrom
+        timestamp ValidTo
     }
 
     WorkerTask {
-        attr AssigneeID PK,FK
-        attr TaskID PK,FK
+        int AssigneeID FK
+        int TaskID FK
     }
 
     ListenerTask {
-        attr ListenerID PK,FK
-        attr TaskID PK,FK
-    }
-
-    SubTask {
-        attr ID PK
-        attr TaskID FK
-        attr Link UK
-        attr Description
-        attr IsDone
-        attr Position
+        int ListenerID FK
+        int TaskID FK
     }
 
     TaskDependency {
-        attr BlockingTaskID PK,FK
-        attr BlockedTaskID PK,FK
+        int BlockingTaskID FK
+        int BlockedTaskID FK
     }
 
-    CommentTask ||--o{ CommentTask : replies_to
-    CommentTask {
-        attr ID PK
-        attr TaskID FK
-        attr ParentID FK
-        attr Link UK
-        attr Text
-        attr CreatedAt
+    Task {
+        int ID PK
+        int AuthorID FK
+        int SectionID FK
+        uuid Link
+        timestamp CreatedAt
     }
+
+    TaskVersion {
+        int ID PK
+        int TaskID FK
+        int SectionID FK
+        string Title
+        string Description
+        int Position
+        timestamp TaskStartAt
+        timestamp DueDate
+        timestamp ValidFrom
+        timestamp ValidTo
+    }
+
+    SubTask {
+        int ID PK
+        int TaskID FK
+        uuid Link
+        string Description
+        boolean IsDone
+        int Position
+    }
+
+    CommentTask {
+        int ID PK
+        int TaskID FK
+        int ParentID FK
+        uuid Link
+        string Text
+        timestamp CreatedAt
+    }
+
+    %% Связи
+    S3 ||--o| User : "Avatar"
+    S3 ||--o| BoardVersion : "BackGround"
+
+    User ||--o{ BoardTemplate : "AuthorID"
+    User ||--o{ MemberBoard : "UserID"
+    User ||--o{ WorkerTask : "AssigneeID"
+    User ||--o{ ListenerTask : "ListenerID"
+    User ||--o{ Task : "AuthorID"
+
+    BoardTemplate ||--|{ SectionTemplate : "TemplateID"
+
+    Board ||--|{ MemberBoard : "BoardID"
+    Board ||--|{ BoardVersion : "BoardID"
+    Board ||--o{ Section : "BoardID"
+
+    Section ||--|{ SectionVersion : "SectionID"
+    Section ||--|{ TaskVersion : "SectionID"
+
+    Task ||--|{ WorkerTask : "TaskID"
+    Task ||--|{ ListenerTask : "TaskID"
+    Task ||--|{ TaskVersion : "TaskID"
+    Task ||--o{ SubTask : "TaskID"
+    Task ||--o{ CommentTask : "TaskID"
+    Task ||--o{ TaskDependency : "BlockingTaskID"
+    Task ||--o{ TaskDependency : "BlockedTaskID"
+
+    CommentTask ||--o{ CommentTask : "ParentID"
+```
