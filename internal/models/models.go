@@ -6,53 +6,126 @@ import (
 	"github.com/google/uuid"
 )
 
+type LevelUser int
+
+const (
+	Viewer LevelUser = iota + 1
+	Editor
+	Admin
+)
+
 type User struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	Surname  string    `json:"surname,omitempty"`
-	Password string    `json:"-"`
-	Email    string    `json:"email"`
-	Boards   []Board   `json:"boards,omitempty"`
+	ID uuid.UUID `json:"id"`
+
+	DisplayName string  `json:"display_name"`
+	Password    string  `json:"-"`
+	Email       string  `json:"email"`
+	Avatar      *string `json:"background,omitempty"`
 }
 
 type MemberBoard struct {
 	BoardID uuid.UUID `json:"board_id"`
 	UserID  uuid.UUID `json:"user_id"`
-	Level   int       `json:"level"`
+
+	Level     LevelUser `json:"level"`
+	IsLike    bool      `json:"is_like"`
+	IsArchive bool      `json:"is_archive"`
 }
 
 type Board struct {
-	ID             uuid.UUID `json:"id"`
-	BoardName      string    `json:"board_name"`
-	Description    string    `json:"description"`
-	IsPublic       bool      `json:"is_public"`
-	NumberTemplate int       `json:"number_template"`
-	CreatedAt      time.Time `json:"created_at"`
-	Contributers   []User    `json:"contributers"` // под вопросом, так как возможно лучше
-	// делать отдельный запрос, чтобы не было перегруженного запрса
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type BoardVersion struct {
+	ID      uuid.UUID `json:"id"`
+	BoardID uuid.UUID `json:"board_id"`
+
+	BoardName   string `json:"board_name"`
+	Description string `json:"description"`
+	Background  string `json:"background"`
+
+	ValidFrom time.Time  `json:"valid_from"`
+	ValidTo   *time.Time `json:"valid_to,omitempty"`
+}
+
+type BoardTemplate struct {
+	ID       uuid.UUID  `json:"id"`
+	AuthorID *uuid.UUID `json:"author_id,omitempty"`
+
+	TemplateName string `json:"template_name"`
+}
+
+type SectionTemplate struct {
+	ID         uuid.UUID `json:"id"`
+	TemplateID uuid.UUID `json:"template_id"`
+
+	SectionName string `json:"section_name"`
+	Position    int    `json:"position"`
+	IsMandatory bool   `json:"is_mandatory"`
+	MaxTasks    *int   `json:"max_tasks,omitempty"`
 }
 
 type Section struct {
-	ID          uuid.UUID `json:"id"`
-	BoardID     uuid.UUID `json:"board_id"` // чтобы быстро дсотавать инфорамацию
-	SectionName string    `json:"section_name"`
-	Position    int       `json:"position"`
-	MaxTasks    *int      `json:"max_tasks"`
-	Tasks       []Task    `json:"tasks"`
+	ID      uuid.UUID `json:"id"`
+	BoardID uuid.UUID `json:"board_id"`
+}
+
+type SectionVersion struct {
+	ID        uuid.UUID `json:"id"`
+	SectionID uuid.UUID `json:"section_id"`
+
+	SectionName string `json:"section_name"`
+	Position    int    `json:"position"`
+	IsMandatory bool   `json:"is_mandatory"`
+	MaxTasks    *int   `json:"max_tasks,omitempty"`
+
+	ValidFrom time.Time  `json:"valid_from"`
+	ValidTo   *time.Time `json:"valid_to,omitempty"`
 }
 
 type Task struct {
-	ID          uuid.UUID  `json:"id"`
-	SectionID   uuid.UUID  `json:"section_id"`
-	BoardID     uuid.UUID  `json:"board_id"`
-	AuthorID    uuid.UUID  `json:"author_id"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	StoryPoints int        `json:"rating"`
-	Position    int        `json:"position"`
-	StartAt     *time.Time `json:"start_at"`
-	Duedate     *time.Time `json:"due_date"`
-	CreatedAt   *time.Time `json:"created_at"`
+	ID        uuid.UUID  `json:"id"`
+	AuthorID  uuid.UUID  `json:"author_id"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+}
+
+type TaskVersion struct {
+	ID     uuid.UUID `json:"id"`
+	TaskID uuid.UUID `json:"task_id"`
+
+	SectionID   uuid.UUID `json:"section_id"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description,omitempty"`
+	Position    int       `json:"position"`
+
+	TaskStartAt *time.Time `json:"task_start_at,omitempty"`
+	Duedate     *time.Time `json:"due_date,omitempty"`
+
+	ValidFrom time.Time  `json:"valid_from"`
+	ValidTo   *time.Time `json:"valid_to,omitempty"`
+}
+
+type Subtask struct {
+	ID          uuid.UUID `json:"id"`
+	TaskID      uuid.UUID `json:"task_id"`
+	Description string    `json:"description"`
+	IsDone      bool      `json:"is_done"`
+	Position    int       `json:"position"`
+}
+
+type TaskComment struct {
+	ID       uuid.UUID  `json:"id"`
+	TaskID   uuid.UUID  `json:"task_id"`
+	ParentID *uuid.UUID `json:"parent_id,omitempty"`
+
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type TaskDependency struct {
+	BlockingTaskID uuid.UUID `json:"blocking_task_id"`
+	BlockedTaskID  uuid.UUID `json:"blocked_task_id"`
 }
 
 type WorkerTask struct {

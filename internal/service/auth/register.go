@@ -65,11 +65,10 @@ func (r *RegistrationUserService) Register(ctx context.Context, name, password, 
 	}
 
 	user := models.User{
-		ID:       uuid.New(),
-		Name:     name,
-		Password: hashedPassword,
-		Email:    email,
-		Boards:   make([]models.Board, 0),
+		ID:          uuid.New(),
+		DisplayName: name,
+		Password:    hashedPassword,
+		Email:       email,
 	}
 
 	err = r.repo.AddUser(ctx, user)

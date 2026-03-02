@@ -35,11 +35,10 @@ func TestRegisterUser(t *testing.T) {
 			jsonBody: `{"name":"Artem","password":"123456","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				user := models.User{
-					ID:       common.FixedUuiD,
-					Name:     name,
-					Password: password,
-					Email:    email,
-					Boards:   make([]models.Board, 0),
+					ID:          common.FixedUuiD,
+					DisplayName: name,
+					Password:    password,
+					Email:       email,
 				}
 
 				return user, common.FixedSessionID, nil
