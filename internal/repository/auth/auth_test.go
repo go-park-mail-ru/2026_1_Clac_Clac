@@ -130,3 +130,58 @@ func TestAddSeession(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUserError(t *testing.T) {
+	tests := []struct {
+		nameTest      string
+		email         string
+		expectedError error
+	}{
+		{
+			nameTest:      "Not existing user",
+			email:         "bobr@mail.ru",
+			expectedError: ErrorNonexistentUser,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+
+			ctx := context.Background()
+
+			_, err := repoUsers.GetUser(ctx, test.email)
+
+			assert.Equal(t, test.expectedError, err)
+		})
+	}
+}
+
+func TestGetUser(t *testing.T) {
+	tests := []struct {
+		nameTest     string
+		email        string
+		expectedUser models.User
+	}{
+		{
+			nameTest: "Success get user",
+			email:    "bobr@mail.ru",
+			expectedUser: models.User{
+				Email: "bobr@mail.ru",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+
+			ctx := context.Background()
+
+			repoUsers.AddUser(ctx, models.User{Email: test.email})
+			user, _ := repoUsers.GetUser(ctx, test.email)
+
+			assert.Equal(t, test.expectedUser, user)
+		})
+	}
+}

@@ -14,6 +14,7 @@ import (
 type SpyRegistrationRepository struct {
 	SpyAddUser    func(ctx context.Context, user models.User) error
 	SpyAddSession func(ctx context.Context, userID uuid.UUID, sessionID string) error
+	SpyGetUser    func(ctx context.Context, email string) (models.User, error)
 }
 
 func (s *SpyRegistrationRepository) AddUser(ctx context.Context, user models.User) error {
@@ -24,16 +25,8 @@ func (s *SpyRegistrationRepository) AddSession(ctx context.Context, userID uuid.
 	return s.SpyAddSession(ctx, userID, sessionID)
 }
 
-func SpyHasherError(password string) (string, error) {
-	return "", fmt.Errorf("%w: %q", ErrorCreateHash, "error bcrypt")
-}
-
-func SpyHasher(password string) (string, error) {
-	return "hash_" + password, nil
-}
-
-func SpyGenerator() (string, error) {
-	return "sessionCLAC", nil
+func (s *SpyRegistrationRepository) GetUser(ctx context.Context, email string) (models.User, error) {
+	return s.SpyGetUser(ctx, email)
 }
 
 func TestHashPassword(t *testing.T) {
@@ -47,16 +40,6 @@ func TestHashPassword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, hash2)
 	assert.NotEqual(t, hash1, hash2, "bcrypt should generate unique hashes for the same password")
-}
-
-func TestGenerateSessionID(t *testing.T) {
-	id1, err := GenerateSessionID()
-	assert.NoError(t, err, "expected no error while generating session ID")
-	assert.Equal(t, 64, len(id1), "hex encoded array should be 64 characters long")
-
-	id2, err := GenerateSessionID()
-	assert.NoError(t, err)
-	assert.NotEqual(t, id1, id2, "generated sessionID should be unique")
 }
 
 func TestRegister(t *testing.T) {
@@ -103,7 +86,7 @@ func TestRegister(t *testing.T) {
 				SpyAddSession: test.addSession,
 			}
 
-			serviceRegistration := CreateRegistrationService(&rep, test.hasher, test.generator)
+			serviceRegistration := NewRegistrationService(&rep, test.hasher, test.generator)
 
 			ctx := context.Background()
 
@@ -182,9 +165,12 @@ func TestRegisterError(t *testing.T) {
 			rep := SpyRegistrationRepository{
 				SpyAddUser:    test.addUser,
 				SpyAddSession: test.addSession,
+				SpyGetUser: func(ctx context.Context, email string) (models.User, error) {
+					return models.User{}, nil
+				},
 			}
 
-			serviceRegistration := CreateRegistrationService(&rep, test.hasher, test.generator)
+			serviceRegistration := NewRegistrationService(&rep, test.hasher, test.generator)
 
 			ctx := context.Background()
 

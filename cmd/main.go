@@ -14,14 +14,20 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	registrationRepository := repository.NewMapDB()
+	authRepository := repository.NewMapDB()
 
-	registrationService := service.CreateRegistrationService(registrationRepository, service.HashPassword, service.GenerateSessionID)
-	registrationHandler := handlers.CreatedRegisterHandler(registrationService)
+	registrationService := service.NewRegistrationService(authRepository, service.HashPassword, service.GenerateSessionID)
+	registrationHandler := handlers.NewRegisterHandler(registrationService)
+
+	logInService := service.NewLogInService(authRepository, service.CheckPassword, service.GenerateSessionID)
+	logInHandler := handlers.NewLogInHandler(logInService)
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /register", registrationHandler.RegisterUser)
+	mux.HandleFunc("POST /login", logInHandler.LogInUser)
+
+	// authWare := middleware.AuthMiddleware(authRepository)
 
 	err := http.ListenAndServe(":8081", mux)
 	if err != nil {

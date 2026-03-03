@@ -22,7 +22,7 @@ func (s *SpyRegistrationService) Register(ctx context.Context, name, password, e
 	return s.SpyWorkService(ctx, name, password, email)
 }
 
-func TestRegisterUser(t *testing.T) {
+func TestRegsisterUser(t *testing.T) {
 	tests := []struct {
 		nameTest           string
 		jsonBody           string
@@ -32,7 +32,7 @@ func TestRegisterUser(t *testing.T) {
 	}{
 		{
 			nameTest: "Success registration",
-			jsonBody: `{"name":"Artem","password":"123456","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123456","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				user := models.User{
 					ID:          common.FixedUuiD,
@@ -44,88 +44,88 @@ func TestRegisterUser(t *testing.T) {
 				return user, common.FixedSessionID, nil
 			},
 			expectedStatusCode: http.StatusCreated,
-			expectedResponse:   "{\"message\":\"user was successsfully created\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"name\":\"Artem\",\"email\":\"test@mail.ru\"}}\n",
+			expectedResponse:   "{\"message\":\"user was successsfully created\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\"}}\n",
 		},
 		{
 			nameTest: "Incorrect JSON",
-			jsonBody: `{"name":"Artem",,,}`,
+			jsonBody: `{"display_name":"Artem",,,}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", nil
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "decoding request is incorrect: invalid character ',' looking for beginning of object key string\n",
+			expectedResponse:   "{\"error\":\"decoding request is incorrect: invalid character ',' looking for beginning of object key string\"}\n",
 		},
 		{
 			nameTest: "Email is already existing",
-			jsonBody: `{"name":"Artem","password":"123456","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123456","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", fmt.Errorf("repo.AddUser: user with this email alreday exists")
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "cannot register user: repo.AddUser: user with this email alreday exists\n",
+			expectedResponse:   "{\"error\":\"cannot register user: repo.AddUser: user with this email alreday exists\"}\n",
 		},
 		{
 			nameTest: "Incorrect symbol in password",
-			jsonBody: `{"name":"Artem","password":"бобёр","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"бобёр","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorIncorrectSymbol
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "allowed only a-z, A-Z, 0-9, and /?!@\n",
+			expectedResponse:   "{\"error\":\"allowed only a-z, A-Z, 0-9, and /?!@\"}\n",
 		},
 		{
 			nameTest: "Incorrect symbol in email",
-			jsonBody: `{"name":"Artem","password":"123455","email":"бобёр@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123455","email":"бобёр@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorIncorrectSymbol
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "allowed only a-z, A-Z, 0-9, and /?!@\n",
+			expectedResponse:   "{\"error\":\"allowed only a-z, A-Z, 0-9, and /?!@\"}\n",
 		},
 		{
 			nameTest: "Size password smaller, then 6",
-			jsonBody: `{"name":"Artem","password":"123","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorLenPassword
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "password must contain minimum 6\n",
+			expectedResponse:   "{\"error\":\"password must contain minimum 6\"}\n",
 		},
 		{
 			nameTest: "Email has 2 @",
-			jsonBody: `{"name":"Artem","password":"1234567","email":"test@m@ail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"1234567","email":"test@m@ail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorIncorrectEmail
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "invalid email format\n",
+			expectedResponse:   "{\"error\":\"invalid email format\"}\n",
 		},
 		{
 			nameTest: "Email has`t @",
-			jsonBody: `{"name":"Artem","password":"1234567","email":"testmail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"1234567","email":"testmail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorIncorrectEmail
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "invalid email format\n",
+			expectedResponse:   "{\"error\":\"invalid email format\"}\n",
 		},
 		{
 			nameTest: "Email has @.",
-			jsonBody: `{"name":"Artem","password":"1234567","email":"test@.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"1234567","email":"test@.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", ErrorIncorrectEmail
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "invalid email format\n",
+			expectedResponse:   "{\"error\":\"invalid email format\"}\n",
 		},
 		{
 			nameTest: "Error during hash password",
-			jsonBody: `{"name":"Artem","password":"123456","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123456","email":"test@mail.ru"}`,
 			funcWorkService: func(ctx context.Context, name, password, email string) (models.User, string, error) {
 				return models.User{}, "", fmt.Errorf("%w: error bcrypt", service.ErrorCreateHash)
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "cannot register user: failed to create hash: error bcrypt\n",
+			expectedResponse:   "{\"error\":\"cannot register user: failed to create hash: error bcrypt\"}\n",
 		},
 	}
 
@@ -135,7 +135,7 @@ func TestRegisterUser(t *testing.T) {
 				SpyWorkService: test.funcWorkService,
 			}
 
-			handler := CreatedRegisterHandler(&registrationService)
+			handler := NewRegisterHandler(&registrationService)
 
 			body := strings.NewReader(test.jsonBody)
 			request := httptest.NewRequest(http.MethodPost, "/register", body)

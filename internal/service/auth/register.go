@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -22,11 +21,11 @@ type RegistrationService interface {
 	Register(ctx context.Context, name, password, email string) (models.User, string, error)
 }
 
-func CreateRegistrationService(repo repository.Database, hasher func(string) (string, error), generatorSessionID func() (string, error)) *RegistrationUserService {
+func NewRegistrationService(repo repository.Database, hasher func(string) (string, error), generatorSessionID func() (string, error)) *RegistrationUserService {
 	return &RegistrationUserService{
 		repo:        repo,
-		Hasher:      hasher,
-		GeneratorID: generatorSessionID,
+		hasher:      hasher,
+		generatorID: generatorSessionID,
 	}
 }
 
@@ -42,24 +41,14 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func GenerateSessionID() (string, error) {
-	buffer := make([]byte, 32)
-
-	if _, err := rand.Read(buffer); err != nil {
-		return "", fmt.Errorf("cannot generate sessinId: %w", err)
-	}
-
-	return hex.EncodeToString(buffer), nil
-}
-
 type RegistrationUserService struct {
 	repo        repository.Database
-	Hasher      func(password string) (string, error)
-	GeneratorID func() (string, error)
+	hasher      func(password string) (string, error)
+	generatorID func() (string, error)
 }
 
 func (r *RegistrationUserService) Register(ctx context.Context, name, password, email string) (models.User, string, error) {
-	hashedPassword, err := r.Hasher(password)
+	hashedPassword, err := r.hasher(password)
 	if err != nil {
 		return models.User{}, "", fmt.Errorf("HashPassword: %w", err)
 	}
@@ -76,9 +65,9 @@ func (r *RegistrationUserService) Register(ctx context.Context, name, password, 
 		return models.User{}, "", fmt.Errorf("repo.AddUser: %w", err)
 	}
 
-	sessionID, err := r.GeneratorID()
+	sessionID, err := r.generatorID()
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("GenerateSessionID: %w", err)
+		return models.User{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	err = r.repo.AddSession(ctx, user.ID, sessionID)
