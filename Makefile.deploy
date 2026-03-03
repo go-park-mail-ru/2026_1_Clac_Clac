@@ -7,9 +7,6 @@ WORKING_DIR = $(ROOT_DIR)
 BINARY_PATH = $(ROOT_DIR)/bin/$(BINARY_NAME)
 
 SERVICE_NAME = backend.service
-SERVICE_FILE_TEMPLATE = $(ROOT_DIR)/systemd/$(SERVICE_NAME).template
-SERVICE_FILE = $(ROOT_DIR)/$(SERVICE_NAME)
-SYSTEMD_DIR = /etc/systemd/system/$(SERVICE_NAME)
 
 NGINX_CONF_NAME = nginx.conf
 NGINX_CONF_FILE = $(ROOT_DIR)/nginx/$(NGINX_CONF_NAME)
@@ -39,29 +36,10 @@ help:
 	@echo ""
 	@echo "  deploy          - Задеплоить проект"
 	@echo "  reload          - Перезапустить и добавить в автозагрузку"
-	@echo "  create-service  - Создать .service файл для systemd"
 	@echo "  setup-nginx     - Настроить nginx"
 	@echo ""
 
-deploy: create-service reload setup-nginx
-
-create-service:
-	@echo "Create systemd config..."
-
-	@if [ -f $(SERVICE_FILE) ]; then \
-		echo "SKIP already created"; \
-	else \
-        sed -e "s|{{USER}}|$(USER)|g" \
-            -e "s|{{WORKING_DIR}}|$(WORKING_DIR)|g" \
-		    -e "s|{{BINARY_PATH}}|$(BINARY_PATH)|g" \
-		    $(SERVICE_FILE_TEMPLATE) > $(SERVICE_FILE); \
-	fi
-
-	# Разрешаем чтение
-	chmod 644 $(SERVICE_FILE)
-
-	@echo "Create symlink..."
-	sudo ln -sf $(SERVICE_FILE) $(SYSTEMD_DIR)
+deploy: reload setup-nginx
 
 setup-nginx:
 	@echo "Create symlink..."
