@@ -1,0 +1,14 @@
+[Unit]
+Description=NeXus backend
+After=network.target
+
+[Service]
+Type=simple
+User={{USER}}
+WorkingDirectory={{WORKING_DIR}}
+ExecStart={{BINARY_PATH}}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
