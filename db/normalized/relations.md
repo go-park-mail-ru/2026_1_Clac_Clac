@@ -125,26 +125,32 @@ erDiagram
     %% Сущности
     User {
         int ID PK
-        string Login
         uuid Link
         string DisplayName
         hash Password
         string Email
-        string Avatar
+        *string Avatar
+        timestamp CreatedAt
+        timestamp UpdateAt
     }
 
     BoardTemplate {
         int ID PK
-        int AuthorID FK
+        *int AuthorID FK
         string TemplateName
+        timestamp CreatedAt
+        timestamp UpdateAt
     }
 
     SectionTemplate {
+        int ID PK
         int TemplateID FK
         int Position
         boolean IsMandatory
-        int MaxTasks
+        *int MaxTasks
         string SectionName
+        timestamp CreatedAt
+        timestamp UpdateAt
     }
 
     MemberBoard {
@@ -153,12 +159,13 @@ erDiagram
         boolean IsLike
         boolean IsArchive
         int Level
+        timestamp CreatedAt
+        timestamp UpdateAt
     }
 
     Board {
         int ID PK
-        uuid Link "uuid"
-        timestamp CreatedAt
+        uuid Link
     }
 
     BoardVersion {
@@ -183,24 +190,30 @@ erDiagram
         string SectionName
         int Position
         boolean IsMandatory
-        int MaxTasks
+        *int MaxTasks
         timestamp ValidFrom
-        timestamp ValidTo
+        *timestamp ValidTo
     }
 
     WorkerTask {
         int AssigneeID FK
         int TaskID FK
+        timestamp CreatedAt
+        *timestamp UpdateAt
     }
 
     ListenerTask {
         int ListenerID FK
         int TaskID FK
+        timestamp CreatedAt
+        *timestamp UpdateAt
     }
 
     TaskDependency {
         int BlockingTaskID FK
         int BlockedTaskID FK
+        timestamp CreatedAt
+        *timestamp UpdateAt
     }
 
     Task {
@@ -231,6 +244,8 @@ erDiagram
         string Description
         boolean IsDone
         int Position
+        timestamp CreatedAt
+        *timestamp UpdateAt
     }
 
     CommentTask {
@@ -240,6 +255,7 @@ erDiagram
         uuid Link
         string Text
         timestamp CreatedAt
+        *timestamp UpdateAt
     }
 
     %% Связи

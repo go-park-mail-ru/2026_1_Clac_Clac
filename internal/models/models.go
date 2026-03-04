@@ -16,11 +16,13 @@ const (
 
 type User struct {
 	ID uuid.UUID `json:"id"`
-
+	//   uuid Link
 	DisplayName string  `json:"display_name"`
 	Password    string  `json:"-"`
 	Email       string  `json:"email"`
 	Avatar      *string `json:"background,omitempty"`
+	timestamp   CreatedAt
+	timestamp   UpdateAt
 }
 
 type MemberBoard struct {
@@ -30,11 +32,15 @@ type MemberBoard struct {
 	Level     LevelUser `json:"level"`
 	IsLike    bool      `json:"is_like"`
 	IsArchive bool      `json:"is_archive"`
+	timestamp CreatedAt
+	timestamp UpdateAt
 }
 
 type Board struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID   uuid.UUID `json:"id"`
+	uuid Link
+	// CreatedAt time.Time `json:"created_at"`
+	// UpdateAt
 }
 
 type BoardVersion struct {
@@ -54,6 +60,8 @@ type BoardTemplate struct {
 	AuthorID *uuid.UUID `json:"author_id,omitempty"`
 
 	TemplateName string `json:"template_name"`
+	//  timestamp CreatedAt
+	//     timestamp UpdateAt
 }
 
 type SectionTemplate struct {
@@ -64,11 +72,14 @@ type SectionTemplate struct {
 	Position    int    `json:"position"`
 	IsMandatory bool   `json:"is_mandatory"`
 	MaxTasks    *int   `json:"max_tasks,omitempty"`
+	timestamp   CreatedAt
+	*timestamp   UpdateAt
 }
 
 type Section struct {
 	ID      uuid.UUID `json:"id"`
 	BoardID uuid.UUID `json:"board_id"`
+	uuid Link
 }
 
 type SectionVersion struct {
@@ -88,7 +99,6 @@ type Task struct {
 	ID        uuid.UUID  `json:"id"`
 	AuthorID  uuid.UUID  `json:"author_id"`
 	SectionID uuid.UUID  `json:"section_id"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
 }
 
 type TaskVersion struct {
@@ -113,28 +123,38 @@ type Subtask struct {
 	Description string    `json:"description"`
 	IsDone      bool      `json:"is_done"`
 	Position    int       `json:"position"`
+	timestamp CreatedAt
+    *timestamp UpdateAt
 }
 
-type TaskComment struct {
+type CommentTask struct {
 	ID       uuid.UUID  `json:"id"`
 	TaskID   uuid.UUID  `json:"task_id"`
 	ParentID *uuid.UUID `json:"parent_id,omitempty"`
 
 	Text      string    `json:"text"`
 	CreatedAt time.Time `json:"created_at"`
+	*timestamp UpdateAt
 }
 
 type TaskDependency struct {
 	BlockingTaskID uuid.UUID `json:"blocking_task_id"`
 	BlockedTaskID  uuid.UUID `json:"blocked_task_id"`
+	timestamp CreatedAt
+    *timestamp UpdateAt
 }
 
 type WorkerTask struct {
 	AssigneeID uuid.UUID `json:"assignee_id"`
 	TaskID     uuid.UUID `json:"task_id"`
+
+	timestamp CreatedAt
+    timestamp UpdateAt
 }
 
 type ListenerTask struct {
 	ListenerID uuid.UUID `json:"listener_id"`
 	TaskID     uuid.UUID `json:"task_id"`
+	timestamp CreatedAt
+    *timestamp UpdateAt
 }
