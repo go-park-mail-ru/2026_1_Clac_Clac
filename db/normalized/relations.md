@@ -127,19 +127,19 @@ erDiagram
         int ID PK
         uuid Link
         string DisplayName
-        hash Password
+        string Password
         string Email
-        *string Avatar
+        string Avatar
         timestamp CreatedAt
-        timestamp UpdateAt
+        timestamp UpdatedAt
     }
 
     BoardTemplate {
         int ID PK
-        *int AuthorID FK
+        int AuthorID FK
         string TemplateName
         timestamp CreatedAt
-        timestamp UpdateAt
+        timestamp UpdatedAt
     }
 
     SectionTemplate {
@@ -147,10 +147,10 @@ erDiagram
         int TemplateID FK
         int Position
         boolean IsMandatory
-        *int MaxTasks
+        int MaxTasks
         string SectionName
         timestamp CreatedAt
-        timestamp UpdateAt
+        timestamp UpdatedAt
     }
 
     MemberBoard {
@@ -160,7 +160,6 @@ erDiagram
         boolean IsArchive
         int Level
         timestamp CreatedAt
-        timestamp UpdateAt
     }
 
     Board {
@@ -190,30 +189,27 @@ erDiagram
         string SectionName
         int Position
         boolean IsMandatory
-        *int MaxTasks
+        int MaxTasks
         timestamp ValidFrom
-        *timestamp ValidTo
+        timestamp ValidTo
     }
 
     WorkerTask {
-        int AssigneeID FK
-        int TaskID FK
+        int AssigneeID PK
+        int TaskID PK
         timestamp CreatedAt
-        *timestamp UpdateAt
     }
 
     ListenerTask {
-        int ListenerID FK
-        int TaskID FK
+        int ListenerID PK
+        int TaskID PK
         timestamp CreatedAt
-        *timestamp UpdateAt
     }
 
     TaskDependency {
-        int BlockingTaskID FK
-        int BlockedTaskID FK
+        int BlockingTaskID PK
+        int BlockedTaskID PK
         timestamp CreatedAt
-        *timestamp UpdateAt
     }
 
     Task {
@@ -221,7 +217,6 @@ erDiagram
         int AuthorID FK
         int SectionID FK
         uuid Link
-        timestamp CreatedAt
     }
 
     TaskVersion {
@@ -231,7 +226,6 @@ erDiagram
         string Title
         string Description
         int Position
-        timestamp TaskStartAt
         timestamp DueDate
         timestamp ValidFrom
         timestamp ValidTo
@@ -245,7 +239,7 @@ erDiagram
         boolean IsDone
         int Position
         timestamp CreatedAt
-        *timestamp UpdateAt
+        timestamp UpdatedAt
     }
 
     CommentTask {
@@ -255,7 +249,7 @@ erDiagram
         uuid Link
         string Text
         timestamp CreatedAt
-        *timestamp UpdateAt
+        timestamp UpdatedAt
     }
 
     %% Связи
