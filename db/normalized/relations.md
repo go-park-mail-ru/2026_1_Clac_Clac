@@ -30,7 +30,6 @@
 
 **Relation User:**
 `{ID} -> Login, Link, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
-`{Login} -> ID, Link, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
 `{Email} -> ID, Login, Link, DisplayName, Password, Avatar, CreatedAt, UpdatedAt`
 `{Link} -> ID, Login, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
 
