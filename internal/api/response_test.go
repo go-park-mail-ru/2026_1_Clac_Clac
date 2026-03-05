@@ -30,40 +30,6 @@ const (
 	StatusError = "error"
 )
 
-type SpyResponse struct {
-	Changed bool
-	httptest.ResponseRecorder
-}
-
-func NewSpyResponse() *SpyResponse {
-	return &SpyResponse{
-		Changed:          false,
-		ResponseRecorder: *httptest.NewRecorder(),
-	}
-}
-
-func (sr *SpyResponse) Write(buf []byte) (int, error) {
-	sr.Changed = true
-	return sr.ResponseRecorder.Write(buf)
-}
-
-func (sr *SpyResponse) WriteString(str string) (int, error) {
-	sr.Changed = true
-	return sr.ResponseRecorder.WriteString(str)
-}
-
-func (sr *SpyResponse) WriteHeader(code int) {
-	sr.Changed = true
-	sr.ResponseRecorder.WriteHeader(code)
-}
-
-// По-хорошему надо создать SpyHeader и еще следить за изменениями
-// заголовков, но для моих тестов это избыточно (yagni)
-func (sr *SpyResponse) Header() http.Header {
-	sr.Changed = true
-	return sr.ResponseRecorder.Header()
-}
-
 func TestSetContentType(t *testing.T) {
 	t.Run("just writing", func(t *testing.T) {
 		res := httptest.NewRecorder()
@@ -146,21 +112,26 @@ func TestRespondError(t *testing.T) {
 
 func TestHandleError(t *testing.T) {
 	t.Run("no error test", func(t *testing.T) {
-		res := NewSpyResponse()
+		const zeroStatus = 0
+
+		res := httptest.NewRecorder()
+		res.Code = zeroStatus
 
 		err := api.HandleError(res, nil)
 
 		require.NoError(t, err, "must not return error")
-		assert.False(t, res.Changed, "response must not be changed")
+		assert.Equal(t, zeroStatus, res.Code, "must not write status code")
+		assert.Empty(t, res.Body.String(), "must not write body")
+		assert.Empty(t, res.Header(), "must not write header")
 	})
 
 	t.Run("error test", func(t *testing.T) {
-		res := NewSpyResponse()
+		res := httptest.NewRecorder()
 
 		err := api.HandleError(res, errors.New("oh no..."))
 
 		require.Error(t, err, "must return error")
-		assert.True(t, res.Changed, "response must be changed")
-		assert.Equal(t, http.StatusInternalServerError, res.Result().StatusCode, "status must be 500")
+		assert.NotEmpty(t, res.Body.String(), "must write body")
+		assert.Equal(t, http.StatusInternalServerError, res.Code, "status must be 500")
 	})
 }
