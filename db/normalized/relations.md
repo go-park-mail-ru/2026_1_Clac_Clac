@@ -9,7 +9,7 @@
 * **`User`** — уникальные учетные данные и профили пользователей системы.
 * **`Board`** — базовая неизменяемая сущность доски (идентификаторы и дата создания).
 * **`BoardVersion`** — исторические состояния доски. Хранит название, описание и фон в определенный период времени (SCD Type 2).
-* **`MemberBoard`** — отношение многие-ко-многим. Определяет права доступа пользователей к доскам (`Level`) и их персональные настройки (`IsLike`, `IsArchive`).
+* **`MemberBoard`** — отношение многие-ко-многим. Определяет права доступа пользователей к доскам (`LevelMember`) и их персональные настройки (`IsLike`, `IsArchive`).
 * **`BoardTemplate`** — реестр шаблонов для быстрого создания досок.
 * **`SectionTemplate`** — колонки, привязанные к конкретному шаблону доски (нормализованная замена массиву секций).
 * **`Section`** — базовая неизменяемая сущность колонки (секции) на конкретной доске.
@@ -29,27 +29,27 @@
 Ниже представлены все нетривиальные функциональные зависимости для каждого отношения с учетом системных полей аудита:
 
 **Relation User:**
-`{ID} -> Login, Link, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
-`{Email} -> ID, Login, Link, DisplayName, Password, Avatar, CreatedAt, UpdatedAt`
-`{Link} -> ID, Login, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
+`{ID} -> Link, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt`
+`{Email} -> ID, Link, DisplayName, PasswordHash, Avatar, CreatedAt, UpdatedAt`
+`{Link} -> ID, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt`
 
 **Relation Board:**
 `{ID} -> Link, CreatedAt`
 
 **Relation BoardVersion:**
-`{ID} -> BoardID, BoardName, Description, Background, ValidFrom, ValidTo`
+`{ID} -> BoardID, BoardName, DescriptionBoard, Background, ValidFrom, ValidTo`
 
 **Relation MemberBoard:**
-`{BoardID, UserID} -> IsLike, IsArchive, Level, CreatedAt, UpdatedAt`
+`{BoardID, UserID} -> IsLike, IsArchive, LevelMember, CreatedAt, UpdatedAt`
 
 **Relation BoardTemplate:**
 `{ID} -> AuthorID, TemplateName, CreatedAt, UpdatedAt`
 
 **Relation SectionTemplate:**
-`{ID} -> TemplateID, SectionName, Position, IsMandatory, MaxTasks, CreatedAt, UpdatedAt`
+`{ID} -> BTemplateID, SectionName, Position, IsMandatory, MaxTasks, CreatedAt, UpdatedAt`
 
 **Relation Section:**
-`{ID} -> BoardID, Link`
+`{ID} -> BoardID, Link, CreatedAt`
 
 **Relation SectionVersion:**
 `{ID} -> SectionID, SectionName, Position, IsMandatory, MaxTasks, ValidFrom, ValidTo`
@@ -58,7 +58,7 @@
 `{ID} -> AuthorID, Link, CreatedAt`
 
 **Relation TaskVersion:**
-`{ID} -> TaskID, SectionID, Title, Description, Position, TaskStartAt, Duedate, ValidFrom, ValidTo`
+`{ID} -> TaskID, SectionID, Title, Description, Position, DueDate, ValidFrom, ValidTo`
 
 **Relation WorkerTask:**
 `{AssigneeID, TaskID} -> CreatedAt`
@@ -75,17 +75,19 @@
 **Relation CommentTask:**
 `{ID} -> TaskID, ParentID, Link, Text, CreatedAt, UpdatedAt`
 
+---
+
 ## 3. Доказательство нормализации
 
 Схема данных спроектирована с учетом требований строгой нормализации и полностью соответствует Нормальной форме Бойса-Кодда (НФБК).
 
 ### Первая нормальная форма (1НФ)
-**Требование:** Отсутствие повторяющихся групп и составных атрибутов; все атрибуты атомарны.
-**Обоснование:** В схеме нет массивов или JSON-полей для хранения множественных данных. Например, потенциальный массив секций в шаблоне доски вынесен в отдельное отношение `SectionTemplate`. У каждого отношения определен первичный ключ (включая составные ключи в связующих таблицах).
+**Требование:** Отсутствие повторяющихся групп и составных атрибутов; все атрибуты атомарны. На текущем этапе запрещено использовать составные типы (array, json).
+**Обоснование:** В схеме нет массивов или JSON-полей. Потенциальный массив секций в шаблоне доски вынесен в отдельное отношение `SectionTemplate`. У каждого отношения определен первичный ключ (включая составные ключи в связующих таблицах).
 
 ### Вторая нормальная форма (2НФ)
 **Требование:** Выполнение 1НФ и отсутствие частичных зависимостей от составного первичного ключа.
-**Обоснование:** Отношения с одиночным первичным ключом (`ID`) автоматически находятся во 2НФ. В таблицах с составным ключом (`MemberBoard`, `WorkerTask`, `ListenerTask`, `TaskDependency`) все неключевые атрибуты зависят строго от всего ключа целиком. Например, в `MemberBoard` атрибуты `Level`, `IsLike` и `IsArchive` зависят от комбинации `{BoardID, UserID}`, а не отдельно от пользователя или доски.
+**Обоснование:** Отношения с одиночным первичным ключом (`ID`) автоматически находятся во 2НФ. В таблицах с составным ключом (`MemberBoard`, `WorkerTask`, `ListenerTask`, `TaskDependency`) все неключевые атрибуты зависят строго от всего ключа целиком. Например, в `MemberBoard` атрибуты `LevelMember`, `IsLike` и `IsArchive` зависят от комбинации `{BoardID, UserID}`, а не отдельно от пользователя или доски.
 
 ### Третья нормальная форма (3НФ)
 **Требование:** Выполнение 2НФ и отсутствие транзитивных зависимостей (когда неключевой атрибут зависит от другого неключевого атрибута).
@@ -99,12 +101,12 @@
 
 ## 4. Дополнительные СУБД
 
-Для обеспечения высокой производительности, масштабируемости и снижения нагрузки на основную реляционную базу данных, архитектура BuisnesClac использует гибридный подход к хранению различных типов данных:
+Для обеспечения высокой производительности, масштабируемости и снижения нагрузки на основную реляционную базу данных, архитектура NeXus использует гибридный подход к хранению различных типов данных:
 
 * **S3-совместимое объектное хранилище (Object Storage):** Используется для хранения статического и бинарного медиаконтента (пользовательские аватары, фоновые изображения досок).
-    **Обоснование:** Хранение BLOB-объектов в реляционной БД приводит к фрагментации файлов данных и деградации производительности. Вынесение статики в S3 позволяет эффективно управлять большими объемами медиафайлов, снижает стоимость хранения и открывает возможность легкой интеграции с CDN (Content Delivery Network) для ускорения загрузки контента на клиенте. В реляционной БД (поля `Avatar`, `Background`) хранятся исключительно легковесные URL-ссылки или идентификаторы объектов S3.
+    **Обоснование:** Хранение BLOB-объектов в реляционной БД приводит к фрагментации файлов данных и деградации производительности. Вынесение статики в S3 позволяет эффективно управлять большими объемами медиафайлов, снижает стоимость хранения и открывает возможность легкой интеграции с CDN для ускорения загрузки контента на клиенте. В реляционной БД (поля `Avatar`, `Background`) хранятся исключительно легковесные URL-ссылки.
 * **Redis (In-memory Data Structure Store):** Применяется в качестве высокоскоростного хранилища (Key-Value) для управления пользовательскими сессиями (Session Management).
-    **Обоснование:** Аутентификация и валидация токенов/сессий происходит при каждом запросе к API. Использование оперативной памяти (Redis) для этих целей гарантирует минимальную задержку (low latency) при чтении. Кроме того, Redis предоставляет нативные механизмы TTL (Time-To-Live) для автоматической экспирации и инвалидации устаревших сессий, полностью снимая эту нагрузку (высокочастотные операции чтения/записи) с транзакционной базы данных.
+    **Обоснование:** Аутентификация и валидация токенов/сессий происходит при каждом запросе к API. Использование оперативной памяти (Redis) для этих целей гарантирует минимальную задержку (low latency) при чтении. Кроме того, Redis предоставляет нативные механизмы TTL (Time-To-Live) для автоматической инвалидации устаревших сессий, снимая эту нагрузку с транзакционной базы данных.
 
 ---
 
@@ -125,7 +127,7 @@ erDiagram
         int ID PK
         uuid Link
         string DisplayName
-        string Password
+        string PasswordHash
         string Email
         string Avatar
         timestamp CreatedAt
@@ -142,7 +144,7 @@ erDiagram
 
     SectionTemplate {
         int ID PK
-        int TemplateID FK
+        int BTemplateID FK
         int Position
         boolean IsMandatory
         int MaxTasks
@@ -156,21 +158,23 @@ erDiagram
         int UserID FK
         boolean IsLike
         boolean IsArchive
-        int Level
+        int LevelMember
         timestamp CreatedAt
+        timestamp UpdatedAt
     }
 
     Board {
         int ID PK
         uuid Link
+        timestamp CreatedAt
     }
 
     BoardVersion {
         int ID PK
         int BoardID FK
         string BoardName
-        string Description
-        string BackGround
+        string DescriptionBoard
+        string Background
         timestamp ValidFrom
         timestamp ValidTo
     }
@@ -179,6 +183,7 @@ erDiagram
         int ID PK
         int BoardID FK
         uuid Link
+        timestamp CreatedAt
     }
 
     SectionVersion {
@@ -213,8 +218,8 @@ erDiagram
     Task {
         int ID PK
         int AuthorID FK
-        int SectionID FK
         uuid Link
+        timestamp CreatedAt
     }
 
     TaskVersion {
@@ -252,7 +257,7 @@ erDiagram
 
     %% Связи
     S3 ||--o| User : "Avatar"
-    S3 ||--o| BoardVersion : "BackGround"
+    S3 ||--o| BoardVersion : "Background"
 
     User ||--o{ BoardTemplate : "AuthorID"
     User ||--o{ MemberBoard : "UserID"
@@ -260,7 +265,7 @@ erDiagram
     User ||--o{ ListenerTask : "ListenerID"
     User ||--o{ Task : "AuthorID"
 
-    BoardTemplate ||--|{ SectionTemplate : "TemplateID"
+    BoardTemplate ||--|{ SectionTemplate : "BTemplateID"
 
     Board ||--|{ MemberBoard : "BoardID"
     Board ||--|{ BoardVersion : "BoardID"

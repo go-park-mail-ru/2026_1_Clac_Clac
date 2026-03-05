@@ -12,6 +12,7 @@ const (
 	Viewer LevelUser = iota + 1
 	Editor
 	Admin
+	Creater
 )
 
 type User struct {
