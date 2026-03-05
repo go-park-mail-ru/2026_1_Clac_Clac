@@ -72,7 +72,6 @@ CREATE TABLE section_version (
     CONSTRAINT fk_version_section FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE CASCADE
 );
 
-
 CREATE TABLE task (
     task_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     author_id INT,
