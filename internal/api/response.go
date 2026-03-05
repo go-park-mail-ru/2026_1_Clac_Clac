@@ -23,23 +23,28 @@ const (
 	StatusError = "error"
 )
 
-// Определяет структуру всех ответов API
-// Все ответы имеют единое поле status
+// Response определяет базовую структуру всех ответов API
+//
+//	@Description	Базовый ответ
 type Response struct {
-	Status string `json:"status"`
+	Status string `json:"status" example:"ok"`
 }
 
-// Ответ для 200 статуса, всегда должен содержать данные
+// OkResponse ответ для успешных операций (200 OK), всегда содержит данные
+//
+//	@Description	Успешный ответ с данными
 type OkResponse[T any] struct {
 	Response
 	Data T `json:"data"`
 }
 
-// Ответ для ошибки, всегда содержит код ошибки и сообщение
+// ErrorResponse ответ при возникновении ошибки, содержит код и сообщение
+//
+//	@Description	Структура сообщения об ошибке
 type ErrorResponse struct {
 	Response
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int    `json:"code" example:"404"`
+	Message string `json:"message" example:"not found"`
 }
 
 // Устанавливает заголовок ответа Content-Type в переданное значение.

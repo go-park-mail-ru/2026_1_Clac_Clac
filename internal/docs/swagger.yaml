@@ -1,0 +1,28 @@
+basePath: /api
+definitions:
+  api.Response:
+    description: Базовый ответ
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+host: clac-clac.mooo.com
+info:
+  contact: {}
+  description: Наше API
+  title: NeXus
+paths:
+  /healthcheck:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: Проверка состояния сервера
+      tags:
+      - Backend
+swagger: "2.0"

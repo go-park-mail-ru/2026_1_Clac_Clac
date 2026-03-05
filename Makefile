@@ -3,7 +3,7 @@ MAIN_PATH=./cmd/main.go
 BUILD_DIR=bin
 CONFIG_FILE=config.yaml
 
-.PHONY: help build run test create-config
+.PHONY: help build run docs test create-config
 
 define LOGO_TEXT
   /$$$$$$$$$$$$  /$$$$                            /$$$$$$$$$$$$  /$$$$
@@ -42,10 +42,11 @@ help:
 	@echo "  run            - Запустить приложение"
 	@echo "  test           - Запустить все тесты"
 	@echo "  test-cover     - Вывести покрытие тестами"
+	@echo "  docs           - Создать документацию с помощью Swagger"
 	@echo "  create-config  - Создать шаблон конфига"
 	@echo ""
 
-build:
+build: docs
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 
 run: build
@@ -56,6 +57,9 @@ test:
 
 test-cover:
 	go test -cover ./internal/...
+
+docs:
+	swag init -g main.go -o internal/docs -d ./cmd,./internal/api,./internal/handlers
 
 create-config:
 	@if [ -f $(CONFIG_FILE) ]; then \
