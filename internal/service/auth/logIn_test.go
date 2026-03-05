@@ -69,9 +69,9 @@ func TestLogin(t *testing.T) {
 			password: "12345",
 			getUser: func(ctx context.Context, email string) (models.User, error) {
 				return models.User{
-					DisplayName: "Artem",
-					Password:    "12345",
-					Email:       "bobr@mail.ru",
+					DisplayName:  "Artem",
+					PasswordHash: "12345",
+					Email:        "bobr@mail.ru",
 				}, nil
 			},
 			addSession: func(ctx context.Context, userID uuid.UUID, sessionID string) error {
@@ -80,9 +80,9 @@ func TestLogin(t *testing.T) {
 			checker:   SpyChecker,
 			generator: SpyGenerator,
 			expectedUser: models.User{
-				DisplayName: "Artem",
-				Password:    "12345",
-				Email:       "bobr@mail.ru",
+				DisplayName:  "Artem",
+				PasswordHash: "12345",
+				Email:        "bobr@mail.ru",
 			},
 			expectedSessionID: "sessionCLAC",
 			expectedError:     nil,
@@ -138,7 +138,7 @@ func TestLoginError(t *testing.T) {
 			password: "wrong_password",
 			getUser: func(ctx context.Context, email string) (models.User, error) {
 				return models.User{
-					Password: "1234",
+					PasswordHash: "1234",
 				}, nil
 			},
 			addSession:    func(ctx context.Context, userID uuid.UUID, sessionID string) error { return nil },
@@ -152,7 +152,7 @@ func TestLoginError(t *testing.T) {
 			password: "12345",
 			getUser: func(ctx context.Context, email string) (models.User, error) {
 				return models.User{
-					Password: "12345",
+					PasswordHash: "12345",
 				}, nil
 			},
 			addSession: func(ctx context.Context, userID uuid.UUID, sessionID string) error {

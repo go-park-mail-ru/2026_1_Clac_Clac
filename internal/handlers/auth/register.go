@@ -35,28 +35,28 @@ func NewRegisterHandler(srv service.RegistrationService) *RegisterHandler {
 func (h *RegisterHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var request RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
 		return
 	}
 
 	if isAsciiSymbol := CheckAsciiSymbol(request.Password, request.Email); !isAsciiSymbol {
-		MakeJSONError(w, http.StatusBadRequest, ErrorIncorrectSymbol)
+		common.MakeJSONError(w, http.StatusBadRequest, ErrorIncorrectSymbol)
 		return
 	}
 
 	if len(request.Password) < 6 {
-		MakeJSONError(w, http.StatusBadRequest, ErrorLenPassword)
+		common.MakeJSONError(w, http.StatusBadRequest, ErrorLenPassword)
 		return
 	}
 
 	if correctEmail := CheckEmail(request.Email); !correctEmail {
-		MakeJSONError(w, http.StatusBadRequest, ErrorIncorrectEmail)
+		common.MakeJSONError(w, http.StatusBadRequest, ErrorIncorrectEmail)
 		return
 	}
 
 	user, sessionID, err := h.srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
 	if err != nil {
-		MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("cannot register user: %w", err))
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("cannot register user: %w", err))
 		return
 	}
 

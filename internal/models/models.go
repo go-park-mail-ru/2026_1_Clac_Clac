@@ -18,7 +18,7 @@ type User struct {
 	ID uuid.UUID `json:"id"`
 	//   uuid Link
 	DisplayName string  `json:"display_name"`
-	Password    string  `json:"-"`
+	PasswordHash    string  `json:"-"`
 	Email       string  `json:"email"`
 	Avatar      *string `json:"background,omitempty"`
 	timestamp   CreatedAt

@@ -70,9 +70,9 @@ func TestRegister(t *testing.T) {
 			hasher:    SpyHasher,
 			generator: SpyGenerator,
 			expectedUser: models.User{
-				DisplayName: "Artem",
-				Password:    "hash_1234567",
-				Email:       "test@mail.ru",
+				DisplayName:  "Artem",
+				PasswordHash: "hash_1234567",
+				Email:        "test@mail.ru",
 			},
 			expectedSessionID: "sessionCLAC",
 			expectedError:     nil,

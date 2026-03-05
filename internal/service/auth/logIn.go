@@ -51,7 +51,7 @@ func (l *LogInUserService) Login(ctx context.Context, email, password string) (m
 		return models.User{}, "", fmt.Errorf("repo.GetUser: %w", err)
 	}
 
-	err = l.checker(password, user.Password)
+	err = l.checker(password, user.PasswordHash)
 	if err != nil {
 		return models.User{}, "", fmt.Errorf("repo.CheckPassword: %w", err)
 	}

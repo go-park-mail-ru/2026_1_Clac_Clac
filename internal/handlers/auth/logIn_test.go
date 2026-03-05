@@ -34,10 +34,10 @@ func TestLogInUser(t *testing.T) {
 			jsonBody: `{"email":"test@mail.ru","password":"123456"}`,
 			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
 				user := models.User{
-					ID:          common.FixedUuiD,
-					DisplayName: "Artem",
-					Password:    "hash_is_not_important_here",
-					Email:       email,
+					ID:           common.FixedUuiD,
+					DisplayName:  "Artem",
+					PasswordHash: "hash_is_not_important_here",
+					Email:        email,
 				}
 				return user, common.FixedSessionID, nil
 			},
