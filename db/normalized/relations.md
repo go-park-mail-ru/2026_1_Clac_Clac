@@ -14,24 +14,25 @@
 * **`SectionTemplate`** — колонки, привязанные к конкретному шаблону доски (нормализованная замена массиву секций).
 * **`Section`** — базовая неизменяемая сущность колонки (секции) на конкретной доске.
 * **`SectionVersion`** — исторические состояния колонки (название, позиция на доске, лимиты задач) с привязкой ко времени.
-* **`Task`** — базовая неизменяемая сущность задачи.
-* **`TaskVersion`** — исторические состояния задачи. Содержит сроки, текстовые данные и текущую привязку к колонке (`SectionID`).
-* **`WorkerTask`** — связь многие-ко-многим для назначения исполнителей на задачи.
-* **`ListenerTask`** — связь многие-ко-многим для назначения наблюдателей за задачами.
+* **`Task`** — базовая неизменяемая сущность задачи. Хранит только вечные данные: автора, уникальную ссылку и дату создания.
+* **`TaskVersion`** — исторические состояния задачи. Содержит сроки, текстовые данные и текущую привязку к колонке (`SectionID`), что позволяет отслеживать историю перемещения задачи по доске.
+* **`WorkerTask`** — связь многие-ко-многим для назначения исполнителей (Assignee) на задачи.
+* **`ListenerTask`** — связь многие-ко-многим для назначения наблюдателей (Listener) за задачами.
 * **`SubTask`** — элементы чек-листа (подзадачи), привязанные к родительской задаче.
 * **`TaskDependency`** — связи блокировок: определяет, выполнение какой задачи блокируется другой задачей.
-* **`CommentTask`** — комментарии к задачам с поддержкой иерархии (через `ParentID`).
+* **`CommentTask`** — комментарии к задачам с поддержкой иерархии (через `ParentID` для реализации ответов на комментарии).
 
 ---
 
 ## 2. Функциональные зависимости
 
-Ниже представлены все нетривиальные функциональные зависимости для каждого отношения:
+Ниже представлены все нетривиальные функциональные зависимости для каждого отношения с учетом системных полей аудита:
 
 **Relation User:**
-`{ID} -> Login, Link, DisplayName, Password, Email, Avatar`
-`{Login} -> ID, Link, DisplayName, Password, Email, Avatar`
-`{Email} -> ID, Login, Link, DisplayName, Password, Avatar`
+`{ID} -> Login, Link, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
+`{Login} -> ID, Link, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
+`{Email} -> ID, Login, Link, DisplayName, Password, Avatar, CreatedAt, UpdatedAt`
+`{Link} -> ID, Login, DisplayName, Password, Email, Avatar, CreatedAt, UpdatedAt`
 
 **Relation Board:**
 `{ID} -> Link, CreatedAt`
@@ -40,13 +41,13 @@
 `{ID} -> BoardID, BoardName, Description, Background, ValidFrom, ValidTo`
 
 **Relation MemberBoard:**
-`{BoardID, UserID} -> IsLike, IsArchive, Level`
+`{BoardID, UserID} -> IsLike, IsArchive, Level, CreatedAt, UpdatedAt`
 
 **Relation BoardTemplate:**
-`{ID} -> AuthorID, TemplateName`
+`{ID} -> AuthorID, TemplateName, CreatedAt, UpdatedAt`
 
 **Relation SectionTemplate:**
-`{ID} -> TemplateID, SectionName, Position, IsMandatory, MaxTasks`
+`{ID} -> TemplateID, SectionName, Position, IsMandatory, MaxTasks, CreatedAt, UpdatedAt`
 
 **Relation Section:**
 `{ID} -> BoardID, Link`
@@ -55,27 +56,25 @@
 `{ID} -> SectionID, SectionName, Position, IsMandatory, MaxTasks, ValidFrom, ValidTo`
 
 **Relation Task:**
-`{ID} -> AuthorID, SectionID, Link, CreatedAt`
+`{ID} -> AuthorID, Link, CreatedAt`
 
 **Relation TaskVersion:**
 `{ID} -> TaskID, SectionID, Title, Description, Position, TaskStartAt, Duedate, ValidFrom, ValidTo`
 
 **Relation WorkerTask:**
-`{AssigneeID, TaskID} -> ∅` (Атрибутов нет, ключ составной)
+`{AssigneeID, TaskID} -> CreatedAt`
 
 **Relation ListenerTask:**
-`{ListenerID, TaskID} -> ∅`
+`{ListenerID, TaskID} -> CreatedAt`
 
 **Relation SubTask:**
-`{ID} -> TaskID, Link, Description, IsDone, Position`
+`{ID} -> TaskID, Link, Description, IsDone, Position, CreatedAt, UpdatedAt`
 
 **Relation TaskDependency:**
-`{BlockingTaskID, BlockedTaskID} -> ∅`
+`{BlockingTaskID, BlockedTaskID} -> CreatedAt`
 
 **Relation CommentTask:**
-`{ID} -> TaskID, ParentID, Link, Text, CreatedAt`
-
----
+`{ID} -> TaskID, ParentID, Link, Text, CreatedAt, UpdatedAt`
 
 ## 3. Доказательство нормализации
 
@@ -95,7 +94,7 @@
 
 ### Нормальная форма Бойса-Кодда (НФБК)
 **Требование:** Для любой нетривиальной функциональной зависимости $X \rightarrow Y$, детерминант $X$ обязан быть суперключом.
-**Обоснование:** Исходя из списка функциональных зависимостей (п. 2), в левой части каждого выражения (в роли детерминанта $X$) выступает исключительно первичный ключ или потенциальный ключ (как `{Login}` или `{Email}` в таблице `User`). Ни одна часть составного ключа не зависит от неключевых атрибутов, и нет перекрывающихся потенциальных ключей, вызывающих аномалии. База данных строго соответствует НФБК.
+**Обоснование:** Исходя из списка функциональных зависимостей (п. 2), в левой части каждого выражения (в роли детерминанта $X$) выступает исключительно первичный ключ или потенциальный ключ (`{Email}` в таблице `User`). Ни одна часть составного ключа не зависит от неключевых атрибутов, и нет перекрывающихся потенциальных ключей, вызывающих аномалии. База данных строго соответствует НФБК.
 
 ---
 
