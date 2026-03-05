@@ -21,8 +21,8 @@ type User struct {
 	PasswordHash string  `json:"-"`
 	Email        string  `json:"email"`
 	Avatar       *string `json:"background,omitempty"`
-	timestamp    CreatedAt
-	timestamp    UpdateAt
+	// timestamp    CreatedAt
+	// timestamp    UpdateAt
 }
 
 type MemberBoard struct {
@@ -32,13 +32,13 @@ type MemberBoard struct {
 	Level     LevelUser `json:"level"`
 	IsLike    bool      `json:"is_like"`
 	IsArchive bool      `json:"is_archive"`
-	timestamp CreatedAt
-	timestamp UpdateAt
+	// timestamp CreatedAt
+	// timestamp UpdateAt
 }
 
 type Board struct {
-	ID   uuid.UUID `json:"id"`
-	uuid Link
+	ID uuid.UUID `json:"id"`
+	// uuid Link
 	// CreatedAt time.Time `json:"created_at"`
 	// UpdateAt
 }
