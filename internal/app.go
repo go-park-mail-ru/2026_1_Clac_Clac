@@ -3,14 +3,17 @@ package internal
 import (
 	"context"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type App struct {
@@ -40,13 +43,18 @@ func (a *App) Run() {
 
 // Настройка сервера и рутов
 func setupEngine(conf *config.Engine, logger *zerolog.Logger) *engine.Engine {
-	router := mux.NewRouter()
+	// Используем StrictSlash, чтобы был редирект /path/ -> /path
+	router := mux.NewRouter().StrictSlash(true)
 
 	// Добавление мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 
 	// Добавление рутов
+	router.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
+	// StrictSlash не работает с PathPrefix, поэтому надо самим добавить редирект
+	router.Handle("/docs", http.RedirectHandler("/docs/", http.StatusMovedPermanently))
+
 	router.HandleFunc("/healthcheck", handlers.HealthcheckHandler)
 
 	// Создание сервера
