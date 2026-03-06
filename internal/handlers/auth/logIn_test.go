@@ -7,94 +7,85 @@ import (
 	"strings"
 	"testing"
 
-	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/auth/mocks"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/stretchr/testify/assert"
 )
-
-type SpyLogInService struct {
-	SpyWorkService func(ctx context.Context, email, password string) (models.User, string, error)
-}
-
-func (s *SpyLogInService) Login(ctx context.Context, email, password string) (models.User, string, error) {
-	return s.SpyWorkService(ctx, email, password)
-}
 
 func TestLogInUser(t *testing.T) {
 	tests := []struct {
 		nameTest           string
 		jsonBody           string
-		funcWorkService    func(ctx context.Context, email, password string) (models.User, string, error)
+		mockBehavior       func(m *mocks.AuthService)
 		expectedStatusCode int
 		expectedResponse   string
 	}{
 		{
 			nameTest: "Success login",
 			jsonBody: `{"email":"test@mail.ru","password":"123456"}`,
-			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
-				user := models.User{
-					ID:           common.FixedUuiD,
-					DisplayName:  "Artem",
-					PasswordHash: "hash_is_not_important_here",
-					Email:        email,
-				}
-				return user, common.FixedSessionID, nil
+			mockBehavior: func(m *mocks.AuthService) {
+				ctx := context.Background()
+				m.On("LogIn", ctx, "test@mail.ru", "123456").Return(
+					models.User{
+						ID:          common.FixedUuiD,
+						DisplayName: "Artem",
+						Email:       "test@mail.ru",
+					},
+					common.FixedSessionID,
+					nil,
+				)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponse:   "{\"message\":\"user was successfully logged in\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\"}}\n",
 		},
 		{
-			nameTest: "Incorrect JSON",
-			jsonBody: `{"email":"test@mail.ru",,,}`,
-			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
-				return models.User{}, "", nil
-			},
+			nameTest:           "Incorrect JSON",
+			jsonBody:           `{"email":"test@mail.ru",,,}`,
+			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse:   "{\"error\":\"decoding request is incorrect: invalid character ',' looking for beginning of object key string\"}\n",
 		},
 		{
 			nameTest: "Wrong password or email",
 			jsonBody: `{"email":"artem@mail.ru","password":"wrong_password"}`,
-			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
-				return models.User{}, "", service.ErrorWrongPassword
+			mockBehavior: func(m *mocks.AuthService) {
+				ctx := context.Background()
+				m.On("LogIn", ctx, "artem@mail.ru", "wrong_password").Return(models.User{}, "", service.ErrorWrongPassword)
 			},
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedResponse:   "{\"error\":\"wrong email or password\"}\n",
 		},
 		{
-			nameTest: "Size password smaller than 6",
-			jsonBody: `{"email":"artem@mail.ru","password":"123"}`,
-			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
-				return models.User{}, "", ErrorLenPassword
-			},
+			nameTest:           "Size password smaller than 6",
+			jsonBody:           `{"email":"artem@mail.ru","password":"123"}`,
+			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "{\"error\":\"password must contain minimum 6\"}\n",
+			expectedResponse:   "{\"error\":\"ValidatorRequestAuth: password must contain minimum 6\"}\n",
 		},
 		{
-			nameTest: "Email hasn't @",
-			jsonBody: `{"email":"testmail.ru","password":"1234567"}`,
-			funcWorkService: func(ctx context.Context, email, password string) (models.User, string, error) {
-				return models.User{}, "", ErrorIncorrectEmail
-			},
+			nameTest:           "Email hasn't @",
+			jsonBody:           `{"email":"testmail.ru","password":"1234567"}`,
+			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   "{\"error\":\"invalid email format\"}\n",
+			expectedResponse:   "{\"error\":\"ValidatorRequestAuth: invalid email format\"}\n",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			logInService := &SpyLogInService{
-				SpyWorkService: test.funcWorkService,
+			mockLogInService := mocks.NewAuthService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockLogInService)
 			}
 
-			handler := NewLogInHandler(logInService)
+			handler := NewAuthHandler(mockLogInService)
 
 			body := strings.NewReader(test.jsonBody)
 
 			request := httptest.NewRequest(http.MethodPost, "/login", body)
 			response := httptest.NewRecorder()
-
 			handler.LogInUser(response, request)
 
 			assert.Equal(t, test.expectedStatusCode, response.Code, "incorrect status code")

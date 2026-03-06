@@ -15,17 +15,14 @@ func main() {
 	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	authRepository := repository.NewMapDB()
-
-	registrationService := service.NewRegistrationService(authRepository, service.HashPassword, service.GenerateSessionID)
-	registrationHandler := handlers.NewRegisterHandler(registrationService)
-
-	logInService := service.NewLogInService(authRepository, service.CheckPassword, service.GenerateSessionID)
-	logInHandler := handlers.NewLogInHandler(logInService)
+	authService := service.NewAuthService(authRepository, service.HashPassword, service.CheckPassword, service.GenerateSessionID)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /register", registrationHandler.RegisterUser)
-	mux.HandleFunc("POST /login", logInHandler.LogInUser)
+	mux.HandleFunc("POST /register", authHandler.RegisterUser)
+	mux.HandleFunc("POST /login", authHandler.LogInUser)
+	mux.HandleFunc("POST /logout", authHandler.LogOutUser)
 
 	// authWare := middleware.AuthMiddleware(authRepository)
 

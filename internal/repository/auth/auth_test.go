@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
@@ -103,18 +104,16 @@ func TestAddSeessionError(t *testing.T) {
 
 func TestAddSeession(t *testing.T) {
 	tests := []struct {
-		nameTest          string
-		userID            uuid.UUID
-		sessionID         string
-		expectedSessionBD map[string]uuid.UUID
+		nameTest       string
+		userID         uuid.UUID
+		sessionID      string
+		expectedUserID uuid.UUID
 	}{
 		{
-			nameTest:  "Success registration",
-			userID:    common.FixedUuiD,
-			sessionID: common.FixedSessionID,
-			expectedSessionBD: map[string]uuid.UUID{
-				common.FixedSessionID: common.FixedUuiD,
-			},
+			nameTest:       "Success registration",
+			userID:         common.FixedUuiD,
+			sessionID:      common.FixedSessionID,
+			expectedUserID: common.FixedUuiD,
 		},
 	}
 
@@ -124,9 +123,164 @@ func TestAddSeession(t *testing.T) {
 
 			ctx := context.Background()
 
-			repoUsers.AddSession(ctx, test.userID, test.sessionID)
+			err := repoUsers.AddSession(ctx, test.userID, test.sessionID)
+			assert.NoError(t, err, "not wait error")
+
+			userID := repoUsers.sessions[test.sessionID].UserID
+
+			assert.Equal(t, test.expectedUserID, userID)
+		})
+	}
+}
+
+func TestDeleteSession(t *testing.T) {
+	tests := []struct {
+		nameTest          string
+		userID            uuid.UUID
+		sessionID         string
+		expectedSessionBD map[string]Session
+	}{
+		{
+			nameTest:          "Success delete session",
+			userID:            common.FixedUuiD,
+			sessionID:         common.FixedSessionID,
+			expectedSessionBD: map[string]Session{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+
+			ctx := context.Background()
+
+			err := repoUsers.AddSession(ctx, test.userID, test.sessionID)
+			assert.NoError(t, err, "not wait error")
+			err = repoUsers.DeleteSession(ctx, test.sessionID)
+			assert.NoError(t, err, "not wait error")
 
 			assert.Equal(t, test.expectedSessionBD, repoUsers.sessions)
+		})
+	}
+}
+
+func TestDeleteSessionError(t *testing.T) {
+	tests := []struct {
+		nameTest      string
+		sessionID     string
+		expectedError error
+	}{
+		{
+			nameTest:      "Not existing seesion",
+			sessionID:     common.FixedSessionID,
+			expectedError: ErrorNotExistingSession,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+
+			ctx := context.Background()
+			err := repoUsers.DeleteSession(ctx, test.sessionID)
+
+			assert.Error(t, err, "expected error")
+			assert.Equal(t, test.expectedError, err)
+		})
+	}
+}
+
+func TestGetUserIDBySession(t *testing.T) {
+	tests := []struct {
+		nameTest  string
+		sessionID string
+
+		isExist   bool
+		isExpired bool
+
+		expectedUserID uuid.UUID
+		expectedError  error
+	}{
+		{
+			nameTest:       "Success get user ID",
+			sessionID:      common.FixedSessionID,
+			isExist:        true,
+			isExpired:      false,
+			expectedUserID: common.FixedUuiD,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+			ctx := context.Background()
+
+			if test.isExist {
+				expirationTime := time.Now().Add(1 * time.Hour)
+				if test.isExpired {
+					expirationTime = time.Now().Add(-1 * time.Hour)
+				}
+
+				repoUsers.sessions[test.sessionID] = Session{
+					UserID:    common.FixedUuiD,
+					ExpiresAt: expirationTime,
+				}
+			}
+
+			userID, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
+			assert.NoError(t, err, "not wait error")
+
+			assert.Equal(t, test.expectedUserID, userID)
+		})
+	}
+}
+
+func TestGetUserIDBySessionError(t *testing.T) {
+	tests := []struct {
+		nameTest  string
+		sessionID string
+
+		isExist   bool
+		isExpired bool
+
+		expectedError error
+	}{
+		{
+			nameTest:      "Error session not existing",
+			sessionID:     common.FixedSessionID,
+			isExist:       false,
+			isExpired:     false,
+			expectedError: ErrorNotExistingSession,
+		},
+		{
+			nameTest:      "Error session expired",
+			sessionID:     common.FixedSessionID,
+			isExist:       true,
+			isExpired:     true,
+			expectedError: ErrorSeesionExpired,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			repoUsers := NewMapDB()
+			ctx := context.Background()
+
+			if test.isExist {
+				expirationTime := time.Now().Add(1 * time.Hour)
+				if test.isExpired {
+					expirationTime = time.Now().Add(-1 * time.Hour)
+				}
+
+				repoUsers.sessions[test.sessionID] = Session{
+					UserID:    common.FixedUuiD,
+					ExpiresAt: expirationTime,
+				}
+			}
+
+			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
+			assert.Error(t, err, "expected error")
+			assert.Equal(t, test.expectedError, err)
 		})
 	}
 }
@@ -156,7 +310,6 @@ func TestGetUserError(t *testing.T) {
 		})
 	}
 }
-
 func TestGetUser(t *testing.T) {
 	tests := []struct {
 		nameTest     string

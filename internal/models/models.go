@@ -16,14 +16,11 @@ const (
 )
 
 type User struct {
-	ID uuid.UUID `json:"id"`
-	//   uuid Link
-	DisplayName  string  `json:"display_name"`
-	PasswordHash string  `json:"-"`
-	Email        string  `json:"email"`
-	Avatar       *string `json:"background,omitempty"`
-	// timestamp    CreatedAt
-	// timestamp    UpdateAt
+	ID           uuid.UUID `json:"id"`
+	DisplayName  string    `json:"display_name"`
+	PasswordHash string    `json:"-"`
+	Email        string    `json:"email"`
+	Avatar       *string   `json:"background,omitempty"`
 }
 
 type MemberBoard struct {
@@ -33,15 +30,10 @@ type MemberBoard struct {
 	Level     LevelUser `json:"level"`
 	IsLike    bool      `json:"is_like"`
 	IsArchive bool      `json:"is_archive"`
-	// timestamp CreatedAt
-	// timestamp UpdateAt
 }
 
 type Board struct {
 	ID uuid.UUID `json:"id"`
-	// uuid Link
-	// CreatedAt time.Time `json:"created_at"`
-	// UpdateAt
 }
 
 type BoardVersion struct {
@@ -61,8 +53,6 @@ type BoardTemplate struct {
 	AuthorID *uuid.UUID `json:"author_id,omitempty"`
 
 	TemplateName string `json:"template_name"`
-	//  timestamp CreatedAt
-	//     timestamp UpdateAt
 }
 
 type SectionTemplate struct {
@@ -73,8 +63,6 @@ type SectionTemplate struct {
 	Position    int    `json:"position"`
 	IsMandatory bool   `json:"is_mandatory"`
 	MaxTasks    *int   `json:"max_tasks,omitempty"`
-	// timestamp   CreatedAt
-	// *timestamp   UpdateAt
 }
 
 type Section struct {
@@ -124,8 +112,6 @@ type Subtask struct {
 	Description string    `json:"description"`
 	IsDone      bool      `json:"is_done"`
 	Position    int       `json:"position"`
-	// timestamp   CreatedAt
-	// *timestamp UpdateAt
 }
 
 type CommentTask struct {
@@ -135,27 +121,19 @@ type CommentTask struct {
 
 	Text      string    `json:"text"`
 	CreatedAt time.Time `json:"created_at"`
-	// *timestamp UpdateAt
 }
 
 type TaskDependency struct {
 	BlockingTaskID uuid.UUID `json:"blocking_task_id"`
 	BlockedTaskID  uuid.UUID `json:"blocked_task_id"`
-	// timestamp      CreatedAt
-	// *timestamp UpdateAt
 }
 
 type WorkerTask struct {
 	AssigneeID uuid.UUID `json:"assignee_id"`
 	TaskID     uuid.UUID `json:"task_id"`
-
-	// timestamp CreatedAt
-	// timestamp UpdateAt
 }
 
 type ListenerTask struct {
 	ListenerID uuid.UUID `json:"listener_id"`
 	TaskID     uuid.UUID `json:"task_id"`
-	// timestamp  CreatedAt
-	// // *timestamp UpdateAt
 }
