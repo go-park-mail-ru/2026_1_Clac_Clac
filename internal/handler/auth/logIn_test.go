@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/auth/mocks"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ func TestLogInUser(t *testing.T) {
 				ctx := context.Background()
 				m.On("LogIn", ctx, "test@mail.ru", "123456").Return(
 					models.User{
-						ID:          common.FixedUuiD,
+						ID:          common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
 					},
@@ -38,7 +38,7 @@ func TestLogInUser(t *testing.T) {
 				)
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedResponse:   "{\"message\":\"user was successfully logged in\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\"}}\n",
+			expectedResponse:   "{\"message\":\"user was successfully logged in\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\",\"boards\":null}}\n",
 		},
 		{
 			nameTest:           "Incorrect JSON",

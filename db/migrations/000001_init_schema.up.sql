@@ -39,7 +39,7 @@ CREATE TABLE board_version (
 
     board_name TEXT DEFAULT '' NOT NULL,
     description_board TEXT DEFAULT '',
-    background TEXT DEFAULT '',
+    url_path_background TEXT DEFAULT '',
 
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
@@ -50,18 +50,19 @@ CREATE TABLE board_version (
     CONSTRAINT fk_version_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
 );
 
+CREATE TYPE user_level AS ENUM ('viewer', 'editor', 'admin', 'creater')
+
 CREATE TABLE member_board (
     board_id INT NOT NULL,
     user_id INT NOT NULL,
 
     is_like BOOLEAN DEFAULT false NOT NULL,
     is_archive BOOLEAN DEFAULT false NOT NULL,
-    level_member INT DEFAULT 1 NOT NULL,
+    level_member user_level DEFAULT 'viewer' NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_level_member CHECK (level_member > 0 and level_member <= 4),
     CONSTRAINT pk_member_board PRIMARY KEY (board_id, user_id),
     CONSTRAINT fk_member_user FOREIGN KEY (user_id) REFERENCES "user"(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_member_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE

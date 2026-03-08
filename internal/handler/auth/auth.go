@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 
 type AuthService interface {
 	Register(ctx context.Context, name, password, email string) (models.User, string, error)
-	LogIn(ctx context.Context, email, password string) (models.User, string, error)
+	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
 }
@@ -80,9 +80,10 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, cookie)
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		fmt.Printf("error encoding response: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
@@ -132,9 +133,10 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, cookie)
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		fmt.Printf("error encoding response: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
@@ -161,6 +163,7 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{message: "successfully logged out"}`))
 }

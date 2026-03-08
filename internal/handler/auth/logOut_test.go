@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/auth/mocks"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

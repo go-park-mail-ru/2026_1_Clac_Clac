@@ -174,7 +174,7 @@ erDiagram
         int BoardID FK
         string BoardName
         string DescriptionBoard
-        string Background
+        string UrlPathBackground
         timestamp ValidFrom
         timestamp ValidTo
     }

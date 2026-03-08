@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/auth"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mocks"
+	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestLogOut(t *testing.T) {
 		hasher       func(string) (string, error)
 		checker      func(string, string) error
 		generator    func() (string, error)
-		mockBehavior func(m *mocks.Database)
+		mockBehavior func(m *mockAuthRep.AuthRepository)
 	}{
 		{
 			nameTest:  "Success log out",
@@ -26,7 +26,7 @@ func TestLogOut(t *testing.T) {
 			checker:   spyChecker,
 			hasher:    spyHasher,
 			generator: spyGenerator,
-			mockBehavior: func(m *mocks.Database) {
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("DeleteSession", ctx, common.FixedSessionID).Return(nil)
 			},
@@ -35,7 +35,7 @@ func TestLogOut(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mocks.NewDatabase(t)
+			mockRepo := mockAuthRep.NewAuthRepository(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockRepo)
 			}
@@ -57,7 +57,7 @@ func TestLogOutError(t *testing.T) {
 		hasher        func(string) (string, error)
 		checker       func(string, string) error
 		generator     func() (string, error)
-		mockBehavior  func(m *mocks.Database)
+		mockBehavior  func(m *mockAuthRep.AuthRepository)
 		expectedError error
 	}{
 		{
@@ -66,17 +66,17 @@ func TestLogOutError(t *testing.T) {
 			checker:   spyChecker,
 			hasher:    spyHasher,
 			generator: spyGenerator,
-			mockBehavior: func(m *mocks.Database) {
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("DeleteSession", ctx, common.FixedSessionID).Return(repository.ErrorNotExistingSession)
 			},
-			expectedError: fmt.Errorf("repo.DeleteSession: %w", repository.ErrorNotExistingSession),
+			expectedError: fmt.Errorf("rep.DeleteSession: %w", repository.ErrorNotExistingSession),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mocks.NewDatabase(t)
+			mockRepo := mockAuthRep.NewAuthRepository(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockRepo)
 			}

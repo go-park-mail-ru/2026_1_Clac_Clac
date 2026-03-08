@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	repoRegistration "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/auth"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mocks"
+	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -21,7 +21,7 @@ func TestRegister(t *testing.T) {
 		hasher            func(string) (string, error)
 		checker           func(string, string) error
 		generator         func() (string, error)
-		mockBehavior      func(m *mocks.Database)
+		mockBehavior      func(m *mockAuthRep.AuthRepository)
 		expectedUser      models.User
 		expectedSessionID string
 	}{
@@ -33,7 +33,7 @@ func TestRegister(t *testing.T) {
 			hasher:       spyHasher,
 			generator:    spyGenerator,
 			checker:      spyChecker,
-			mockBehavior: func(m *mocks.Database) {
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
 				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), "sessionCLAC").Return(nil)
@@ -42,6 +42,7 @@ func TestRegister(t *testing.T) {
 				DisplayName:  "Artem",
 				PasswordHash: "hash_1234567",
 				Email:        "test@mail.ru",
+				Boards:       make([]models.Board, 0),
 			},
 			expectedSessionID: "sessionCLAC",
 		},
@@ -49,7 +50,7 @@ func TestRegister(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mocks.NewDatabase(t)
+			mockRepo := mockAuthRep.NewAuthRepository(t)
 			ctx := context.Background()
 
 			if test.mockBehavior != nil {
@@ -77,7 +78,7 @@ func TestRegisterError(t *testing.T) {
 		hasher       func(string) (string, error)
 		generator    func() (string, error)
 		checker      func(string, string) error
-		mockBehavior func(m *mocks.Database)
+		mockBehavior func(m *mockAuthRep.AuthRepository)
 
 		expectedError error
 	}{
@@ -89,10 +90,10 @@ func TestRegisterError(t *testing.T) {
 			hasher:       spyHasher,
 			generator:    spyGenerator,
 			checker:      spyChecker,
-			mockBehavior: func(m *mocks.Database) {
-				m.On("AddUser", context.Background(), mock.AnythingOfType("models.User")).Return(repoRegistration.ErrorExistingUser)
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				m.On("AddUser", context.Background(), mock.AnythingOfType("models.User")).Return(repository.ErrorExistingUser)
 			},
-			expectedError: fmt.Errorf("repo.AddUser: %w", repoRegistration.ErrorExistingUser),
+			expectedError: fmt.Errorf("rep.AddUser: %w", repository.ErrorExistingUser),
 		},
 		{
 			nameTest:      "Error hash password",
@@ -102,7 +103,7 @@ func TestRegisterError(t *testing.T) {
 			hasher:        spyHasherError,
 			generator:     spyGenerator,
 			checker:       spyChecker,
-			mockBehavior:  func(m *mocks.Database) {},
+			mockBehavior:  nil,
 			expectedError: fmt.Errorf("HashPassword: %w: %q", ErrorCreateHash, "error bcrypt"),
 		},
 		{
@@ -113,18 +114,18 @@ func TestRegisterError(t *testing.T) {
 			hasher:       spyHasher,
 			generator:    spyGenerator,
 			checker:      spyChecker,
-			mockBehavior: func(m *mocks.Database) {
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string")).Return(repoRegistration.ErrorDetectingCollision)
+				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string")).Return(repository.ErrorDetectingCollision)
 			},
-			expectedError: fmt.Errorf("repo.AddSession: %w", repoRegistration.ErrorDetectingCollision),
+			expectedError: fmt.Errorf("rep.AddSession: %w", repository.ErrorDetectingCollision),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mocks.NewDatabase(t)
+			mockRepo := mockAuthRep.NewAuthRepository(t)
 
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockRepo)

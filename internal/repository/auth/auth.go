@@ -1,64 +1,49 @@
-package repository
+package auth
 
 import (
 	"context"
-	"errors"
-	"sync"
 	"time"
 
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 )
 
-var (
-	ErrorExistingUser       = errors.New("user with this email alreday exists")
-	ErrorNonexistentUser    = errors.New("user with this email not exist")
-	ErrorDetectingCollision = errors.New("session collision detected")
+type AuthRepository struct {
+	database *dbConnection.MapDatabases
+}
 
-	ErrorNotExistingSession = errors.New("session not found or expired")
-	ErrorSeesionExpired     = errors.New("time life session expired")
-)
-
-func NewMapDB() *MapDatabases {
-	return &MapDatabases{
-		database: make(map[string]models.User),
-		sessions: make(map[string]Session),
+func NewAuthRepository(db *dbConnection.MapDatabases) *AuthRepository {
+	return &AuthRepository{
+		database: db,
 	}
 }
 
-type Session struct {
-	UserID    uuid.UUID
-	ExpiresAt time.Time
-}
+func (ar *AuthRepository) AddUser(ctx context.Context, user models.User) error {
+	ar.database.MutexUsers.Lock()
+	defer ar.database.MutexUsers.Unlock()
 
-type MapDatabases struct {
-	database      map[string]models.User
-	sessions      map[string]Session
-	mutexUsers    sync.RWMutex
-	mutexSessions sync.RWMutex
-}
-
-func (mp *MapDatabases) AddUser(ctx context.Context, user models.User) error {
-	mp.mutexUsers.Lock()
-	defer mp.mutexUsers.Unlock()
-
-	if _, exist := mp.database[user.Email]; exist {
-		return ErrorExistingUser
+	if _, exist := ar.database.UsersDB[user.ID]; exist {
+		return repository.ErrorExistingUser
 	}
-	mp.database[user.Email] = user
+
+	ar.database.UsersDB[user.ID] = user
 
 	return nil
 }
 
-func (mp *MapDatabases) AddSession(ctx context.Context, userID uuid.UUID, sessionID string) error {
-	mp.mutexUsers.Lock()
-	defer mp.mutexUsers.Unlock()
+func (ar *AuthRepository) AddSession(ctx context.Context, userID uuid.UUID, sessionID string) error {
+	ar.database.MutexSessions.Lock()
+	defer ar.database.MutexSessions.Unlock()
 
-	if _, exist := mp.sessions[sessionID]; exist {
-		return ErrorDetectingCollision
+	_, exist := ar.database.SessionsDB[sessionID]
+
+	if exist {
+		return repository.ErrorDetectingCollision
 	}
 
-	mp.sessions[sessionID] = Session{
+	ar.database.SessionsDB[sessionID] = dbConnection.Session{
 		UserID:    userID,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -66,44 +51,44 @@ func (mp *MapDatabases) AddSession(ctx context.Context, userID uuid.UUID, sessio
 	return nil
 }
 
-func (mp *MapDatabases) GetUserIDBySession(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	mp.mutexUsers.RLock()
-	session, exist := mp.sessions[sessionID]
-	mp.mutexUsers.RUnlock()
+func (ar *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID string) (uuid.UUID, error) {
+	ar.database.MutexSessions.Lock()
+	defer ar.database.MutexSessions.Unlock()
 
+	session, exist := ar.database.SessionsDB[sessionID]
 	if !exist {
-		return uuid.Nil, ErrorNotExistingSession
+		return uuid.Nil, repository.ErrorNotExistingSession
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		mp.mutexUsers.Lock()
-		delete(mp.sessions, sessionID)
-		mp.mutexUsers.Unlock()
-		return uuid.Nil, ErrorSeesionExpired
+		delete(ar.database.SessionsDB, sessionID)
+		return uuid.Nil, repository.ErrorSeesionExpired
 	}
 
 	return session.UserID, nil
 }
 
-func (mp *MapDatabases) DeleteSession(ctx context.Context, sessionID string) error {
-	_, exist := mp.sessions[sessionID]
-	if !exist {
-		return ErrorNotExistingSession
+func (ar *AuthRepository) DeleteSession(ctx context.Context, sessionID string) error {
+	ar.database.MutexSessions.Lock()
+	defer ar.database.MutexSessions.Unlock()
+
+	if _, exist := ar.database.SessionsDB[sessionID]; !exist {
+		return repository.ErrorNotExistingSession
 	}
 
-	mp.mutexUsers.Lock()
-	delete(mp.sessions, sessionID)
-	mp.mutexUsers.Unlock()
+	delete(ar.database.SessionsDB, sessionID)
 	return nil
 }
 
-func (mp *MapDatabases) GetUser(ctx context.Context, email string) (models.User, error) {
-	mp.mutexUsers.RLock()
-	defer mp.mutexUsers.RUnlock()
+func (ar *AuthRepository) GetUser(ctx context.Context, email string) (models.User, error) {
+	ar.database.MutexUsers.Lock()
+	defer ar.database.MutexUsers.Unlock()
 
-	if user, exist := mp.database[email]; exist {
-		return user, nil
+	for _, user := range ar.database.UsersDB {
+		if user.Email == email {
+			return user, nil
+		}
 	}
 
-	return models.User{}, ErrorNonexistentUser
+	return models.User{}, repository.ErrorNonexistentUser
 }

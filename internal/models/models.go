@@ -21,6 +21,7 @@ type User struct {
 	PasswordHash string    `json:"-"`
 	Email        string    `json:"email"`
 	Avatar       *string   `json:"background,omitempty"`
+	Boards       []Board   `json:"boards"`
 }
 
 type MemberBoard struct {
@@ -36,21 +37,13 @@ type Board struct {
 	ID uuid.UUID `json:"id"`
 }
 
-type BoardVersion struct {
-	ID      uuid.UUID `json:"id"`
-	BoardID uuid.UUID `json:"board_id"`
+type BoardTemplate struct {
+	ID       uuid.UUID  `json:"id"`
+	AuthorID *uuid.UUID `json:"author_id,omitempty"`
 
 	BoardName   string `json:"board_name"`
 	Description string `json:"description"`
 	Background  string `json:"background"`
-
-	ValidFrom time.Time  `json:"valid_from"`
-	ValidTo   *time.Time `json:"valid_to,omitempty"`
-}
-
-type BoardTemplate struct {
-	ID       uuid.UUID  `json:"id"`
-	AuthorID *uuid.UUID `json:"author_id,omitempty"`
 
 	TemplateName string `json:"template_name"`
 }

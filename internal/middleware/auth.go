@@ -9,6 +9,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type contextKey string
+
+const UserIDKey contextKey = "userID"
+
 type SessionCheker interface {
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
 }
@@ -28,7 +32,7 @@ func AuthMiddleware(srv SessionCheker) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "userID", userID)
+			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

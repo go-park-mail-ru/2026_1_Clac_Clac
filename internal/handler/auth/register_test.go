@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers/auth/mocks"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -24,11 +24,11 @@ func TestRegsisterUser(t *testing.T) {
 	}{
 		{
 			nameTest: "Success registration",
-			jsonBody: `{"display_name":"Artem","password":"123456","repeated_password":"123456","email":"test@mail.ru"}`,
+			jsonBody: `{"display_name":"Artem","password":"123456","repeated_password":"123456","email":"test@mail.ru","boards":null}`,
 			mockBehavior: func(m *mocks.AuthService) {
 				ctx := context.Background()
 				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(models.User{
-					ID:          common.FixedUuiD,
+					ID:          common.FixedUserUuiD,
 					DisplayName: "Artem",
 					Email:       "test@mail.ru",
 				},
@@ -37,7 +37,7 @@ func TestRegsisterUser(t *testing.T) {
 				)
 			},
 			expectedStatusCode: http.StatusCreated,
-			expectedResponse:   "{\"message\":\"user was successsfully created\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\"}}\n",
+			expectedResponse:   "{\"message\":\"user was successsfully created\",\"profile\":{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\",\"boards\":null}}\n",
 		},
 		{
 			nameTest:           "Incorrect JSON",

@@ -1,4 +1,4 @@
-package repository
+package auth
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,13 +22,14 @@ func TestAddUserError(t *testing.T) {
 		{
 			nameTest:      "Email is already existing",
 			emails:        []string{"bobr@mail.ru", "bobr@mail.ru"},
-			expectedError: ErrorExistingUser,
+			expectedError: repository.ErrorExistingUser,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			var err error
 			ctx := context.Background()
@@ -43,15 +46,16 @@ func TestAddUserError(t *testing.T) {
 func TestAddUser(t *testing.T) {
 	tests := []struct {
 		nameTest         string
-		emails           []string
-		expectedDataBase map[string]models.User
+		IDs              []uuid.UUID
+		expectedDataBase map[uuid.UUID]models.User
 	}{
 		{
 			nameTest: "Success registration",
-			emails:   []string{"bobr@mail.ru"},
-			expectedDataBase: map[string]models.User{
-				"bobr@mail.ru": {
-					Email: "bobr@mail.ru",
+			IDs:      []uuid.UUID{common.FixedUserUuiD},
+			expectedDataBase: map[uuid.UUID]models.User{
+				common.FixedUserUuiD: {
+					ID:     common.FixedUserUuiD,
+					Boards: make([]models.Board, 0),
 				},
 			},
 		},
@@ -59,15 +63,16 @@ func TestAddUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
-			for _, email := range test.emails {
-				repoUsers.AddUser(ctx, models.User{Email: email})
+			for _, id := range test.IDs {
+				repoUsers.AddUser(ctx, models.User{ID: id, Boards: make([]models.Board, 0)})
 			}
 
-			assert.Equal(t, test.expectedDataBase, repoUsers.database)
+			assert.Equal(t, test.expectedDataBase, repoUsers.database.UsersDB)
 		})
 	}
 }
@@ -81,15 +86,16 @@ func TestAddSeessionError(t *testing.T) {
 	}{
 		{
 			nameTest:      "Colision session in database",
-			userID:        common.FixedUuiD,
+			userID:        common.FixedUserUuiD,
 			sessionID:     common.FixedSessionID,
-			expectedError: ErrorDetectingCollision,
+			expectedError: repository.ErrorDetectingCollision,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
@@ -111,22 +117,23 @@ func TestAddSeession(t *testing.T) {
 	}{
 		{
 			nameTest:       "Success registration",
-			userID:         common.FixedUuiD,
+			userID:         common.FixedUserUuiD,
 			sessionID:      common.FixedSessionID,
-			expectedUserID: common.FixedUuiD,
+			expectedUserID: common.FixedUserUuiD,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
 			err := repoUsers.AddSession(ctx, test.userID, test.sessionID)
 			assert.NoError(t, err, "not wait error")
 
-			userID := repoUsers.sessions[test.sessionID].UserID
+			userID := repoUsers.database.SessionsDB[test.sessionID].UserID
 
 			assert.Equal(t, test.expectedUserID, userID)
 		})
@@ -138,19 +145,20 @@ func TestDeleteSession(t *testing.T) {
 		nameTest          string
 		userID            uuid.UUID
 		sessionID         string
-		expectedSessionBD map[string]Session
+		expectedSessionBD map[string]dbConnection.Session
 	}{
 		{
 			nameTest:          "Success delete session",
-			userID:            common.FixedUuiD,
+			userID:            common.FixedUserUuiD,
 			sessionID:         common.FixedSessionID,
-			expectedSessionBD: map[string]Session{},
+			expectedSessionBD: map[string]dbConnection.Session{},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
@@ -159,7 +167,7 @@ func TestDeleteSession(t *testing.T) {
 			err = repoUsers.DeleteSession(ctx, test.sessionID)
 			assert.NoError(t, err, "not wait error")
 
-			assert.Equal(t, test.expectedSessionBD, repoUsers.sessions)
+			assert.Equal(t, test.expectedSessionBD, repoUsers.database.SessionsDB)
 		})
 	}
 }
@@ -173,13 +181,14 @@ func TestDeleteSessionError(t *testing.T) {
 		{
 			nameTest:      "Not existing seesion",
 			sessionID:     common.FixedSessionID,
-			expectedError: ErrorNotExistingSession,
+			expectedError: repository.ErrorNotExistingSession,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 			err := repoUsers.DeleteSession(ctx, test.sessionID)
@@ -206,13 +215,15 @@ func TestGetUserIDBySession(t *testing.T) {
 			sessionID:      common.FixedSessionID,
 			isExist:        true,
 			isExpired:      false,
-			expectedUserID: common.FixedUuiD,
+			expectedUserID: common.FixedUserUuiD,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
+
 			ctx := context.Background()
 
 			if test.isExist {
@@ -221,8 +232,8 @@ func TestGetUserIDBySession(t *testing.T) {
 					expirationTime = time.Now().Add(-1 * time.Hour)
 				}
 
-				repoUsers.sessions[test.sessionID] = Session{
-					UserID:    common.FixedUuiD,
+				repoUsers.database.SessionsDB[test.sessionID] = dbConnection.Session{
+					UserID:    common.FixedUserUuiD,
 					ExpiresAt: expirationTime,
 				}
 			}
@@ -250,20 +261,21 @@ func TestGetUserIDBySessionError(t *testing.T) {
 			sessionID:     common.FixedSessionID,
 			isExist:       false,
 			isExpired:     false,
-			expectedError: ErrorNotExistingSession,
+			expectedError: repository.ErrorNotExistingSession,
 		},
 		{
 			nameTest:      "Error session expired",
 			sessionID:     common.FixedSessionID,
 			isExist:       true,
 			isExpired:     true,
-			expectedError: ErrorSeesionExpired,
+			expectedError: repository.ErrorSeesionExpired,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 			ctx := context.Background()
 
 			if test.isExist {
@@ -272,8 +284,8 @@ func TestGetUserIDBySessionError(t *testing.T) {
 					expirationTime = time.Now().Add(-1 * time.Hour)
 				}
 
-				repoUsers.sessions[test.sessionID] = Session{
-					UserID:    common.FixedUuiD,
+				repoUsers.database.SessionsDB[test.sessionID] = dbConnection.Session{
+					UserID:    common.FixedUserUuiD,
 					ExpiresAt: expirationTime,
 				}
 			}
@@ -294,13 +306,14 @@ func TestGetUserError(t *testing.T) {
 		{
 			nameTest:      "Not existing user",
 			email:         "bobr@mail.ru",
-			expectedError: ErrorNonexistentUser,
+			expectedError: repository.ErrorNonexistentUser,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
@@ -310,6 +323,7 @@ func TestGetUserError(t *testing.T) {
 		})
 	}
 }
+
 func TestGetUser(t *testing.T) {
 	tests := []struct {
 		nameTest     string
@@ -327,11 +341,12 @@ func TestGetUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			repoUsers := NewMapDB()
+			conectionDb := dbConnection.NewMapDatabse()
+			repoUsers := NewAuthRepository(conectionDb)
 
 			ctx := context.Background()
 
-			repoUsers.AddUser(ctx, models.User{Email: test.email})
+			repoUsers.AddUser(ctx, models.User{Email: "bobr@mail.ru"})
 			user, _ := repoUsers.GetUser(ctx, test.email)
 
 			assert.Equal(t, test.expectedUser, user)

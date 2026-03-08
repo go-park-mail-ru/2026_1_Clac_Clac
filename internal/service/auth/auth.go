@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"context"
@@ -14,24 +14,24 @@ var (
 	ErrorWrongPassword = errors.New("write wrong password")
 )
 
-type Database interface {
+type AuthRepository interface {
 	AddUser(ctx context.Context, user models.User) error
 	AddSession(ctx context.Context, userID uuid.UUID, sessionID string) error
-	GetUser(ctx context.Context, email string) (models.User, error)
+	GetUser(ctx context.Context, enail string) (models.User, error)
 	DeleteSession(ctx context.Context, sessionID string) error
 	GetUserIDBySession(ctx context.Context, sessionID string) (uuid.UUID, error)
 }
 
 type AuthUserService struct {
-	repo        Database
+	rep         AuthRepository
 	hasher      func(password string) (string, error)
 	checker     func(string, string) error
 	generatorID func() (string, error)
 }
 
-func NewAuthService(repo Database, hasher func(password string) (string, error), checker func(string, string) error, generatorID func() (string, error)) *AuthUserService {
+func NewAuthService(rep AuthRepository, hasher func(password string) (string, error), checker func(string, string) error, generatorID func() (string, error)) *AuthUserService {
 	return &AuthUserService{
-		repo:        repo,
+		rep:         rep,
 		hasher:      hasher,
 		checker:     checker,
 		generatorID: generatorID,
@@ -39,14 +39,14 @@ func NewAuthService(repo Database, hasher func(password string) (string, error),
 }
 
 func (a *AuthUserService) LogIn(ctx context.Context, email, password string) (models.User, string, error) {
-	user, err := a.repo.GetUser(ctx, email)
+	user, err := a.rep.GetUser(ctx, email)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("repo.GetUser: %w", err)
+		return models.User{}, "", fmt.Errorf("rep.GetUser: %w", err)
 	}
 
 	err = a.checker(password, user.PasswordHash)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("repo.CheckPassword: %w", err)
+		return models.User{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
@@ -54,9 +54,9 @@ func (a *AuthUserService) LogIn(ctx context.Context, email, password string) (mo
 		return models.User{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
-	err = a.repo.AddSession(ctx, user.ID, sessionID)
+	err = a.rep.AddSession(ctx, user.ID, sessionID)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("repo.AddSession: %w", err)
+		return models.User{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
 	return user, sessionID, nil
@@ -74,11 +74,12 @@ func (a *AuthUserService) Register(ctx context.Context, name, password, email st
 		DisplayName:  name,
 		PasswordHash: hashedPassword,
 		Email:        email,
+		Boards:       make([]models.Board, 0),
 	}
 
-	err = a.repo.AddUser(ctx, user)
+	err = a.rep.AddUser(ctx, user)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("repo.AddUser: %w", err)
+		return models.User{}, "", fmt.Errorf("rep.AddUser: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
@@ -86,27 +87,27 @@ func (a *AuthUserService) Register(ctx context.Context, name, password, email st
 		return models.User{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
-	err = a.repo.AddSession(ctx, user.ID, sessionID)
+	err = a.rep.AddSession(ctx, user.ID, sessionID)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("repo.AddSession: %w", err)
+		return models.User{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
 	return user, sessionID, nil
 }
 
 func (a *AuthUserService) LogOut(ctx context.Context, sessionID string) error {
-	err := a.repo.DeleteSession(ctx, sessionID)
+	err := a.rep.DeleteSession(ctx, sessionID)
 	if err != nil {
-		return fmt.Errorf("repo.DeleteSession: %w", err)
+		return fmt.Errorf("rep.DeleteSession: %w", err)
 	}
 
 	return nil
 }
 
 func (a *AuthUserService) GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	userID, err := a.repo.GetUserIDBySession(ctx, sessionID)
+	userID, err := a.rep.GetUserIDBySession(ctx, sessionID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("repo.GetUserIDBySession: %w", err)
+		return uuid.Nil, fmt.Errorf("rep.GetUserIDBySession: %w", err)
 	}
 
 	return userID, nil
