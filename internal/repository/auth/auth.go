@@ -5,7 +5,7 @@ import (
 	"time"
 
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 )

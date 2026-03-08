@@ -1,11 +1,11 @@
-package handlers_test
+package health_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handlers"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/health"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +16,7 @@ func TestHealthcheck(t *testing.T) {
 
 		require.NoError(t, err, "cannot create request")
 
-		h := http.HandlerFunc(handlers.HealthcheckHandler)
+		h := http.HandlerFunc(health.HealthcheckHandler)
 		h.ServeHTTP(res, req)
 
 		require.Equal(t, http.StatusOK, res.Code)
