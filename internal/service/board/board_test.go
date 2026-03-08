@@ -23,13 +23,13 @@ func TestGetBoards(t *testing.T) {
 	tests := []struct {
 		nameTest       string
 		userID         uuid.UUID
-		mockBehavior   func(m *mockBoardRep.BoardRepositpry)
+		mockBehavior   func(m *mockBoardRep.BoardRepository)
 		expectedBoards []models.Board
 	}{
 		{
 			nameTest: "Success get boards",
 			userID:   targetUserID,
-			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
+			mockBehavior: func(m *mockBoardRep.BoardRepository) {
 				m.On("GetBoards", context.Background(), targetUserID).Return(expectedBoards, nil)
 			},
 			expectedBoards: expectedBoards,
@@ -37,7 +37,7 @@ func TestGetBoards(t *testing.T) {
 		{
 			nameTest: "User has no boards",
 			userID:   targetUserID,
-			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
+			mockBehavior: func(m *mockBoardRep.BoardRepository) {
 				m.On("GetBoards", context.Background(), targetUserID).Return([]models.Board{}, nil)
 			},
 			expectedBoards: []models.Board{},
@@ -46,7 +46,7 @@ func TestGetBoards(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mockBoardRep.NewBoardRepositpry(t)
+			mockRepo := mockBoardRep.NewBoardRepository(t)
 			ctx := context.Background()
 
 			if test.mockBehavior != nil {
@@ -68,14 +68,14 @@ func TestGetBoardsError(t *testing.T) {
 	tests := []struct {
 		nameTest      string
 		userID        uuid.UUID
-		mockBehavior  func(m *mockBoardRep.BoardRepositpry)
+		mockBehavior  func(m *mockBoardRep.BoardRepository)
 		expectedError error
 		expectedBoard []models.Board
 	}{
 		{
 			nameTest: "User not found",
 			userID:   targetUserID,
-			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
+			mockBehavior: func(m *mockBoardRep.BoardRepository) {
 				m.On("GetBoards", context.Background(), targetUserID).Return(nil, repository.ErrorNonexistentUser)
 			},
 			expectedError: fmt.Errorf("rep.GetBoards: %w", repository.ErrorNonexistentUser),
@@ -85,7 +85,7 @@ func TestGetBoardsError(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRepo := mockBoardRep.NewBoardRepositpry(t)
+			mockRepo := mockBoardRep.NewBoardRepository(t)
 			ctx := context.Background()
 
 			if test.mockBehavior != nil {

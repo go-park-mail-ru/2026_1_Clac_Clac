@@ -81,8 +81,8 @@ func (ar *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 }
 
 func (ar *AuthRepository) GetUser(ctx context.Context, email string) (models.User, error) {
-	ar.database.MutexUsers.Lock()
-	defer ar.database.MutexUsers.Unlock()
+	ar.database.MutexUsers.RLock()
+	defer ar.database.MutexUsers.RUnlock()
 
 	for _, user := range ar.database.UsersDB {
 		if user.Email == email {

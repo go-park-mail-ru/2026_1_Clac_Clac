@@ -8,15 +8,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type BoardRepositpry interface {
+type BoardRepository interface {
 	GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error)
 }
 
 type BoardService struct {
-	rep BoardRepositpry
+	rep BoardRepository
 }
 
-func NewBoardService(rep BoardRepositpry) *BoardService {
+func NewBoardService(rep BoardRepository) *BoardService {
 	return &BoardService{
 		rep: rep,
 	}

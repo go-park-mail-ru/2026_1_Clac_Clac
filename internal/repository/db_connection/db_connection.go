@@ -17,7 +17,7 @@ type MapDatabases struct {
 	UsersDB    map[uuid.UUID]models.User
 	SessionsDB map[string]Session
 
-	MutexUsers    sync.Mutex
+	MutexUsers    sync.RWMutex
 	MutexBoards   sync.Mutex
 	MutexSessions sync.Mutex
 }
