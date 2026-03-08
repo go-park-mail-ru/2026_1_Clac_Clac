@@ -2,9 +2,11 @@ package board
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	mockBoardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/board/mock_board_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,7 @@ func TestGetBoards(t *testing.T) {
 			nameTest: "Success get boards",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
-				m.On("GetBoards", context.Background(), targetUserID).Return(expectedBoards)
+				m.On("GetBoards", context.Background(), targetUserID).Return(expectedBoards, nil)
 			},
 			expectedBoards: expectedBoards,
 		},
@@ -36,7 +38,7 @@ func TestGetBoards(t *testing.T) {
 			nameTest: "User has no boards",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
-				m.On("GetBoards", context.Background(), targetUserID).Return([]models.Board{})
+				m.On("GetBoards", context.Background(), targetUserID).Return([]models.Board{}, nil)
 			},
 			expectedBoards: []models.Board{},
 		},
@@ -53,9 +55,49 @@ func TestGetBoards(t *testing.T) {
 
 			boardService := NewBoardService(mockRepo)
 
-			boards := boardService.GetBoards(ctx, test.userID)
+			boards, _ := boardService.GetBoards(ctx, test.userID)
 
 			assert.Equal(t, test.expectedBoards, boards, "returned boards mismatch")
+		})
+	}
+}
+
+func TestGetBoardsError(t *testing.T) {
+	targetUserID := uuid.New()
+
+	tests := []struct {
+		nameTest      string
+		userID        uuid.UUID
+		mockBehavior  func(m *mockBoardRep.BoardRepositpry)
+		expectedError error
+		expectedBoard []models.Board
+	}{
+		{
+			nameTest: "User not found",
+			userID:   targetUserID,
+			mockBehavior: func(m *mockBoardRep.BoardRepositpry) {
+				m.On("GetBoards", context.Background(), targetUserID).Return(nil, repository.ErrorNonexistentUser)
+			},
+			expectedError: fmt.Errorf("rep.GetBoards: %w", repository.ErrorNonexistentUser),
+			expectedBoard: []models.Board{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRepo := mockBoardRep.NewBoardRepositpry(t)
+			ctx := context.Background()
+
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRepo)
+			}
+
+			boardService := NewBoardService(mockRepo)
+
+			boards, err := boardService.GetBoards(ctx, test.userID)
+
+			assert.Equal(t, test.expectedBoard, boards, "returned boards mismatch")
+			assert.Equal(t, test.expectedError, err)
 		})
 	}
 }

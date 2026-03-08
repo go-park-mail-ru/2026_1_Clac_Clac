@@ -17,7 +17,7 @@ type BoardRepositpry struct {
 }
 
 // GetBoards provides a mock function with given fields: ctx, userID
-func (_m *BoardRepositpry) GetBoards(ctx context.Context, userID uuid.UUID) []models.Board {
+func (_m *BoardRepositpry) GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
@@ -25,6 +25,10 @@ func (_m *BoardRepositpry) GetBoards(ctx context.Context, userID uuid.UUID) []mo
 	}
 
 	var r0 []models.Board
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]models.Board, error)); ok {
+		return rf(ctx, userID)
+	}
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []models.Board); ok {
 		r0 = rf(ctx, userID)
 	} else {
@@ -33,7 +37,13 @@ func (_m *BoardRepositpry) GetBoards(ctx context.Context, userID uuid.UUID) []mo
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NewBoardRepositpry creates a new instance of BoardRepositpry. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

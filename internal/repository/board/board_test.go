@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -62,9 +63,50 @@ func TestGetBoards(t *testing.T) {
 			baords := NewBoardRepository(conectionDb)
 			ctx := context.Background()
 
-			boards := baords.GetBoards(ctx, test.targetID)
+			boards, _ := baords.GetBoards(ctx, test.targetID)
 
 			assert.Equal(t, test.expectedBoards, boards)
+		})
+	}
+}
+
+func TestGetBoardsError(t *testing.T) {
+	userID1 := uuid.New()
+	board1 := models.Board{ID: uuid.New()}
+
+	tests := []struct {
+		nameTest       string
+		targetID       uuid.UUID
+		users          []models.User
+		expectedBoards []models.Board
+		expectedError  error
+	}{
+		{
+			nameTest: "User not found",
+			targetID: uuid.New(),
+			users: []models.User{
+				{ID: userID1, Boards: []models.Board{board1}},
+			},
+			expectedBoards: nil,
+			expectedError:  repository.ErrorNonexistentUser,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			conectionDb := dbConnection.NewMapDatabse()
+
+			for _, user := range test.users {
+				conectionDb.UsersDB[user.ID] = user
+			}
+
+			baords := NewBoardRepository(conectionDb)
+			ctx := context.Background()
+
+			boards, err := baords.GetBoards(ctx, test.targetID)
+
+			assert.Equal(t, test.expectedBoards, boards)
+			assert.Equal(t, test.expectedError, err)
 		})
 	}
 }

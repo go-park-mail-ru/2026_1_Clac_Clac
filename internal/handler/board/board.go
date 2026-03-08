@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -15,7 +16,7 @@ import (
 var ErrorNotAuth = errors.New("user was not authorized")
 
 type BoardService interface {
-	GetBoards(ctx context.Context, userID uuid.UUID) []models.Board
+	GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error)
 }
 
 func NewBoardHandler(srv BoardService) *BoardHandler {
@@ -37,7 +38,11 @@ func (bh *BoardHandler) GetUserBoards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boards := bh.srv.GetBoards(r.Context(), userID)
+	boards, err := bh.srv.GetBoards(r.Context(), userID)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusUnauthorized, fmt.Errorf("user not found: %w", err))
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
