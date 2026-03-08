@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	mockBoardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/board/mock_board_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -76,9 +76,9 @@ func TestGetBoardsError(t *testing.T) {
 			nameTest: "User not found",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockBoardRep.BoardRepository) {
-				m.On("GetBoards", context.Background(), targetUserID).Return(nil, repository.ErrorNonexistentUser)
+				m.On("GetBoards", context.Background(), targetUserID).Return(nil, common.ErrorNonexistentUser)
 			},
-			expectedError: fmt.Errorf("rep.GetBoards: %w", repository.ErrorNonexistentUser),
+			expectedError: fmt.Errorf("rep.GetBoards: %w", common.ErrorNonexistentUser),
 			expectedBoard: []models.Board{},
 		},
 	}

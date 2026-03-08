@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -88,7 +88,7 @@ func TestGetBoardsError(t *testing.T) {
 				{ID: userID1, Boards: []models.Board{board1}},
 			},
 			expectedBoards: nil,
-			expectedError:  repository.ErrorNonexistentUser,
+			expectedError:  common.ErrorNonexistentUser,
 		},
 	}
 

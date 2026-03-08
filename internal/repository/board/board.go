@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 )
@@ -33,5 +33,5 @@ func (br *BoardRepository) GetBoards(ctx context.Context, userID uuid.UUID) ([]m
 		return user.Boards, nil
 	}
 
-	return nil, repository.ErrorNonexistentUser
+	return nil, common.ErrorNonexistentUser
 }

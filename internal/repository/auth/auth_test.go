@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +21,7 @@ func TestAddUserError(t *testing.T) {
 		{
 			nameTest:      "Email is already existing",
 			emails:        []string{"bobr@mail.ru", "bobr@mail.ru"},
-			expectedError: repository.ErrorExistingUser,
+			expectedError: common.ErrorExistingUser,
 		},
 	}
 
@@ -88,7 +87,7 @@ func TestAddSeessionError(t *testing.T) {
 			nameTest:      "Colision session in database",
 			userID:        common.FixedUserUuiD,
 			sessionID:     common.FixedSessionID,
-			expectedError: repository.ErrorDetectingCollision,
+			expectedError: common.ErrorDetectingCollision,
 		},
 	}
 
@@ -181,7 +180,7 @@ func TestDeleteSessionError(t *testing.T) {
 		{
 			nameTest:      "Not existing seesion",
 			sessionID:     common.FixedSessionID,
-			expectedError: repository.ErrorNotExistingSession,
+			expectedError: common.ErrorNotExistingSession,
 		},
 	}
 
@@ -261,14 +260,14 @@ func TestGetUserIDBySessionError(t *testing.T) {
 			sessionID:     common.FixedSessionID,
 			isExist:       false,
 			isExpired:     false,
-			expectedError: repository.ErrorNotExistingSession,
+			expectedError: common.ErrorNotExistingSession,
 		},
 		{
 			nameTest:      "Error session expired",
 			sessionID:     common.FixedSessionID,
 			isExist:       true,
 			isExpired:     true,
-			expectedError: repository.ErrorSeesionExpired,
+			expectedError: common.ErrorSeesionExpired,
 		},
 	}
 
@@ -306,7 +305,7 @@ func TestGetUserError(t *testing.T) {
 		{
 			nameTest:      "Not existing user",
 			email:         "bobr@mail.ru",
-			expectedError: repository.ErrorNonexistentUser,
+			expectedError: common.ErrorNonexistentUser,
 		},
 	}
 

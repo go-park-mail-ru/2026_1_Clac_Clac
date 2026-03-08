@@ -14,8 +14,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/profile"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/store"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/store"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )

@@ -3,8 +3,8 @@ package profile
 import (
 	"context"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 )
@@ -27,5 +27,5 @@ func (pr *ProfileRepository) GetProfile(ctx context.Context, userID uuid.UUID) (
 		return user, nil
 	}
 
-	return models.User{}, repository.ErrorNonexistentUser
+	return models.User{}, common.ErrorNonexistentUser
 }

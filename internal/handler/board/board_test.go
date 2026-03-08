@@ -11,7 +11,6 @@ import (
 	mockBoardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/board/mock_board_service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -58,7 +57,7 @@ func TestGetUserBoards(t *testing.T) {
 			nameTest: "User not found",
 			ctxValue: targetUserID,
 			mockBehavior: func(m *mockBoardService.BoardService) {
-				m.On("GetBoards", mock.Anything, targetUserID).Return([]models.Board{}, fmt.Errorf("rep.GetBoards: %w", repository.ErrorNonexistentUser))
+				m.On("GetBoards", mock.Anything, targetUserID).Return([]models.Board{}, fmt.Errorf("rep.GetBoards: %w", common.ErrorNonexistentUser))
 			},
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedResponse:   "{\"error\":\"user not found: rep.GetBoards: user with this ID not exist\"}\n",

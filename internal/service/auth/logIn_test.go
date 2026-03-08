@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
+
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -97,9 +97,9 @@ func TestLoginError(t *testing.T) {
 			hasher:    spyHasher,
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetUser", context.Background(), "bobr@mail.ru").Return(models.User{}, repository.ErrorNonexistentUser)
+				m.On("GetUser", context.Background(), "bobr@mail.ru").Return(models.User{}, common.ErrorNonexistentUser)
 			},
-			expectedError: fmt.Errorf("rep.GetUser: %w", repository.ErrorNonexistentUser),
+			expectedError: fmt.Errorf("rep.GetUser: %w", common.ErrorNonexistentUser),
 		},
 		{
 			nameTest:  "Error wrong password",
@@ -131,9 +131,9 @@ func TestLoginError(t *testing.T) {
 					PasswordHash: "12345",
 				}
 				m.On("GetUser", ctx, "test@mail.ru").Return(userFromDB, nil)
-				m.On("AddSession", ctx, userFromDB.ID, "sessionCLAC").Return(repository.ErrorDetectingCollision)
+				m.On("AddSession", ctx, userFromDB.ID, "sessionCLAC").Return(common.ErrorDetectingCollision)
 			},
-			expectedError: fmt.Errorf("rep.AddSession: %w", repository.ErrorDetectingCollision),
+			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingCollision),
 		},
 	}
 

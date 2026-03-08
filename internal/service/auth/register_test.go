@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -91,9 +91,9 @@ func TestRegisterError(t *testing.T) {
 			generator:    spyGenerator,
 			checker:      spyChecker,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("AddUser", context.Background(), mock.AnythingOfType("models.User")).Return(repository.ErrorExistingUser)
+				m.On("AddUser", context.Background(), mock.AnythingOfType("models.User")).Return(common.ErrorExistingUser)
 			},
-			expectedError: fmt.Errorf("rep.AddUser: %w", repository.ErrorExistingUser),
+			expectedError: fmt.Errorf("rep.AddUser: %w", common.ErrorExistingUser),
 		},
 		{
 			nameTest:      "Error hash password",
@@ -117,9 +117,9 @@ func TestRegisterError(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string")).Return(repository.ErrorDetectingCollision)
+				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string")).Return(common.ErrorDetectingCollision)
 			},
-			expectedError: fmt.Errorf("rep.AddSession: %w", repository.ErrorDetectingCollision),
+			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingCollision),
 		},
 	}
 

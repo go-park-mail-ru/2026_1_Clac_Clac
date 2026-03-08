@@ -1,10 +1,10 @@
 package service
 
 import (
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/store"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/board"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/profile"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/store"
 )
 
 type Manager struct {

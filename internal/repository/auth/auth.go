@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/google/uuid"
 )
@@ -25,7 +25,7 @@ func (ar *AuthRepository) AddUser(ctx context.Context, user models.User) error {
 	defer ar.database.MutexUsers.Unlock()
 
 	if _, exist := ar.database.UsersDB[user.ID]; exist {
-		return repository.ErrorExistingUser
+		return common.ErrorExistingUser
 	}
 
 	ar.database.UsersDB[user.ID] = user
@@ -40,7 +40,7 @@ func (ar *AuthRepository) AddSession(ctx context.Context, userID uuid.UUID, sess
 	_, exist := ar.database.SessionsDB[sessionID]
 
 	if exist {
-		return repository.ErrorDetectingCollision
+		return common.ErrorDetectingCollision
 	}
 
 	ar.database.SessionsDB[sessionID] = dbConnection.Session{
@@ -57,12 +57,12 @@ func (ar *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID stri
 
 	session, exist := ar.database.SessionsDB[sessionID]
 	if !exist {
-		return uuid.Nil, repository.ErrorNotExistingSession
+		return uuid.Nil, common.ErrorNotExistingSession
 	}
 
 	if time.Now().After(session.ExpiresAt) {
 		delete(ar.database.SessionsDB, sessionID)
-		return uuid.Nil, repository.ErrorSeesionExpired
+		return uuid.Nil, common.ErrorSeesionExpired
 	}
 
 	return session.UserID, nil
@@ -73,7 +73,7 @@ func (ar *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 	defer ar.database.MutexSessions.Unlock()
 
 	if _, exist := ar.database.SessionsDB[sessionID]; !exist {
-		return repository.ErrorNotExistingSession
+		return common.ErrorNotExistingSession
 	}
 
 	delete(ar.database.SessionsDB, sessionID)
@@ -90,5 +90,5 @@ func (ar *AuthRepository) GetUser(ctx context.Context, email string) (models.Use
 		}
 	}
 
-	return models.User{}, repository.ErrorNonexistentUser
+	return models.User{}, common.ErrorNonexistentUser
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	repository "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/stretchr/testify/assert"
 )
@@ -68,9 +67,9 @@ func TestLogOutError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("DeleteSession", ctx, common.FixedSessionID).Return(repository.ErrorNotExistingSession)
+				m.On("DeleteSession", ctx, common.FixedSessionID).Return(common.ErrorNotExistingSession)
 			},
-			expectedError: fmt.Errorf("rep.DeleteSession: %w", repository.ErrorNotExistingSession),
+			expectedError: fmt.Errorf("rep.DeleteSession: %w", common.ErrorNotExistingSession),
 		},
 	}
 
