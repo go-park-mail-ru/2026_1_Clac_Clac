@@ -3,6 +3,10 @@ package main
 import (
 	"net/http"
 	"os"
+  "log"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
@@ -25,10 +29,7 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
-
-	conectionDb := dbConnection.NewMapDatabse()
+  conectionDb := dbConnection.NewMapDatabse()
 
 	authRepository := authRep.NewAuthRepository(conectionDb)
 	boardRepository := boardRep.NewBoardRepository(conectionDb)
@@ -52,12 +53,19 @@ func main() {
 
 	mux.Handle("GET /home", authWare(http.HandlerFunc(boardHandler.GetUserBoards)))
 	mux.Handle("GET /profile", authWare(http.HandlerFunc(profileHandler.GetProfile)))
+  
+	const configPath = "."
 
-	err := http.ListenAndServe(":8081", mux)
+	v, err := config.SetupViper(configPath)
 	if err != nil {
-		logger.Fatal().
-			Err(err).
-			Str("status", "failed").
-			Msg("cannot created server")
+		log.Fatalf("config.SetupViper: %v", err)
 	}
+
+	conf := config.DefaultConfig()
+	if err := v.Unmarshal(&conf); err != nil {
+		log.Fatalf("viper.Unmarshal: %v", err)
+	}
+
+	app := internal.NewApp(&conf)
+	app.Run()
 }

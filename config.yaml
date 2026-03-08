@@ -1,0 +1,9 @@
+app:
+  log_level: info
+
+engine:
+  addr: 127.0.0.1:8080
+  write_timeout: 15
+  read_timeout: 15
+  idle_timeout: 60
+  graceful_shutdown_timeout: 15
