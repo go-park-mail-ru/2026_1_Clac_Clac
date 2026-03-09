@@ -9,7 +9,8 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mock_auth_srv"
+
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,14 +19,14 @@ func TestRegsisterUser(t *testing.T) {
 	tests := []struct {
 		nameTest           string
 		jsonBody           string
-		mockBehavior       func(m *mocks.AuthService)
+		mockBehavior       func(m *mockAuthSrv.AuthService)
 		expectedStatusCode int
 		expectedResponse   string
 	}{
 		{
 			nameTest: "Success registration",
 			jsonBody: `{"display_name":"Artem","password":"123456","repeated_password":"123456","email":"test@mail.ru","boards":null}`,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(models.User{
 					ID:          common.FixedUserUuiD,
@@ -56,7 +57,7 @@ func TestRegsisterUser(t *testing.T) {
 		{
 			nameTest: "Email is already existing",
 			jsonBody: `{"display_name":"Artem","password":"123456","repeated_password":"123456","email":"test@mail.ru"}`,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(models.User{}, "", fmt.Errorf("repo.AddUser: user with this email alreday exists"))
 			},
@@ -108,7 +109,7 @@ func TestRegsisterUser(t *testing.T) {
 		{
 			nameTest: "Error during hash password",
 			jsonBody: `{"display_name":"Artem","password":"123456","repeated_password":"123456","email":"test@mail.ru"}`,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(models.User{}, "", fmt.Errorf("failed to create hash: error bcrypt"))
 			},
@@ -119,7 +120,7 @@ func TestRegsisterUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRegisterService := mocks.NewAuthService(t)
+			mockRegisterService := mockAuthSrv.NewAuthService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockRegisterService)
 			}

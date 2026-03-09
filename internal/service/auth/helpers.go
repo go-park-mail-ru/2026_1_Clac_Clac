@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,4 +41,15 @@ func CheckPassword(inputPassword, hashPassword string) error {
 	}
 
 	return nil
+}
+
+func GeneratorCode() (string, error) {
+	max := big.NewInt(1000000)
+
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%06d", n.Int64()), nil
 }

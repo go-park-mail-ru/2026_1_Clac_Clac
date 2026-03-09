@@ -33,20 +33,16 @@ func (ar *AuthRepository) AddUser(ctx context.Context, user models.User) error {
 	return nil
 }
 
-func (ar *AuthRepository) AddSession(ctx context.Context, userID uuid.UUID, sessionID string) error {
+func (ar *AuthRepository) AddSession(ctx context.Context, session dbConnection.Session) error {
 	ar.database.MutexSessions.Lock()
 	defer ar.database.MutexSessions.Unlock()
 
-	_, exist := ar.database.SessionsDB[sessionID]
-
+	_, exist := ar.database.SessionsDB[session.SessionID]
 	if exist {
-		return common.ErrorDetectingCollision
+		return common.ErrorDetectingSessionCollision
 	}
 
-	ar.database.SessionsDB[sessionID] = dbConnection.Session{
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-	}
+	ar.database.SessionsDB[session.SessionID] = session
 
 	return nil
 }
@@ -91,4 +87,63 @@ func (ar *AuthRepository) GetUser(ctx context.Context, email string) (models.Use
 	}
 
 	return models.User{}, common.ErrorNonexistentUser
+}
+
+func (ar *AuthRepository) GetResetToken(ctx context.Context, tokenID string) (dbConnection.ResetToken, error) {
+	ar.database.MutexTokens.Lock()
+	defer ar.database.MutexTokens.Unlock()
+
+	token, exist := ar.database.ResetTokensDB[tokenID]
+	if !exist {
+		return dbConnection.ResetToken{}, common.ErrorNotExistingResetToken
+	}
+
+	if time.Now().After(token.ExpiresAt) {
+		delete(ar.database.ResetTokensDB, tokenID)
+		return dbConnection.ResetToken{}, common.ErrorResetTokenExpired
+	}
+
+	return token, nil
+}
+
+func (ar *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) error {
+	ar.database.MutexTokens.Lock()
+	defer ar.database.MutexTokens.Unlock()
+
+	_, exist := ar.database.ResetTokensDB[tokenID]
+	if !exist {
+		return common.ErrorNotExistingResetToken
+	}
+
+	delete(ar.database.ResetTokensDB, tokenID)
+
+	return nil
+}
+
+func (ar *AuthRepository) AddResetToken(ctx context.Context, token dbConnection.ResetToken) error {
+	ar.database.MutexTokens.Lock()
+	defer ar.database.MutexTokens.Unlock()
+
+	_, exist := ar.database.ResetTokensDB[token.ResetTokenID]
+	if exist {
+		return common.ErrorDetectingTokenCollision
+	}
+
+	ar.database.ResetTokensDB[token.ResetTokenID] = token
+	return nil
+}
+
+func (ar *AuthRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	ar.database.MutexUsers.Lock()
+	defer ar.database.MutexUsers.Unlock()
+
+	user, exist := ar.database.UsersDB[userID]
+	if !exist {
+		return common.ErrorNonexistentUser
+	}
+
+	user.PasswordHash = newPasswordHash
+	ar.database.UsersDB[userID] = user
+
+	return nil
 }

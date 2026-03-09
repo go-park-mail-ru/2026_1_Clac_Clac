@@ -5,8 +5,10 @@ package mockAuthRep
 import (
 	context "context"
 
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	mock "github.com/stretchr/testify/mock"
+
+	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 
 	uuid "github.com/google/uuid"
 )
@@ -16,17 +18,35 @@ type AuthRepository struct {
 	mock.Mock
 }
 
-// AddSession provides a mock function with given fields: ctx, userID, sessionID
-func (_m *AuthRepository) AddSession(ctx context.Context, userID uuid.UUID, sessionID string) error {
-	ret := _m.Called(ctx, userID, sessionID)
+// AddResetToken provides a mock function with given fields: ctx, token
+func (_m *AuthRepository) AddResetToken(ctx context.Context, token dbConnection.ResetToken) error {
+	ret := _m.Called(ctx, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddResetToken")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dbConnection.ResetToken) error); ok {
+		r0 = rf(ctx, token)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// AddSession provides a mock function with given fields: ctx, session
+func (_m *AuthRepository) AddSession(ctx context.Context, session dbConnection.Session) error {
+	ret := _m.Called(ctx, session)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddSession")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) error); ok {
-		r0 = rf(ctx, userID, sessionID)
+	if rf, ok := ret.Get(0).(func(context.Context, dbConnection.Session) error); ok {
+		r0 = rf(ctx, session)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -52,6 +72,24 @@ func (_m *AuthRepository) AddUser(ctx context.Context, user models.User) error {
 	return r0
 }
 
+// DeleteResetToken provides a mock function with given fields: ctx, tokenID
+func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) error {
+	ret := _m.Called(ctx, tokenID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteResetToken")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, tokenID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteSession provides a mock function with given fields: ctx, sessionID
 func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) error {
 	ret := _m.Called(ctx, sessionID)
@@ -68,6 +106,34 @@ func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 	}
 
 	return r0
+}
+
+// GetResetToken provides a mock function with given fields: ctx, tokenID
+func (_m *AuthRepository) GetResetToken(ctx context.Context, tokenID string) (dbConnection.ResetToken, error) {
+	ret := _m.Called(ctx, tokenID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetResetToken")
+	}
+
+	var r0 dbConnection.ResetToken
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (dbConnection.ResetToken, error)); ok {
+		return rf(ctx, tokenID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) dbConnection.ResetToken); ok {
+		r0 = rf(ctx, tokenID)
+	} else {
+		r0 = ret.Get(0).(dbConnection.ResetToken)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, tokenID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetUser provides a mock function with given fields: ctx, enail
@@ -126,6 +192,24 @@ func (_m *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID stri
 	}
 
 	return r0, r1
+}
+
+// UpdatePassword provides a mock function with given fields: ctx, userID, newPasswordHash
+func (_m *AuthRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error {
+	ret := _m.Called(ctx, userID, newPasswordHash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) error); ok {
+		r0 = rf(ctx, userID, newPasswordHash)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // NewAuthRepository creates a new instance of AuthRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

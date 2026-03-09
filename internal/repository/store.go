@@ -1,4 +1,4 @@
-package store
+package repository
 
 import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/auth"

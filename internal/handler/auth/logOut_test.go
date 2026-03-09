@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mock_auth_srv"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,7 @@ func TestLogOutUser(t *testing.T) {
 		nameTest           string
 		addCookie          bool
 		cookieValue        string
-		mockBehavior       func(m *mocks.AuthService)
+		mockBehavior       func(m *mockAuthSrv.AuthService)
 		expectedStatusCode int
 		expectedResponse   string
 	}{
@@ -25,7 +26,7 @@ func TestLogOutUser(t *testing.T) {
 			nameTest:    "Success logout",
 			addCookie:   true,
 			cookieValue: common.FixedSessionID,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogOut", ctx, common.FixedSessionID).Return(nil)
 			},
@@ -44,7 +45,7 @@ func TestLogOutUser(t *testing.T) {
 			nameTest:    "Service error",
 			addCookie:   true,
 			cookieValue: common.FixedSessionID,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogOut", ctx, common.FixedSessionID).Return(fmt.Errorf("database down"))
 			},
@@ -55,7 +56,7 @@ func TestLogOutUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockAuthService := mocks.NewAuthService(t)
+			mockAuthService := mockAuthSrv.NewAuthService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockAuthService)
 			}

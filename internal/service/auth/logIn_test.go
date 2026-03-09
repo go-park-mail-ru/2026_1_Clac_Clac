@@ -11,6 +11,7 @@ import (
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth/mock_auth_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestLogin(t *testing.T) {
@@ -43,7 +44,7 @@ func TestLogin(t *testing.T) {
 					Email:        "bobr@mail.ru",
 				}
 				m.On("GetUser", ctx, "bobr@mail.ru").Return(userFromDB, nil)
-				m.On("AddSession", ctx, userFromDB.ID, "sessionCLAC").Return(nil)
+				m.On("AddSession", ctx, mock.AnythingOfType("dbConnection.Session")).Return(nil)
 			},
 			expectedUser: models.User{
 				DisplayName:  "Artem",
@@ -63,7 +64,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceLogin := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, test.email, test.password)
 
@@ -131,9 +132,9 @@ func TestLoginError(t *testing.T) {
 					PasswordHash: "12345",
 				}
 				m.On("GetUser", ctx, "test@mail.ru").Return(userFromDB, nil)
-				m.On("AddSession", ctx, userFromDB.ID, "sessionCLAC").Return(common.ErrorDetectingCollision)
+				m.On("AddSession", ctx, mock.AnythingOfType("dbConnection.Session")).Return(common.ErrorDetectingSessionCollision)
 			},
-			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingCollision),
+			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingSessionCollision),
 		},
 	}
 
@@ -146,7 +147,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceLogin := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			_, _, err := serviceLogin.LogIn(ctx, test.email, test.password)
 

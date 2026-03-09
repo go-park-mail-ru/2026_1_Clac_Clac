@@ -41,7 +41,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceLogOut := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -60,7 +60,7 @@ func TestLogOutError(t *testing.T) {
 		expectedError error
 	}{
 		{
-			nameTest:  "Success log out",
+			nameTest:  "Error session not found",
 			sessionID: common.FixedSessionID,
 			checker:   spyChecker,
 			hasher:    spyHasher,
@@ -82,7 +82,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceLogOut := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.Error(t, err, "expected error")

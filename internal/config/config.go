@@ -9,12 +9,14 @@ import (
 type Config struct {
 	App    Application `mapstructure:"app"`
 	Engine Engine      `mapstructure:"engine"`
+	SMTP   SMTPSender  `mapstructure:"smtp"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		App:    DefaultApplicationConfig(),
 		Engine: DefaultEngineConfig(),
+		SMTP:   DefaultSMTPSender(),
 	}
 }
 

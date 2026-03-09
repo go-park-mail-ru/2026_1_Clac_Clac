@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mocks"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mock_auth_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/stretchr/testify/assert"
@@ -18,14 +18,14 @@ func TestLogInUser(t *testing.T) {
 	tests := []struct {
 		nameTest           string
 		jsonBody           string
-		mockBehavior       func(m *mocks.AuthService)
+		mockBehavior       func(m *mockAuthSrv.AuthService)
 		expectedStatusCode int
 		expectedResponse   string
 	}{
 		{
 			nameTest: "Success login",
 			jsonBody: `{"email":"test@mail.ru","password":"123456"}`,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogIn", ctx, "test@mail.ru", "123456").Return(
 					models.User{
@@ -50,7 +50,7 @@ func TestLogInUser(t *testing.T) {
 		{
 			nameTest: "Wrong password or email",
 			jsonBody: `{"email":"artem@mail.ru","password":"wrong_password"}`,
-			mockBehavior: func(m *mocks.AuthService) {
+			mockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogIn", ctx, "artem@mail.ru", "wrong_password").Return(models.User{}, "", service.ErrorWrongPassword)
 			},
@@ -75,7 +75,7 @@ func TestLogInUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockLogInService := mocks.NewAuthService(t)
+			mockLogInService := mockAuthSrv.NewAuthService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockLogInService)
 			}

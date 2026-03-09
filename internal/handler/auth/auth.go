@@ -19,6 +19,9 @@ type AuthService interface {
 	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
+	DiliveryCodeReseting(ctx context.Context, email string) error
+	CheckCode(ctx context.Context, tokenID string) error
+	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 }
 
 func NewAuthHandler(srv AuthService) *AuthHandler {
@@ -106,7 +109,7 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ValidatorRegistraionRequest(request.Email, request.Password, request.RepeatedPassword)
+	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword)
 	if err != nil {
 		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("ValidatorRequestAuth: %w", err))
 		return
@@ -166,4 +169,69 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{message: "successfully logged out"}`))
+}
+
+type DiliveryRequest struct {
+	Email string `json:"email"`
+}
+
+func (a *AuthHandler) DiliveryLetter(w http.ResponseWriter, r *http.Request) {
+	var request DiliveryRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		return
+	}
+
+	err = a.srv.DiliveryCodeReseting(r.Context(), request.Email)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not send letter: %w", err))
+		return
+	}
+}
+
+type CodeRequest struct {
+	Code string `json:"email"`
+}
+
+func (a *AuthHandler) CheckCodeLetter(w http.ResponseWriter, r *http.Request) {
+	var request CodeRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		return
+	}
+
+	err = a.srv.CheckCode(r.Context(), request.Code)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not send letter: %w", err))
+		return
+	}
+}
+
+type NewPasswordRequest struct {
+	tokenID          string `jsin:"token_id"`
+	Password         string `json:"password"`
+	RepeatedPassword string `json:"repeated_password"`
+}
+
+func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	var request NewPasswordRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		return
+	}
+
+	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("ValidatorRequestNewPassword: %w", err))
+		return
+	}
+
+	err = a.srv.ResetPassword(r.Context(), request.tokenID, request.Password)
+	if err != nil {
+		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not reset pasdword: %w", err))
+		return
+	}
 }

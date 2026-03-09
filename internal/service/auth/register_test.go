@@ -36,7 +36,7 @@ func TestRegister(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), "sessionCLAC").Return(nil)
+				m.On("AddSession", ctx, mock.AnythingOfType("dbConnection.Session")).Return(nil)
 			},
 			expectedUser: models.User{
 				DisplayName:  "Artem",
@@ -57,7 +57,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceRegistration := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			user, sectionID, err := serviceRegistration.Register(ctx, test.display_name, test.password, test.email)
 			test.expectedUser.ID = user.ID
@@ -117,9 +117,9 @@ func TestRegisterError(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("string")).Return(common.ErrorDetectingCollision)
+				m.On("AddSession", ctx, mock.AnythingOfType("dbConnection.Session")).Return(common.ErrorDetectingSessionCollision)
 			},
-			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingCollision),
+			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingSessionCollision),
 		},
 	}
 
@@ -132,7 +132,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewAuthService(mockRepo, test.hasher, test.checker, test.generator)
+			serviceRegistration := NewAuthService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			_, _, err := serviceRegistration.Register(ctx, test.display_name, test.password, test.email)
 

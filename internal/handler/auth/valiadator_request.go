@@ -12,7 +12,7 @@ var (
 	ErrorDifferencePasswords = errors.New("passwords don't match")
 )
 
-func ValidatorRegistraionRequest(email, password, repeatedPassword string) error {
+func ValidatorWithCheckPassword(email, password, repeatedPassword string) error {
 	if password != repeatedPassword {
 		return ErrorDifferencePasswords
 	}
@@ -33,6 +33,23 @@ func ValidatorRequestAuth(email, password string) error {
 	correctEmail := checkEmail(email)
 	if !correctEmail {
 		return ErrorIncorrectEmail
+	}
+
+	return nil
+}
+
+func ValidatorRequestNewPassword(password, repeatedPassword string) error {
+	if password != repeatedPassword {
+		return ErrorDifferencePasswords
+	}
+
+	correctSymbols := checkAsciiSymbol(password)
+	if !correctSymbols {
+		return ErrorIncorrectSymbol
+	}
+
+	if len(password) < 6 {
+		return ErrorLenPassword
 	}
 
 	return nil
