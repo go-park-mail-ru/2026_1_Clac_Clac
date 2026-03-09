@@ -89,6 +89,26 @@ func (a *AuthUserService) LogIn(ctx context.Context, email, password string) (mo
 
 }
 
+func (a *AuthUserService) CreateSessionForUser(ctx context.Context, user models.User) (string, error) {
+	sessionID, err := a.generatorID()
+	if err != nil {
+		return "", fmt.Errorf("GenerateID: %w", err)
+	}
+
+	session := dbConnection.Session{
+		SessionID: sessionID,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(SessionLifetime),
+	}
+
+	err = a.rep.AddSession(ctx, session)
+	if err != nil {
+		return "", fmt.Errorf("rep.AddSession: %w", err)
+	}
+
+	return sessionID, nil
+}
+
 func (a *AuthUserService) Register(ctx context.Context, name, password, email string) (models.User, string, error) {
 	hashedPassword, err := a.hasher(password)
 	if err != nil {
@@ -143,6 +163,15 @@ func (a *AuthUserService) GetUserID(ctx context.Context, sessionID string) (uuid
 	}
 
 	return userID, nil
+}
+
+func (a *AuthUserService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
+	user, err := a.rep.GetUser(ctx, email)
+	if err != nil {
+		return models.User{}, fmt.Errorf("rep.GetUser: %w", err)
+	}
+
+	return user, nil
 }
 
 func (a *AuthUserService) SendRecoveryCode(ctx context.Context, email string) error {

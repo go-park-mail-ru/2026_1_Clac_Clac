@@ -11,6 +11,7 @@ type Config struct {
 	App        Application `mapstructure:"app"`
 	Engine     Engine      `mapstructure:"engine"`
 	MailSender MailSender  `mapstructure:"mail_sender"`
+	VkOAuth    VkOAuth     `mapstructure:"vk_oauth"`
 }
 
 func DefaultConfig() Config {
@@ -18,6 +19,7 @@ func DefaultConfig() Config {
 		App:        DefaultApplicationConfig(),
 		Engine:     DefaultEngineConfig(),
 		MailSender: DefaultMailSenderConfig(),
+		VkOAuth:    DefaultVkOAuthConfig(),
 	}
 }
 
@@ -30,6 +32,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	SetDefaultEnvMailSender(v)
+	SetDefaultEnvVkOAuth(v)
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)

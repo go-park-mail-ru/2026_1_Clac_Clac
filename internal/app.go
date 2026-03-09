@@ -37,7 +37,7 @@ func NewApp(conf *config.Config) *App {
 	store := setupStore(db)
 	manager := setupManager(store, &conf.MailSender)
 
-	router := setupRouter(manager, logger)
+	router := setupRouter(manager, logger, &conf.VkOAuth)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -59,7 +59,7 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
+func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
 	router := mux.NewRouter()
 
 	// Добавление обищх мидлваре
@@ -74,6 +74,8 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf))
 
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)

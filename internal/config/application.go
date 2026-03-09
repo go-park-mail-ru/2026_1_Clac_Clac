@@ -9,7 +9,6 @@ const (
 	defaultLogLevel = DebugLevel
 )
 
-// Конфиг для настройки приложения
 type Application struct {
 	LogLevel string `mapstructure:"log_level"`
 }
