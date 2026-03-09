@@ -16,7 +16,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/repository/db_connection"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
-	authSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
@@ -36,9 +35,7 @@ func NewApp(conf *config.Config) *App {
 
 	db := setupDatabase()
 	store := setupStore(db)
-
-	mailSender := service.NewMailSender(&conf.SMTP)
-	manager := setupManager(store, &mailSender)
+	manager := setupManager(store, &conf.MailSender)
 
 	router := setupRouter(manager, logger)
 
@@ -77,10 +74,9 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
-	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
-	public.HandleFunc("/forgot-password", authHandler.DiliveryLetter).Methods(http.MethodPost)
-	public.HandleFunc("/check-code", authHandler.CheckCodeLetter).Methods(http.MethodPost)
+	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
+	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
@@ -91,6 +87,7 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 	boardHandler := board.NewBoardHandler(manager.Board)
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
+	protected.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
@@ -131,6 +128,6 @@ func setupStore(db *dbConnection.MapDatabases) *repository.Store {
 }
 
 // Настройка менеджера сервисов
-func setupManager(s *repository.Store, sl authSrv.SenderLetters) *service.Manager {
-	return service.NewManager(s, sl)
+func setupManager(s *repository.Store, mailSenderConf *config.MailSender) *service.Manager {
+	return service.NewManager(s, mailSenderConf)
 }

@@ -64,7 +64,7 @@ func TestDiliveryCodeReseting(t *testing.T) {
 
 			service := NewAuthService(mockRepo, mockMail, nil, nil, test.generator, test.generator)
 
-			err := service.DiliveryCodeReseting(context.Background(), test.email)
+			err := service.SendRecoveryCode(context.Background(), test.email)
 
 			time.Sleep(10 * time.Millisecond)
 

@@ -56,7 +56,7 @@ func TestCheckCode(t *testing.T) {
 			}
 
 			service := NewAuthService(mockRepo, nil, nil, nil, nil, nil)
-			err := service.CheckCode(context.Background(), test.tokenID)
+			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {
 				assert.EqualError(t, err, test.expectedError.Error())

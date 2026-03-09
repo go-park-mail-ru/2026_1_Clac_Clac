@@ -12,6 +12,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	SessiondIdKey   = "session_id"
+	SessionLifetime = 24 * time.Hour
+)
+
 var (
 	ErrorCreateHash    = errors.New("failed to create hash")
 	ErrorWrongPassword = errors.New("write wrong password")
@@ -140,7 +145,7 @@ func (a *AuthUserService) GetUserID(ctx context.Context, sessionID string) (uuid
 	return userID, nil
 }
 
-func (a *AuthUserService) DiliveryCodeReseting(ctx context.Context, email string) error {
+func (a *AuthUserService) SendRecoveryCode(ctx context.Context, email string) error {
 	user, err := a.rep.GetUser(ctx, email)
 	if err != nil {
 		return fmt.Errorf("rep.GetUser: %w", err)
@@ -164,9 +169,9 @@ func (a *AuthUserService) DiliveryCodeReseting(ctx context.Context, email string
 
 	htmlBody := fmt.Sprintf(`
 		<div style="background-color: #0a0a0c; padding: 50px 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-			
+
 			<div style="max-width: 480px; margin: 0 auto; background-color: #131318; padding: 40px 30px; border-radius: 16px; border: 1px solid #2a2a35; border-top: 4px solid #8b5cf6; text-align: center;">
-				
+
 				<div style="font-size: 32px; font-weight: bold; margin-bottom: 30px; letter-spacing: 1px;">
 					<span style="color: #ffffff;">Ne</span><span style="color: #8b5cf6;">X</span><span style="color: #ffffff;">uS</span>
 				</div>
@@ -174,7 +179,7 @@ func (a *AuthUserService) DiliveryCodeReseting(ctx context.Context, email string
 				<h2 style="color: #ffffff; margin-bottom: 15px; font-size: 22px; font-weight: 500;">
 					Восстановление пароля
 				</h2>
-				
+
 				<p style="color: #a1a1aa; font-size: 15px; line-height: 1.6; margin-bottom: 30px;">
 					Вы запросили сброс пароля.<br>Введите этот код на сайте для подтверждения:
 				</p>
@@ -189,7 +194,7 @@ func (a *AuthUserService) DiliveryCodeReseting(ctx context.Context, email string
 					Код действует 15 минут.<br>
 					Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо. Никому не сообщайте данный код.
 				</p>
-				
+
 			</div>
 
 		</div>
@@ -205,7 +210,7 @@ func (a *AuthUserService) DiliveryCodeReseting(ctx context.Context, email string
 	return nil
 }
 
-func (a *AuthUserService) CheckCode(ctx context.Context, tokenID string) error {
+func (a *AuthUserService) CheckRecoveryCode(ctx context.Context, tokenID string) error {
 	resetToken, err := a.rep.GetResetToken(ctx, tokenID)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)

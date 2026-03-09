@@ -2,16 +2,18 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
-	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/google/uuid"
 )
 
-type contextKey string
+const (
+	unauthorizedMessage = "unauthorized"
+)
 
-const UserIDKey contextKey = "userID"
+type UserIDKey struct{}
 
 type SessionCheker interface {
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
@@ -20,19 +22,19 @@ type SessionCheker interface {
 func AuthMiddleware(srv SessionCheker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie("session_id")
+			cookie, err := r.Cookie(auth.SessiondIdKey)
 			if err != nil {
-				common.MakeJSONError(w, http.StatusUnauthorized, errors.New("missing cookie"))
+				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 
 			userID, err := srv.GetUserID(r.Context(), cookie.Value)
 			if err != nil {
-				common.MakeJSONError(w, http.StatusUnauthorized, errors.New("invalid session"))
+				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), UserIDKey{}, userID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

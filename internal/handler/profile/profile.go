@@ -2,14 +2,17 @@ package profile
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	"github.com/google/uuid"
+)
+
+const (
+	unauthorizedMessage = "unauthorized"
+	somethingWentWrong  = "something went wrong"
 )
 
 type ProfileService interface {
@@ -27,24 +30,19 @@ type ProfileHandler struct {
 }
 
 func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	value := r.Context().Value(middleware.UserIDKey)
+	value := r.Context().Value(middleware.UserIDKey{})
 
 	userID, ok := value.(uuid.UUID)
 	if !ok {
-		common.MakeJSONError(w, http.StatusUnauthorized, handler.ErrorNotAuth)
+		api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 		return
 	}
 
 	user, err := ps.srv.GetProfileUser(r.Context(), userID)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusInternalServerError, err)
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	api.HandleError(api.RespondOk(w, user))
 }

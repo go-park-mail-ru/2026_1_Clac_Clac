@@ -5,15 +5,10 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
-	"github.com/subosito/gotenv"
 )
 
 func main() {
 	const configPath = "."
-
-	if err := gotenv.Load(); err != nil {
-		log.Fatalf("gotenv.Load: %v", err)
-	}
 
 	v, err := config.SetupViper(configPath)
 	if err != nil {

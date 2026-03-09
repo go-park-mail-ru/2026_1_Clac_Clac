@@ -1,4 +1,4 @@
-package service
+package mail
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type MailSender struct {
 	password string
 }
 
-func NewMailSender(conf *config.SMTPSender) MailSender {
+func NewMailSender(conf *config.MailSender) MailSender {
 	return MailSender{
 		host:     conf.Host,
 		port:     conf.Port,

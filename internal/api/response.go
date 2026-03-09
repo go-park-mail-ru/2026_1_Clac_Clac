@@ -92,6 +92,17 @@ func RespondOk[T any](w http.ResponseWriter, data T) (http.ResponseWriter, error
 	return respond(w, http.StatusOK, response)
 }
 
+func RespondCreated[T any](w http.ResponseWriter, data T) (http.ResponseWriter, error) {
+	response := OkResponse[T]{
+		Response: Response{
+			Status: StatusOK,
+		},
+		Data: data,
+	}
+
+	return respond(w, http.StatusCreated, response)
+}
+
 // Ответ ошибкой, надо указать код ошибки и сообщение.
 // Код ошибки также установится в HTTP-ответ, поэтому надо использовать валидные коды
 func RespondError(w http.ResponseWriter, errorCode int, message string) (http.ResponseWriter, error) {

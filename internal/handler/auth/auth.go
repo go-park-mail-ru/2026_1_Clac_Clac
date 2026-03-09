@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type AuthService interface {
@@ -19,8 +20,8 @@ type AuthService interface {
 	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
-	DiliveryCodeReseting(ctx context.Context, email string) error
-	CheckCode(ctx context.Context, tokenID string) error
+	SendRecoveryCode(ctx context.Context, email string) error
+	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 }
 
@@ -34,119 +35,89 @@ type AuthHandler struct {
 	srv AuthService
 }
 
-type LogInRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LogInResponse struct {
-	Message string      `json:"message"`
-	Profile models.User `json:"profile"`
-}
+const (
+	invalidDataMessage     = "invalid data"
+	invalidEmailOrPassword = "invalid email or password"
+	wrongEmailOrPassword   = "wrong email or password"
+	userNotAuthorized      = "user not authorized"
+	cannotSendEmail        = "cannot send email"
+	cannotResetPassword    = "cannot reset password"
+	somethingWentWrong     = "something went wrong"
+)
 
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
-	var request LogInRequest
+	logger := zerolog.Ctx(r.Context())
+
+	var request api.LogInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err := ValidatorRequestAuth(request.Email, request.Password)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("ValidatorRequestAuth: %w", err))
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
 	user, sessionID, err := a.srv.LogIn(r.Context(), request.Email, request.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
-			common.MakeJSONError(w, http.StatusUnauthorized, errors.New("wrong email or password"))
+			api.RespondError(w, http.StatusUnauthorized, wrongEmailOrPassword)
 			return
 		}
 
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("cannot log in user: %w", err))
+		logger.Err(fmt.Errorf("auth.Login: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
-	response := LogInResponse{
-		Message: "user was successfully logged in",
-		Profile: user,
-	}
+	http.SetCookie(w, api.NewCookie(
+		service.SessiondIdKey,
+		sessionID,
+		time.Now().Add(service.SessionLifetime)))
 
-	cookie := &http.Cookie{
-		Name:     "session_id",
-		Value:    sessionID,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-	}
-
-	http.SetCookie(w, cookie)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-}
-
-type RegisterRequest struct {
-	DisplayName      string `json:"display_name"`
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	RepeatedPassword string `json:"repeated_password"`
-}
-
-type RegisterResponse struct {
-	Message string      `json:"message"`
-	Profile models.User `json:"profile"`
+	api.HandleError(api.RespondOk(w, user))
 }
 
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	var request RegisterRequest
+	logger := zerolog.Ctx(r.Context())
+
+	var request api.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("ValidatorRequestAuth: %w", err))
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
 	user, sessionID, err := a.srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("cannot register user: %w", err))
+		logger.Err(fmt.Errorf("auth.Register: %w", err))
+		// Сервис не возвращает однозначной ошибки, поэтому на все ошибки кидаем 500-ку
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
-	response := RegisterResponse{
-		Message: "user was successsfully created",
-		Profile: user,
-	}
+	http.SetCookie(w, api.NewCookie(
+		service.SessiondIdKey,
+		sessionID,
+		time.Now().Add(service.SessionLifetime)))
 
-	cookie := &http.Cookie{
-		Name:     "session_id",
-		Value:    sessionID,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Path:     "/",
-	}
-
-	http.SetCookie(w, cookie)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	api.HandleError(api.RespondCreated(w, user))
 }
 
 func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session_id")
+	logger := zerolog.Ctx(r.Context())
+
+	// TODO: Дублирование с AuthMiddleware, убрать
+	cookie, err := r.Cookie(service.SessiondIdKey)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusUnauthorized, fmt.Errorf("user not authorized"))
+		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
 		return
 	}
 
@@ -154,84 +125,77 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 
 	err = a.srv.LogOut(r.Context(), sessionId)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusInternalServerError, fmt.Errorf("failed to logout: %w", err))
+		logger.Err(fmt.Errorf("auth.Logout: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-	})
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{message: "successfully logged out"}`))
+	http.SetCookie(w, api.NewExpiredCookie(service.SessiondIdKey))
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-type DiliveryRequest struct {
-	Email string `json:"email"`
-}
+func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 
-func (a *AuthHandler) DiliveryLetter(w http.ResponseWriter, r *http.Request) {
-	var request DiliveryRequest
+	var request api.PasswordRecoveryRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
-	err = a.srv.DiliveryCodeReseting(r.Context(), request.Email)
+	err = a.srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not send letter: %w", err))
+		logger.Err(fmt.Errorf("auth.SendRecoveryCode: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, cannotSendEmail)
 		return
 	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-type CodeRequest struct {
-	Code string `json:"email"`
-}
+func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 
-func (a *AuthHandler) CheckCodeLetter(w http.ResponseWriter, r *http.Request) {
-	var request CodeRequest
+	var request api.RecoveryCodeRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
-	err = a.srv.CheckCode(r.Context(), request.Code)
+	err = a.srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not send letter: %w", err))
+		logger.Err(fmt.Errorf("auth.CheckRecoveryCode: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
-}
 
-type NewPasswordRequest struct {
-	tokenID          string `jsin:"token_id"`
-	Password         string `json:"password"`
-	RepeatedPassword string `json:"repeated_password"`
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
-	var request NewPasswordRequest
+	logger := zerolog.Ctx(r.Context())
+
+	var request api.NewPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: %w", common.ErrorDecodeRequest, err))
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("ValidatorRequestNewPassword: %w", err))
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
-	err = a.srv.ResetPassword(r.Context(), request.tokenID, request.Password)
+	err = a.srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
-		common.MakeJSONError(w, http.StatusBadRequest, fmt.Errorf("can not reset pasdword: %w", err))
+		logger.Err(fmt.Errorf("auth.ResetPassword: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, cannotResetPassword)
 		return
 	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

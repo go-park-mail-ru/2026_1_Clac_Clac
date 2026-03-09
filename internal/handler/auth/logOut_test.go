@@ -2,82 +2,89 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth/mock_auth_srv"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+type LogOutTestCase struct {
+	Name               string
+	AddCookie          bool
+	CookieValue        string
+	ExpectedResponse   any
+	ExpectedStatusCode int
+	MockBehavior       func(m *mockAuthSrv.AuthService)
+}
+
 func TestLogOutUser(t *testing.T) {
-	tests := []struct {
-		nameTest           string
-		addCookie          bool
-		cookieValue        string
-		mockBehavior       func(m *mockAuthSrv.AuthService)
-		expectedStatusCode int
-		expectedResponse   string
-	}{
+	tests := []LogOutTestCase{
 		{
-			nameTest:    "Success logout",
-			addCookie:   true,
-			cookieValue: common.FixedSessionID,
-			mockBehavior: func(m *mockAuthSrv.AuthService) {
+			Name:               "Success logout",
+			AddCookie:          true,
+			CookieValue:        common.FixedSessionID,
+			ExpectedResponse:   newResponse(api.StatusOK),
+			ExpectedStatusCode: http.StatusOK,
+			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogOut", ctx, common.FixedSessionID).Return(nil)
 			},
-			expectedStatusCode: http.StatusOK,
-			expectedResponse:   "{message: \"successfully logged out\"}",
 		},
 		{
-			nameTest:           "No cookie provided",
-			addCookie:          false,
-			cookieValue:        "",
-			mockBehavior:       nil,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedResponse:   "{\"error\":\"user not authorized\"}\n",
+			Name:               "No cookie provided",
+			AddCookie:          false,
+			CookieValue:        "",
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, userNotAuthorized),
+			ExpectedStatusCode: http.StatusUnauthorized,
+			MockBehavior:       nil,
 		},
 		{
-			nameTest:    "Service error",
-			addCookie:   true,
-			cookieValue: common.FixedSessionID,
-			mockBehavior: func(m *mockAuthSrv.AuthService) {
+			Name:               "Service error",
+			AddCookie:          true,
+			CookieValue:        common.FixedSessionID,
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
+			ExpectedStatusCode: http.StatusInternalServerError,
+			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogOut", ctx, common.FixedSessionID).Return(fmt.Errorf("database down"))
 			},
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedResponse:   "{\"error\":\"failed to logout: database down\"}\n",
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
+		t.Run(test.Name, func(t *testing.T) {
 			mockAuthService := mockAuthSrv.NewAuthService(t)
-			if test.mockBehavior != nil {
-				test.mockBehavior(mockAuthService)
+			if test.MockBehavior != nil {
+				test.MockBehavior(mockAuthService)
 			}
 
 			handler := NewAuthHandler(mockAuthService)
 
-			request := httptest.NewRequest(http.MethodPost, "/logout", nil)
-			if test.addCookie {
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
+			if test.AddCookie {
 				request.AddCookie(&http.Cookie{
 					Name:  "session_id",
-					Value: test.cookieValue,
+					Value: test.CookieValue,
 				})
 			}
 			response := httptest.NewRecorder()
 
 			handler.LogOutUser(response, request)
 
-			assert.Equal(t, test.expectedStatusCode, response.Code, "incorrect status code")
-			assert.Equal(t, test.expectedResponse, response.Body.String(), "incorrect response")
+			responseJson, err := json.Marshal(test.ExpectedResponse)
+			require.NoError(t, err, "response marshal should not return error")
 
-			if test.expectedStatusCode == http.StatusOK {
+			assert.Equal(t, test.ExpectedStatusCode, response.Code, "incorrect status code")
+			assert.Equal(t, string(responseJson), response.Body.String(), "incorrect body")
+
+			if test.ExpectedStatusCode == http.StatusOK {
 				res := response.Result()
 				cookies := res.Cookies()
 

@@ -2,18 +2,48 @@ package profile
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	mockProfileHand "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/profile/mock_profile_hand"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
+
+type GetProfileTestCase struct {
+	Name               string
+	CtxValue           any
+	MockBehavior       func(m *mockProfileHand.ProfileService)
+	ExpectedStatusCode int
+	ExpectedResponse   any
+}
+
+func newOkResponse[T any](status string, data T) api.OkResponse[T] {
+	return api.OkResponse[T]{
+		Response: api.Response{
+			Status: status,
+		},
+		Data: data,
+	}
+}
+
+func newErrorResponse(code int, message string) api.ErrorResponse {
+	return api.ErrorResponse{
+		Response: api.Response{
+			Status: api.StatusError,
+		},
+		Code:    code,
+		Message: message,
+	}
+}
 
 func TestGetUserProfile(t *testing.T) {
 	targetUserID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
@@ -23,69 +53,69 @@ func TestGetUserProfile(t *testing.T) {
 		Email:       "test@mail.ru",
 	}
 
-	tests := []struct {
-		nameTest           string
-		ctxValue           interface{}
-		mockBehavior       func(m *mockProfileHand.ProfileService)
-		expectedStatusCode int
-		expectedResponse   string
-	}{
+	tests := []GetProfileTestCase{
 		{
-			nameTest: "Success get profile",
-			ctxValue: targetUserID,
-			mockBehavior: func(m *mockProfileHand.ProfileService) {
+			Name:     "Success get profile",
+			CtxValue: targetUserID,
+			MockBehavior: func(m *mockProfileHand.ProfileService) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(expectedUser, nil)
 			},
-			expectedStatusCode: http.StatusOK,
-			expectedResponse:   "{\"id\":\"11111111-1111-1111-1111-111111111111\",\"display_name\":\"Artem\",\"email\":\"test@mail.ru\",\"boards\":null}\n",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedResponse:   newOkResponse(api.StatusOK, expectedUser),
 		},
 		{
-			nameTest:           "Error user not authorized",
-			ctxValue:           nil,
-			mockBehavior:       nil,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedResponse:   "{\"error\":\"user was not authorized\"}\n",
+			Name:               "Error user not authorized",
+			CtxValue:           nil,
+			MockBehavior:       nil,
+			ExpectedStatusCode: http.StatusUnauthorized,
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
 		},
 		{
-			nameTest:           "Error context value is not UUID",
-			ctxValue:           "invalid-uuid-string",
-			mockBehavior:       nil,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedResponse:   "{\"error\":\"user was not authorized\"}\n",
+			Name:               "Error context value is not UUID",
+			CtxValue:           "invalid-uuid-string",
+			MockBehavior:       nil,
+			ExpectedStatusCode: http.StatusUnauthorized,
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
 		},
 		{
-			nameTest: "Error from service",
-			ctxValue: targetUserID,
-			mockBehavior: func(m *mockProfileHand.ProfileService) {
-				m.On("GetProfileUser", mock.Anything, targetUserID).Return(models.User{}, errors.New("database connection lost"))
+			Name:     "Error from service",
+			CtxValue: targetUserID,
+			MockBehavior: func(m *mockProfileHand.ProfileService) {
+				m.On("GetProfileUser", mock.Anything, targetUserID).Return(
+					models.User{},
+					errors.New("database connection lost"),
+				)
 			},
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedResponse:   "{\"error\":\"database connection lost\"}\n",
+			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
+		t.Run(test.Name, func(t *testing.T) {
 			mockProfileService := mockProfileHand.NewProfileService(t)
-			if test.mockBehavior != nil {
-				test.mockBehavior(mockProfileService)
+			if test.MockBehavior != nil {
+				test.MockBehavior(mockProfileService)
 			}
 
 			handler := NewProfileHandler(mockProfileService)
-			request := httptest.NewRequest(http.MethodGet, "/profile", nil)
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
-			if test.ctxValue != nil {
-				ctx := context.WithValue(request.Context(), middleware.UserIDKey, test.ctxValue)
+			if test.CtxValue != nil {
+				ctx := context.WithValue(request.Context(), middleware.UserIDKey{}, test.CtxValue)
 				request = request.WithContext(ctx)
 			}
 
 			response := httptest.NewRecorder()
 			handler.GetProfile(response, request)
 
-			assert.Equal(t, test.expectedStatusCode, response.Code)
+			assert.Equal(t, test.ExpectedStatusCode, response.Code, "incorrect status code")
 
-			if test.expectedResponse != "" {
-				assert.Equal(t, test.expectedResponse, response.Body.String())
+			if test.ExpectedResponse != nil {
+				responseJson, err := json.Marshal(test.ExpectedResponse)
+				require.NoError(t, err, "response marshal should not return error")
+
+				assert.Equal(t, string(responseJson), response.Body.String(), "incorrect response body")
 			}
 		})
 	}
