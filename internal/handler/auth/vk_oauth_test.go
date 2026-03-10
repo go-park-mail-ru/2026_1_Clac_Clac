@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -72,7 +73,7 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 	httpHandler(rr, req)
 
 	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, redirectTo, rr.Header().Get("Location"))
+	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
 
 	cookies := rr.Result().Cookies()
 	assert.NotEmpty(t, cookies)
@@ -117,11 +118,36 @@ func TestVkOAuthCallbackNewUserRegistration(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/callback?code=valid_code", nil)
 	rr := httptest.NewRecorder()
+
 	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
 	httpHandler(rr, req)
 
 	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, redirectTo, rr.Header().Get("Location"))
+	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
+
 	mockVkOAuth.AssertExpectations(t)
 	mockAuthService.AssertExpectations(t)
+}
+
+func TestVkOAuthCallbackExchangeError(t *testing.T) {
+	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
+	mockAuthService := new(authServiceMocks.AuthService)
+
+	handler := &AuthHandler{srv: mockAuthService}
+	conf := &config.VkOAuth{}
+	redirectTo := "/"
+
+	mockVkOAuth.On("Exchange", mock.Anything, "invalid_code").
+		Return((*oauth2.Token)(nil), errors.New("exchange failed"))
+
+	req := httptest.NewRequest(http.MethodGet, "/callback?code=invalid_code", nil)
+	rr := httptest.NewRecorder()
+
+	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
+	httpHandler(rr, req)
+
+	assert.Equal(t, http.StatusFound, rr.Code)
+	assert.Equal(t, "/?code=400&message=vk_oauth_error", rr.Header().Get("Location"))
+
+	mockVkOAuth.AssertExpectations(t)
 }

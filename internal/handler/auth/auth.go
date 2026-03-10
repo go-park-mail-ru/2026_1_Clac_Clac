@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -289,6 +291,16 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
+	redirectWithMessage := func(w http.ResponseWriter, r *http.Request, statusCode int, errorMessage string) {
+		params := url.Values{}
+		params.Add("message", errorMessage)
+		params.Add("code", strconv.Itoa(statusCode))
+
+		targetURL := fmt.Sprintf("%s?%s", redirectTo, params.Encode())
+
+		http.Redirect(w, r, targetURL, http.StatusFound)
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		const vkOAuthCodeKey = "code"
 		const emailKey = "email"
@@ -302,7 +314,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		token, err := vkOAuth.Exchange(ctx, code)
 		if err != nil {
 			logger.Err(err).Msg("vk oauth exchange")
-			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			redirectWithMessage(w, r, http.StatusBadRequest, "vk_oauth_error")
 			return
 		}
 
@@ -310,13 +322,13 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		var ok bool
 		if emailRaw := token.Extra(emailKey); emailRaw != nil {
 			if userEmail, ok = emailRaw.(string); !ok {
-				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
 				return
 			}
 		}
 
 		if ok := ValidateEmail(userEmail); !ok {
-			api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+			redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
 			return
 		}
 
@@ -324,7 +336,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
 		if err != nil {
 			logger.Err(err).Msg("vk api cannot request data")
-			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			redirectWithMessage(w, r, http.StatusBadRequest, "cannot_request_data")
 			return
 		}
 
@@ -337,13 +349,13 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		usersData := &api.VkAPIUsersData{}
 		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
 			logger.Err(err).Msg("cannot read response body")
-			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 			return
 		}
 
 		if len(usersData.Response) < 1 {
 			logger.Err(errors.New("cannot find user")).Msg("read user data from vk api")
-			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 			return
 		}
 
@@ -356,7 +368,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 				b := make([]byte, randomPasswordLength)
 				if _, err := rand.Read(b); err != nil {
 					logger.Err(err).Msg("vk oauth generate user password")
-					api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 					return
 				}
 
@@ -365,19 +377,19 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 				user, sessionID, err = a.srv.Register(r.Context(), userData.FirstName, password, userEmail)
 				if err != nil {
 					logger.Err(fmt.Errorf("auth.Register: %w", err))
-					api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 					return
 				}
 			} else {
 				logger.Err(err).Msg("service.GetUser")
-				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 				return
 			}
 		} else {
 			sessionID, err = a.srv.CreateSessionForUser(ctx, user)
 			if err != nil {
 				logger.Err(err).Msg("service.CreateSessionForUser")
-				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
 				return
 			}
 		}
@@ -387,6 +399,6 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
 
-		http.Redirect(w, r, redirectTo, http.StatusFound)
+		redirectWithMessage(w, r, http.StatusOK, "success")
 	}
 }
