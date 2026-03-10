@@ -59,6 +59,7 @@ const (
 	cannotResetPassword    = "cannot reset password"
 	somethingWentWrong     = "something went wrong"
 	userNotAuthorized      = "user not authorized"
+	userDoesNotExists      = "user does not exists"
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -214,6 +215,11 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 
 	err = a.srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusBadRequest, userDoesNotExists)
+			return
+		}
+
 		logger.Err(fmt.Errorf("auth.SendRecoveryCode: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, cannotSendEmail)
 		return

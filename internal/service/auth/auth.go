@@ -187,7 +187,7 @@ func (a *AuthUserService) SendRecoveryCode(ctx context.Context, email string) er
 
 	resetCode, err := a.generateResetCode()
 	if err != nil {
-		return fmt.Errorf("generateResetCode: %w", err)
+		return common.ErrorNonexistentUser
 	}
 
 	resetToken := dbConnection.ResetToken{
