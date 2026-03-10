@@ -153,7 +153,7 @@ func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 }
 
 func createDemoUser(s *repository.Store, m *service.Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), "Demo", "123456", "demo@demo.ru")
+	user, _, err := m.Auth.Register(context.Background(), "Demo", "12345678", "demo@demo.ru")
 	if err != nil {
 		logger.Err(err).Msg("cannot create demo user")
 	} else {
