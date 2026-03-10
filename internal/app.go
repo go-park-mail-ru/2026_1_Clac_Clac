@@ -77,6 +77,7 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
 	vkOAuth := setupVKOAuth(vkOAuthConf)
 	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
@@ -94,7 +95,6 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 

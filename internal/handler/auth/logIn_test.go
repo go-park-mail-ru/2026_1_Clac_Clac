@@ -57,7 +57,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 			Name: "Success login",
 			Request: api.LogInRequest{
 				Email:    "test@mail.ru",
-				Password: "123456",
+				Password: "123456789",
 			},
 			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
 				ID:          common.FixedUserUuiD,
@@ -67,7 +67,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("LogIn", ctx, "test@mail.ru", "123456").Return(
+				m.On("LogIn", ctx, "test@mail.ru", "123456789").Return(
 					models.User{
 						ID:          common.FixedUserUuiD,
 						DisplayName: "Artem",
@@ -92,10 +92,20 @@ func TestLogInUserWithSchema(t *testing.T) {
 			},
 		},
 		{
-			Name: "Size password smaller than 6",
+			Name: "Size password smaller than 8",
 			Request: api.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "123",
+			},
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedStatusCode: http.StatusBadRequest,
+			MockBehavior:       nil,
+		},
+		{
+			Name: "Size password biger than 128",
+			Request: api.LogInRequest{
+				Email:    "artem@mail.ru",
+				Password: "123111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,

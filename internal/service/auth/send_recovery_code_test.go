@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestDiliveryCodeReseting(t *testing.T) {
+func TestSendRecoveryCode(t *testing.T) {
 	targetEmail := "test@mail.ru"
 
 	tests := []struct {
@@ -34,7 +34,7 @@ func TestDiliveryCodeReseting(t *testing.T) {
 				m.On("AddResetToken", mock.Anything, mock.AnythingOfType("dbConnection.ResetToken")).Return(nil)
 			},
 			senderMock: func(m *mockSender.SenderLetters) {
-				m.On("SendLetter", targetEmail, "Code for create new pasword", mock.AnythingOfType("string")).Return(nil)
+				m.On("SendLetter", targetEmail, "Code to create a new password", mock.AnythingOfType("string")).Return(nil)
 			},
 			expectedError: nil,
 		},

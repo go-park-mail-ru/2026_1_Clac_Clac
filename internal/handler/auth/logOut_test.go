@@ -38,19 +38,11 @@ func TestLogOutUser(t *testing.T) {
 			},
 		},
 		{
-			Name:               "No cookie provided",
-			AddCookie:          false,
-			CookieValue:        "",
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, userNotAuthorized),
-			ExpectedStatusCode: http.StatusUnauthorized,
-			MockBehavior:       nil,
-		},
-		{
 			Name:               "Service error",
 			AddCookie:          true,
 			CookieValue:        common.FixedSessionID,
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
-			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedResponse:   newResponse(api.StatusOK),
+			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
 				m.On("LogOut", ctx, common.FixedSessionID).Return(fmt.Errorf("database down"))

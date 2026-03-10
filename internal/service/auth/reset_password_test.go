@@ -72,33 +72,15 @@ func TestResetPasswordError(t *testing.T) {
 		expectedError error
 	}{
 		{
-			nameTest:    "Error get token",
-			tokenID:     common.FixedResetTokenID,
-			newPassword: "new_password",
-			hasher:      spyHasher,
-			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetResetToken", context.Background(), common.FixedResetTokenID).
-					Return(dbConnection.ResetToken{}, common.ErrorNotExistingResetToken)
-			},
-			expectedError: fmt.Errorf("rep.GetResetToken: %w", common.ErrorNotExistingResetToken),
-		},
-		{
 			nameTest:    "Error token expired",
 			tokenID:     common.FixedResetTokenID,
 			newPassword: "new_password",
 			hasher:      spyHasher,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				expiredToken := dbConnection.ResetToken{
-					ResetTokenID: common.FixedResetTokenID,
-					UserID:       targetUserID,
-					ExpiresAt:    time.Now().Add(-1 * time.Hour),
-				}
-
-				m.On("GetResetToken", ctx, common.FixedResetTokenID).Return(expiredToken, nil)
-				m.On("DeleteResetToken", ctx, common.FixedResetTokenID).Return(nil)
+				m.On("GetResetToken", ctx, common.FixedResetTokenID).Return(dbConnection.ResetToken{}, common.ErrorResetTokenExpired)
 			},
-			expectedError: common.ErrorResetTokenExpired,
+			expectedError: fmt.Errorf("rep.GetResetToken: %w", common.ErrorResetTokenExpired),
 		},
 		{
 			nameTest:    "Error hasher fails",

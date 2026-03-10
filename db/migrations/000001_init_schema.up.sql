@@ -44,7 +44,7 @@ CREATE TABLE board_version (
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
-    CONSTRAINT check_length_board_name CHECK (char_length(board_name) <= 255),
+    CONSTRAINT check_length_board_name CHECK (char_length(board_name) <= 128),
     CONSTRAINT check_length_description_board CHECK (char_length("description_board") <= 1000),
     CONSTRAINT check_board_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT fk_version_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
@@ -95,7 +95,7 @@ CREATE TABLE section_version (
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
-    CONSTRAINT check_length_section_name CHECK (char_length(section_name) <= 255),
+    CONSTRAINT check_length_section_name CHECK (char_length(section_name) <= 128),
     CONSTRAINT check_min_tasks CHECK (max_tasks IS NULL or max_tasks > 0),
     CONSTRAINT check_section_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT fk_version_section FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE CASCADE
@@ -125,7 +125,7 @@ CREATE TABLE task_version (
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
-    CONSTRAINT check_length_title CHECK (char_length(title) <= 255),
+    CONSTRAINT check_length_title CHECK (char_length(title) <= 128),
     CONSTRAINT check_length_description CHECK (char_length("description") <= 1000),
     CONSTRAINT check_due_date CHECK (due_date IS NULL or due_date >= valid_from),
     CONSTRAINT check_task_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
@@ -220,7 +220,7 @@ CREATE TABLE board_template(
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_length_btemplate_name CHECK (char_length("template_name") <= 255)
+    CONSTRAINT check_length_btemplate_name CHECK (char_length("template_name") <= 128)
 );
 
 CREATE TRIGGER set_board_template_updated_at
@@ -240,7 +240,7 @@ CREATE TABLE section_template(
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_stemplate_name_length CHECK (char_length("section_name") <= 255),
+    CONSTRAINT check_stemplate_name_length CHECK (char_length("section_name") <= 128),
     CONSTRAINT check_min_tasks CHECK (max_tasks IS NULL or max_tasks > 0),
     CONSTRAINT fk_board_template FOREIGN KEY (btemplate_id) REFERENCES board_template(btemplate_id) ON DELETE CASCADE
 );
