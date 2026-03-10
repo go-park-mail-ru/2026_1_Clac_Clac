@@ -18,6 +18,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/vk"
 )
 
 type App struct {
@@ -75,7 +77,8 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 
-	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf))
+	vkOAuth := setupVKOAuth(vkOAuthConf)
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
 
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
@@ -89,6 +92,7 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 	boardHandler := board.NewBoardHandler(manager.Board)
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
+	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
@@ -132,4 +136,17 @@ func setupStore(db *dbConnection.MapDatabases) *repository.Store {
 // Настройка менеджера сервисов
 func setupManager(s *repository.Store, mailSenderConf *config.MailSender) *service.Manager {
 	return service.NewManager(s, mailSenderConf)
+}
+
+func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
+	const emailKey = "email"
+	var vkOAuthScopes = []string{emailKey}
+
+	return &oauth2.Config{
+		ClientID:     conf.AppID,
+		ClientSecret: conf.AppKey,
+		RedirectURL:  conf.RedirectURL,
+		Scopes:       vkOAuthScopes,
+		Endpoint:     vk.Endpoint,
+	}
 }

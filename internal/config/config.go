@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -25,16 +26,25 @@ func DefaultConfig() Config {
 
 func SetupViper(configPath string) (*viper.Viper, error) {
 	v := viper.New()
+
+	v.AddConfigPath(configPath)
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
-	v.AddConfigPath(configPath)
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, fmt.Errorf("cannot read config file: %v", err)
+	}
+
+	v.SetConfigFile(filepath.Join(configPath, ".env"))
+	v.SetConfigType("env")
+
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	SetDefaultEnvMailSender(v)
-	SetDefaultEnvVkOAuth(v)
+	SetupEnvMailSender(v)
+	SetupEnvVkOAuth(v)
 
-	if err := v.ReadInConfig(); err != nil {
+	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)
 	}
 

@@ -17,19 +17,21 @@ func TestVkOAuthConfig(t *testing.T) {
 			AppKey:      "jsldjf",
 			AppSecret:   "lsdlksjdfkj",
 			RedirectURL: "hsldhlk",
+			APIMethod:   "lsdslkdjf",
 		}
 
 		t.Setenv("VK_OAUTH_APP_ID", want.AppID)
 		t.Setenv("VK_OAUTH_APP_KEY", want.AppKey)
 		t.Setenv("VK_OAUTH_APP_SECRET", want.AppSecret)
 		t.Setenv("VK_OAUTH_REDIRECT_URL", want.RedirectURL)
+		t.Setenv("VK_OAUTH_API_METHOD", want.APIMethod)
 
 		v := viper.New()
 
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
 
-		config.SetDefaultEnvVkOAuth(v)
+		config.SetupEnvVkOAuth(v)
 
 		var conf struct {
 			VkOAuth config.VkOAuth `mapstructure:"vk_oauth"`

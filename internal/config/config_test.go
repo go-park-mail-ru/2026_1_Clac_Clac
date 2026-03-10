@@ -59,6 +59,7 @@ engine:
 func TestSetupViper(t *testing.T) {
 	t.Run("no error", func(t *testing.T) {
 		const configFilename = "config.yaml"
+		const envFilename = ".env"
 
 		var yamlTest = []byte(`
 app:
@@ -71,8 +72,11 @@ engine:
   idle_timeout: 90
   graceful_shutdown_timeout: 25
 `)
+		var envTest = []byte(`MAIL_SENDER_HOST=test.ru`)
+
 		tempDir := t.TempDir()
 		os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
+		os.WriteFile(filepath.Join(tempDir, envFilename), envTest, 0644)
 
 		v, err := config.SetupViper(tempDir)
 

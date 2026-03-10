@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/vk"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/google/uuid"
@@ -32,6 +32,11 @@ type AuthService interface {
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
+}
+
+type VkOAuth interface {
+	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	Client(ctx context.Context, t *oauth2.Token) *http.Client
 }
 
 func NewAuthHandler(srv AuthService) *AuthHandler {
@@ -53,6 +58,26 @@ const (
 	cannotResetPassword    = "cannot reset password"
 	somethingWentWrong     = "something went wrong"
 )
+
+// MeHandler проверяет текущую сессию пользователя.
+//
+// @Summary      Проверка авторизации
+// @Tags         Auth
+// @Produce      json
+// @Success      200  {string}  string  "ok"
+// @Failure      401  {object}  map[string]string "user not authorized"
+// @Security     CookieAuth
+// @Router       /me [get]
+func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
+	value := r.Context().Value(middleware.UserIDKey{})
+	_, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
+		return
+	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+}
 
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -209,24 +234,16 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth) func(http.ResponseWriter, *http.Request) {
+func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const vkOAuthCodeKey = "code"
 		const emailKey = "email"
-		var vkOAuthScopes = []string{emailKey}
-
-		logger := zerolog.Ctx(r.Context())
+		const randomPasswordLength = 32
 
 		ctx := r.Context()
-		code := r.FormValue(vkOAuthCodeKey)
+		logger := zerolog.Ctx(ctx)
 
-		vkOAuth := oauth2.Config{
-			ClientID:     conf.AppID,
-			ClientSecret: conf.AppKey,
-			RedirectURL:  conf.RedirectURL,
-			Scopes:       vkOAuthScopes,
-			Endpoint:     vk.Endpoint,
-		}
+		code := r.FormValue(vkOAuthCodeKey)
 
 		token, err := vkOAuth.Exchange(ctx, code)
 		if err != nil {
@@ -250,14 +267,18 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth) func(http.ResponseWr
 		}
 
 		client := vkOAuth.Client(ctx, token)
-		res, err := client.Get(api.MakeUserGetVkAPIURL(token.AccessToken))
+		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
 		if err != nil {
 			logger.Err(err).Msg("vk api cannot request data")
 			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 			return
 		}
 
-		defer res.Body.Close()
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				logger.Err(err).Msg("close response body")
+			}
+		}()
 
 		usersData := &api.VkAPIUsersData{}
 		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
@@ -278,7 +299,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth) func(http.ResponseWr
 		user, err := a.srv.GetUserByEmail(ctx, userEmail)
 		if err != nil {
 			if errors.Is(err, common.ErrorNonexistentUser) {
-				b := make([]byte, 32)
+				b := make([]byte, randomPasswordLength)
 				if _, err := rand.Read(b); err != nil {
 					logger.Err(err).Msg("vk oauth generate user password")
 					api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
@@ -312,7 +333,6 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth) func(http.ResponseWr
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
 
-		// TODO: Убрать захардкоженный путь
-		http.Redirect(w, r, "/home", http.StatusFound)
+		http.Redirect(w, r, redirectTo, http.StatusFound)
 	}
 }
