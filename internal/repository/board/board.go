@@ -35,3 +35,23 @@ func (br *BoardRepository) GetBoards(ctx context.Context, userID uuid.UUID) ([]m
 
 	return nil, common.ErrorNonexistentUser
 }
+
+func (br *BoardRepository) CreateEmptyBoard(ctx context.Context, userID uuid.UUID) error {
+	br.database.MutexBoards.Lock()
+	defer br.database.MutexBoards.Unlock()
+
+	user, exist := br.database.UsersDB[userID]
+	if !exist {
+		return common.ErrorNonexistentUser
+	}
+
+	user.Boards = append(
+		br.database.UsersDB[userID].Boards,
+		models.Board{
+			ID: uuid.New(),
+		},
+	)
+
+	br.database.UsersDB[userID] = user
+	return nil
+}

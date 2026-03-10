@@ -18,6 +18,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/vk"
 )
 
 type App struct {
@@ -36,8 +38,9 @@ func NewApp(conf *config.Config) *App {
 	db := setupDatabase()
 	store := setupStore(db)
 	manager := setupManager(store, &conf.MailSender)
+	createDemoUser(store, manager, logger)
 
-	router := setupRouter(manager, logger)
+	router := setupRouter(manager, logger, &conf.VkOAuth)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -59,7 +62,7 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
+func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
 	router := mux.NewRouter()
 
 	// Добавление обищх мидлваре
@@ -76,6 +79,9 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
+	vkOAuth := setupVKOAuth(vkOAuthConf)
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
+
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
@@ -88,6 +94,7 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 	boardHandler := board.NewBoardHandler(manager.Board)
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
+	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
@@ -130,4 +137,33 @@ func setupStore(db *dbConnection.MapDatabases) *repository.Store {
 // Настройка менеджера сервисов
 func setupManager(s *repository.Store, mailSenderConf *config.MailSender) *service.Manager {
 	return service.NewManager(s, mailSenderConf)
+}
+
+func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
+	const emailKey = "email"
+	var vkOAuthScopes = []string{emailKey}
+
+	return &oauth2.Config{
+		ClientID:     conf.AppID,
+		ClientSecret: conf.AppKey,
+		RedirectURL:  conf.RedirectURL,
+		Scopes:       vkOAuthScopes,
+		Endpoint:     vk.Endpoint,
+	}
+}
+
+func createDemoUser(s *repository.Store, m *service.Manager, logger *zerolog.Logger) {
+	user, _, err := m.Auth.Register(context.Background(), "Demo", "123456", "demo@demo.ru")
+	if err != nil {
+		logger.Err(err).Msg("cannot create demo user")
+	} else {
+		logger.Info().Msg("demo user created")
+	}
+
+	err = s.Boards.CreateEmptyBoard(context.Background(), user.ID)
+	if err != nil {
+		logger.Err(err).Msg("cannot create demo board")
+	} else {
+		logger.Info().Msg("demo board created")
+	}
 }

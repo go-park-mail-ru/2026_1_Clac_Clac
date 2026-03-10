@@ -30,7 +30,7 @@ func ValidatorRequestAuth(email, password string) error {
 		return ErrorLenPassword
 	}
 
-	correctEmail := checkEmail(email)
+	correctEmail := ValidateEmail(email)
 	if !correctEmail {
 		return ErrorIncorrectEmail
 	}
@@ -67,7 +67,7 @@ func checkAsciiSymbol(strings ...string) bool {
 	return true
 }
 
-func checkEmail(email string) bool {
+func ValidateEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }

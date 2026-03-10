@@ -1,10 +1,7 @@
 package common
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
 )
 
 type ErrorResponse struct {
@@ -25,15 +22,3 @@ var (
 	ErrorResetTokenExpired       = errors.New("time life reset token expired")
 	ErrorDetectingTokenCollision = errors.New("reset token collision detected")
 )
-
-func MakeJSONError(w http.ResponseWriter, status int, err error) {
-	w.WriteHeader(status)
-
-	errorResponce := ErrorResponse{
-		Error: err.Error(),
-	}
-
-	if err = json.NewEncoder(w).Encode(errorResponce); err != nil {
-		fmt.Printf("error encoding response: %v\n", err)
-	}
-}

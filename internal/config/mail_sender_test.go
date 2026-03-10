@@ -29,7 +29,7 @@ func TestMailSenderConfig(t *testing.T) {
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
 
-		config.SetDefaultEnvMailSender(v)
+		config.SetupEnvMailSender(v)
 
 		// Надо, чтобы viper корректно обработал префикс mail_sender
 		var conf struct {

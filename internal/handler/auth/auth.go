@@ -2,13 +2,20 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/google/uuid"
@@ -18,11 +25,18 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, name, password, email string) (models.User, string, error)
 	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
+	CreateSessionForUser(ctx context.Context, user models.User) (string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
+	GetUserByEmail(ctx context.Context, email string) (models.User, error)
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
+}
+
+type VkOAuth interface {
+	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+	Client(ctx context.Context, t *oauth2.Token) *http.Client
 }
 
 func NewAuthHandler(srv AuthService) *AuthHandler {
@@ -43,6 +57,26 @@ const (
 	cannotResetPassword    = "cannot reset password"
 	somethingWentWrong     = "something went wrong"
 )
+
+// MeHandler проверяет текущую сессию пользователя.
+//
+// @Summary      Проверка авторизации
+// @Tags         Auth
+// @Produce      json
+// @Success      200  {string}  string  "ok"
+// @Failure      401  {object}  map[string]string "user not authorized"
+// @Security     CookieAuth
+// @Router       /me [get]
+func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
+	value := r.Context().Value(middleware.UserIDKey{})
+	_, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
+		return
+	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+}
 
 // LogInUser godoc
 // @Summary      Вход в систему
@@ -251,4 +285,107 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 	}
 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+}
+
+func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const vkOAuthCodeKey = "code"
+		const emailKey = "email"
+		const randomPasswordLength = 32
+
+		ctx := r.Context()
+		logger := zerolog.Ctx(ctx)
+
+		code := r.FormValue(vkOAuthCodeKey)
+
+		token, err := vkOAuth.Exchange(ctx, code)
+		if err != nil {
+			logger.Err(err).Msg("vk oauth exchange")
+			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			return
+		}
+
+		var userEmail string
+		var ok bool
+		if emailRaw := token.Extra(emailKey); emailRaw != nil {
+			if userEmail, ok = emailRaw.(string); !ok {
+				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				return
+			}
+		}
+
+		if ok := ValidateEmail(userEmail); !ok {
+			api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+			return
+		}
+
+		client := vkOAuth.Client(ctx, token)
+		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
+		if err != nil {
+			logger.Err(err).Msg("vk api cannot request data")
+			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			return
+		}
+
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				logger.Err(err).Msg("close response body")
+			}
+		}()
+
+		usersData := &api.VkAPIUsersData{}
+		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
+			logger.Err(err).Msg("cannot read response body")
+			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			return
+		}
+
+		if len(usersData.Response) < 1 {
+			logger.Err(errors.New("cannot find user")).Msg("read user data from vk api")
+			api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+			return
+		}
+
+		userData := usersData.Response[0]
+
+		var sessionID string
+		user, err := a.srv.GetUserByEmail(ctx, userEmail)
+		if err != nil {
+			if errors.Is(err, common.ErrorNonexistentUser) {
+				b := make([]byte, randomPasswordLength)
+				if _, err := rand.Read(b); err != nil {
+					logger.Err(err).Msg("vk oauth generate user password")
+					api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+					return
+				}
+
+				password := base64.URLEncoding.EncodeToString(b)
+
+				user, sessionID, err = a.srv.Register(r.Context(), userData.FirstName, password, userEmail)
+				if err != nil {
+					logger.Err(fmt.Errorf("auth.Register: %w", err))
+					api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+					return
+				}
+			} else {
+				logger.Err(err).Msg("service.GetUser")
+				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				return
+			}
+		} else {
+			sessionID, err = a.srv.CreateSessionForUser(ctx, user)
+			if err != nil {
+				logger.Err(err).Msg("service.CreateSessionForUser")
+				api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+				return
+			}
+		}
+
+		http.SetCookie(w, api.NewCookie(
+			service.SessiondIdKey,
+			sessionID,
+			time.Now().Add(service.SessionLifetime)))
+
+		http.Redirect(w, r, redirectTo, http.StatusFound)
+	}
 }

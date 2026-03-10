@@ -34,6 +34,62 @@ func (_m *AuthService) CheckRecoveryCode(ctx context.Context, tokenID string) er
 	return r0
 }
 
+// CreateSessionForUser provides a mock function with given fields: ctx, user
+func (_m *AuthService) CreateSessionForUser(ctx context.Context, user models.User) (string, error) {
+	ret := _m.Called(ctx, user)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSessionForUser")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, models.User) (string, error)); ok {
+		return rf(ctx, user)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, models.User) string); ok {
+		r0 = rf(ctx, user)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, models.User) error); ok {
+		r1 = rf(ctx, user)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetUserByEmail provides a mock function with given fields: ctx, email
+func (_m *AuthService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
+	ret := _m.Called(ctx, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserByEmail")
+	}
+
+	var r0 models.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (models.User, error)); ok {
+		return rf(ctx, email)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) models.User); ok {
+		r0 = rf(ctx, email)
+	} else {
+		r0 = ret.Get(0).(models.User)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, email)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUserID provides a mock function with given fields: ctx, sessionID
 func (_m *AuthService) GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error) {
 	ret := _m.Called(ctx, sessionID)
