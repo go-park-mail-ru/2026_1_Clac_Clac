@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrorLenPassword         = errors.New("password must contain minimum 6")
+	ErrorLenPassword         = errors.New("password must contain minimum 8 and maximum 128 symbols")
 	ErrorIncorrectEmail      = errors.New("invalid email format")
 	ErrorIncorrectSymbol     = errors.New("allowed only a-z, A-Z, 0-9, and /?!@")
 	ErrorDifferencePasswords = errors.New("passwords don't match")
@@ -26,7 +26,7 @@ func ValidatorRequestAuth(email, password string) error {
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < 6 {
+	if len(password) < 8 || len(password) > 128 {
 		return ErrorLenPassword
 	}
 
@@ -48,7 +48,7 @@ func ValidatorRequestNewPassword(password, repeatedPassword string) error {
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < 6 {
+	if len(password) < 8 || len(password) > 128 {
 		return ErrorLenPassword
 	}
 

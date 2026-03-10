@@ -74,6 +74,7 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
@@ -87,7 +88,6 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger) *mux.Router {
 	boardHandler := board.NewBoardHandler(manager.Board)
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
-	protected.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 

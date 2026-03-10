@@ -24,8 +24,8 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Success registration",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "123456",
-				RepeatedPassword: "123456",
+				Password:         "12345678",
+				RepeatedPassword: "12345678",
 				Email:            "test@mail.ru",
 			},
 			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
@@ -36,7 +36,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusCreated,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(
+				m.On("Register", ctx, "Artem", "12345678", "test@mail.ru").Return(
 					models.User{
 						ID:          common.FixedUserUuiD,
 						DisplayName: "Artem",
@@ -51,8 +51,8 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Passwords do not match",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "123456",
-				RepeatedPassword: "654321",
+				Password:         "12345678",
+				RepeatedPassword: "65432178",
 				Email:            "test@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
@@ -63,15 +63,15 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Email is already existing",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "123456",
-				RepeatedPassword: "123456",
+				Password:         "123456789",
+				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(
+				m.On("Register", ctx, "Artem", "123456789", "test@mail.ru").Return(
 					models.User{},
 					"",
 					fmt.Errorf("repo.AddUser: user with this email alreday exists"),
@@ -82,8 +82,8 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Incorrect symbol in password",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "бобёр",
-				RepeatedPassword: "бобёр",
+				Password:         "бобёр123",
+				RepeatedPassword: "бобёр123",
 				Email:            "test@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
@@ -94,8 +94,8 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Incorrect symbol in email",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "123455",
-				RepeatedPassword: "123455",
+				Password:         "1234552323",
+				RepeatedPassword: "1234552323",
 				Email:            "бобёр@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
@@ -118,8 +118,8 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Email has 2 @",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "1234567",
-				RepeatedPassword: "1234567",
+				Password:         "123456789",
+				RepeatedPassword: "123456789",
 				Email:            "test@m@ail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
@@ -154,15 +154,15 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			Name: "Error during hash password",
 			Request: api.RegisterRequest{
 				DisplayName:      "Artem",
-				Password:         "123456",
-				RepeatedPassword: "123456",
+				Password:         "123456789",
+				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "123456", "test@mail.ru").Return(
+				m.On("Register", ctx, "Artem", "123456789", "test@mail.ru").Return(
 					models.User{},
 					"",
 					fmt.Errorf("failed to create hash: error bcrypt"),

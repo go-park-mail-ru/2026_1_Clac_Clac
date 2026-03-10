@@ -39,12 +39,23 @@ const (
 	invalidDataMessage     = "invalid data"
 	invalidEmailOrPassword = "invalid email or password"
 	wrongEmailOrPassword   = "wrong email or password"
-	userNotAuthorized      = "user not authorized"
 	cannotSendEmail        = "cannot send email"
 	cannotResetPassword    = "cannot reset password"
 	somethingWentWrong     = "something went wrong"
 )
 
+// LogInUser godoc
+// @Summary      Вход в систему
+// @Description  Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.LogInRequest true "Учетные данные пользователя"
+// @Success      200 {object} models.User "Успешная аутентификация"
+// @Failure      400 {object} map[string]string "Некорректный запрос (невалидные данные)"
+// @Failure      401 {object} map[string]string "Неверный email или пароль"
+// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router       /auth/login [post]
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -80,6 +91,17 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, user))
 }
 
+// RegisterUser godoc
+// @Summary      Регистрация нового пользователя
+// @Description  Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.RegisterRequest true "Данные для регистрации"
+// @Success      201 {object} models.User "Пользователь успешно создан"
+// @Failure      400 {object} map[string]string "Ошибка валидации данных"
+// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router       /auth/register [post]
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -98,7 +120,6 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	user, sessionID, err := a.srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
-		// Сервис не возвращает однозначной ошибки, поэтому на все ошибки кидаем 500-ку
 		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
@@ -111,29 +132,39 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondCreated(w, user))
 }
 
+// LogOutUser godoc
+// @Summary      Выход из системы
+// @Description  Удаляет сессию пользователя из хранилища и очищает cookie.
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object} map[string]string "Успешный выход"
+// @Router       /auth/logout [post]
 func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	// TODO: Дублирование с AuthMiddleware, убрать
 	cookie, err := r.Cookie(service.SessiondIdKey)
-	if err != nil {
-		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
-		return
-	}
-
-	sessionId := cookie.Value
-
-	err = a.srv.LogOut(r.Context(), sessionId)
-	if err != nil {
-		logger.Err(fmt.Errorf("auth.Logout: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
-		return
+	if err == nil && cookie != nil {
+		errLogOut := a.srv.LogOut(r.Context(), cookie.Value)
+		if errLogOut != nil {
+			logger.Err(fmt.Errorf("srv.LogOut: %w", errLogOut))
+		}
 	}
 
 	http.SetCookie(w, api.NewExpiredCookie(service.SessiondIdKey))
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// SendRecoveryEmail godoc
+// @Summary      Запрос восстановления пароля
+// @Description  Генерирует код восстановления и отправляет его на указанный email.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.PasswordRecoveryRequest true "Email пользователя"
+// @Success      200 {object} map[string]string "Код успешно отправлен"
+// @Failure      400 {object} map[string]string "Некорректный запрос"
+// @Failure      500 {object} map[string]string "Ошибка отправки письма"
+// @Router       /auth/recovery/send [post]
 func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -154,6 +185,17 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// CheckRecoveryCode godoc
+// @Summary      Проверка кода восстановления
+// @Description  Проверяет корректность 6-значного кода, отправленного на почту.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.RecoveryCodeRequest true "Код из письма"
+// @Success      200 {object} map[string]string "Код верен"
+// @Failure      400 {object} map[string]string "Некорректный запрос"
+// @Failure      500 {object} map[string]string "Неверный код или ошибка сервера"
+// @Router       /auth/recovery/check [post]
 func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -174,6 +216,17 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// ResetUserPassword godoc
+// @Summary      Сброс пароля
+// @Description  Устанавливает новый пароль пользователя с помощью проверенного токена.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.NewPasswordRequest true "Новый пароль и токен"
+// @Success      200 {object} map[string]string "Пароль успешно изменен"
+// @Failure      400 {object} map[string]string "Некорректные данные"
+// @Failure      500 {object} map[string]string "Ошибка обновления пароля"
+// @Router       /auth/password/reset [post]
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
