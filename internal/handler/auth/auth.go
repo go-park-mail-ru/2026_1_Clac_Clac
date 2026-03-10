@@ -56,6 +56,7 @@ const (
 	cannotSendEmail        = "cannot send email"
 	cannotResetPassword    = "cannot reset password"
 	somethingWentWrong     = "something went wrong"
+	userNotAuthorized      = "user not authorized"
 )
 
 // MeHandler проверяет текущую сессию пользователя.
