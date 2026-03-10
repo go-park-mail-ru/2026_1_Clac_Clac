@@ -38,6 +38,7 @@ func NewApp(conf *config.Config) *App {
 	db := setupDatabase()
 	store := setupStore(db)
 	manager := setupManager(store, &conf.MailSender)
+	createDemoUser(store, manager, logger)
 
 	router := setupRouter(manager, logger, &conf.VkOAuth)
 
@@ -148,5 +149,21 @@ func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 		RedirectURL:  conf.RedirectURL,
 		Scopes:       vkOAuthScopes,
 		Endpoint:     vk.Endpoint,
+	}
+}
+
+func createDemoUser(s *repository.Store, m *service.Manager, logger *zerolog.Logger) {
+	user, _, err := m.Auth.Register(context.Background(), "Demo", "123456", "demo@demo.ru")
+	if err != nil {
+		logger.Err(err).Msg("cannot create demo user")
+	} else {
+		logger.Info().Msg("demo user created")
+	}
+
+	err = s.Boards.CreateEmptyBoard(context.Background(), user.ID)
+	if err != nil {
+		logger.Err(err).Msg("cannot create demo board")
+	} else {
+		logger.Info().Msg("demo board created")
 	}
 }
