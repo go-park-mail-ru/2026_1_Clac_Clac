@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/auth"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/handler/board"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/vk"
 )
@@ -72,6 +74,8 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 	// Ручки, которым не нужна авторизация
 	public := router.PathPrefix("/").Subrouter()
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+	public.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
+	public.Handle("/docs", http.RedirectHandler("/docs/", http.StatusMovedPermanently))
 	// Добавление рутов, зависящих от сервисов
 	authHandler := auth.NewAuthHandler(manager.Auth)
 

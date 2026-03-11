@@ -65,7 +65,7 @@ const (
 // MeHandler проверяет текущую сессию пользователя.
 //
 // @Summary      Проверка авторизации
-// @Tags         Auth
+// @Tags         auth
 // @Produce      json
 // @Success      200  {string}  string  "ok"
 // @Failure      401  {object}  map[string]string "user not authorized"

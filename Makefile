@@ -45,7 +45,7 @@ help:
 	@echo "  create-config  - Создать шаблон конфига"
 	@echo ""
 
-build:
+build: docs
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 
 run: build
@@ -56,6 +56,9 @@ test:
 
 test-cover:
 	go test -cover ./internal/...
+
+docs:
+	swag init -g main.go -o internal/docs -d ./cmd,./internal/api,./internal/handler,./internal/models
 
 create-config:
 	@if [ -f $(CONFIG_FILE) ]; then \
