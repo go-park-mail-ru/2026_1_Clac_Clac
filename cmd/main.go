@@ -8,6 +8,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// @title			NeXus
+// @description	Наше API
+// @host			clac-clac.mooo.com
+// @BasePath		/api
 func main() {
 	const configPath = "."
 

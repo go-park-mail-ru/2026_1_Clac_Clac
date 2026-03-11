@@ -1,0 +1,310 @@
+basePath: /api
+definitions:
+  api.LogInRequest:
+    description: Данные для входа в систему
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: p@ssword123
+        type: string
+    type: object
+  api.NewPasswordRequest:
+    description: Установка нового пароля после проверки токена
+    properties:
+      password:
+        example: new_password_123
+        type: string
+      repeated_password:
+        example: new_password_123
+        type: string
+      token_id:
+        example: uuid-token-string
+        type: string
+    type: object
+  api.PasswordRecoveryRequest:
+    description: Запрос восстановления пароля через Email
+    properties:
+      email:
+        example: user@example.com
+        type: string
+    type: object
+  api.RecoveryCodeRequest:
+    description: Код подтверждения из письма
+    properties:
+      code:
+        example: "123456"
+        type: string
+    type: object
+  api.RegisterRequest:
+    description: Модель регистрации нового пользователя
+    properties:
+      display_name:
+        example: Ivan Ivanov
+        type: string
+      email:
+        example: ivan@mail.com
+        type: string
+      password:
+        example: securePassword
+        type: string
+      repeated_password:
+        example: securePassword
+        type: string
+    type: object
+  models.Board:
+    description: Краткая информация о доске
+    properties:
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  models.User:
+    description: Полная информация о пользователе
+    properties:
+      avatar:
+        description: Поле имеет тег 'avatar', так оно и будет отображаться в JSON
+        example: https://example.com/avatar.jpg
+        type: string
+      boards:
+        items:
+          $ref: '#/definitions/models.Board'
+        type: array
+      display_name:
+        example: Ivan Ivanov
+        type: string
+      email:
+        example: ivan@mail.com
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+host: clac-clac.mooo.com
+info:
+  contact: {}
+  description: Наше API
+  title: NeXus
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя по email и паролю. Устанавливает HTTP-only
+        cookie с сессией.
+      parameters:
+      - description: Учетные данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.LogInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная аутентификация
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Некорректный запрос (невалидные данные)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверный email или пароль
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Удаляет сессию пользователя из хранилища и очищает cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход из системы
+      tags:
+      - auth
+  /auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Устанавливает новый пароль пользователя с помощью проверенного
+        токена.
+      parameters:
+      - description: Новый пароль и токен
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.NewPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пароль успешно изменен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка обновления пароля
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Сброс пароля
+      tags:
+      - auth
+  /auth/recovery/check:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет корректность 6-значного кода, отправленного на почту.
+      parameters:
+      - description: Код из письма
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.RecoveryCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код верен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Неверный код или ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка кода восстановления
+      tags:
+      - auth
+  /auth/recovery/send:
+    post:
+      consumes:
+      - application/json
+      description: Генерирует код восстановления и отправляет его на указанный email.
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PasswordRecoveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код успешно отправлен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка отправки письма
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Запрос восстановления пароля
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый аккаунт и сразу авторизует пользователя, выдавая
+        cookie.
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно создан
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "401":
+          description: user not authorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - CookieAuth: []
+      summary: Проверка авторизации
+      tags:
+      - auth
+swagger: "2.0"

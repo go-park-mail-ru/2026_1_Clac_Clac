@@ -25,17 +25,23 @@ const (
 
 // Определяет структуру всех ответов API
 // Все ответы имеют единое поле status
+//
+//	@Description	Базовый ответ
 type Response struct {
 	Status string `json:"status"`
 }
 
 // Ответ для 200 статуса, всегда должен содержать данные
+//
+//	@Description	Успешный ответ с данными
 type OkResponse[T any] struct {
 	Response
 	Data T `json:"data"`
 }
 
 // Ответ для ошибки, всегда содержит код ошибки и сообщение
+//
+//	@Description	Структура сообщения об ошибке
 type ErrorResponse struct {
 	Response
 	Code    int    `json:"code"`
