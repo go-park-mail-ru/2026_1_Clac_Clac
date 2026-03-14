@@ -1,0 +1,51 @@
+COVERAGE_FILE=coverage.out
+MIN_COVERAGE=70
+# Автоматически собираем все пакеты из internal и исключаем моки
+COVERPKG := $(shell go list ./internal/... | grep -v /mock | paste -sd "," -)
+
+.PHONY: unit report cover ci
+
+define LOGO_TEXT
+  /$$$$$$$$$$$$  /$$$$                            /$$$$$$$$$$$$  /$$$$
+ /$$$$__  $$$$| $$$$                           /$$$$__  $$$$| $$$$
+| $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$      | $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$
+| $$$$      | $$$$ |____  $$$$ /$$$$_____/      | $$$$      | $$$$ |____  $$$$ /$$$$_____/
+| $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$            | $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$
+| $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$            | $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$
+|  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$      |  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$
+ \\______/ |__/ \\_______/ \\_______/       \\______/ |__/ \\_______/ \\_______/
+
+ --- The best team ever
+endef
+export LOGO_TEXT
+
+all: help
+
+help:
+	@echo ""
+	@echo "$$LOGO_TEXT"
+	@echo ""
+	@echo "Доступные команды:"
+	@echo ""
+	@echo "  unit    - Запустить быстрые юнит-тесты с детектором гонок (-race)"
+	@echo "  cover   - Сгенерировать профиль покрытия для всех пакетов internal"
+	@echo "  report  - Открыть визуальный HTML-отчет о покрытии в браузере"
+	@echo "  ci      - Запустить тесты и проверить порог покрытия (минимум $(MIN_COVERAGE)%)"
+	@echo ""
+
+unit:
+	@go test -v -race ./internal/...
+
+cover:
+	@go test -count=1 -timeout=5m -race -coverpkg=$(COVERPKG) -coverprofile=$(COVERAGE_FILE) ./internal/...
+
+report: cover
+	@go tool cover -html=$(COVERAGE_FILE)
+
+ci: cover
+	@TOTAL_COVERAGE=$$(go tool cover -func=$(COVERAGE_FILE) | grep total | awk '{print $$3}' | tr -d '%'); \
+	echo "Total coverage: $$TOTAL_COVERAGE%"; \
+	if [ $$(echo "$$TOTAL_COVERAGE < $(MIN_COVERAGE)" | bc -l) -eq 1 ]; then \
+		echo "FAILED: Coverage is below $(MIN_COVERAGE)%"; \
+		exit 1; \
+	fi
