@@ -65,7 +65,7 @@ func (a *App) Run() {
 
 // Настройка рутов
 func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
@@ -73,22 +73,22 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 
 	// Ручки, которым не нужна авторизация
 	public := router.PathPrefix("/").Subrouter()
-	public.HandleFunc("/api/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
-	public.PathPrefix("/api/docs/").Handler(httpSwagger.WrapHandler)
-	public.Handle("/api/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
+	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
+	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	// Добавление рутов, зависящих от сервисов
 	authHandler := auth.NewAuthHandler(manager.Auth)
 
-	public.HandleFunc("/api/register", authHandler.RegisterUser).Methods(http.MethodPost)
-	public.HandleFunc("/api/login", authHandler.LogInUser).Methods(http.MethodPost)
-	public.HandleFunc("/api/logout", authHandler.LogOutUser).Methods(http.MethodPost)
+	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
+	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
 	vkOAuth := setupVKOAuth(vkOAuthConf)
-	public.HandleFunc("/api/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
 
-	public.HandleFunc("/api/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
-	public.HandleFunc("/api/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
-	public.HandleFunc("/api/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
+	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
+	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
+	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := router.PathPrefix("/").Subrouter()
@@ -98,9 +98,9 @@ func setupRouter(manager *service.Manager, logger *zerolog.Logger, vkOAuthConf *
 	boardHandler := board.NewBoardHandler(manager.Board)
 	profileHandler := profile.NewProfileHandler(manager.Profile)
 
-	protected.HandleFunc("/api/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/api/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
-	protected.HandleFunc("/api/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
 	return router
 }
