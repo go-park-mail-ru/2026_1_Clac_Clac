@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/app"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/joho/godotenv"
 )
@@ -29,6 +29,6 @@ func main() {
 		log.Fatalf("viper.Unmarshal: %v", err)
 	}
 
-	app := internal.NewApp(&conf)
+	app := app.NewApp(&conf)
 	app.Run()
 }

@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	authSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	mockSessionOutput "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware/mock_session_checker"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -32,7 +32,7 @@ func TestAuthMiddleware(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 
 	req.AddCookie(&http.Cookie{
-		Name:  auth.SessiondIdKey,
+		Name:  authSrv.SessiondIdKey,
 		Value: common.FixedSessionID,
 	})
 
