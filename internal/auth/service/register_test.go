@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -58,7 +57,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			user, sectionID, err := serviceRegistration.Register(ctx, test.display_name, test.password, test.email)
 			test.expectedUser.ID = user.ID
@@ -105,7 +104,7 @@ func TestRegisterError(t *testing.T) {
 			generator:     spyGenerator,
 			checker:       spyChecker,
 			mockBehavior:  nil,
-			expectedError: fmt.Errorf("HashPassword: %w: %q", service.ErrorCreateHash, "error bcrypt"),
+			expectedError: fmt.Errorf("HashPassword: %w: %q", ErrorCreateHash, "error bcrypt"),
 		},
 		{
 			nameTest:     "Error adding session",
@@ -133,7 +132,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			_, _, err := serviceRegistration.Register(ctx, test.display_name, test.password, test.email)
 

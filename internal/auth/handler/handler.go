@@ -40,7 +40,7 @@ type VkOAuth interface {
 	Client(ctx context.Context, t *oauth2.Token) *http.Client
 }
 
-func NewAuthHandler(srv AuthService) *AuthHandler {
+func NewHandler(srv AuthService) *AuthHandler {
 	return &AuthHandler{
 		Srv: srv,
 	}
@@ -51,14 +51,14 @@ type AuthHandler struct {
 }
 
 const (
-	InvalidDataMessage     = "invalid data"
-	InvalidEmailOrPassword = "invalid email or password"
-	WrongEmailOrPassword   = "wrong email or password"
-	CannotSendEmail        = "cannot send email"
-	CannotResetPassword    = "cannot reset password"
-	SomethingWentWrong     = "something went wrong"
-	UserNotAuthorized      = "user not authorized"
-	UserDoesNotExists      = "user does not exists"
+	invalidDataMessage     = "invalid data"
+	invalidEmailOrPassword = "invalid email or password"
+	wrongEmailOrPassword   = "wrong email or password"
+	cannotSendEmail        = "cannot send email"
+	cannotResetPassword    = "cannot reset password"
+	somethingWentWrong     = "something went wrong"
+	userNotAuthorized      = "user not authorized"
+	userDoesNotExists      = "user does not exists"
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -74,7 +74,7 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserIDKey{})
 	_, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, UserNotAuthorized)
+		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
 		return
 	}
 
@@ -98,25 +98,25 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 	var request api.LogInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err := ValidatorRequestAuth(request.Email, request.Password)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
 	user, sessionID, err := a.Srv.LogIn(r.Context(), request.Email, request.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
-			api.RespondError(w, http.StatusUnauthorized, WrongEmailOrPassword)
+			api.RespondError(w, http.StatusUnauthorized, wrongEmailOrPassword)
 			return
 		}
 
 		logger.Err(fmt.Errorf("auth.Login: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, SomethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
@@ -144,20 +144,20 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	var request api.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
 	user, sessionID, err := a.Srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, SomethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
@@ -208,19 +208,19 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	var request api.PasswordRecoveryRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err = a.Srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusBadRequest, UserDoesNotExists)
+			api.RespondError(w, http.StatusBadRequest, userDoesNotExists)
 			return
 		}
 
 		logger.Err(fmt.Errorf("auth.SendRecoveryCode: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, CannotSendEmail)
+		api.RespondError(w, http.StatusInternalServerError, cannotSendEmail)
 		return
 	}
 
@@ -244,14 +244,14 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	var request api.RecoveryCodeRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err = a.Srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.CheckRecoveryCode: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, SomethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
@@ -275,20 +275,20 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 	var request api.NewPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
 	}
 
 	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, InvalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
 		return
 	}
 
 	err = a.Srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.ResetPassword: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, CannotResetPassword)
+		api.RespondError(w, http.StatusInternalServerError, cannotResetPassword)
 		return
 	}
 

@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -11,36 +11,35 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCheckRecoveryCode(t *testing.T) {
+func TestSendRecoveryEmail(t *testing.T) {
 	tests := []TestCase{
 		{
-			Name: "Success check code",
-			Request: api.RecoveryCodeRequest{
-				Code: "123456",
+			Name: "Success send email",
+			Request: api.PasswordRecoveryRequest{
+				Email: "test@mail.ru",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("CheckRecoveryCode", ctx, "123456").Return(nil)
+				m.On("SendRecoveryCode", ctx, "test@mail.ru").Return(nil)
 			},
 		},
 		{
-			Name: "Wrong or expired code",
-			Request: api.RecoveryCodeRequest{
-				Code: "000000",
+			Name: "Service error",
+			Request: api.PasswordRecoveryRequest{
+				Email: "notfound@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, handler.SomethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, cannotSendEmail),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("CheckRecoveryCode", ctx, "000000").Return(errors.New("invalid code"))
+				m.On("SendRecoveryCode", ctx, "notfound@mail.ru").Return(errors.New("some internal error"))
 			},
 		},
 	}
@@ -52,16 +51,16 @@ func TestCheckRecoveryCode(t *testing.T) {
 				test.MockBehavior(mockSrv)
 			}
 
-			handler := handler.NewAuthHandler(mockSrv)
+			handler := NewHandler(mockSrv)
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
 
 			requestReader := bytes.NewReader(requestJson)
-			request := httptest.NewRequest(http.MethodPost, "/verify-code", requestReader)
+			request := httptest.NewRequest(http.MethodPost, "/forgot-password", requestReader)
 			response := httptest.NewRecorder()
 
-			handler.CheckRecoveryCode(response, request)
+			handler.SendRecoveryEmail(response, request)
 
 			responseJson, err := json.Marshal(test.ExpectedResponse)
 			require.NoError(t, err, "response marshal should not return error")
@@ -72,24 +71,24 @@ func TestCheckRecoveryCode(t *testing.T) {
 	}
 }
 
-func TestCheckRecoveryCodeWithRawJSON(t *testing.T) {
+func TestSendRecoveryEmailWithRawJSON(t *testing.T) {
 	t.Run("Incorrect JSON", func(t *testing.T) {
-		incorrectJson := `{"code":123456`
+		incorrectJson := `{"email":"test@mail.ru",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, handler.InvalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err)
 
 		mockSrv := mockAuthSrv.NewAuthService(t)
-		handler := handler.NewAuthHandler(mockSrv)
+		handler := NewHandler(mockSrv)
 
-		req := httptest.NewRequest(http.MethodPost, "/verify-code", requestBody)
+		req := httptest.NewRequest(http.MethodPost, "/forgot-password", requestBody)
 		res := httptest.NewRecorder()
 
-		handler.CheckRecoveryCode(res, req)
+		handler.SendRecoveryEmail(res, req)
 
-		assert.Equal(t, expectedResponse.Code, res.Code)
-		assert.Equal(t, string(expectedBody), res.Body.String())
+		assert.Equal(t, expectedResponse.Code, res.Code, "incorrect status code")
+		assert.Equal(t, string(expectedBody), res.Body.String(), "incorrect body")
 	})
 }

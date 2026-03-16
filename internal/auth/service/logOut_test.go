@@ -1,12 +1,11 @@
-package tests
+package service
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,7 +41,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -83,7 +82,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.Error(t, err, "expected error")

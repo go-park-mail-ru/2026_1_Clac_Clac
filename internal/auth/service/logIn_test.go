@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -8,8 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -65,7 +64,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, test.email, test.password)
 
@@ -116,7 +115,7 @@ func TestLoginError(t *testing.T) {
 					PasswordHash: "1234",
 				}, nil)
 			},
-			expectedError: fmt.Errorf("rep.CheckPassword: %w", service.ErrorWrongPassword),
+			expectedError: fmt.Errorf("rep.CheckPassword: %w", ErrorWrongPassword),
 		},
 		{
 			nameTest:  "Error adding session to DB",
@@ -148,7 +147,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := service.NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
 			_, _, err := serviceLogin.LogIn(ctx, test.email, test.password)
 

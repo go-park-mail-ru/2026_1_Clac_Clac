@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service"
-	mockProfileRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/tests/mock_profile_rep"
+	mockProfileRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/mock_profile_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -60,7 +59,7 @@ func TestGetProfileUser(t *testing.T) {
 				test.mockBehavior(mockProfileRepo)
 			}
 
-			profileService := service.NewProfileService(mockProfileRepo)
+			profileService := NewService(mockProfileRepo)
 			ctx := context.Background()
 
 			user, err := profileService.GetProfileUser(ctx, test.userID)

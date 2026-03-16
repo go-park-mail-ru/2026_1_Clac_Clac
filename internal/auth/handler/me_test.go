@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"context"
@@ -6,14 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMeHandler(t *testing.T) {
-	handler := &handler.AuthHandler{}
+	handler := &AuthHandler{}
 
 	tests := []struct {
 		Name           string

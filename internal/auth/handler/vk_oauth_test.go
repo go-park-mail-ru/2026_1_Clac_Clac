@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -10,9 +10,8 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	authServiceMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
-	vkOAuthMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_vk_oauth"
+	authServiceMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
+	vkOAuthMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_vk_oauth"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
@@ -33,7 +32,7 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
 	mockAuthService := new(authServiceMocks.AuthService)
 
-	handler := &handler.AuthHandler{Srv: mockAuthService}
+	handler := &AuthHandler{Srv: mockAuthService}
 
 	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
 	redirectTo := "/"
@@ -88,7 +87,7 @@ func TestVkOAuthCallbackNewUserRegistration(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
 	mockAuthService := new(authServiceMocks.AuthService)
 
-	handler := &handler.AuthHandler{Srv: mockAuthService}
+	handler := &AuthHandler{Srv: mockAuthService}
 
 	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
 	redirectTo := "/"
@@ -134,7 +133,7 @@ func TestVkOAuthCallbackExchangeError(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
 	mockAuthService := new(authServiceMocks.AuthService)
 
-	handler := &handler.AuthHandler{Srv: mockAuthService}
+	handler := &AuthHandler{Srv: mockAuthService}
 	conf := &config.VkOAuth{}
 	redirectTo := "/"
 

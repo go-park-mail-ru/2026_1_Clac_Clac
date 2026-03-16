@@ -1,4 +1,4 @@
-package profile
+package handler
 
 import (
 	"context"
@@ -10,8 +10,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
-	mockProfileHand "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/tests/mock_profile_hand"
+	mockProfileHand "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_hand"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -69,14 +68,14 @@ func TestGetUserProfile(t *testing.T) {
 			CtxValue:           nil,
 			MockBehavior:       nil,
 			ExpectedStatusCode: http.StatusUnauthorized,
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, handler.UnauthorizedMessage),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
 		},
 		{
 			Name:               "Error context value is not UUID",
 			CtxValue:           "invalid-uuid-string",
 			MockBehavior:       nil,
 			ExpectedStatusCode: http.StatusUnauthorized,
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, handler.UnauthorizedMessage),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
 		},
 		{
 			Name:     "Error from service",
@@ -88,7 +87,7 @@ func TestGetUserProfile(t *testing.T) {
 				)
 			},
 			ExpectedStatusCode: http.StatusInternalServerError,
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, handler.SomethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 		},
 	}
 
@@ -99,7 +98,7 @@ func TestGetUserProfile(t *testing.T) {
 				test.MockBehavior(mockProfileService)
 			}
 
-			handler := handler.NewHandler(mockProfileService)
+			handler := NewHandler(mockProfileService)
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.CtxValue != nil {

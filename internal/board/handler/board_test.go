@@ -1,4 +1,4 @@
-package board
+package handler
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	mockBoardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/tests/mock_board_service"
+	mockBoardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/mock_board_service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -70,14 +70,14 @@ func TestGetUserBoards(t *testing.T) {
 			CtxValue:           nil,
 			MockBehavior:       nil,
 			ExpectedStatusCode: http.StatusUnauthorized,
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, UnauthorizedMessage),
 		},
 		{
 			Name:               "Error context value is not UUID",
 			CtxValue:           "some-string-id",
 			MockBehavior:       nil,
 			ExpectedStatusCode: http.StatusUnauthorized,
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, UnauthorizedMessage),
 		},
 		{
 			Name:     "User not found",
@@ -89,7 +89,7 @@ func TestGetUserBoards(t *testing.T) {
 				)
 			},
 			ExpectedStatusCode: http.StatusUnauthorized,
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, UnauthorizedMessage),
 		},
 		{
 			Name:     "Success empty boards list",
@@ -109,7 +109,7 @@ func TestGetUserBoards(t *testing.T) {
 				test.MockBehavior(mockBoardService)
 			}
 
-			handler := NewBoardHandler(mockBoardService)
+			handler := NewHandler(mockBoardService)
 
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 

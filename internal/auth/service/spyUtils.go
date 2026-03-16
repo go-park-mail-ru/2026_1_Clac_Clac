@@ -1,13 +1,11 @@
-package tests
+package service
 
 import (
 	"fmt"
-
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 )
 
 func spyHasherError(password string) (string, error) {
-	return "", fmt.Errorf("%w: %q", service.ErrorCreateHash, "error bcrypt")
+	return "", fmt.Errorf("%w: %q", ErrorCreateHash, "error bcrypt")
 }
 
 func spyHasher(password string) (string, error) {
@@ -23,5 +21,5 @@ func spyChecker(inputPassword, hashPassword string) error {
 		return nil
 	}
 
-	return service.ErrorWrongPassword
+	return ErrorWrongPassword
 }

@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -7,9 +7,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
-	mockSender "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_sender"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
+	mockSender "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_sender"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -63,7 +62,7 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := service.NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator)
+			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator)
 
 			err := service.SendRecoveryCode(context.Background(), test.email)
 

@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -11,8 +11,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +55,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "65432178",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -68,7 +67,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, handler.SomethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -87,7 +86,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "бобёр123",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -99,7 +98,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234552323",
 				Email:            "бобёр@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -111,7 +110,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -123,7 +122,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@m@ail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -135,7 +134,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234567",
 				Email:            "testmail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -147,7 +146,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234567",
 				Email:            "test@.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -159,7 +158,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, handler.SomethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -179,7 +178,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				test.MockBehavior(mockRegisterService)
 			}
 
-			handler := handler.NewAuthHandler(mockRegisterService)
+			handler := NewHandler(mockRegisterService)
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -222,12 +221,12 @@ func TestRegisterUserWithRawJSON(t *testing.T) {
 		incorrectJson := `{"display_name":"Artem",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, handler.InvalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err, "response marshal should not return error")
 
 		mockRegisterService := mockAuthSrv.NewAuthService(t)
-		handler := handler.NewAuthHandler(mockRegisterService)
+		handler := NewHandler(mockRegisterService)
 
 		req := httptest.NewRequest(http.MethodPost, "/register", requestBody)
 		res := httptest.NewRecorder()

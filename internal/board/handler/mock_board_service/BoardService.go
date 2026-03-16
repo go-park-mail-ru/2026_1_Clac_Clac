@@ -5,8 +5,9 @@ package mockBoardService
 import (
 	context "context"
 
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	mock "github.com/stretchr/testify/mock"
+
+	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 
 	uuid "github.com/google/uuid"
 )

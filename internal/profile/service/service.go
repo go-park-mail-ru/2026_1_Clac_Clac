@@ -16,7 +16,7 @@ type Service struct {
 	rep Repository
 }
 
-func NewProfileService(rep Repository) *Service {
+func NewService(rep Repository) *Service {
 	return &Service{
 		rep: rep,
 	}

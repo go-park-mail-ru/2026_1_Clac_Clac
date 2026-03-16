@@ -1,4 +1,4 @@
-package board
+package service
 
 import (
 	"context"
@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 
-	mockBoardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/tests/mock_board_rep"
+	mockBoardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/mock_board_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -57,7 +56,7 @@ func TestGetBoards(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			boardService := service.NewBoardService(mockRepo)
+			boardService := NewService(mockRepo)
 
 			boards, _ := boardService.GetBoards(ctx, test.userID)
 
@@ -96,7 +95,7 @@ func TestGetBoardsError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			boardService := service.NewBoardService(mockRepo)
+			boardService := NewService(mockRepo)
 
 			boards, err := boardService.GetBoards(ctx, test.userID)
 
@@ -144,7 +143,7 @@ func TestAddEmptyBoard(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			boardService := service.NewBoardService(mockRepo)
+			boardService := NewService(mockRepo)
 
 			err := boardService.CreateEmptyBoard(ctx, test.userID)
 

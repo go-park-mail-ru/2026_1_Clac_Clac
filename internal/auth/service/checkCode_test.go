@@ -1,12 +1,11 @@
-package tests
+package service
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	dbConnection "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +55,7 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := auth.NewService(mockRepo, nil, nil, nil, nil, nil)
+			service := NewService(mockRepo, nil, nil, nil, nil, nil)
 			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {

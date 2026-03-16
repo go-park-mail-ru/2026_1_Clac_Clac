@@ -36,8 +36,7 @@ func NewApp(conf *config.Config) *App {
 	db := setupDatabase()
 	store := setupStore(db)
 	manager := setupManager(store, &conf.MailSender)
-	createDemoUser(store, manager, logger)
-
+	createDemoUser(manager, logger)
 	router := setupRouter(manager, logger, &conf.VkOAuth)
 
 	e := setupEngine(&conf.Engine, logger, router)
@@ -73,7 +72,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	public.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
 	public.Handle("/docs", http.RedirectHandler("/docs/", http.StatusMovedPermanently))
 	// Добавление рутов, зависящих от сервисов
-	authHandler := auth.NewAuthHandler(manager.Auth)
+	authHandler := auth.NewHandler(manager.Auth)
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
@@ -143,7 +142,7 @@ func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 	return NewVKOAuth(conf)
 }
 
-func createDemoUser(s *Store, m *Manager, logger *zerolog.Logger) {
+func createDemoUser(m *Manager, logger *zerolog.Logger) {
 	user, _, err := m.Auth.Register(context.Background(), "Demo", "12345678", "demo@demo.ru")
 	if err != nil {
 		logger.Err(err).Msg("cannot create demo user")

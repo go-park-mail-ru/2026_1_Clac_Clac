@@ -20,8 +20,8 @@ func NewManager(s *Store, mailSenderConf *config.MailSender) *Manager {
 
 	return &Manager{
 		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode),
-		Board:      board.NewBoardService(s.Boards),
-		Profile:    profile.NewProfileService(s.Profiles),
+		Board:      board.NewService(s.Boards),
+		Profile:    profile.NewService(s.Profiles),
 		MailSender: &mailSender,
 	}
 }

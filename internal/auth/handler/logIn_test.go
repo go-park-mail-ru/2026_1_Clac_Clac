@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -10,8 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	handler "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -85,7 +84,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "wrong_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, handler.WrongEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, wrongEmailOrPassword),
 			ExpectedStatusCode: http.StatusUnauthorized,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -98,7 +97,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "123",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -108,7 +107,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "123111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -118,7 +117,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "testmail.ru",
 				Password: "1234567",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -131,7 +130,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				test.MockBehavior(mockLogInService)
 			}
 
-			handler := handler.NewAuthHandler(mockLogInService)
+			handler := NewHandler(mockLogInService)
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -174,12 +173,12 @@ func TestLogInUserWithRawJSON(t *testing.T) {
 		incorrectJson := `{"email":"test@mail.ru",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, handler.InvalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err, "response marshal should not return error")
 
 		mockLogInService := mockAuthSrv.NewAuthService(t)
-		handler := handler.NewAuthHandler(mockLogInService)
+		handler := NewHandler(mockLogInService)
 
 		req := httptest.NewRequest(http.MethodPost, "/", requestBody)
 		res := httptest.NewRecorder()

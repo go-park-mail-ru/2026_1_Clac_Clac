@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	unauthorizedMessage = "unauthorized"
+	UnauthorizedMessage = "unauthorized"
 )
 
 type BoardService interface {
@@ -33,13 +33,13 @@ func (bh *BoardHandler) GetUserBoards(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+		api.RespondError(w, http.StatusUnauthorized, UnauthorizedMessage)
 		return
 	}
 
 	boards, err := bh.srv.GetBoards(r.Context(), userID)
 	if err != nil {
-		api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+		api.RespondError(w, http.StatusUnauthorized, UnauthorizedMessage)
 		return
 	}
 

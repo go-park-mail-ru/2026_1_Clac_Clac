@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -11,8 +11,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +39,7 @@ func TestResetUserPassword(t *testing.T) {
 				Password:         "new_secure_password",
 				RepeatedPassword: "different_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, handler.InvalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -51,7 +50,7 @@ func TestResetUserPassword(t *testing.T) {
 				Password:         "new_secure_password",
 				RepeatedPassword: "new_secure_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, handler.CannotResetPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, cannotResetPassword),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -67,7 +66,7 @@ func TestResetUserPassword(t *testing.T) {
 				test.MockBehavior(mockSrv)
 			}
 
-			handler := handler.NewAuthHandler(mockSrv)
+			handler := NewHandler(mockSrv)
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -92,12 +91,12 @@ func TestResetUserPasswordWithRawJSON(t *testing.T) {
 		incorrectJson := `{"password":"123", "repeat"`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, handler.InvalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err)
 
 		mockSrv := mockAuthSrv.NewAuthService(t)
-		handler := handler.NewAuthHandler(mockSrv)
+		handler := NewHandler(mockSrv)
 
 		req := httptest.NewRequest(http.MethodPost, "/reset-password", requestBody)
 		res := httptest.NewRecorder()

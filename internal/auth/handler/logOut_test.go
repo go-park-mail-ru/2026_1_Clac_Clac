@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/tests/mock_auth_srv"
+	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +57,7 @@ func TestLogOutUser(t *testing.T) {
 				test.MockBehavior(mockAuthService)
 			}
 
-			handler := handler.NewAuthHandler(mockAuthService)
+			handler := NewHandler(mockAuthService)
 
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			if test.AddCookie {

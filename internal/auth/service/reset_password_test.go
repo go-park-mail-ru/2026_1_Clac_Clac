@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -7,8 +7,7 @@ import (
 	"testing"
 	"time"
 
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
-	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/tests/mock_auth_rep"
+	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/google/uuid"
@@ -52,7 +51,7 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := service.NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -129,7 +128,7 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := service.NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 

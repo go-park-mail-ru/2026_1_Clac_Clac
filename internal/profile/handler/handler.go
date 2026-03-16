@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	UnauthorizedMessage = "unauthorized"
-	SomethingWentWrong  = "something went wrong"
+	unauthorizedMessage = "unauthorized"
+	somethingWentWrong  = "something went wrong"
 )
 
 type ProfileService interface {
@@ -34,13 +34,13 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, UnauthorizedMessage)
+		api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 		return
 	}
 
 	user, err := ps.srv.GetProfileUser(r.Context(), userID)
 	if err != nil {
-		api.RespondError(w, http.StatusInternalServerError, SomethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
 		return
 	}
 
