@@ -40,8 +40,7 @@ help:
 	@echo ""
 	@echo "  build          - Собрать исполняемый файл"
 	@echo "  run            - Запустить приложение"
-	@echo "  test           - Запустить все тесты"
-	@echo "  test-cover     - Вывести покрытие тестами"
+	@echo "  docs           - Сгенерировать документацию"
 	@echo "  create-config  - Создать шаблон конфига"
 	@echo ""
 
@@ -50,12 +49,6 @@ build: docs
 
 run: build
 	@./$(BUILD_DIR)/$(BINARY_NAME)
-
-test:
-	go test -v -race ./internal/...
-
-test-cover:
-	go test -cover ./internal/...
 
 docs:
 	swag init -g main.go -o internal/docs -d ./cmd,./internal/api,./internal/handler,./internal/models

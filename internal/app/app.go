@@ -60,7 +60,7 @@ func (a *App) Run() {
 
 // Настройка рутов
 func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
@@ -69,8 +69,8 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	// Ручки, которым не нужна авторизация
 	public := router.PathPrefix("/").Subrouter()
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
-	public.PathPrefix("/docs/").Handler(httpSwagger.WrapHandler)
-	public.Handle("/docs", http.RedirectHandler("/docs/", http.StatusMovedPermanently))
+	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
+	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	// Добавление рутов, зависящих от сервисов
 	authHandler := auth.NewHandler(manager.Auth)
 
