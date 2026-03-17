@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/service/auth"
+	authSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/google/uuid"
 )
 
@@ -22,7 +22,7 @@ type SessionCheker interface {
 func AuthMiddleware(srv SessionCheker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(auth.SessiondIdKey)
+			cookie, err := r.Cookie(authSrv.SessiondIdKey)
 			if err != nil {
 				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
