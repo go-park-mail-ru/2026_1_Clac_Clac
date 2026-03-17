@@ -87,7 +87,7 @@ func TestValidatorRequestNewPassword(t *testing.T) {
 			ExpectedError:    ErrorLenPassword,
 		},
 		{
-			Name:             "Non-ASCII symbol in password",
+			Name:             "Not ASCII symbol in password",
 			Password:         "бобр_password!",
 			RepeatedPassword: "бобр_password!",
 			ExpectedError:    ErrorIncorrectSymbol,
