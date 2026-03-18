@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -261,4 +264,34 @@ func (a *Service) ResetPassword(ctx context.Context, tokenID, newPassword string
 	}
 
 	return nil
+}
+
+func (a *Service) EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (models.User, error) {
+	const randomPasswordLength = 32
+
+	user, err := a.GetUserByEmail(ctx, info.Email)
+	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			b := make([]byte, randomPasswordLength)
+			if _, err := rand.Read(b); err != nil {
+				return models.User{}, fmt.Errorf("generate random password: %w", err)
+			}
+
+			password := base64.URLEncoding.EncodeToString(b)
+
+			// TODO: просто игнорирую сессию, но как-то это некрасиво
+			// Что если нам регистрировать пользователя, а потом уже создавать сессию?
+			// Или добавить usecase для этого, который уже будет сразу создавать сессию
+			user, _, err = a.Register(ctx, info.Name, password, info.Email)
+			if err != nil {
+				return models.User{}, fmt.Errorf("authService.Register: %w", err)
+			}
+
+			return user, nil
+		}
+
+		return models.User{}, fmt.Errorf("authService.GetUserByEmail: %w", err)
+	}
+
+	return user, nil
 }

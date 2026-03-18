@@ -2,17 +2,14 @@ package handler
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -23,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// mockery --name=AuthService --output mock_auth_srv
 type AuthService interface {
 	Register(ctx context.Context, name, password, email string) (models.User, string, error)
 	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
@@ -33,6 +31,7 @@ type AuthService interface {
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
+	EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (models.User, error)
 }
 
 type VkOAuth interface {
@@ -49,6 +48,10 @@ func NewHandler(srv AuthService) *AuthHandler {
 type AuthHandler struct {
 	Srv AuthService
 }
+
+var (
+	ErrEmptyUserData = errors.New("vk api return empty response")
+)
 
 const (
 	invalidDataMessage     = "invalid data"
@@ -71,6 +74,7 @@ const (
 // @Security     CookieAuth
 // @Router       /me [get]
 func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: возвращать профиль, а не ok
 	value := r.Context().Value(middleware.UserIDKey{})
 	_, ok := value.(uuid.UUID)
 	if !ok {
@@ -92,7 +96,7 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400 {object} map[string]string "Некорректный запрос (невалидные данные)"
 // @Failure      401 {object} map[string]string "Неверный email или пароль"
 // @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
-// @Router       /auth/login [post]
+// @Router       /login [post]
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -138,7 +142,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 // @Success      201 {object} models.User "Пользователь успешно создан"
 // @Failure      400 {object} map[string]string "Ошибка валидации данных"
 // @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
-// @Router       /auth/register [post]
+// @Router       /register [post]
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -175,7 +179,7 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 // @Tags         auth
 // @Produce      json
 // @Success      200 {object} map[string]string "Успешный выход"
-// @Router       /auth/logout [post]
+// @Router       /logout [post]
 func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -201,7 +205,7 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 // @Success      200 {object} map[string]string "Код успешно отправлен"
 // @Failure      400 {object} map[string]string "Некорректный запрос"
 // @Failure      500 {object} map[string]string "Ошибка отправки письма"
-// @Router       /auth/recovery/send [post]
+// @Router       /recovery/send [post]
 func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -237,7 +241,7 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 // @Success      200 {object} map[string]string "Код верен"
 // @Failure      400 {object} map[string]string "Некорректный запрос"
 // @Failure      500 {object} map[string]string "Неверный код или ошибка сервера"
-// @Router       /auth/recovery/check [post]
+// @Router       /recovery/check [post]
 func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -268,7 +272,7 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 // @Success      200 {object} map[string]string "Пароль успешно изменен"
 // @Failure      400 {object} map[string]string "Некорректные данные"
 // @Failure      500 {object} map[string]string "Ошибка обновления пароля"
-// @Router       /auth/password/reset [post]
+// @Router       /password/reset [post]
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -295,31 +299,23 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// TODO: добавить документацию
+// Вынести константы
+// Написать тесты
 func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
-	redirectWithMessage := func(w http.ResponseWriter, r *http.Request, statusCode int, errorMessage string) {
-		params := url.Values{}
-		params.Add("message", errorMessage)
-		params.Add("code", strconv.Itoa(statusCode))
-
-		targetURL := fmt.Sprintf("%s?%s", redirectTo, params.Encode())
-
-		http.Redirect(w, r, targetURL, http.StatusFound)
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		const vkOAuthCodeKey = "code"
 		const emailKey = "email"
 		const randomPasswordLength = 32
 
-		ctx := r.Context()
-		logger := zerolog.Ctx(ctx)
+		logger := zerolog.Ctx(r.Context())
 
 		code := r.FormValue(vkOAuthCodeKey)
 
-		token, err := vkOAuth.Exchange(ctx, code)
+		token, err := vkOAuth.Exchange(r.Context(), code)
 		if err != nil {
 			logger.Err(err).Msg("vk oauth exchange")
-			redirectWithMessage(w, r, http.StatusBadRequest, "vk_oauth_error")
+			api.Redirect(w, r, redirectTo, http.StatusBadGateway, "vk_oauth_error")
 			return
 		}
 
@@ -327,21 +323,21 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		var ok bool
 		if emailRaw := token.Extra(emailKey); emailRaw != nil {
 			if userEmail, ok = emailRaw.(string); !ok {
-				redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
+				api.Redirect(w, r, redirectTo, http.StatusBadGateway, "no_email")
 				return
 			}
 		}
 
 		if ok := ValidateEmail(userEmail); !ok {
-			redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
+			api.Redirect(w, r, redirectTo, http.StatusBadGateway, "no_valid_email")
 			return
 		}
 
-		client := vkOAuth.Client(ctx, token)
+		client := vkOAuth.Client(r.Context(), token)
 		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
 		if err != nil {
 			logger.Err(err).Msg("vk api cannot request data")
-			redirectWithMessage(w, r, http.StatusBadRequest, "cannot_request_data")
+			api.Redirect(w, r, redirectTo, http.StatusBadGateway, "vk_api_cannot_request_data")
 			return
 		}
 
@@ -353,50 +349,34 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 		usersData := &api.VkAPIUsersData{}
 		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
-			logger.Err(err).Msg("cannot read response body")
-			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
+			logger.Err(err).Msg("vk api cannot read response body")
+			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, "something_went_wrong")
 			return
 		}
 
 		if len(usersData.Response) < 1 {
-			logger.Err(errors.New("cannot find user")).Msg("read user data from vk api")
-			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
+			logger.Err(ErrEmptyUserData).Msg("vk api: empty user data")
+			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, "something_went_wrong")
 			return
 		}
 
 		userData := usersData.Response[0]
 
-		var sessionID string
-		user, err := a.Srv.GetUserByEmail(ctx, userEmail)
+		user, err := a.Srv.EnsureUserByEmail(r.Context(), dto.UserInfo{
+			Name:  userData.FirstName,
+			Email: userEmail,
+		})
 		if err != nil {
-			if errors.Is(err, common.ErrorNonexistentUser) {
-				b := make([]byte, randomPasswordLength)
-				if _, err := rand.Read(b); err != nil {
-					logger.Err(err).Msg("vk oauth generate user password")
-					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-					return
-				}
+			logger.Err(err).Msg("authService.EnsureUserByEmail")
+			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, "something_went_wrong")
+			return
+		}
 
-				password := base64.URLEncoding.EncodeToString(b)
-
-				user, sessionID, err = a.Srv.Register(r.Context(), userData.FirstName, password, userEmail)
-				if err != nil {
-					logger.Err(fmt.Errorf("auth.Register: %w", err))
-					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-					return
-				}
-			} else {
-				logger.Err(err).Msg("service.GetUser")
-				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-				return
-			}
-		} else {
-			sessionID, err = a.Srv.CreateSessionForUser(ctx, user)
-			if err != nil {
-				logger.Err(err).Msg("service.CreateSessionForUser")
-				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-				return
-			}
+		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user)
+		if err != nil {
+			logger.Err(err).Msg("authService.CreateSessionForUser")
+			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, "something_went_wrong")
+			return
 		}
 
 		http.SetCookie(w, api.NewCookie(
@@ -404,6 +384,6 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
 
-		redirectWithMessage(w, r, http.StatusOK, "success")
+		api.Redirect(w, r, redirectTo, http.StatusOK, "success")
 	}
 }
