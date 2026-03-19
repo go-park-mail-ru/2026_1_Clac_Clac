@@ -32,6 +32,7 @@ type AuthService interface {
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 	EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (models.User, error)
+	SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error
 }
 
 // mockery --name=VkOAuth --output mock_vk_oauth
@@ -40,14 +41,14 @@ type VkOAuth interface {
 	Client(ctx context.Context, t *oauth2.Token) *http.Client
 }
 
+type AuthHandler struct {
+	Srv AuthService
+}
+
 func NewHandler(srv AuthService) *AuthHandler {
 	return &AuthHandler{
 		Srv: srv,
 	}
-}
-
-type AuthHandler struct {
-	Srv AuthService
 }
 
 const (
@@ -66,13 +67,14 @@ var (
 	ErrUserNotAuthorized      = errors.New("user not authorized")
 	ErrUserDoesNotExists      = errors.New("user does not exists")
 
-	ErrOAuthCodeEmpty             = errors.New("oauth_code_empty")
-	ErrOAuthExchangeFailed        = errors.New("oauth_error")
-	ErrOAuthNoEmailProvided       = errors.New("oauth_no_email")
-	ErrOAuthInvalidEmail          = errors.New("oauth_invalid_email")
-	ErrOAuthCannotRequestUserData = errors.New("oauth_cannot_request_user_data")
-	ErrOAuthEmptyUserData         = errors.New("oauth_no_user_data")
-	ErrOAuthInternalServerError   = errors.New("oauth_something_went_wrong")
+	ErrOAuthCodeEmpty              = errors.New("oauth_code_empty")
+	ErrOAuthExchangeFailed         = errors.New("oauth_error")
+	ErrOAuthNoEmailProvided        = errors.New("oauth_no_email")
+	ErrOAuthInvalidEmail           = errors.New("oauth_invalid_email")
+	ErrOAuthCannotRequestUserData  = errors.New("oauth_cannot_request_user_data")
+	ErrOAuthEmptyUserData          = errors.New("oauth_no_user_data")
+	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
+	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -394,12 +396,20 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 		userData := usersData.Response[0]
 
-		user, err := a.Srv.EnsureUserByEmail(r.Context(), dto.UserInfo{
+		userInfo := dto.UserInfo{
 			Name:  userData.FirstName,
 			Email: userEmail,
-		})
+		}
+		user, err := a.Srv.EnsureUserByEmail(r.Context(), userInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
+			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			return
+		}
+
+		err = a.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
+		if err != nil {
+			logger.Err(ErrOAuthCannotSaveRefreshToken).Msg("authService.SaveRefreshToken")
 			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}

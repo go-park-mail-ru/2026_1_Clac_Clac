@@ -295,3 +295,8 @@ func (a *Service) EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (mod
 
 	return user, nil
 }
+
+func (a *Service) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error {
+	// TODO: реализовать сохранение в redis
+	return nil
+}

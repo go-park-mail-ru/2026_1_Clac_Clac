@@ -888,6 +888,9 @@ func TestVkOAuthCallback(t *testing.T) {
 				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
 					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(nil)
+
 				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
 					Return("fake-session-id", nil)
 			},
@@ -1015,6 +1018,27 @@ func TestVkOAuthCallback(t *testing.T) {
 			},
 		},
 		{
+			Name:            "save refresh token error",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthInternalServerError.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
+
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(successMockClient)
+			},
+			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
+					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(errors.New("cannot save refresh token"))
+			},
+		},
+		{
 			Name:            "create session error",
 			ExpectedCode:    http.StatusInternalServerError,
 			ExpectedMessage: ErrOAuthInternalServerError.Error(),
@@ -1030,6 +1054,9 @@ func TestVkOAuthCallback(t *testing.T) {
 			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
 				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
 					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(nil)
 
 				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
 					Return("", errors.New("cannot create session"))

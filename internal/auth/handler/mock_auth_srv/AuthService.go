@@ -257,6 +257,24 @@ func (_m *AuthService) ResetPassword(ctx context.Context, tokenID string, newPas
 	return r0
 }
 
+// SaveRefreshTokenFroUser provides a mock function with given fields: ctx, info, token
+func (_m *AuthService) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error {
+	ret := _m.Called(ctx, info, token)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SaveRefreshTokenFroUser")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UserInfo, string) error); ok {
+		r0 = rf(ctx, info, token)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SendRecoveryCode provides a mock function with given fields: ctx, email
 func (_m *AuthService) SendRecoveryCode(ctx context.Context, email string) error {
 	ret := _m.Called(ctx, email)
