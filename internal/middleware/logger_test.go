@@ -8,14 +8,11 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLoggerMiddleware(t *testing.T) {
 	res := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
-
-	require.NoError(t, err, "cannot create request")
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	logger := zerolog.New(nil)
 
@@ -25,4 +22,28 @@ func TestLoggerMiddleware(t *testing.T) {
 	m := middleware.LoggerMiddleware(&logger).Middleware(h)
 
 	m.ServeHTTP(res, req)
+}
+
+func TestLoggerResponseWriter(t *testing.T) {
+	t.Run("ok status", func(t *testing.T) {
+		res := httptest.NewRecorder()
+		loggerResponseWriter := &middleware.LoggerResponseWriter{
+			ResponseWriter: res,
+		}
+
+		loggerResponseWriter.WriteHeader(http.StatusOK)
+
+		assert.Equal(t, http.StatusOK, res.Code, "http codes must be equal")
+	})
+
+	t.Run("internal server error status", func(t *testing.T) {
+		res := httptest.NewRecorder()
+		loggerResponseWriter := &middleware.LoggerResponseWriter{
+			ResponseWriter: res,
+		}
+
+		loggerResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		assert.Equal(t, http.StatusInternalServerError, res.Code, "http codes must be equal")
+	})
 }
