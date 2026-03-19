@@ -10,6 +10,7 @@ import (
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"

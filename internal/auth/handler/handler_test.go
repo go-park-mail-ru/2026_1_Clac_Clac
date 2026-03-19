@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -94,7 +95,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "wrong_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, wrongEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusUnauthorized, ErrWrongEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusUnauthorized,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -107,7 +108,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "123",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -117,7 +118,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "artem@mail.ru",
 				Password: "123111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -127,7 +128,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "testmail.ru",
 				Password: "1234567",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -183,7 +184,7 @@ func TestLogInUserWithRawJSON(t *testing.T) {
 		incorrectJson := `{"email":"test@mail.ru",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err, "response marshal should not return error")
 
@@ -237,7 +238,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "65432178",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -249,7 +250,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrInternalServerError.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -268,7 +269,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "бобёр123",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -280,7 +281,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234552323",
 				Email:            "бобёр@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -292,7 +293,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -304,7 +305,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@m@ail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -316,7 +317,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234567",
 				Email:            "testmail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -328,7 +329,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "1234567",
 				Email:            "test@.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -340,7 +341,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "123456789",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrInternalServerError.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -403,7 +404,7 @@ func TestRegisterUserWithRawJSON(t *testing.T) {
 		incorrectJson := `{"display_name":"Artem",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err, "response marshal should not return error")
 
@@ -566,7 +567,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 			Request: api.PasswordRecoveryRequest{
 				Email: "notfound@mail.ru",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, cannotSendEmail),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrCannotSendRecoveryCode.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -607,7 +608,7 @@ func TestSendRecoveryEmailWithRawJSON(t *testing.T) {
 		incorrectJson := `{"email":"test@mail.ru",,,}`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err)
 
@@ -647,7 +648,7 @@ func TestResetUserPassword(t *testing.T) {
 				Password:         "new_secure_password",
 				RepeatedPassword: "different_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
 			MockBehavior:       nil,
 		},
@@ -658,7 +659,7 @@ func TestResetUserPassword(t *testing.T) {
 				Password:         "new_secure_password",
 				RepeatedPassword: "new_secure_password",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, cannotResetPassword),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrCannotResetPassword.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -699,7 +700,7 @@ func TestResetUserPasswordWithRawJSON(t *testing.T) {
 		incorrectJson := `{"password":"123", "repeat"`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err)
 
@@ -735,7 +736,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 			Request: api.RecoveryCodeRequest{
 				Code: "000000",
 			},
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrInternalServerError.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
@@ -776,7 +777,7 @@ func TestCheckRecoveryCodeWithRawJSON(t *testing.T) {
 		incorrectJson := `{"code":123456`
 		requestBody := strings.NewReader(incorrectJson)
 
-		expectedResponse := newErrorResponse(http.StatusBadRequest, invalidDataMessage)
+		expectedResponse := newErrorResponse(http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		expectedBody, err := json.Marshal(expectedResponse)
 		require.NoError(t, err)
 
@@ -794,28 +795,23 @@ func TestCheckRecoveryCodeWithRawJSON(t *testing.T) {
 }
 
 type mockTransport struct {
-	RoundTripFunc func(req *http.Request) *http.Response
+	RoundTripFunc func(req *http.Request) (*http.Response, error)
 }
 
 func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	return m.RoundTripFunc(req), nil
+	return m.RoundTripFunc(req)
 }
 
-func TestVkOAuthCallbackExistingUser(t *testing.T) {
-	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-	mockAuthService := new(authServiceMocks.AuthService)
+func TestVkOAuthCallback(t *testing.T) {
+	const codeParam = "code"
+	const messageParam = "message"
+	const redirectTo = "/"
+	const testUserEmail = "user@example.com"
+	vkOAuthConf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
 
-	handler := &AuthHandler{Srv: mockAuthService}
-
-	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
-	redirectTo := "/"
-	testEmail := "user@example.com"
-	testToken := &oauth2.Token{AccessToken: "fake-token"}
-	testToken = testToken.WithExtra(map[string]any{"email": testEmail})
-
-	mockClient := &http.Client{
+	successMockClient := &http.Client{
 		Transport: &mockTransport{
-			RoundTripFunc: func(req *http.Request) *http.Response {
+			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 				vkResp := api.VkAPIUsersData{
 					Response: []api.VkAPIUserData{{FirstName: "Ivan"}},
 				}
@@ -825,102 +821,292 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 					StatusCode: http.StatusOK,
 					Body:       io.NopCloser(bytes.NewBuffer(body)),
 					Header:     make(http.Header),
-				}
+				}, nil
 			},
 		},
 	}
 
-	mockVkOAuth.On("Exchange", mock.Anything, "valid_code").Return(testToken, nil)
-	mockVkOAuth.On("Client", mock.Anything, testToken).Return(mockClient)
-
-	mockAuthService.On("GetUserByEmail", mock.Anything, testEmail).
-		Return(models.User{ID: common.FixedUserUuiD, Email: testEmail}, nil)
-
-	mockAuthService.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
-		Return("fake-session-id", nil)
-
-	req := httptest.NewRequest(http.MethodGet, "/callback?code=valid_code", nil)
-	rr := httptest.NewRecorder()
-
-	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
-	httpHandler(rr, req)
-
-	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
-
-	cookies := rr.Result().Cookies()
-	assert.NotEmpty(t, cookies)
-	assert.Equal(t, "fake-session-id", cookies[0].Value)
-
-	mockVkOAuth.AssertExpectations(t)
-	mockAuthService.AssertExpectations(t)
-}
-
-func TestVkOAuthCallbackNewUserRegistration(t *testing.T) {
-	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-	mockAuthService := new(authServiceMocks.AuthService)
-
-	handler := &AuthHandler{Srv: mockAuthService}
-
-	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
-	redirectTo := "/"
-	testEmail := "new@example.com"
-	testToken := &oauth2.Token{AccessToken: "fake-token"}
-	testToken = testToken.WithExtra(map[string]any{"email": testEmail})
-
-	mockClient := &http.Client{
+	errorMockClient := &http.Client{
 		Transport: &mockTransport{
-			RoundTripFunc: func(req *http.Request) *http.Response {
-				vkResp := api.VkAPIUsersData{
-					Response: []api.VkAPIUserData{{FirstName: "Alice"}},
-				}
-				body, _ := json.Marshal(vkResp)
-				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBuffer(body))}
+			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+				return nil, errors.New("network error")
 			},
 		},
 	}
 
-	mockVkOAuth.On("Exchange", mock.Anything, "valid_code").Return(testToken, nil)
-	mockVkOAuth.On("Client", mock.Anything, testToken).Return(mockClient)
+	invalidSchemeMockClient := &http.Client{
+		Transport: &mockTransport{
+			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+				body := []byte("invalid json")
 
-	mockAuthService.On("GetUserByEmail", mock.Anything, testEmail).
-		Return(models.User{}, common.ErrorNonexistentUser)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewBuffer(body)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
 
-	mockAuthService.On("Register", mock.Anything, "Alice", mock.AnythingOfType("string"), testEmail).
-		Return(models.User{ID: common.FixedUserUuiD}, "new-session-id", nil)
+	emptyMockClinet := &http.Client{
+		Transport: &mockTransport{
+			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+				body := []byte(`{"response":[]}`)
 
-	req := httptest.NewRequest(http.MethodGet, "/callback?code=valid_code", nil)
-	rr := httptest.NewRecorder()
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(bytes.NewBuffer(body)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
 
-	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
-	httpHandler(rr, req)
+	tests := []struct {
+		Name                    string
+		ExpectedCode            int
+		ExpectedMessage         string
+		ExpectError             bool
+		OAuthCode               string
+		VkOAuthMockBehavior     func(*vkOAuthMocks.VkOAuth)
+		AuthServiceMockBehavior func(*mockAuthSrv.AuthService)
+	}{
+		{
+			Name:            "no error",
+			ExpectedCode:    http.StatusOK,
+			ExpectedMessage: "success",
+			ExpectError:     false,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(successMockClient)
+			},
+			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
+					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
-	mockVkOAuth.AssertExpectations(t)
-	mockAuthService.AssertExpectations(t)
-}
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(nil)
 
-func TestVkOAuthCallbackExchangeError(t *testing.T) {
-	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-	mockAuthService := new(authServiceMocks.AuthService)
+				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
+					Return("fake-session-id", nil)
+			},
+		},
+		{
+			Name:                    "empty code",
+			ExpectedCode:            http.StatusBadRequest,
+			ExpectedMessage:         ErrOAuthCodeEmpty.Error(),
+			ExpectError:             true,
+			OAuthCode:               "",
+			VkOAuthMockBehavior:     nil,
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "exchange error",
+			ExpectedCode:    http.StatusBadGateway,
+			ExpectedMessage: ErrOAuthExchangeFailed.Error(),
+			ExpectError:     true,
+			OAuthCode:       "invalid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				v.On("Exchange", mock.Anything, "invalid_code").
+					Return((*oauth2.Token)(nil), errors.New("exchange failed"))
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "no email provided",
+			ExpectedCode:    http.StatusBadGateway,
+			ExpectedMessage: ErrOAuthNoEmailProvided.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "not string email",
+			ExpectedCode:    http.StatusBadGateway,
+			ExpectedMessage: ErrOAuthNoEmailProvided.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": 123456})
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "invalid email",
+			ExpectedCode:    http.StatusBadGateway,
+			ExpectedMessage: ErrOAuthInvalidEmail.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": "testmain.ru"})
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "vk api client error",
+			ExpectedCode:    http.StatusBadGateway,
+			ExpectedMessage: ErrOAuthCannotRequestUserData.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	handler := &AuthHandler{Srv: mockAuthService}
-	conf := &config.VkOAuth{}
-	redirectTo := "/"
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(errorMockClient)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "response with invalid scheme from vk api",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthInternalServerError.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	mockVkOAuth.On("Exchange", mock.Anything, "invalid_code").
-		Return((*oauth2.Token)(nil), errors.New("exchange failed"))
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(invalidSchemeMockClient)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "empty response from vk api",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthEmptyUserData.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	req := httptest.NewRequest(http.MethodGet, "/callback?code=invalid_code", nil)
-	rr := httptest.NewRecorder()
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(emptyMockClinet)
+			},
+			AuthServiceMockBehavior: nil,
+		},
+		{
+			Name:            "ensure user error",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthInternalServerError.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
-	httpHandler(rr, req)
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(successMockClient)
+			},
+			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
+					Return(models.User{}, errors.New("cannot create user"))
+			},
+		},
+		{
+			Name:            "save refresh token error",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthInternalServerError.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
 
-	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, "/?code=400&message=vk_oauth_error", rr.Header().Get("Location"))
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(successMockClient)
+			},
+			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
+					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
-	mockVkOAuth.AssertExpectations(t)
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(errors.New("cannot save refresh token"))
+			},
+		},
+		{
+			Name:            "create session error",
+			ExpectedCode:    http.StatusInternalServerError,
+			ExpectedMessage: ErrOAuthInternalServerError.Error(),
+			ExpectError:     true,
+			OAuthCode:       "valid_code",
+			VkOAuthMockBehavior: func(v *vkOAuthMocks.VkOAuth) {
+				token := &oauth2.Token{AccessToken: "fake-token"}
+				token = token.WithExtra(map[string]any{"email": testUserEmail})
+
+				v.On("Exchange", mock.Anything, "valid_code").Return(token, nil)
+				v.On("Client", mock.Anything, token).Return(successMockClient)
+			},
+			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
+					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+					Return(nil)
+
+				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
+					Return("", errors.New("cannot create session"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockVkOAuth := new(vkOAuthMocks.VkOAuth)
+			if test.VkOAuthMockBehavior != nil {
+				test.VkOAuthMockBehavior(mockVkOAuth)
+			}
+
+			mockAuthService := new(authServiceMocks.AuthService)
+			if test.AuthServiceMockBehavior != nil {
+				test.AuthServiceMockBehavior(mockAuthService)
+			}
+
+			handler := &AuthHandler{Srv: mockAuthService}
+
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/callback?code=%s", test.OAuthCode), nil)
+			res := httptest.NewRecorder()
+
+			callbackHandler := handler.VkOAuthCallback(vkOAuthConf, redirectTo, mockVkOAuth)
+			callbackHandler(res, req)
+
+			r := res.Result()
+
+			require.Equal(t, http.StatusFound, r.StatusCode, "http code must be 302")
+
+			location, err := r.Location()
+			require.NoError(t, err, "location must be provided")
+
+			q := location.Query()
+
+			require.True(t, q.Has(codeParam), "must be code query param")
+			assert.Equal(t, strconv.Itoa(test.ExpectedCode), q.Get(codeParam), "codes must be equal")
+
+			require.True(t, q.Has(messageParam), "must be message query param")
+			assert.Equal(t, test.ExpectedMessage, q.Get(messageParam), "messages must be equal")
+
+			if !test.ExpectError {
+				cookies := r.Cookies()
+				require.NotEmpty(t, cookies)
+				assert.Equal(t, "fake-session-id", cookies[0].Value)
+			}
+
+			mockVkOAuth.AssertExpectations(t)
+			mockAuthService.AssertExpectations(t)
+		})
+	}
 }
