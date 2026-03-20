@@ -1,9 +1,13 @@
 package middleware
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,8 +16,9 @@ import (
 )
 
 const (
-	xRealIPHeader       = "X-Real-IP"
-	xForwardedForHeader = "X-Forwarded-For"
+	xRealIPHeader          = "X-Real-IP"
+	xForwardedForHeader    = "X-Forwarded-For"
+	requestBodyLengthLimit = 1 * 256 // 256 байт
 )
 
 var (
@@ -30,6 +35,46 @@ func (w *LoggerResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+type LoggerLimitWriter struct {
+	Destination io.Writer
+	Remaning    int
+}
+
+func (w *LoggerLimitWriter) Write(p []byte) (int, error) {
+	if w.Remaning <= 0 {
+		return len(p), nil
+	}
+
+	toWrite := min(len(p), w.Remaning)
+	_, err := w.Destination.Write(p[:])
+	if err != nil {
+		return 0, fmt.Errorf("destination.Write: %w", err)
+	}
+
+	w.Remaning -= toWrite
+
+	return toWrite, nil
+}
+
+func NewLoggerLimitWriter(destination io.Writer, limit int) *LoggerLimitWriter {
+	return &LoggerLimitWriter{
+		Destination: destination,
+		Remaning:    limit,
+	}
+}
+
+type LoggerBufferedReader struct {
+	io.Reader
+	io.Closer
+}
+
+func NewLoggerBufferedReader(source io.ReadCloser, buf io.Writer) *LoggerBufferedReader {
+	return &LoggerBufferedReader{
+		Reader: io.TeeReader(source, buf),
+		Closer: source,
+	}
+}
+
 func GetRealIP(r *http.Request) string {
 	if ip := r.Header.Get(xRealIPHeader); ip != "" {
 		return ip
@@ -42,12 +87,31 @@ func GetRealIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+func ShouldLogRequestBody(code int) bool {
+	return (code >= 400) && (code < 600)
+}
+
 func LoggerMiddleware(logger *zerolog.Logger) mux.MiddlewareFunc {
+	buffersPool := sync.Pool{
+		New: func() any {
+			return new(bytes.Buffer)
+		},
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			requestStart := time.Now()
 
 			requestLogger := logger.With().Str("request-id", uuid.New().String()).Logger()
+
+			buf := buffersPool.Get().(*bytes.Buffer)
+			defer func() {
+				buf.Reset()
+				buffersPool.Put(buf)
+			}()
+
+			limitWriter := NewLoggerLimitWriter(buf, requestBodyLengthLimit)
+			r.Body = NewLoggerBufferedReader(r.Body, limitWriter)
 
 			ctx := requestLogger.WithContext(r.Context())
 
@@ -59,8 +123,15 @@ func LoggerMiddleware(logger *zerolog.Logger) mux.MiddlewareFunc {
 
 			requestDuration := time.Since(requestStart)
 
-			// TODO: решить вопрос с request.Body
-			requestLogger.Info().
+			var logEvent *zerolog.Event
+			isResponseError := ShouldLogRequestBody(responseWriter.statusCode)
+			if isResponseError {
+				logEvent = requestLogger.Error()
+			} else {
+				logEvent = requestLogger.Info()
+			}
+
+			logEvent = logEvent.
 				Str("method", r.Method).
 				Str("remote_addr", r.RemoteAddr).
 				Str("url", r.URL.Path).
@@ -72,8 +143,18 @@ func LoggerMiddleware(logger *zerolog.Logger) mux.MiddlewareFunc {
 				Int64("content_length", r.ContentLength).
 				Str("start_time", requestStart.Format(time.RFC3339)).
 				Str("duration_human", requestDuration.String()).
-				Int64("duration_ms", requestDuration.Milliseconds()).
-				Msg("request processed")
+				Int64("duration_ms", requestDuration.Milliseconds())
+
+			if isResponseError {
+				if r.Body != nil {
+					remaning := io.LimitReader(r.Body, requestBodyLengthLimit)
+					io.Copy(io.Discard, remaning)
+				}
+
+				logEvent = logEvent.Bytes("body", buf.Bytes())
+			}
+
+			logEvent.Msg("request processed")
 		})
 	}
 }
