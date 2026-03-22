@@ -4,28 +4,28 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
 	"github.com/google/uuid"
 )
 
-type Repository interface {
-	GetProfile(ctx context.Context, userID uuid.UUID) (models.User, error)
+type ProfileRepository interface {
+	GetProfile(ctx context.Context, link uuid.UUID) (dto.UserInfoResponce, error)
 }
 
 type Service struct {
-	rep Repository
+	rep ProfileRepository
 }
 
-func NewService(rep Repository) *Service {
+func NewService(rep ProfileRepository) *Service {
 	return &Service{
 		rep: rep,
 	}
 }
 
-func (pr *Service) GetProfileUser(ctx context.Context, userID uuid.UUID) (models.User, error) {
-	user, err := pr.rep.GetProfile(ctx, userID)
+func (s *Service) GetProfileUser(ctx context.Context, userID uuid.UUID) (dto.UserInfoResponce, error) {
+	user, err := s.rep.GetProfile(ctx, userID)
 	if err != nil {
-		return models.User{}, fmt.Errorf("rep.GetProfile: %w", err)
+		return dto.UserInfoResponce{}, fmt.Errorf("rep.GetProfile: %w", err)
 	}
 
 	return user, nil

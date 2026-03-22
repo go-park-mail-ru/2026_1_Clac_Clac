@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -24,11 +25,11 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, name, password, email string) (models.User, string, error)
-	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
-	CreateSessionForUser(ctx context.Context, user models.User) (string, error)
+	Register(ctx context.Context, requestUser dto.RegistraionInfoRequest) (dto.UserInfoResponce, string, error)
+	LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (dto.UserInfoResponce, string, error)
+	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
 	LogOut(ctx context.Context, sessionID string) error
-	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
+	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
 	GetUserByEmail(ctx context.Context, email string) (models.User, error)
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
@@ -71,7 +72,7 @@ const (
 // @Security     CookieAuth
 // @Router       /me [get]
 func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
-	value := r.Context().Value(middleware.UserIDKey{})
+	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
 	if !ok {
 		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
@@ -108,7 +109,10 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.LogIn(r.Context(), request.Email, request.Password)
+	user, sessionID, err := a.Srv.LogIn(r.Context(), dto.LoginInfoRequest{
+		Email:    request.Email,
+		Password: request.Password,
+	})
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
 			api.RespondError(w, http.StatusUnauthorized, wrongEmailOrPassword)
@@ -154,7 +158,11 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
+	user, sessionID, err := a.Srv.Register(r.Context(), dto.RegistraionInfoRequest{
+		Name:     request.DisplayName,
+		Email:    request.Email,
+		Password: request.Password,
+	})
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
@@ -379,7 +387,12 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 				password := base64.URLEncoding.EncodeToString(b)
 
-				user, sessionID, err = a.Srv.Register(r.Context(), userData.FirstName, password, userEmail)
+				_, _, err := a.Srv.Register(r.Context(), dto.RegistraionInfoRequest{
+					Name:     userData.FirstName,
+					Password: password,
+					Email:    userEmail,
+				})
+
 				if err != nil {
 					logger.Err(fmt.Errorf("auth.Register: %w", err))
 					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
@@ -391,7 +404,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 				return
 			}
 		} else {
-			sessionID, err = a.Srv.CreateSessionForUser(ctx, user)
+			sessionID, err = a.Srv.CreateSessionForUser(ctx, user.Link)
 			if err != nil {
 				logger.Err(err).Msg("service.CreateSessionForUser")
 				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")

@@ -1,47 +1,72 @@
-package auth
+package repository
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	mockRedisEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/mock_redis_engine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAddUser(t *testing.T) {
+	fixedUUID := common.FixedUserUuiD
+
 	tests := []struct {
-		nameTest         string
-		IDs              []uuid.UUID
-		expectedDataBase map[uuid.UUID]db.User
+		nameTest      string
+		user          models.User
+		mockSetup     func(mock pgxmock.PgxPoolIface, user models.User)
+		expectedError bool
 	}{
 		{
 			nameTest: "Success registration",
-			IDs:      []uuid.UUID{common.FixedUserUuiD},
-			expectedDataBase: map[uuid.UUID]db.User{
-				common.FixedUserUuiD: {
-					ID:     common.FixedUserUuiD,
-					Boards: make([]db.Board, 0),
-				},
+			user: models.User{
+				Link: fixedUUID,
 			},
+			mockSetup: func(mock pgxmock.PgxPoolIface, user models.User) {
+				query := `INSERT INTO "user" \(link, display_name, password_hash, email, avatar\)`
+
+				mock.ExpectExec(query).
+					WithArgs(user.Link, user.DisplayName, user.PasswordHash, user.Email, user.Avatar).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+			},
+			expectedError: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
+			test.mockSetup(mockPool, test.user)
+
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
-			for _, id := range test.IDs {
-				repoUsers.AddUser(ctx, models.User{ID: id, Boards: make([]models.Board, 0)})
+			err = repoUsers.AddUser(ctx, test.user)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
-			assert.Equal(t, test.expectedDataBase, repoUsers.database.UsersDB)
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "not wait error")
 		})
 	}
 }
@@ -61,240 +86,325 @@ func TestAddUserError(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
-			var err error
+			repoUsers := NewRepository(mockPool, nil)
+			var errResult error
 			ctx := context.Background()
+
+			query := `INSERT INTO "user" \(link, display_name, password_hash, email, avatar\)`
+
+			mockPool.ExpectExec(query).
+				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), test.emails[0], pgxmock.AnyArg()).
+				WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+			mockPool.ExpectExec(query).
+				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), test.emails[1], pgxmock.AnyArg()).
+				WillReturnError(&pgconn.PgError{Code: common.CodeUniqError})
 
 			for _, email := range test.emails {
-				err = repoUsers.AddUser(ctx, models.User{Email: email})
+				errResult = repoUsers.AddUser(ctx, models.User{Email: email})
 			}
 
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
-}
+			assert.Equal(t, test.expectedError, errResult)
 
-func TestAddSeession(t *testing.T) {
-	tests := []struct {
-		nameTest       string
-		session        db.Session
-		expectedUserID uuid.UUID
-	}{
-		{
-			nameTest: "Success registration",
-			session: db.Session{
-				SessionID: common.FixedSessionID,
-				UserID:    common.FixedUserUuiD,
-			},
-			expectedUserID: common.FixedUserUuiD,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
-
-			ctx := context.Background()
-
-			err := repoUsers.AddSession(ctx, test.session)
+			err = mockPool.ExpectationsWereMet()
 			assert.NoError(t, err, "not wait error")
-
-			userID := repoUsers.database.SessionsDB[test.session.SessionID].UserID
-
-			assert.Equal(t, test.expectedUserID, userID)
 		})
 	}
 }
 
-func TestAddSeessionError(t *testing.T) {
+func TestAddSession(t *testing.T) {
 	tests := []struct {
-		nameTest      string
-		session       db.Session
-		expectedError error
+		nameTest     string
+		session      dto.Session
+		mockBehavior func(m *mockRedisEngine.RedisEngine, session dto.Session)
 	}{
 		{
-			nameTest: "Colision session in database",
-			session: db.Session{
+			nameTest: "Success add session",
+			session: dto.Session{
 				SessionID: common.FixedSessionID,
-				UserID:    common.FixedUserUuiD,
+				UserLink:  common.FixedUserUuiD,
+				LifeTime:  24 * time.Hour,
 			},
-			expectedError: common.ErrorDetectingSessionCollision,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, session dto.Session) {
+				key := fmt.Sprintf("session:%s", session.SessionID)
+				m.On("Set", mock.Anything, key, session.UserLink.String(), session.LifeTime).Return(redis.NewStatusResult("OK", nil))
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.session)
+			}
 
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
-			repoUsers.AddSession(ctx, test.session)
 			err := repoUsers.AddSession(ctx, test.session)
+			assert.NoError(t, err)
 
-			assert.Error(t, err, "expected error")
-			assert.Equal(t, test.expectedError, err)
+			redisMock.AssertExpectations(t)
 		})
 	}
 }
 
 func TestDeleteSession(t *testing.T) {
 	tests := []struct {
-		nameTest          string
-		session           db.Session
-		expectedSessionBD map[string]db.Session
+		nameTest     string
+		sessionID    string
+		mockBehavior func(m *mockRedisEngine.RedisEngine, sessionID string)
 	}{
 		{
-			nameTest: "Success delete session",
-			session: db.Session{
-				SessionID: common.FixedSessionID,
-				UserID:    common.FixedUserUuiD,
+			nameTest:  "Success delete session",
+			sessionID: common.FixedSessionID,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string) {
+				key := fmt.Sprintf("session:%s", sessionID)
+				m.On("Del", mock.Anything, key).Return(redis.NewIntResult(1, nil))
 			},
-			expectedSessionBD: map[string]db.Session{},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.sessionID)
+			}
 
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
-			err := repoUsers.AddSession(ctx, test.session)
-			assert.NoError(t, err, "not wait error")
-			err = repoUsers.DeleteSession(ctx, test.session.SessionID)
-			assert.NoError(t, err, "not wait error")
-
-			assert.Equal(t, test.expectedSessionBD, repoUsers.database.SessionsDB)
-		})
-	}
-}
-
-func TestDeleteSessionError(t *testing.T) {
-	tests := []struct {
-		nameTest      string
-		sessionID     string
-		expectedError error
-	}{
-		{
-			nameTest:      "Not existing seesion",
-			sessionID:     common.FixedSessionID,
-			expectedError: common.ErrorNotExistingSession,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
-
-			ctx := context.Background()
 			err := repoUsers.DeleteSession(ctx, test.sessionID)
+			assert.NoError(t, err)
 
-			assert.Error(t, err, "expected error")
-			assert.Equal(t, test.expectedError, err)
+			redisMock.AssertExpectations(t)
 		})
 	}
 }
 
 func TestGetUserIDBySession(t *testing.T) {
 	tests := []struct {
-		nameTest  string
-		sessionID string
-
-		isExist   bool
-		isExpired bool
-
-		expectedUserID uuid.UUID
-		expectedError  error
+		nameTest       string
+		sessionID      string
+		expectedUserID string
+		mockBehavior   func(m *mockRedisEngine.RedisEngine, sessionID string, expectedUserID string)
 	}{
 		{
 			nameTest:       "Success get user ID",
 			sessionID:      common.FixedSessionID,
-			isExist:        true,
-			isExpired:      false,
-			expectedUserID: common.FixedUserUuiD,
+			expectedUserID: common.FixedUserUuiD.String(),
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, expectedUserID string) {
+				key := fmt.Sprintf("session:%s", sessionID)
+				m.On("Get", mock.Anything, key).Return(redis.NewStringResult(expectedUserID, nil))
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			test.mockBehavior(redisMock, test.sessionID, test.expectedUserID)
 
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
-			if test.isExist {
-				expirationTime := time.Now().Add(1 * time.Hour)
-				if test.isExpired {
-					expirationTime = time.Now().Add(-1 * time.Hour)
-				}
-
-				repoUsers.database.SessionsDB[test.sessionID] = db.Session{
-					UserID:    common.FixedUserUuiD,
-					ExpiresAt: expirationTime,
-				}
-			}
-
 			userID, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
-			assert.NoError(t, err, "not wait error")
-
+			assert.NoError(t, err)
 			assert.Equal(t, test.expectedUserID, userID)
+
+			redisMock.AssertExpectations(t)
 		})
 	}
 }
 
 func TestGetUserIDBySessionError(t *testing.T) {
 	tests := []struct {
-		nameTest  string
-		sessionID string
-
-		isExist   bool
-		isExpired bool
-
+		nameTest      string
+		sessionID     string
 		expectedError error
+		mockBehavior  func(m *mockRedisEngine.RedisEngine, sessionID string)
 	}{
 		{
 			nameTest:      "Error session not existing",
 			sessionID:     common.FixedSessionID,
-			isExist:       false,
-			isExpired:     false,
 			expectedError: common.ErrorNotExistingSession,
-		},
-		{
-			nameTest:      "Error session expired",
-			sessionID:     common.FixedSessionID,
-			isExist:       true,
-			isExpired:     true,
-			expectedError: common.ErrorSeesionExpired,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string) {
+				key := fmt.Sprintf("session:%s", sessionID)
+				m.On("Get", mock.Anything, key).Return(redis.NewStringResult("", redis.Nil))
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
-			ctx := context.Background()
-
-			if test.isExist {
-				expirationTime := time.Now().Add(1 * time.Hour)
-				if test.isExpired {
-					expirationTime = time.Now().Add(-1 * time.Hour)
-				}
-
-				repoUsers.database.SessionsDB[test.sessionID] = db.Session{
-					UserID:    common.FixedUserUuiD,
-					ExpiresAt: expirationTime,
-				}
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.sessionID)
 			}
 
+			repoUsers := NewRepository(nil, redisMock)
+			ctx := context.Background()
+
 			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
-			assert.Error(t, err, "expected error")
 			assert.Equal(t, test.expectedError, err)
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestAddResetToken(t *testing.T) {
+	tests := []struct {
+		nameTest     string
+		token        dto.ResetToken
+		mockBehavior func(m *mockRedisEngine.RedisEngine, token dto.ResetToken)
+	}{
+		{
+			nameTest: "Success add reset token",
+			token: dto.ResetToken{
+				ResetTokenID: "token-123",
+				UserLink:     uuid.New(),
+				LifeTime:     15 * time.Minute,
+			},
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, token dto.ResetToken) {
+				key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
+				m.On("Set", mock.Anything, key, token.UserLink.String(), token.LifeTime).Return(redis.NewStatusResult("OK", nil))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.token)
+			}
+
+			repoAuth := NewRepository(nil, redisMock)
+			ctx := context.Background()
+
+			err := repoAuth.AddResetToken(ctx, test.token)
+			assert.NoError(t, err)
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetUserLinkByResetToken(t *testing.T) {
+	targetUserID := uuid.New()
+
+	tests := []struct {
+		nameTest       string
+		tokenID        string
+		expectedUserID string
+		mockBehavior   func(m *mockRedisEngine.RedisEngine, tokenID string, userID string)
+	}{
+		{
+			nameTest:       "Success get reset token",
+			tokenID:        common.FixedResetTokenID,
+			expectedUserID: targetUserID.String(),
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string, userID string) {
+				key := fmt.Sprintf("reset_token:%s", tokenID)
+				m.On("Get", mock.Anything, key).Return(redis.NewStringResult(userID, nil))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.tokenID, test.expectedUserID)
+			}
+
+			repoAuth := NewRepository(nil, redisMock)
+			ctx := context.Background()
+
+			token, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.expectedUserID, token)
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetUserLinkByResetTokenError(t *testing.T) {
+	tests := []struct {
+		nameTest      string
+		tokenID       string
+		expectedError error
+		mockBehaviar  func(m *mockRedisEngine.RedisEngine, tokenID string)
+	}{
+		{
+			nameTest:      "Not existing token",
+			tokenID:       "unknown-token",
+			expectedError: common.ErrorNotExistingResetToken,
+			mockBehaviar: func(m *mockRedisEngine.RedisEngine, tokenID string) {
+				key := fmt.Sprintf("reset_token:%s", tokenID)
+				m.On("Get", mock.Anything, key).Return(redis.NewStringResult("", redis.Nil))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehaviar != nil {
+				test.mockBehaviar(redisMock, test.tokenID)
+			}
+
+			repoAuth := NewRepository(nil, redisMock)
+			ctx := context.Background()
+
+			_, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
+
+			assert.Equal(t, test.expectedError, err)
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestDeleteResetToken(t *testing.T) {
+	tests := []struct {
+		nameTest     string
+		tokenID      string
+		mockBehavior func(m *mockRedisEngine.RedisEngine, tokenID string)
+	}{
+		{
+			nameTest: "Success delete token",
+			tokenID:  common.FixedResetTokenID,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string) {
+				key := fmt.Sprintf("reset_token:%s", tokenID)
+				m.On("Del", mock.Anything, key).Return(redis.NewIntResult(1, nil))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.tokenID)
+			}
+
+			repoAuth := NewRepository(nil, redisMock)
+			ctx := context.Background()
+
+			err := repoAuth.DeleteResetToken(ctx, test.tokenID)
+
+			assert.NoError(t, err)
+
+			redisMock.AssertExpectations(t)
 		})
 	}
 }
@@ -303,29 +413,49 @@ func TestGetUser(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		email        string
+		mockSetup    func(mock pgxmock.PgxPoolIface)
 		expectedUser models.User
 	}{
 		{
 			nameTest: "Success get user",
 			email:    "bobr@mail.ru",
+			mockSetup: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link, display_name, password_hash, email, avatar FROM "user" WHERE email = \$1`
+				rows := pgxmock.NewRows([]string{"link", "display_name", "password_hash", "email", "avatar"}).
+					AddRow(common.FixedUserUuiD, "Bobr", "hash", "bobr@mail.ru", "avatar.jpg")
+
+				mock.ExpectQuery(query).
+					WithArgs("bobr@mail.ru").
+					WillReturnRows(rows)
+			},
 			expectedUser: models.User{
-				Email:  "bobr@mail.ru",
-				Boards: []models.Board{},
+				Link:         common.FixedUserUuiD,
+				DisplayName:  "Bobr",
+				PasswordHash: "hash",
+				Email:        "bobr@mail.ru",
+				Avatar:       "avatar.jpg",
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
+			test.mockSetup(mockPool)
+
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
-			repoUsers.AddUser(ctx, models.User{Email: "bobr@mail.ru"})
-			user, _ := repoUsers.GetUser(ctx, test.email)
+			user, err := repoUsers.GetUser(ctx, test.email)
 
+			assert.NoError(t, err)
 			assert.Equal(t, test.expectedUser, user)
+
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "not wait error")
 		})
 	}
 }
@@ -334,222 +464,40 @@ func TestGetUserError(t *testing.T) {
 	tests := []struct {
 		nameTest      string
 		email         string
+		mockSetup     func(mock pgxmock.PgxPoolIface)
 		expectedError error
 	}{
 		{
-			nameTest:      "Not existing user",
-			email:         "bobr@mail.ru",
-			expectedError: common.ErrorNonexistentUser,
-		},
-	}
+			nameTest: "Not existing user",
+			email:    "bobr@mail.ru",
+			mockSetup: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link, display_name, password_hash, email, avatar FROM "user" WHERE email = \$1`
 
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoUsers := NewRepository(conectionDb)
-
-			ctx := context.Background()
-
-			_, err := repoUsers.GetUser(ctx, test.email)
-
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
-}
-
-func TestAddResetToken(t *testing.T) {
-	tests := []struct {
-		nameTest    string
-		token       db.ResetToken
-		expectedErr error
-	}{
-		{
-			nameTest: "Success add reset token",
-			token: db.ResetToken{
-				ResetTokenID: "token-123",
-				UserID:       uuid.New(),
-				ExpiresAt:    time.Now().Add(15 * time.Minute),
+				mock.ExpectQuery(query).
+					WithArgs("bobr@mail.ru").
+					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedErr: nil,
+			expectedError: common.ErrorNonexistentEmail,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
+			test.mockSetup(mockPool)
+
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
-			err := repoAuth.AddResetToken(ctx, test.token)
 
-			assert.NoError(t, err)
-
-			_, exist := conectionDb.ResetTokensDB[test.token.ResetTokenID]
-			assert.True(t, exist)
-		})
-	}
-}
-
-func TestAddResetTokenError(t *testing.T) {
-	tests := []struct {
-		nameTest      string
-		token         db.ResetToken
-		expectedError error
-	}{
-		{
-			nameTest: "Error token collision",
-			token: db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-			},
-			expectedError: common.ErrorDetectingTokenCollision,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
-
-			conectionDb.ResetTokensDB[common.FixedResetTokenID] = db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-			}
-
-			ctx := context.Background()
-			err := repoAuth.AddResetToken(ctx, test.token)
+			_, err = repoUsers.GetUser(ctx, test.email)
 
 			assert.Equal(t, test.expectedError, err)
-		})
-	}
-}
 
-func TestGetResetToken(t *testing.T) {
-	targetUserID := uuid.New()
-
-	tests := []struct {
-		nameTest           string
-		tokenID            string
-		expectedResetToken db.ResetToken
-	}{
-		{
-			nameTest: "Success get reset token",
-			tokenID:  common.FixedResetTokenID,
-			expectedResetToken: db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-				UserID:       targetUserID,
-				ExpiresAt:    time.Now().Add(15 * time.Minute),
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
-			ctx := context.Background()
-
-			conectionDb.ResetTokensDB[common.FixedResetTokenID] = db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-				UserID:       targetUserID,
-				ExpiresAt:    time.Now().Add(15 * time.Minute),
-			}
-
-			token, err := repoAuth.GetResetToken(ctx, test.tokenID)
-
-			assert.NoError(t, err)
-			assert.Equal(t, test.expectedResetToken.UserID, token.UserID)
-		})
-	}
-}
-
-func TestGetResetTokenError(t *testing.T) {
-	tests := []struct {
-		nameTest      string
-		tokenID       string
-		expectedError error
-	}{
-		{
-			nameTest:      "Not existing token",
-			tokenID:       "unknown-token",
-			expectedError: common.ErrorNotExistingResetToken,
-		},
-		{
-			nameTest:      "Token expired",
-			tokenID:       common.FixedResetTokenID,
-			expectedError: common.ErrorResetTokenExpired,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
-			ctx := context.Background()
-
-			conectionDb.ResetTokensDB[common.FixedResetTokenID] = db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-				UserID:       uuid.New(),
-				ExpiresAt:    time.Now().Add(-1 * time.Hour),
-			}
-
-			_, err := repoAuth.GetResetToken(ctx, test.tokenID)
-
-			assert.Equal(t, test.expectedError, err)
-		})
-	}
-}
-
-func TestDeleteResetToken(t *testing.T) {
-	tests := []struct {
-		nameTest string
-		tokenID  string
-	}{
-		{
-			nameTest: "Success delete token",
-			tokenID:  common.FixedResetTokenID,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
-
-			conectionDb.ResetTokensDB[common.FixedResetTokenID] = db.ResetToken{
-				ResetTokenID: common.FixedResetTokenID,
-			}
-
-			ctx := context.Background()
-			err := repoAuth.DeleteResetToken(ctx, test.tokenID)
-
-			assert.NoError(t, err)
-			_, exist := conectionDb.ResetTokensDB[test.tokenID]
-			assert.False(t, exist)
-		})
-	}
-}
-
-func TestDeleteResetTokenError(t *testing.T) {
-	tests := []struct {
-		nameTest      string
-		tokenID       string
-		expectedError error
-	}{
-		{
-			nameTest:      "Error delete not existing token",
-			tokenID:       "unknown-token",
-			expectedError: common.ErrorNotExistingResetToken,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
-
-			ctx := context.Background()
-			err := repoAuth.DeleteResetToken(ctx, test.tokenID)
-
-			assert.Equal(t, test.expectedError, err)
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "wait error")
 		})
 	}
 }
@@ -562,31 +510,39 @@ func TestUpdatePassword(t *testing.T) {
 		nameTest        string
 		userID          uuid.UUID
 		newPasswordHash string
+		mockSetup       func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string)
 	}{
 		{
 			nameTest:        "Success update password",
 			userID:          targetUserID,
 			newPasswordHash: newHash,
+			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
+				query := `UPDATE "users" SET password_hash = \$1, updated_at = NOW\(\) WHERE link = \$2`
+
+				mock.ExpectExec(query).
+					WithArgs(hash, userID).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
-			conectionDb.UsersDB[targetUserID] = db.User{
-				ID:           targetUserID,
-				PasswordHash: "123",
-			}
+			test.mockSetup(mockPool, test.userID, test.newPasswordHash)
 
+			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
-			err := repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
+
+			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
 
 			assert.NoError(t, err)
 
-			updatedUser := conectionDb.UsersDB[test.userID]
-			assert.Equal(t, test.newPasswordHash, updatedUser.PasswordHash)
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "not wait error")
 		})
 	}
 }
@@ -597,24 +553,40 @@ func TestUpdatePasswordError(t *testing.T) {
 		userID          uuid.UUID
 		newPasswordHash string
 		expectedError   error
+		mockSetup       func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string)
 	}{
 		{
 			nameTest:        "Error user not found",
 			userID:          uuid.New(),
-			newPasswordHash: "new-hash",
+			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
+			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
+				query := `UPDATE "users" SET password_hash = \$1, updated_at = NOW\(\) WHERE link = \$2`
+
+				mock.ExpectExec(query).
+					WithArgs(hash, userID).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-			repoAuth := NewRepository(conectionDb)
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
 
+			test.mockSetup(mockPool, test.userID, test.newPasswordHash)
+
+			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
-			err := repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
+
+			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
 
 			assert.Equal(t, test.expectedError, err)
+
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "wait error")
 		})
 	}
 }

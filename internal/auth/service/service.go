@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -31,13 +31,13 @@ type SenderLetters interface {
 
 type AuthRepository interface {
 	AddUser(ctx context.Context, user models.User) error
-	AddSession(ctx context.Context, session db.Session) error
+	AddSession(ctx context.Context, session dto.Session) error
 	GetUser(ctx context.Context, enail string) (models.User, error)
 	DeleteSession(ctx context.Context, sessionID string) error
-	GetUserIDBySession(ctx context.Context, sessionID string) (uuid.UUID, error)
-	GetResetToken(ctx context.Context, tokenID string) (db.ResetToken, error)
+	GetUserIDBySession(ctx context.Context, sessionID string) (string, error)
+	GetUserLinkByResetToken(ctx context.Context, tokenID string) (string, error)
 	DeleteResetToken(ctx context.Context, tokenID string) error
-	AddResetToken(ctx context.Context, token db.ResetToken) error
+	AddResetToken(ctx context.Context, token dto.ResetToken) error
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
 
@@ -61,47 +61,52 @@ func NewService(rep AuthRepository, sender SenderLetters, hasher func(password s
 	}
 }
 
-func (a *Service) LogIn(ctx context.Context, email, password string) (models.User, string, error) {
-	user, err := a.rep.GetUser(ctx, email)
+func (a *Service) LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (dto.UserInfoResponce, string, error) {
+	user, err := a.rep.GetUser(ctx, requestUser.Email)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("rep.GetUser: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	err = a.checker(password, user.PasswordHash)
+	err = a.checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("GenerateID: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
-	session := db.Session{
+	session := dto.Session{
 		SessionID: sessionID,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		UserLink:  user.Link,
+		LifeTime:  24 * time.Hour,
 	}
 
 	err = a.rep.AddSession(ctx, session)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("rep.AddSession: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
-	return user, sessionID, nil
+	return dto.UserInfoResponce{
+		Link:        user.Link,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		Avatar:      user.Avatar,
+	}, sessionID, nil
 
 }
 
-func (a *Service) CreateSessionForUser(ctx context.Context, user models.User) (string, error) {
+func (a *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error) {
 	sessionID, err := a.generatorID()
 	if err != nil {
 		return "", fmt.Errorf("GenerateID: %w", err)
 	}
 
-	session := db.Session{
+	session := dto.Session{
 		SessionID: sessionID,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(SessionLifetime),
+		UserLink:  link,
+		LifeTime:  SessionLifetime,
 	}
 
 	err = a.rep.AddSession(ctx, session)
@@ -112,42 +117,45 @@ func (a *Service) CreateSessionForUser(ctx context.Context, user models.User) (s
 	return sessionID, nil
 }
 
-func (a *Service) Register(ctx context.Context, name, password, email string) (models.User, string, error) {
-	hashedPassword, err := a.hasher(password)
+func (a *Service) Register(ctx context.Context, userInfo dto.RegistraionInfoRequest) (dto.UserInfoResponce, string, error) {
+	hashedPassword, err := a.hasher(userInfo.Password)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("HashPassword: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("HashPassword: %w", err)
 	}
 
 	user := models.User{
-		ID:           uuid.New(),
-		DisplayName:  name,
+		Link:         uuid.New(),
+		DisplayName:  userInfo.Name,
 		PasswordHash: hashedPassword,
-		Email:        email,
-		Boards:       make([]models.Board, 0),
+		Email:        userInfo.Email,
 	}
 
 	err = a.rep.AddUser(ctx, user)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("rep.AddUser: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddUser: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("GenerateID: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
-	session := db.Session{
+	session := dto.Session{
 		SessionID: sessionID,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		UserLink:  user.Link,
+		LifeTime:  24 * time.Hour,
 	}
 
 	err = a.rep.AddSession(ctx, session)
 	if err != nil {
-		return models.User{}, "", fmt.Errorf("rep.AddSession: %w", err)
+		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
-	return user, sessionID, nil
+	return dto.UserInfoResponce{
+		Link:        user.Link,
+		DisplayName: userInfo.Name,
+		Email:       user.Email,
+	}, sessionID, nil
 }
 
 func (a *Service) LogOut(ctx context.Context, sessionID string) error {
@@ -159,13 +167,18 @@ func (a *Service) LogOut(ctx context.Context, sessionID string) error {
 	return nil
 }
 
-func (a *Service) GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	userID, err := a.rep.GetUserIDBySession(ctx, sessionID)
+func (a *Service) GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error) {
+	userLink, err := a.rep.GetUserIDBySession(ctx, sessionID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("rep.GetUserIDBySession: %w", err)
 	}
 
-	return userID, nil
+	parseUserLink, err := uuid.Parse(userLink)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("uuid.Parse: %w", err)
+	}
+
+	return parseUserLink, nil
 }
 
 func (a *Service) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
@@ -187,13 +200,13 @@ func (a *Service) SendRecoveryCode(ctx context.Context, email string) error {
 
 	resetCode, err := a.generateResetCode()
 	if err != nil {
-		return common.ErrorNonexistentUser
+		return fmt.Errorf("generateResetCode: %w", err)
 	}
 
-	resetToken := db.ResetToken{
+	resetToken := dto.ResetToken{
 		ResetTokenID: resetCode,
-		UserID:       user.ID,
-		ExpiresAt:    time.Now().Add(time.Minute * 15),
+		UserLink:     user.Link,
+		LifeTime:     time.Minute * 15,
 	}
 
 	err = a.rep.AddResetToken(ctx, resetToken)
@@ -222,27 +235,25 @@ func (a *Service) SendRecoveryCode(ctx context.Context, email string) error {
 }
 
 func (a *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
-	resetToken, err := a.rep.GetResetToken(ctx, tokenID)
+	_, err := a.rep.GetUserLinkByResetToken(ctx, tokenID)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
-	}
-
-	if time.Now().After(resetToken.ExpiresAt) {
-		err := a.rep.DeleteResetToken(ctx, resetToken.ResetTokenID)
-		if err != nil {
-			return fmt.Errorf("rep.DeleteResetToken: %w", err)
-		}
-
-		return common.ErrorResetTokenExpired
 	}
 
 	return nil
 }
 
 func (a *Service) ResetPassword(ctx context.Context, tokenID, newPassword string) error {
-	resetToken, err := a.rep.GetResetToken(ctx, tokenID)
+	logger := zerolog.Ctx(ctx)
+
+	userLink, err := a.rep.GetUserLinkByResetToken(ctx, tokenID)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
+	}
+
+	parseUserLink, err := uuid.Parse(userLink)
+	if err != nil {
+		return fmt.Errorf("uuid.Parse: %w", err)
 	}
 
 	newHashPassword, err := a.hasher(newPassword)
@@ -250,14 +261,14 @@ func (a *Service) ResetPassword(ctx context.Context, tokenID, newPassword string
 		return fmt.Errorf("hasher: %w", err)
 	}
 
-	err = a.rep.UpdatePassword(ctx, resetToken.UserID, newHashPassword)
+	err = a.rep.UpdatePassword(ctx, parseUserLink, newHashPassword)
 	if err != nil {
 		return fmt.Errorf("rep.UpdatePassword: %w", err)
 	}
 
-	err = a.rep.DeleteResetToken(ctx, resetToken.ResetTokenID)
+	err = a.rep.DeleteResetToken(ctx, tokenID)
 	if err != nil {
-		return fmt.Errorf("rep.DeleteResetToken: %w", err)
+		logger.Error().Err(err).Msg("failed to delete reset token after successful password change")
 	}
 
 	return nil

@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
 	"github.com/google/uuid"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 type ProfileService interface {
-	GetProfileUser(ctx context.Context, userID uuid.UUID) (models.User, error)
+	GetProfileUser(ctx context.Context, userID uuid.UUID) (dto.UserInfoResponce, error)
 }
 
 func NewHandler(srv ProfileService) *ProfileHandler {
@@ -30,7 +30,7 @@ type ProfileHandler struct {
 }
 
 func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	value := r.Context().Value(middleware.UserIDKey{})
+	value := r.Context().Value(middleware.UserContextLink{})
 
 	userID, ok := value.(uuid.UUID)
 	if !ok {

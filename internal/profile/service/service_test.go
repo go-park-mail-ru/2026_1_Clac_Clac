@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
 	mockProfileRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/mock_profile_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,8 +16,8 @@ import (
 func TestGetProfileUser(t *testing.T) {
 	targetUserID := uuid.New()
 
-	expectedUser := models.User{
-		ID:          targetUserID,
+	expectedUser := dto.UserInfoResponce{
+		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
 	}
@@ -28,7 +28,7 @@ func TestGetProfileUser(t *testing.T) {
 		nameTest      string
 		userID        uuid.UUID
 		mockBehavior  func(m *mockProfileRep.ProfileRepository)
-		expectedUser  models.User
+		expectedUser  dto.UserInfoResponce
 		expectedError error
 	}{
 		{
@@ -44,9 +44,9 @@ func TestGetProfileUser(t *testing.T) {
 			nameTest: "Error from repository",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockProfileRep.ProfileRepository) {
-				m.On("GetProfile", mock.Anything, targetUserID).Return(models.User{}, someRepoError)
+				m.On("GetProfile", mock.Anything, targetUserID).Return(dto.UserInfoResponce{}, someRepoError)
 			},
-			expectedUser:  models.User{},
+			expectedUser:  dto.UserInfoResponce{},
 			expectedError: fmt.Errorf("rep.GetProfile: %w", someRepoError),
 		},
 	}

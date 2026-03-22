@@ -10,8 +10,8 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	mockProfileHand "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_hand"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
+	mockProfileSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_srv"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,7 +21,7 @@ import (
 type GetProfileTestCase struct {
 	Name               string
 	CtxValue           any
-	MockBehavior       func(m *mockProfileHand.ProfileService)
+	MockBehavior       func(m *mockProfileSrv.ProfileService)
 	ExpectedStatusCode int
 	ExpectedResponse   any
 }
@@ -47,8 +47,8 @@ func newErrorResponse(code int, message string) api.ErrorResponse {
 
 func TestGetUserProfile(t *testing.T) {
 	targetUserID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	expectedUser := models.User{
-		ID:          targetUserID,
+	expectedUser := dto.UserInfoResponce{
+		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
 	}
@@ -57,7 +57,7 @@ func TestGetUserProfile(t *testing.T) {
 		{
 			Name:     "Success get profile",
 			CtxValue: targetUserID,
-			MockBehavior: func(m *mockProfileHand.ProfileService) {
+			MockBehavior: func(m *mockProfileSrv.ProfileService) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(expectedUser, nil)
 			},
 			ExpectedStatusCode: http.StatusOK,
@@ -80,9 +80,9 @@ func TestGetUserProfile(t *testing.T) {
 		{
 			Name:     "Error from service",
 			CtxValue: targetUserID,
-			MockBehavior: func(m *mockProfileHand.ProfileService) {
+			MockBehavior: func(m *mockProfileSrv.ProfileService) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(
-					models.User{},
+					dto.UserInfoResponce{},
 					errors.New("database connection lost"),
 				)
 			},
@@ -93,7 +93,7 @@ func TestGetUserProfile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			mockProfileService := mockProfileHand.NewProfileService(t)
+			mockProfileService := mockProfileSrv.NewProfileService(t)
 			if test.MockBehavior != nil {
 				test.MockBehavior(mockProfileService)
 			}
@@ -102,7 +102,7 @@ func TestGetUserProfile(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.CtxValue != nil {
-				ctx := context.WithValue(request.Context(), middleware.UserIDKey{}, test.CtxValue)
+				ctx := context.WithValue(request.Context(), middleware.UserContextLink{}, test.CtxValue)
 				request = request.WithContext(ctx)
 			}
 

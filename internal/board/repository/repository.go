@@ -3,11 +3,13 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/google/uuid"
 )
 
@@ -16,50 +18,94 @@ var (
 	ErrorSeesionExpired     = errors.New("time life session expired")
 )
 
+type DBEngine interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
+
 type Repository struct {
-	database *db.MapDatabases
+	pool DBEngine
 }
 
-func NewRepository(db *db.MapDatabases) *Repository {
+func NewRepository(pool DBEngine) *Repository {
 	return &Repository{
-		database: db,
+		pool: pool,
 	}
 }
 
-func (br *Repository) GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error) {
-	br.database.MutexBoards.Lock()
-	defer br.database.MutexBoards.Unlock()
-
-	if user, exist := br.database.UsersDB[userID]; exist {
-
-		newUser := models.User{
-			Boards: []models.Board{},
-		}
-
-		for i := 0; i < len(user.Boards); i++ {
-			newUser.Boards = append(newUser.Boards, models.Board(user.Boards[i]))
-		}
-
-		return newUser.Boards, nil
+func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]models.Board, error) {
+	checkExistingQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
+	var userExist bool
+	err := r.pool.QueryRow(ctx, checkExistingQuery, userLink).Scan(&userExist)
+	if err != nil {
+		return []models.Board{}, fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
-	return nil, common.ErrorNonexistentUser
+	if !userExist {
+		return []models.Board{}, common.ErrorNonexistentUser
+	}
+
+	getBoardQuery := `
+		SELECT b.link, b.created_at
+		FROM board b
+		JOIN member_board mb ON b.link = mb.board_link
+		WHERE mb.user_link = $1
+	`
+
+	rows, err := r.pool.Query(ctx, getBoardQuery, userLink)
+
+	boards := make([]models.Board, 0)
+	for rows.Next() {
+		var board models.Board
+
+		err := rows.Scan(&board.Link, &board.Created_at)
+		if err != nil {
+			return []models.Board{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		boards = append(boards, board)
+	}
+
+	defer rows.Close()
+
+	return boards, nil
 }
 
-func (br *Repository) AddEmptyBoard(ctx context.Context, emptyBoard db.Board, userID uuid.UUID) error {
-	br.database.MutexBoards.Lock()
-	defer br.database.MutexBoards.Unlock()
+func (r *Repository) AddEmptyBoard(ctx context.Context, emptyBoard models.Board, userLink uuid.UUID) error {
+	checkExistingQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
+	var userExist bool
+	err := r.pool.QueryRow(ctx, checkExistingQuery, userLink).Scan(&userExist)
+	if err != nil {
+		return fmt.Errorf("pool.QueryRow: %w", err)
+	}
 
-	user, exist := br.database.UsersDB[userID]
-	if !exist {
+	if !userExist {
 		return common.ErrorNonexistentUser
 	}
 
-	user.Boards = append(
-		br.database.UsersDB[userID].Boards,
-		emptyBoard,
-	)
+	addEmptyBoardQuery := `INSERT INTO board (link)
+	VALUES ($1)`
 
-	br.database.UsersDB[userID] = user
+	_, err = r.pool.Exec(ctx, addEmptyBoardQuery, emptyBoard.Link)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == common.CodeUniqError {
+				return common.ErrorExistingBoard
+			}
+
+			return fmt.Errorf("pool.Exec: %w", err)
+		}
+	}
+
+	addMemberBoardQuery := `INSERT INTO member_board (board_link, user_link)
+	VALUES ($1, $2)`
+
+	_, err = r.pool.Exec(ctx, addMemberBoardQuery, emptyBoard.Link, userLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
 	return nil
 }

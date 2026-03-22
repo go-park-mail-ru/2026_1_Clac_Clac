@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/spf13/viper"
@@ -28,6 +29,17 @@ func TestConfigReading(t *testing.T) {
 			ReadTimeout:             30,
 			IdleTimeout:             90,
 			GracefulShutdownTimeout: 25,
+		},
+		DBConnection: config.DatabaseConnection{
+			MinConnections:        2,
+			MaxConnections:        10,
+			MaxConnectionLifetime: 1 * time.Hour,
+			MaxHealthCheckPeriod:  30 * time.Second,
+		},
+		RedisConnection: config.RedisConnection{
+			NumberDB:       0,
+			MaxConnections: 100,
+			MinConnections: 20,
 		},
 	}
 
