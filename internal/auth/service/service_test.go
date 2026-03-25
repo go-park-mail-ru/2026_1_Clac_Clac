@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
+	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	mockSender "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_sender"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -27,7 +28,7 @@ func TestRegister(t *testing.T) {
 		checker           func(string, string) error
 		generator         func() (string, error)
 		mockBehavior      func(m *mockAuthRep.AuthRepository)
-		expectedUser      dto.UserInfoResponce
+		expectedUser      dto.UserInfoResponse
 		expectedSessionID string
 	}{
 		{
@@ -43,7 +44,7 @@ func TestRegister(t *testing.T) {
 				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
 				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(nil)
 			},
-			expectedUser: dto.UserInfoResponce{
+			expectedUser: dto.UserInfoResponse{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
@@ -64,7 +65,7 @@ func TestRegister(t *testing.T) {
 
 			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistraionInfoRequest{
+			user, sessionID, err := serviceRegistration.Register(ctx, handlerDto.RegistraionInfoRequest{
 				Name:     test.displayName,
 				Password: test.password,
 				Email:    test.email,
@@ -144,7 +145,7 @@ func TestRegisterError(t *testing.T) {
 			ctx := context.Background()
 			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			_, _, err := serviceRegistration.Register(ctx, dto.RegistraionInfoRequest{
+			_, _, err := serviceRegistration.Register(ctx, handlerDto.RegistraionInfoRequest{
 				Name:     test.displayName,
 				Password: test.password,
 				Email:    test.email,
@@ -166,7 +167,7 @@ func TestLogin(t *testing.T) {
 		generator         func() (string, error)
 		mockBehavior      func(m *mockAuthRep.AuthRepository)
 		expectedSessionID string
-		expectedUser      dto.UserInfoResponce
+		expectedUser      dto.UserInfoResponse
 	}{
 		{
 			id:        common.FixedUserUuiD,
@@ -189,7 +190,7 @@ func TestLogin(t *testing.T) {
 				m.On("GetUser", ctx, "bobr@mail.ru").Return(userFromDB, nil)
 				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(nil)
 			},
-			expectedUser: dto.UserInfoResponce{
+			expectedUser: dto.UserInfoResponse{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "bobr@mail.ru",
@@ -210,7 +211,7 @@ func TestLogin(t *testing.T) {
 
 			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LoginInfoRequest{
+			user, sessionID, err := serviceLogin.LogIn(ctx, handlerDto.LoginInfoRequest{
 				Email:    test.email,
 				Password: test.password,
 			})
@@ -294,7 +295,7 @@ func TestLoginError(t *testing.T) {
 
 			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			_, _, err := serviceLogin.LogIn(ctx, dto.LoginInfoRequest{
+			_, _, err := serviceLogin.LogIn(ctx, handlerDto.LoginInfoRequest{
 				Email:    test.email,
 				Password: test.password,
 			})

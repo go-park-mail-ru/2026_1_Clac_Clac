@@ -5,7 +5,7 @@ package mockProfileRep
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

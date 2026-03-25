@@ -35,11 +35,15 @@ func TestConfigReading(t *testing.T) {
 			MaxConnections:        10,
 			MaxConnectionLifetime: 1 * time.Hour,
 			MaxHealthCheckPeriod:  30 * time.Second,
+			PingSleepTime:         2 * time.Second,
+			MaxRetries:            5,
 		},
 		RedisConnection: config.RedisConnection{
 			NumberDB:       0,
 			MaxConnections: 100,
 			MinConnections: 20,
+			PingSleepTime:  2 * time.Second,
+			MaxRetries:     5,
 		},
 	}
 

@@ -13,9 +13,10 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -25,8 +26,8 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, requestUser dto.RegistraionInfoRequest) (dto.UserInfoResponce, string, error)
-	LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (dto.UserInfoResponce, string, error)
+	Register(ctx context.Context, requestUser dto.RegistraionInfoRequest) (serviceDto.UserInfoResponse, string, error)
+	LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (serviceDto.UserInfoResponse, string, error)
 	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)

@@ -1,11 +1,17 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 const (
 	defaultNumberDB            = 0
 	defaultMaxRedisConnections = 100
 	defaultMinRedisConnections = 20
+	defaultPingSleepTimeRedis  = 2 * time.Second
+	defaultMaxRetriesRedis     = 5
 )
 
 type RedisConnection struct {
@@ -13,9 +19,11 @@ type RedisConnection struct {
 	Host     string `mapstructure:"host"`
 	Port     string `mapstructure:"port"`
 
-	NumberDB       int `mapstructure:"number_db"`
-	MinConnections int `mapstructure:"min_connections"`
-	MaxConnections int `mapstructure:"max_connections"`
+	NumberDB       int           `mapstructure:"number_db"`
+	MinConnections int           `mapstructure:"min_connections"`
+	MaxConnections int           `mapstructure:"max_connections"`
+	PingSleepTime  time.Duration `mapstructure:"ping_sleep_time"`
+	MaxRetries     int           `mapstructure:"max_retries"`
 }
 
 func DefaultRedisConnection() RedisConnection {
@@ -27,6 +35,8 @@ func DefaultRedisConnection() RedisConnection {
 		NumberDB:       defaultNumberDB,
 		MaxConnections: defaultMaxRedisConnections,
 		MinConnections: defaultMinRedisConnections,
+		PingSleepTime:  defaultPingSleepTimeRedis,
+		MaxRetries:     defaultMaxRetriesRedis,
 	}
 }
 

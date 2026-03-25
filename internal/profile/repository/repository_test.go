@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"

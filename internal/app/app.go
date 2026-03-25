@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -37,17 +37,11 @@ type App struct {
 func NewApp(conf *config.Config) *App {
 	logger := setupLogger(&conf.App)
 
-	pool, err := setupDatabase(&conf.DBConnection, logger)
+	store, err := setupStore(conf, logger)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialize database")
+		logger.Fatal().Err(err).Msg("cannot initialise store")
 	}
 
-	client, err := setupRedis(&conf.RedisConnection, logger)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialize redis")
-	}
-
-	store := setupStore(pool, client)
 	manager := setupManager(store, &conf.MailSender)
 
 	createDemoUser(manager, logger)
@@ -140,8 +134,6 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 
 // Настройка подключения к базе данных
 func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
-	const timeBeforeRetry = time.Second * 2
-
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		dbConnection.User,
 		dbConnection.Password,
@@ -149,7 +141,7 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 		dbConnection.Port,
 		dbConnection.Name)
 
-	pool, err := db.NewPoolPostgres(dsn, dbConnection, logger, timeBeforeRetry)
+	pool, err := db.NewPoolPostgres(dsn, dbConnection, logger)
 	if err != nil {
 		return nil, fmt.Errorf("db.NewPool: %w", err)
 	}
@@ -164,8 +156,6 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 
 // Настройка подключения к Redis
 func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
-	const timeBeforeRetry = time.Second * 2
-
 	redisSettings := redis.Options{
 		Addr:         fmt.Sprintf("%s:%s", redisConnection.Host, redisConnection.Port),
 		Password:     redisConnection.Password,
@@ -174,7 +164,7 @@ func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger)
 		MinIdleConns: redisConnection.MinConnections,
 	}
 
-	client, err := db.NewPoolRedis(&redisSettings, logger, timeBeforeRetry)
+	client, err := db.NewPoolRedis(&redisSettings, redisConnection, logger)
 	if err != nil {
 		return nil, fmt.Errorf("db.NewPoolRedis: %w", err)
 	}
@@ -183,8 +173,18 @@ func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger)
 }
 
 // Настройка стора
-func setupStore(pool *pgxpool.Pool, client *redis.Client) *Store {
-	return NewStore(pool, client)
+func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
+	pool, err := setupDatabase(&conf.DBConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupDatabase: %w", err)
+	}
+
+	redisClient, err := setupRedis(&conf.RedisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupRedis: %w", err)
+	}
+
+	return NewStore(pool, redisClient), nil
 }
 
 // Настройка менеджера сервисов

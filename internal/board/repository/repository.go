@@ -73,21 +73,10 @@ func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]model
 }
 
 func (r *Repository) AddEmptyBoard(ctx context.Context, emptyBoard models.Board, userLink uuid.UUID) error {
-	checkExistingQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
-	var userExist bool
-	err := r.pool.QueryRow(ctx, checkExistingQuery, userLink).Scan(&userExist)
-	if err != nil {
-		return fmt.Errorf("pool.QueryRow: %w", err)
-	}
-
-	if !userExist {
-		return common.ErrorNonexistentUser
-	}
-
 	addEmptyBoardQuery := `INSERT INTO board (link)
 	VALUES ($1)`
 
-	_, err = r.pool.Exec(ctx, addEmptyBoardQuery, emptyBoard.Link)
+	_, err := r.pool.Exec(ctx, addEmptyBoardQuery, emptyBoard.Link)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

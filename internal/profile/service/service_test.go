@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	mockProfileRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/mock_profile_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

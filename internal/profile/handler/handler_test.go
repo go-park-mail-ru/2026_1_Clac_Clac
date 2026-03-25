@@ -10,8 +10,8 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/dto"
 	mockProfileSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_srv"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -47,7 +47,7 @@ func newErrorResponse(code int, message string) api.ErrorResponse {
 
 func TestGetUserProfile(t *testing.T) {
 	targetUserID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	expectedUser := dto.UserInfoResponce{
+	expectedUser := serviceDto.UserInfoResponce{
 		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
@@ -82,7 +82,7 @@ func TestGetUserProfile(t *testing.T) {
 			CtxValue: targetUserID,
 			MockBehavior: func(m *mockProfileSrv.ProfileService) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(
-					dto.UserInfoResponce{},
+					serviceDto.UserInfoResponce{},
 					errors.New("database connection lost"),
 				)
 			},

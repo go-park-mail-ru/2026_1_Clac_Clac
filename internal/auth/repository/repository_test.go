@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	mockRedisEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/mock_redis_engine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"

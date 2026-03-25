@@ -15,9 +15,9 @@ type Store struct {
 	Profiles *profile.Repository
 }
 
-func NewStore(pool *pgxpool.Pool, client *redis.Client) *Store {
+func NewStore(pool *pgxpool.Pool, redisClient *redis.Client) *Store {
 	return &Store{
-		Auth:     auth.NewRepository(pool, client),
+		Auth:     auth.NewRepository(pool, redisClient),
 		Boards:   board.NewRepository(pool),
 		Profiles: profile.NewRepository(pool),
 	}

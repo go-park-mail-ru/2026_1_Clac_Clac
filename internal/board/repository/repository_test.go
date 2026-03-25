@@ -113,7 +113,7 @@ func TestGetBoardsError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mock, err := pgxmock.NewPool()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			defer mock.Close()
 
 			test.mockSetup(mock, test.targetID)
@@ -145,10 +145,6 @@ func TestCreateEmptyBoard(t *testing.T) {
 			targetID: uuid.New(),
 			board:    models.Board{Link: uuid.New()},
 			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board) {
-				checkQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
-				mock.ExpectQuery(regexp.QuoteMeta(checkQuery)).
-					WithArgs(targetID).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 
 				addEmptyBoardQuery := `INSERT INTO board (link) VALUES ($1)`
 				mock.ExpectExec(regexp.QuoteMeta(addEmptyBoardQuery)).
@@ -181,48 +177,6 @@ func TestCreateEmptyBoard(t *testing.T) {
 			} else {
 				assert.Equal(t, test.expectedError, err)
 			}
-
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
-		})
-	}
-}
-func TestCreateEmptyBoardError(t *testing.T) {
-	tests := []struct {
-		nameTest      string
-		targetID      uuid.UUID
-		board         models.Board
-		mockSetup     func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board)
-		expectedError error
-	}{
-		{
-			nameTest: "User not found",
-			targetID: uuid.New(),
-			board:    models.Board{Link: uuid.New()},
-			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board) {
-				checkQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
-				mock.ExpectQuery(regexp.QuoteMeta(checkQuery)).
-					WithArgs(targetID).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
-			},
-			expectedError: common.ErrorNonexistentUser,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			mock, err := pgxmock.NewPool()
-			require.NoError(t, err)
-			defer mock.Close()
-
-			test.mockSetup(mock, test.targetID, test.board)
-
-			repoBoards := NewRepository(mock)
-			ctx := context.Background()
-
-			err = repoBoards.AddEmptyBoard(ctx, test.board, test.targetID)
-
-			assert.Equal(t, test.expectedError, err)
 
 			err = mock.ExpectationsWereMet()
 			assert.NoError(t, err, "not wait error")

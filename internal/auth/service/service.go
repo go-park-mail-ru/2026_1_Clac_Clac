@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
+	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -61,20 +62,20 @@ func NewService(rep AuthRepository, sender SenderLetters, hasher func(password s
 	}
 }
 
-func (a *Service) LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (dto.UserInfoResponce, string, error) {
+func (a *Service) LogIn(ctx context.Context, requestUser handlerDto.LoginInfoRequest) (dto.UserInfoResponse, string, error) {
 	user, err := a.rep.GetUser(ctx, requestUser.Email)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.GetUser: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("rep.GetUser: %w", err)
 	}
 
 	err = a.checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("GenerateID: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	session := dto.Session{
@@ -85,10 +86,10 @@ func (a *Service) LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (
 
 	err = a.rep.AddSession(ctx, session)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddSession: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
-	return dto.UserInfoResponce{
+	return dto.UserInfoResponse{
 		Link:        user.Link,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
@@ -117,10 +118,10 @@ func (a *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 	return sessionID, nil
 }
 
-func (a *Service) Register(ctx context.Context, userInfo dto.RegistraionInfoRequest) (dto.UserInfoResponce, string, error) {
+func (a *Service) Register(ctx context.Context, userInfo handlerDto.RegistraionInfoRequest) (dto.UserInfoResponse, string, error) {
 	hashedPassword, err := a.hasher(userInfo.Password)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("HashPassword: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("HashPassword: %w", err)
 	}
 
 	user := models.User{
@@ -132,12 +133,12 @@ func (a *Service) Register(ctx context.Context, userInfo dto.RegistraionInfoRequ
 
 	err = a.rep.AddUser(ctx, user)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddUser: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("rep.AddUser: %w", err)
 	}
 
 	sessionID, err := a.generatorID()
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("GenerateID: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	session := dto.Session{
@@ -148,10 +149,10 @@ func (a *Service) Register(ctx context.Context, userInfo dto.RegistraionInfoRequ
 
 	err = a.rep.AddSession(ctx, session)
 	if err != nil {
-		return dto.UserInfoResponce{}, "", fmt.Errorf("rep.AddSession: %w", err)
+		return dto.UserInfoResponse{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
 
-	return dto.UserInfoResponce{
+	return dto.UserInfoResponse{
 		Link:        user.Link,
 		DisplayName: userInfo.Name,
 		Email:       user.Email,

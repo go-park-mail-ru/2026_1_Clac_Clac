@@ -5,7 +5,7 @@ package mockAuthRep
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	mock "github.com/stretchr/testify/mock"
 
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"

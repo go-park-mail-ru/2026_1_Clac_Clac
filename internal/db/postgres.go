@@ -21,9 +21,7 @@ const (
 	migrationsPath = "file://internal/db/migrations"
 )
 
-func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger *zerolog.Logger, timeBeforeRetry time.Duration) (*pgxpool.Pool, error) {
-	const maxRetries = 5
-
+func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse dsn: %w", err)
@@ -34,7 +32,7 @@ func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger
 	poolConfig.MaxConnLifetime = dbConnection.MaxConnectionLifetime
 	poolConfig.HealthCheckPeriod = dbConnection.MaxHealthCheckPeriod
 
-	for i := 1; i <= maxRetries; i++ {
+	for i := 1; i <= dbConnection.MaxRetries; i++ {
 		contextWithTimeOut, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 		if pool, err := pgxpool.NewWithConfig(contextWithTimeOut, poolConfig); err == nil {
@@ -50,8 +48,8 @@ func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger
 
 		logger.Warn().Msgf("Postgres not ready yet, retrying")
 
-		if i < maxRetries {
-			time.Sleep(timeBeforeRetry)
+		if i < dbConnection.MaxRetries {
+			time.Sleep(dbConnection.PingSleepTime)
 		}
 		cancel()
 	}

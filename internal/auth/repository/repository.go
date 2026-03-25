@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/redis/go-redis/v9"
 
@@ -28,14 +28,14 @@ type RedisEngine interface {
 }
 
 type Repository struct {
-	pool   DBEngine
-	client RedisEngine
+	pool        DBEngine
+	redisClient RedisEngine
 }
 
-func NewRepository(pool DBEngine, client RedisEngine) *Repository {
+func NewRepository(pool DBEngine, redisClient RedisEngine) *Repository {
 	return &Repository{
-		pool:   pool,
-		client: client,
+		pool:        pool,
+		redisClient: redisClient,
 	}
 }
 
@@ -50,7 +50,8 @@ func (r *Repository) AddUser(ctx context.Context, user models.User) error {
 		user.DisplayName,
 		user.PasswordHash,
 		user.Email,
-		user.Avatar)
+		user.Avatar,
+	)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -66,10 +67,10 @@ func (r *Repository) AddUser(ctx context.Context, user models.User) error {
 	return nil
 }
 
-func (r *Repository) AddSession(ctx context.Context, session dto.Session) error {
+func (r *Repository) AddSession(ctx context.Context, session serviceDto.Session) error {
 	key := fmt.Sprintf("session:%s", session.SessionID)
 
-	err := r.client.Set(ctx, key, session.UserLink.String(), session.LifeTime).Err()
+	err := r.redisClient.Set(ctx, key, session.UserLink.String(), session.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -80,7 +81,7 @@ func (r *Repository) AddSession(ctx context.Context, session dto.Session) error 
 func (r *Repository) GetUserIDBySession(ctx context.Context, sessionID string) (string, error) {
 	key := fmt.Sprintf("session:%s", sessionID)
 
-	userLink, err := r.client.Get(ctx, key).Result()
+	userLink, err := r.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingSession
@@ -95,7 +96,7 @@ func (r *Repository) GetUserIDBySession(ctx context.Context, sessionID string) (
 func (r *Repository) DeleteSession(ctx context.Context, sessionID string) error {
 	key := fmt.Sprintf("session:%s", sessionID)
 
-	err := r.client.Del(ctx, key).Err()
+	err := r.redisClient.Del(ctx, key).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}
@@ -128,10 +129,10 @@ func (r *Repository) GetUser(ctx context.Context, email string) (models.User, er
 	return user, nil
 }
 
-func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetToken) error {
+func (r *Repository) AddResetToken(ctx context.Context, token serviceDto.ResetToken) error {
 	key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
 
-	err := r.client.Set(ctx, key, token.UserLink.String(), token.LifeTime).Err()
+	err := r.redisClient.Set(ctx, key, token.UserLink.String(), token.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -142,7 +143,7 @@ func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetToken) er
 func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenID string) (string, error) {
 	key := fmt.Sprintf("reset_token:%s", tokenID)
 
-	userLink, err := r.client.Get(ctx, key).Result()
+	userLink, err := r.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingResetToken
@@ -157,7 +158,7 @@ func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenID string
 func (r *Repository) DeleteResetToken(ctx context.Context, tokenID string) error {
 	key := fmt.Sprintf("reset_token:%s", tokenID)
 
-	err := r.client.Del(ctx, key).Err()
+	err := r.redisClient.Del(ctx, key).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}

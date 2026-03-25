@@ -13,12 +13,12 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
-	authServiceMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	vkOAuthMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_vk_oauth"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -82,7 +82,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 					Email:    "test@mail.ru",
 					Password: "123456789",
 				}).Return(
-					dto.UserInfoResponce{
+					serviceDto.UserInfoResponse{
 						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
@@ -105,7 +105,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				m.On("LogIn", ctx, dto.LoginInfoRequest{
 					Email:    "artem@mail.ru",
 					Password: "wrong_password",
-				}).Return(dto.UserInfoResponce{}, "", service.ErrorWrongPassword)
+				}).Return(serviceDto.UserInfoResponse{}, "", service.ErrorWrongPassword)
 			},
 		},
 		{
@@ -230,7 +230,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 					Email:    "test@mail.ru",
 					Password: "12345678",
 				}).Return(
-					dto.UserInfoResponce{
+					serviceDto.UserInfoResponse{
 						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
@@ -269,7 +269,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 					Email:    "test@mail.ru",
 					Password: "123456789",
 				}).Return(
-					dto.UserInfoResponce{},
+					serviceDto.UserInfoResponse{},
 					"",
 					fmt.Errorf("repo.AddUser: user with this email alreday exists"),
 				)
@@ -364,7 +364,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 					Password: "123456789",
 					Email:    "test@mail.ru",
 				}).Return(
-					dto.UserInfoResponce{},
+					serviceDto.UserInfoResponse{},
 					"",
 					fmt.Errorf("failed to create hash: error bcrypt"),
 				)
@@ -822,7 +822,7 @@ func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestVkOAuthCallbackExistingUser(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-	mockAuthService := new(authServiceMocks.AuthService)
+	mockAuthService := new(mockAuthSrv.AuthService)
 
 	handler := &AuthHandler{Srv: mockAuthService}
 
@@ -927,7 +927,7 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 
 func TestVkOAuthCallbackExchangeError(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-	mockAuthService := new(authServiceMocks.AuthService)
+	mockAuthService := new(mockAuthSrv.AuthService)
 
 	handler := &AuthHandler{Srv: mockAuthService}
 	conf := &config.VkOAuth{}

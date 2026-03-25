@@ -14,7 +14,7 @@ const (
 	fastTime = time.Millisecond * 50
 )
 
-func TestTimeOutMoiddleware(t *testing.T) {
+func TestTimeOutMiddleware(t *testing.T) {
 	t.Run("handler without error", func(t *testing.T) {
 		res := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)

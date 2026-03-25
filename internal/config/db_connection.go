@@ -11,6 +11,8 @@ const (
 	defaultMaxPostgresConnections = 10
 	deafultMaxConnectionLifetime  = 1 * time.Hour
 	defaultMaxHealthCheckPeriod   = 30 * time.Second
+	defaultPingSleepTimeDB        = 2 * time.Second
+	defaultMaxRetriesDB           = 5
 )
 
 type DatabaseConnection struct {
@@ -24,6 +26,8 @@ type DatabaseConnection struct {
 	MaxConnections        int32         `mapstructure:"max_connections"`
 	MaxConnectionLifetime time.Duration `mapstructure:"max_connection_lifetime"`
 	MaxHealthCheckPeriod  time.Duration `mapstructure:"max_health_check_period"`
+	PingSleepTime         time.Duration `mapstructue:"ping_sleep_time"`
+	MaxRetries            int           `mapstructure:"max_retries"`
 }
 
 func DefaultDBConnectionConfog() DatabaseConnection {
@@ -38,6 +42,8 @@ func DefaultDBConnectionConfog() DatabaseConnection {
 		MaxConnections:        defaultMaxPostgresConnections,
 		MaxConnectionLifetime: deafultMaxConnectionLifetime,
 		MaxHealthCheckPeriod:  defaultMaxHealthCheckPeriod,
+		PingSleepTime:         defaultPingSleepTimeDB,
+		MaxRetries:            defaultMaxRetriesDB,
 	}
 }
 

@@ -10,15 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const timeBeforeRetry = time.Millisecond * 2
-
 func TestNewPoolPostgresError(t *testing.T) {
+	const pingSleepTime = time.Millisecond * 2
+
 	logger := zerolog.Nop()
 	dbConfig := &config.DatabaseConnection{
 		MinConnections:        1,
 		MaxConnections:        5,
 		MaxConnectionLifetime: time.Hour,
 		MaxHealthCheckPeriod:  time.Minute,
+		PingSleepTime:         pingSleepTime,
+		MaxRetries:            5,
 	}
 
 	tests := []struct {
@@ -34,7 +36,7 @@ func TestNewPoolPostgresError(t *testing.T) {
 			errorContains: "cannot parse dsn",
 		},
 		{
-			nameTest:      "Error connection timeout (exhaust retries)",
+			nameTest:      "Error connection timeout",
 			dsn:           "postgres://user:pass@localhost:9999/testdb?sslmode=disable",
 			expectedError: ErrorConnectPosgress,
 			errorContains: "",
@@ -43,7 +45,7 @@ func TestNewPoolPostgresError(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			pool, err := NewPoolPostgres(test.dsn, dbConfig, &logger, timeBeforeRetry)
+			pool, err := NewPoolPostgres(test.dsn, dbConfig, &logger)
 
 			assert.Nil(t, pool, "pool should be nil on error")
 
