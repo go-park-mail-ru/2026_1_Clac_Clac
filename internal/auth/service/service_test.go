@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegister(t *testing.T) {
@@ -902,6 +903,198 @@ func TestResetPasswordError(t *testing.T) {
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
 			assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
+		})
+	}
+}
+
+func TestCreateSessionForUser(t *testing.T) {
+	testUser := models.User{}
+
+	tests := []struct {
+		Name               string
+		SessionIdGenerator func() (string, error)
+		ExpectedSessionId  string
+		ExpectError        bool
+		MockBehavior       func(r *mockAuthRep.AuthRepository)
+	}{
+		{
+			Name: "no error",
+			SessionIdGenerator: func() (string, error) {
+				return "hello", nil
+			},
+			ExpectedSessionId: "hello",
+			ExpectError:       false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("AddSession", mock.Anything, mock.Anything).Return(nil)
+			},
+		},
+		{
+			Name: "session id generator error",
+			SessionIdGenerator: func() (string, error) {
+				return "", errors.New("cannot generate id")
+			},
+			ExpectedSessionId: "",
+			ExpectError:       true,
+			MockBehavior:      nil,
+		},
+		{
+			Name: "repository error",
+			SessionIdGenerator: func() (string, error) {
+				return "hello", nil
+			},
+			ExpectedSessionId: "",
+			ExpectError:       true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("AddSession", mock.Anything, mock.Anything).Return(errors.New("cannot add session"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			authRepo := new(mockAuthRep.AuthRepository)
+			if test.MockBehavior != nil {
+				test.MockBehavior(authRepo)
+			}
+
+			service := NewService(authRepo, nil, nil, nil, test.SessionIdGenerator, nil)
+
+			sessionId, err := service.CreateSessionForUser(context.Background(), testUser)
+			if test.ExpectError {
+				require.Error(t, err, "must return error")
+				return
+			}
+
+			assert.Equal(t, test.ExpectedSessionId, sessionId, "sessions must be equal")
+
+			authRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetUserByEmail(t *testing.T) {
+	testUser := models.User{
+		ID:    common.FixedUserUuiD,
+		Email: "test@mail.ru",
+	}
+
+	tests := []struct {
+		Name         string
+		ExpectError  bool
+		MockBehavior func(*mockAuthRep.AuthRepository)
+	}{
+		{
+			Name:        "no error",
+			ExpectError: false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).Return(testUser, nil)
+			},
+		},
+		{
+			Name:        "repository error",
+			ExpectError: true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).
+					Return(models.User{}, errors.New("user not found"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			authRepo := new(mockAuthRep.AuthRepository)
+			if test.MockBehavior != nil {
+				test.MockBehavior(authRepo)
+			}
+
+			service := NewService(authRepo, nil, nil, nil, nil, nil)
+			user, err := service.GetUserByEmail(context.Background(), testUser.Email)
+			if test.ExpectError {
+				require.Error(t, err, "must return error")
+				return
+			}
+
+			assert.Equal(t, testUser, user, "users must be equal")
+
+			authRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestEnsureUserByEmail(t *testing.T) {
+	testUser := models.User{
+		Email: "test@mail.ru",
+	}
+
+	testUserInfo := dto.UserInfo{
+		Email: testUser.Email,
+	}
+
+	tests := []struct {
+		Name         string
+		ExpectError  bool
+		MockBehavior func(r *mockAuthRep.AuthRepository)
+	}{
+		{
+			Name:        "no error, user exists",
+			ExpectError: false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).
+					Return(testUser, nil)
+			},
+		},
+		{
+			Name:        "no error, user does not exists",
+			ExpectError: false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).
+					Return(models.User{}, common.ErrorNonexistentUser)
+
+				r.On("AddUser", mock.Anything, mock.AnythingOfType("models.User")).
+					Return(nil)
+
+				r.On("AddSession", mock.Anything, mock.AnythingOfType("db.Session")).
+					Return(nil)
+			},
+		},
+		{
+			Name:        "cannot find user error",
+			ExpectError: true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).
+					Return(models.User{}, errors.New("cannot find user"))
+			},
+		},
+		{
+			Name:        "cannot register error",
+			ExpectError: true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUser.Email).
+					Return(models.User{}, common.ErrorNonexistentUser)
+
+				r.On("AddUser", mock.Anything, mock.AnythingOfType("models.User")).
+					Return(errors.New("cannot register user"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			authRepo := new(mockAuthRep.AuthRepository)
+			if test.MockBehavior != nil {
+				test.MockBehavior(authRepo)
+			}
+
+			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil)
+			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
+			if test.ExpectError {
+				require.Error(t, err, "must return error")
+				return
+			}
+
+			assert.Equal(t, testUser.Email, user.Email, "users must be equal")
+
+			authRepo.AssertExpectations(t)
 		})
 	}
 }

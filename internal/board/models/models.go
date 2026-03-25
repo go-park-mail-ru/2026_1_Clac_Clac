@@ -17,7 +17,8 @@ const (
 
 // User описывает сущность пользователя в системе
 //
-// @Description Полная информация о пользователе
+//	@name			models.User
+//	@Description	Полная информация о пользователе
 type User struct {
 	Link        uuid.UUID `json:"id"                   example:"123e4567-e89b-12d3-a456-426614174000"`
 	DisplayName string    `json:"display_name"         example:"Ivan Ivanov"`
@@ -31,7 +32,8 @@ type User struct {
 
 // Board представляет рабочую доску пользователя
 //
-// @Description Краткая информация о доске
+//	@name			models.Board
+//	@Description	Краткая информация о доске
 type Board struct {
 	Link       uuid.UUID `json:"link"`
 	Created_at time.Time `json:"created_at"`
