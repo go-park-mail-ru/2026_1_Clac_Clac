@@ -2,7 +2,6 @@ BINARY_NAME=main
 MAIN_PATH=./cmd/main.go
 BUILD_DIR=bin
 CONFIG_FILE=config.yaml
-DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./internal/board/models,./internal/board/handler,./internal/health/handler,./internal/profile/models,./internal/profile/handler
 
 .PHONY: help build run test create-config
 
@@ -52,7 +51,7 @@ run: build
 	@./$(BUILD_DIR)/$(BINARY_NAME)
 
 docs:
-	swag init -g main.go -o internal/docs -d $(DOCS_PKGS)
+	swag init -g main.go -o internal/docs -d ./cmd,./internal/api,./internal/handler,./internal/models
 
 create-config:
 	@if [ -f $(CONFIG_FILE) ]; then \
