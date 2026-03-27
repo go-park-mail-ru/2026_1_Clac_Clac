@@ -66,11 +66,12 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
-	router.Use(middleware.CSRFMiddleware(middleware.GenerateRandomCSRFToken, logger))
+	router.Use(middleware.CSRFMiddleware)
 
 	// Ручки, которым не нужна авторизация
 	public := router.PathPrefix("/").Subrouter()
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+	public.HandleFunc("/csrf", middleware.SetCSRFCookieHandler(middleware.GenerateRandomCSRFToken, logger))
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов

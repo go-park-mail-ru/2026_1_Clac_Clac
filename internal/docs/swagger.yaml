@@ -1,5 +1,15 @@
 basePath: /api
 definitions:
+  api.ErrorResponse:
+    description: Структура сообщения об ошибке
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      status:
+        type: string
+    type: object
   api.LogInRequest:
     description: Данные для входа в систему
     properties:
@@ -51,6 +61,12 @@ definitions:
         type: string
       repeated_password:
         example: securePassword
+        type: string
+    type: object
+  api.Response:
+    description: Базовый ответ
+    properties:
+      status:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.Board:
@@ -123,6 +139,27 @@ paths:
       summary: Проверка кода восстановления
       tags:
       - auth
+  /csrf:
+    get:
+      description: Генерирует новый CSRF токен и записывает его в Cookie
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: "ok\"\t\"Успешная установка куки"
+          headers:
+            Set-Cookie:
+              description: csrf_token=...; Path=/; Secure; SameSite=Lax
+              type: string
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: internal server error - cannot create token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Установка CSRF куки
+      tags:
+      - csrf
   /forgot-password:
     post:
       consumes:

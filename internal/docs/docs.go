@@ -70,6 +70,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/csrf": {
+            "get": {
+                "description": "Генерирует новый CSRF токен и записывает его в Cookie",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "csrf"
+                ],
+                "summary": "Установка CSRF куки",
+                "responses": {
+                    "200": {
+                        "description": "ok\"\t\"Успешная установка куки",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "csrf_token=...; Path=/; Secure; SameSite=Lax"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error - cannot create token",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/forgot-password": {
             "post": {
                 "description": "Генерирует код восстановления и отправляет его на указанный email.",
@@ -393,6 +425,21 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.ErrorResponse": {
+            "description": "Структура сообщения об ошибке",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "api.LogInRequest": {
             "description": "Данные для входа в систему",
             "type": "object",
@@ -464,6 +511,15 @@ const docTemplate = `{
                 "repeated_password": {
                     "type": "string",
                     "example": "securePassword"
+                }
+            }
+        },
+        "api.Response": {
+            "description": "Базовый ответ",
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
                 }
             }
         },

@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
@@ -41,42 +40,55 @@ func GenerateRandomCSRFToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-// Логику сделал следующую: только безопасный метод может установить куку,
-// если запрос был не из безопасного метода, то куки не ставим
-func CSRFMiddleware(tokenGenerator func() (string, error), logger *zerolog.Logger) mux.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, cookieErr := r.Cookie(csrfCookieKey)
+// SetCSRFCookieHandler устанавливает CSRF куку
+//
+//	@Summary		Установка CSRF куки
+//	@Description	Генерирует новый CSRF токен и записывает его в Cookie
+//	@Tags			csrf
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"ok"	"Успешная установка куки"
+//	@Header			200	{string}	Set-Cookie			"csrf_token=...; Path=/; Secure; SameSite=Lax"
+//	@Failure		500	{object}	api.ErrorResponse	"internal server error - cannot create token"
+//	@Router			/csrf [get]
+func SetCSRFCookieHandler(tokenGenerator func() (string, error), logger *zerolog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token, err := tokenGenerator()
+		if err != nil {
+			logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
+			api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
+			return
+		}
 
-			if _, isSafe := safeMethods[r.Method]; !isSafe {
-				headerToken := r.Header.Get(xCsrfHeader)
-
-				if cookie == nil || headerToken == "" || headerToken != cookie.Value {
-					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
-					return
-				}
-			}
-
-			if cookieErr != nil {
-				token, err := tokenGenerator()
-				if err != nil {
-					logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
-					// Нет return - это не ошибка, так как метод безопасный, то мы ничего не теряем
-				} else {
-					// TODO: допилить api.NewCookie, чтобы можно было
-					// создавать куки с разными полями
-					http.SetCookie(w, &http.Cookie{
-						Name:     csrfCookieKey,
-						Value:    token,
-						Secure:   true,
-						HttpOnly: false,
-						Path:     "/",
-						SameSite: http.SameSiteLaxMode,
-					})
-				}
-			}
-
-			next.ServeHTTP(w, r)
+		http.SetCookie(w, &http.Cookie{
+			Name:     csrfCookieKey,
+			Value:    token,
+			Secure:   true,
+			HttpOnly: false,
+			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
 		})
+
+		api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 	}
+}
+
+func CSRFMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, isSafe := safeMethods[r.Method]; !isSafe {
+			cookie, err := r.Cookie(csrfCookieKey)
+			if err != nil {
+				api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+				return
+			}
+
+			headerToken := r.Header.Get(xCsrfHeader)
+
+			if cookie == nil || headerToken == "" || headerToken != cookie.Value {
+				api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
