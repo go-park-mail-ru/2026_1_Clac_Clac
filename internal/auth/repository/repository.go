@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
-	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/redis/go-redis/v9"
 
@@ -39,10 +38,10 @@ func NewRepository(pool DBEngine, redisClient RedisEngine) *Repository {
 	}
 }
 
-func (r *Repository) AddUser(ctx context.Context, user models.User) error {
+func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error {
 	addUserQuery := `
-		INSERT INTO "user" (link, display_name, password_hash, email, avatar)
-		VALUES ($1, $2, $3, $4, $5) 
+		INSERT INTO "user" (link, display_name, password_hash, email)
+		VALUES ($1, $2, $3, $4) 
 	`
 
 	_, err := r.pool.Exec(ctx, addUserQuery,
@@ -50,7 +49,6 @@ func (r *Repository) AddUser(ctx context.Context, user models.User) error {
 		user.DisplayName,
 		user.PasswordHash,
 		user.Email,
-		user.Avatar,
 	)
 
 	if err != nil {
@@ -67,7 +65,7 @@ func (r *Repository) AddUser(ctx context.Context, user models.User) error {
 	return nil
 }
 
-func (r *Repository) AddSession(ctx context.Context, session serviceDto.Session) error {
+func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) error {
 	key := fmt.Sprintf("session:%s", session.SessionID)
 
 	err := r.redisClient.Set(ctx, key, session.UserLink.String(), session.LifeTime).Err()
@@ -104,13 +102,13 @@ func (r *Repository) DeleteSession(ctx context.Context, sessionID string) error 
 	return nil
 }
 
-func (r *Repository) GetUser(ctx context.Context, email string) (models.User, error) {
+func (r *Repository) GetUser(ctx context.Context, email string) (dto.UserEntity, error) {
 	getUserQuery := `
 		SELECT link, display_name, password_hash, email, avatar
 		FROM "user"
 		WHERE email = $1
 	`
-	var user models.User
+	var user dto.UserEntity
 	err := r.pool.QueryRow(ctx, getUserQuery, email).Scan(
 		&user.Link,
 		&user.DisplayName,
@@ -121,15 +119,34 @@ func (r *Repository) GetUser(ctx context.Context, email string) (models.User, er
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return models.User{}, common.ErrorNonexistentEmail
+			return dto.UserEntity{}, common.ErrorNonexistentEmail
 		}
-		return models.User{}, fmt.Errorf("pool.QueryRow: %w", err)
+		return dto.UserEntity{}, fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
 	return user, nil
 }
 
-func (r *Repository) AddResetToken(ctx context.Context, token serviceDto.ResetToken) error {
+func (r *Repository) GetUserLink(ctx context.Context, email string) (uuid.UUID, error) {
+	query := `
+	SELECT link 
+	FROM "user"
+	WHERE email = $1`
+
+	var link uuid.UUID
+
+	err := r.pool.QueryRow(ctx, query, email).Scan(&link)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, common.ErrorNonexistentEmail
+		}
+		return uuid.Nil, fmt.Errorf("pool.QueryRow: %w", err)
+	}
+
+	return link, nil
+}
+
+func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetTokenEntity) error {
 	key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
 
 	err := r.redisClient.Set(ctx, key, token.UserLink.String(), token.LifeTime).Err()

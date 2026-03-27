@@ -5,10 +5,8 @@ package mockAuthRep
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	mock "github.com/stretchr/testify/mock"
-
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 
 	uuid "github.com/google/uuid"
 )
@@ -19,7 +17,7 @@ type AuthRepository struct {
 }
 
 // AddResetToken provides a mock function with given fields: ctx, token
-func (_m *AuthRepository) AddResetToken(ctx context.Context, token dto.ResetToken) error {
+func (_m *AuthRepository) AddResetToken(ctx context.Context, token dto.ResetTokenEntity) error {
 	ret := _m.Called(ctx, token)
 
 	if len(ret) == 0 {
@@ -27,7 +25,7 @@ func (_m *AuthRepository) AddResetToken(ctx context.Context, token dto.ResetToke
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.ResetToken) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.ResetTokenEntity) error); ok {
 		r0 = rf(ctx, token)
 	} else {
 		r0 = ret.Error(0)
@@ -37,7 +35,7 @@ func (_m *AuthRepository) AddResetToken(ctx context.Context, token dto.ResetToke
 }
 
 // AddSession provides a mock function with given fields: ctx, session
-func (_m *AuthRepository) AddSession(ctx context.Context, session dto.Session) error {
+func (_m *AuthRepository) AddSession(ctx context.Context, session dto.SessionEntity) error {
 	ret := _m.Called(ctx, session)
 
 	if len(ret) == 0 {
@@ -45,7 +43,7 @@ func (_m *AuthRepository) AddSession(ctx context.Context, session dto.Session) e
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.Session) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.SessionEntity) error); ok {
 		r0 = rf(ctx, session)
 	} else {
 		r0 = ret.Error(0)
@@ -55,7 +53,7 @@ func (_m *AuthRepository) AddSession(ctx context.Context, session dto.Session) e
 }
 
 // AddUser provides a mock function with given fields: ctx, user
-func (_m *AuthRepository) AddUser(ctx context.Context, user models.User) error {
+func (_m *AuthRepository) AddUser(ctx context.Context, user dto.UserInitialize) error {
 	ret := _m.Called(ctx, user)
 
 	if len(ret) == 0 {
@@ -63,7 +61,7 @@ func (_m *AuthRepository) AddUser(ctx context.Context, user models.User) error {
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, models.User) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UserInitialize) error); ok {
 		r0 = rf(ctx, user)
 	} else {
 		r0 = ret.Error(0)
@@ -109,22 +107,22 @@ func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 }
 
 // GetUser provides a mock function with given fields: ctx, enail
-func (_m *AuthRepository) GetUser(ctx context.Context, enail string) (models.User, error) {
+func (_m *AuthRepository) GetUser(ctx context.Context, enail string) (dto.UserEntity, error) {
 	ret := _m.Called(ctx, enail)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUser")
 	}
 
-	var r0 models.User
+	var r0 dto.UserEntity
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (models.User, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (dto.UserEntity, error)); ok {
 		return rf(ctx, enail)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) models.User); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) dto.UserEntity); ok {
 		r0 = rf(ctx, enail)
 	} else {
-		r0 = ret.Get(0).(models.User)
+		r0 = ret.Get(0).(dto.UserEntity)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -157,6 +155,36 @@ func (_m *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID stri
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, sessionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetUserLink provides a mock function with given fields: ctx, email
+func (_m *AuthRepository) GetUserLink(ctx context.Context, email string) (uuid.UUID, error) {
+	ret := _m.Called(ctx, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserLink")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (uuid.UUID, error)); ok {
+		return rf(ctx, email)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) uuid.UUID); ok {
+		r0 = rf(ctx, email)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, email)
 	} else {
 		r1 = ret.Error(1)
 	}

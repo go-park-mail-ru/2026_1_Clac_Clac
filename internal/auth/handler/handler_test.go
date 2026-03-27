@@ -16,7 +16,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	vkOAuthMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_vk_oauth"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -70,7 +69,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				Email:    "test@mail.ru",
 				Password: "123456789",
 			},
-			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
+			ExpectedResponse: newOkResponse(api.StatusOK, dto.UserInfoResponse{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
@@ -78,11 +77,11 @@ func TestLogInUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("LogIn", ctx, dto.LoginInfoRequest{
+				m.On("LogIn", ctx, serviceDto.LogInUser{
 					Email:    "test@mail.ru",
 					Password: "123456789",
 				}).Return(
-					serviceDto.UserInfoResponse{
+					serviceDto.UserInfo{
 						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
@@ -102,10 +101,10 @@ func TestLogInUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusUnauthorized,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("LogIn", ctx, dto.LoginInfoRequest{
+				m.On("LogIn", ctx, serviceDto.LogInUser{
 					Email:    "artem@mail.ru",
 					Password: "wrong_password",
-				}).Return(serviceDto.UserInfoResponse{}, "", service.ErrorWrongPassword)
+				}).Return(serviceDto.UserInfo{}, "", service.ErrorWrongPassword)
 			},
 		},
 		{
@@ -122,7 +121,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 			Name: "Size password biger than 128",
 			Request: api.LogInRequest{
 				Email:    "artem@mail.ru",
-				Password: "123111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+				Password: "12311111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, invalidEmailOrPassword),
 			ExpectedStatusCode: http.StatusBadRequest,
@@ -217,7 +216,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				RepeatedPassword: "12345678",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
+			ExpectedResponse: newOkResponse(api.StatusOK, dto.UserInfoResponse{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
@@ -225,12 +224,12 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusCreated,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, dto.RegistraionInfoRequest{
-					Name:     "Artem",
-					Email:    "test@mail.ru",
-					Password: "12345678",
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Email:       "test@mail.ru",
+					Password:    "12345678",
 				}).Return(
-					serviceDto.UserInfoResponse{
+					serviceDto.UserInfo{
 						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
@@ -264,12 +263,12 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, dto.RegistraionInfoRequest{
-					Name:     "Artem",
-					Email:    "test@mail.ru",
-					Password: "123456789",
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Email:       "test@mail.ru",
+					Password:    "123456789",
 				}).Return(
-					serviceDto.UserInfoResponse{},
+					serviceDto.UserInfo{},
 					"",
 					fmt.Errorf("repo.AddUser: user with this email alreday exists"),
 				)
@@ -359,12 +358,12 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, dto.RegistraionInfoRequest{
-					Name:     "Artem",
-					Password: "123456789",
-					Email:    "test@mail.ru",
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Password:    "123456789",
+					Email:       "test@mail.ru",
 				}).Return(
-					serviceDto.UserInfoResponse{},
+					serviceDto.UserInfo{},
 					"",
 					fmt.Errorf("failed to create hash: error bcrypt"),
 				)
@@ -853,7 +852,7 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 	mockVkOAuth.On("Client", mock.Anything, testToken).Return(mockClient)
 
 	mockAuthService.On("GetUserByEmail", mock.Anything, testEmail).
-		Return(models.User{Link: common.FixedUserUuiD, Email: testEmail}, nil)
+		Return(serviceDto.UserInfo{Link: common.FixedUserUuiD, Email: testEmail}, nil)
 
 	mockAuthService.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("uuid.UUID")).
 		Return("fake-session-id", nil)
@@ -875,55 +874,55 @@ func TestVkOAuthCallbackExistingUser(t *testing.T) {
 	mockAuthService.AssertExpectations(t)
 }
 
-// func TestVkOAuthCallbackNewUserRegistration(t *testing.T) {
-// 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
-// 	mockAuthService := new(authServiceMocks.AuthService)
+func TestVkOAuthCallbackNewUserRegistration(t *testing.T) {
+	mockVkOAuth := new(vkOAuthMocks.VkOAuth)
+	mockAuthService := new(mockAuthSrv.AuthService)
 
-// 	handler := &AuthHandler{Srv: mockAuthService}
+	handler := &AuthHandler{Srv: mockAuthService}
 
-// 	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
-// 	redirectTo := "/"
-// 	testEmail := "new@example.com"
-// 	testToken := &oauth2.Token{AccessToken: "fake-token"}
-// 	testToken = testToken.WithExtra(map[string]any{"email": testEmail})
+	conf := &config.VkOAuth{APIMethod: "https://api.vk.com/method/users.get?access_token=%s"}
+	redirectTo := "/"
+	testEmail := "new@example.com"
+	testToken := &oauth2.Token{AccessToken: "fake-token"}
+	testToken = testToken.WithExtra(map[string]any{"email": testEmail})
 
-// 	mockClient := &http.Client{
-// 		Transport: &mockTransport{
-// 			RoundTripFunc: func(req *http.Request) *http.Response {
-// 				vkResp := api.VkAPIUsersData{
-// 					Response: []api.VkAPIUserData{{FirstName: "Alice"}},
-// 				}
-// 				body, _ := json.Marshal(vkResp)
-// 				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBuffer(body))}
-// 			},
-// 		},
-// 	}
+	mockClient := &http.Client{
+		Transport: &mockTransport{
+			RoundTripFunc: func(req *http.Request) *http.Response {
+				vkResp := api.VkAPIUsersData{
+					Response: []api.VkAPIUserData{{FirstName: "Alice"}},
+				}
+				body, _ := json.Marshal(vkResp)
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBuffer(body))}
+			},
+		},
+	}
 
-// 	mockVkOAuth.On("Exchange", mock.Anything, "valid_code").Return(testToken, nil)
-// 	mockVkOAuth.On("Client", mock.Anything, testToken).Return(mockClient)
+	mockVkOAuth.On("Exchange", mock.Anything, "valid_code").Return(testToken, nil)
+	mockVkOAuth.On("Client", mock.Anything, testToken).Return(mockClient)
 
-// 	mockAuthService.On("GetUserByEmail", mock.Anything, testEmail).
-// 		Return(models.User{}, common.ErrorNonexistentUser)
+	mockAuthService.On("GetUserByEmail", mock.Anything, testEmail).
+		Return(serviceDto.UserInfo{}, common.ErrorNonexistentUser)
 
-// 	mockAuthService.On("Register", mock.Anything, dto.RegistraionInfoRequest{
-// 		Name:     "Alice",
-// 		Password: "g1TNzmfXeEAw5-qarEXPmY7q6dddWSuhyMl789RtUoY=",
-// 		Email:    testEmail,
-// 	}).
-// 		Return(models.User{Link: common.FixedUserUuiD}, "new-session-id", nil)
+	mockAuthService.On("Register", mock.Anything, serviceDto.RegistrationUser{
+		DisplayName: "Alice",
+		Password:    "g1TNzmfXeEAw5-qarEXPmY7q6dddWSuhyMl789RtUoY=",
+		Email:       testEmail,
+	}).
+		Return(serviceDto.UserInfo{Link: common.FixedUserUuiD}, "new-session-id", nil)
 
-// 	req := httptest.NewRequest(http.MethodGet, "/callback?code=valid_code", nil)
-// 	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/callback?code=valid_code", nil)
+	rr := httptest.NewRecorder()
 
-// 	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
-// 	httpHandler(rr, req)
+	httpHandler := handler.VkOAuthCallback(conf, redirectTo, mockVkOAuth)
+	httpHandler(rr, req)
 
-// 	assert.Equal(t, http.StatusFound, rr.Code)
-// 	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
+	assert.Equal(t, http.StatusFound, rr.Code)
+	assert.Equal(t, "/?code=200&message=success", rr.Header().Get("Location"))
 
-// 	mockVkOAuth.AssertExpectations(t)
-// 	mockAuthService.AssertExpectations(t)
-// }
+	mockVkOAuth.AssertExpectations(t)
+	mockAuthService.AssertExpectations(t)
+}
 
 func TestVkOAuthCallbackExchangeError(t *testing.T) {
 	mockVkOAuth := new(vkOAuthMocks.VkOAuth)

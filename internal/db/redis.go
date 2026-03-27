@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
@@ -10,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var ErrorConnectRadis = errors.New("cannot connect to Redis")
+var ErrorConnectRedis = errors.New("cannot connect to Redis")
 
 func NewPoolRedis(settings *redis.Options, redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
 	client := redis.NewClient(settings)
@@ -33,6 +34,13 @@ func NewPoolRedis(settings *redis.Options, redisConnection *config.RedisConnecti
 		}
 	}
 
-	client.Close()
-	return nil, ErrorConnectRadis
+	err := ErrorConnectRedis
+
+	errClose := client.Close()
+	if errClose != nil {
+		errClose = fmt.Errorf("cannot close client: %w", errClose)
+		err = errors.Join(err, errClose)
+	}
+
+	return nil, err
 }

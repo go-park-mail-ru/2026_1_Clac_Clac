@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -25,13 +25,13 @@ func NewRepository(pool DBEngine) *Repository {
 	}
 }
 
-func (r *Repository) GetProfile(ctx context.Context, link uuid.UUID) (dto.UserInfoResponce, error) {
+func (r *Repository) GetProfile(ctx context.Context, link uuid.UUID) (dto.UserInfoEntity, error) {
 	getProfileQuery := `SELECT link, display_name, email, avatar
 	FROM "user"
 	WHERE link = $1
 	`
 
-	var userInfo dto.UserInfoResponce
+	var userInfo dto.UserInfoEntity
 	err := r.pool.QueryRow(ctx, getProfileQuery, link).Scan(
 		&userInfo.Link,
 		&userInfo.DisplayName,
@@ -40,10 +40,10 @@ func (r *Repository) GetProfile(ctx context.Context, link uuid.UUID) (dto.UserIn
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return dto.UserInfoResponce{}, common.ErrorNonexistentUser
+			return dto.UserInfoEntity{}, common.ErrorNonexistentUser
 		}
 
-		return dto.UserInfoResponce{}, fmt.Errorf("pool.QueryRow: %w", err)
+		return dto.UserInfoEntity{}, fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
 	return userInfo, nil

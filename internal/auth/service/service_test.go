@@ -7,8 +7,7 @@ import (
 	"testing"
 	"time"
 
-	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	mockAuthRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_auth_rep"
 	mockSender "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/mock_sender"
@@ -28,7 +27,7 @@ func TestRegister(t *testing.T) {
 		checker           func(string, string) error
 		generator         func() (string, error)
 		mockBehavior      func(m *mockAuthRep.AuthRepository)
-		expectedUser      dto.UserInfoResponse
+		expectedUser      dto.UserInfo
 		expectedSessionID string
 	}{
 		{
@@ -41,10 +40,10 @@ func TestRegister(t *testing.T) {
 			checker:     spyChecker,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(nil)
+				m.On("AddUser", ctx, mock.AnythingOfType("dto.UserInitialize")).Return(nil)
+				m.On("AddSession", ctx, mock.AnythingOfType("dto.SessionEntity")).Return(nil)
 			},
-			expectedUser: dto.UserInfoResponse{
+			expectedUser: dto.UserInfo{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
@@ -65,10 +64,10 @@ func TestRegister(t *testing.T) {
 
 			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			user, sessionID, err := serviceRegistration.Register(ctx, handlerDto.RegistraionInfoRequest{
-				Name:     test.displayName,
-				Password: test.password,
-				Email:    test.email,
+			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
+				DisplayName: test.displayName,
+				Password:    test.password,
+				Email:       test.email,
 			})
 
 			assert.NoError(t, err, "expected no error")
@@ -102,7 +101,7 @@ func TestRegisterError(t *testing.T) {
 			generator:   spyGenerator,
 			checker:     spyChecker,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("AddUser", context.Background(), mock.AnythingOfType("models.User")).Return(common.ErrorExistingUser)
+				m.On("AddUser", context.Background(), mock.AnythingOfType("dto.UserInitialize")).Return(common.ErrorExistingUser)
 			},
 			expectedError: fmt.Errorf("rep.AddUser: %w", common.ErrorExistingUser),
 		},
@@ -127,8 +126,8 @@ func TestRegisterError(t *testing.T) {
 			checker:     spyChecker,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("AddUser", ctx, mock.AnythingOfType("models.User")).Return(nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(common.ErrorDetectingSessionCollision)
+				m.On("AddUser", ctx, mock.AnythingOfType("dto.UserInitialize")).Return(nil)
+				m.On("AddSession", ctx, mock.AnythingOfType("dto.SessionEntity")).Return(common.ErrorDetectingSessionCollision)
 			},
 			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingSessionCollision),
 		},
@@ -145,10 +144,10 @@ func TestRegisterError(t *testing.T) {
 			ctx := context.Background()
 			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			_, _, err := serviceRegistration.Register(ctx, handlerDto.RegistraionInfoRequest{
-				Name:     test.displayName,
-				Password: test.password,
-				Email:    test.email,
+			_, _, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
+				DisplayName: test.displayName,
+				Password:    test.password,
+				Email:       test.email,
 			})
 
 			assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
@@ -167,7 +166,7 @@ func TestLogin(t *testing.T) {
 		generator         func() (string, error)
 		mockBehavior      func(m *mockAuthRep.AuthRepository)
 		expectedSessionID string
-		expectedUser      dto.UserInfoResponse
+		expectedUser      dto.UserInfo
 	}{
 		{
 			id:        common.FixedUserUuiD,
@@ -180,7 +179,7 @@ func TestLogin(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 
-				userFromDB := models.User{
+				userFromDB := repositoryDto.UserEntity{
 					Link:         common.FixedUserUuiD,
 					DisplayName:  "Artem",
 					Email:        "bobr@mail.ru",
@@ -188,9 +187,9 @@ func TestLogin(t *testing.T) {
 				}
 
 				m.On("GetUser", ctx, "bobr@mail.ru").Return(userFromDB, nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(nil)
+				m.On("AddSession", ctx, mock.AnythingOfType("dto.SessionEntity")).Return(nil)
 			},
-			expectedUser: dto.UserInfoResponse{
+			expectedUser: dto.UserInfo{
 				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "bobr@mail.ru",
@@ -211,7 +210,7 @@ func TestLogin(t *testing.T) {
 
 			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			user, sessionID, err := serviceLogin.LogIn(ctx, handlerDto.LoginInfoRequest{
+			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
 				Password: test.password,
 			})
@@ -244,7 +243,7 @@ func TestLoginError(t *testing.T) {
 			hasher:    spyHasher,
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetUser", context.Background(), "bobr@mail.ru").Return(models.User{}, common.ErrorNonexistentUser)
+				m.On("GetUser", context.Background(), "bobr@mail.ru").Return(repositoryDto.UserEntity{}, common.ErrorNonexistentUser)
 			},
 			expectedError: fmt.Errorf("rep.GetUser: %w", common.ErrorNonexistentUser),
 		},
@@ -257,7 +256,7 @@ func TestLoginError(t *testing.T) {
 			hasher:    spyHasher,
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetUser", context.Background(), "test@mail.ru").Return(models.User{
+				m.On("GetUser", context.Background(), "test@mail.ru").Return(repositoryDto.UserEntity{
 					PasswordHash: "1234",
 				}, nil)
 			},
@@ -273,12 +272,12 @@ func TestLoginError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				userFromDB := models.User{
+				userFromDB := repositoryDto.UserEntity{
 					Link:         uuid.New(),
 					PasswordHash: "12345",
 				}
 				m.On("GetUser", ctx, "test@mail.ru").Return(userFromDB, nil)
-				m.On("AddSession", ctx, mock.AnythingOfType("dto.Session")).Return(common.ErrorDetectingSessionCollision)
+				m.On("AddSession", ctx, mock.AnythingOfType("dto.SessionEntity")).Return(common.ErrorDetectingSessionCollision)
 			},
 			expectedError: fmt.Errorf("rep.AddSession: %w", common.ErrorDetectingSessionCollision),
 		},
@@ -295,7 +294,7 @@ func TestLoginError(t *testing.T) {
 
 			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
 
-			_, _, err := serviceLogin.LogIn(ctx, handlerDto.LoginInfoRequest{
+			_, _, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
 				Password: test.password,
 			})
@@ -321,7 +320,7 @@ func TestCreateSessionForUser(t *testing.T) {
 			generatorID: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				expectedSession := dto.Session{
+				expectedSession := repositoryDto.SessionEntity{
 					SessionID: "sessionCLAC",
 					UserLink:  userUUID,
 					LifeTime:  SessionLifetime,
@@ -380,7 +379,7 @@ func TestCreateSessionForUserError(t *testing.T) {
 			},
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				expectedSession := dto.Session{
+				expectedSession := repositoryDto.SessionEntity{
 					SessionID: "sessionCLAC",
 					UserLink:  userUUID,
 					LifeTime:  SessionLifetime,
@@ -582,7 +581,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 func TestGetUserByEmail(t *testing.T) {
 	expectedEmail := "test@example.com"
-	expectedUser := models.User{
+	expectedUser := repositoryDto.UserEntity{
 		Link:  uuid.New(),
 		Email: expectedEmail,
 	}
@@ -594,15 +593,18 @@ func TestGetUserByEmail(t *testing.T) {
 		checker      func(string, string) error
 		generator    func() (string, error)
 		mockBehavior func(m *mockAuthRep.AuthRepository)
-		expectedUser models.User
+		expectedUser dto.UserInfo
 	}{
 		{
-			nameTest:     "Success get user by email",
-			email:        expectedEmail,
-			checker:      spyChecker,
-			hasher:       spyHasher,
-			generator:    spyGenerator,
-			expectedUser: expectedUser,
+			nameTest:  "Success get user by email",
+			email:     expectedEmail,
+			checker:   spyChecker,
+			hasher:    spyHasher,
+			generator: spyGenerator,
+			expectedUser: dto.UserInfo{
+				Link:  expectedUser.Link,
+				Email: expectedUser.Email,
+			},
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				m.On("GetUser", ctx, expectedEmail).Return(expectedUser, nil)
@@ -649,7 +651,7 @@ func TestGetUserByEmailError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUser", ctx, expectedEmail).Return(models.User{}, mockErr)
+				m.On("GetUser", ctx, expectedEmail).Return(repositoryDto.UserEntity{}, mockErr)
 			},
 			expectedError: fmt.Errorf("rep.GetUser: %w", mockErr),
 		},
@@ -669,7 +671,7 @@ func TestGetUserByEmailError(t *testing.T) {
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.Error(t, err, "expected error")
 			assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
-			assert.Equal(t, models.User{}, user, "expected empty user struct")
+			assert.Equal(t, dto.UserInfo{}, user, "expected empty user struct")
 		})
 	}
 }
@@ -690,8 +692,8 @@ func TestSendRecoveryCode(t *testing.T) {
 			email:     targetEmail,
 			generator: func() (string, error) { return "123456", nil },
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetUser", mock.Anything, targetEmail).Return(models.User{Link: common.FixedUserUuiD}, nil)
-				m.On("AddResetToken", mock.Anything, mock.AnythingOfType("dto.ResetToken")).Return(nil)
+				m.On("GetUserLink", mock.Anything, targetEmail).Return(common.FixedUserUuiD, nil)
+				m.On("AddResetToken", mock.Anything, mock.AnythingOfType("dto.ResetTokenEntity")).Return(nil)
 			},
 			senderMock: func(m *mockSender.SenderLetters) {
 				m.On("SendLetter", targetEmail, "Code to create a new password", mock.AnythingOfType("string")).Return(nil)
@@ -703,7 +705,7 @@ func TestSendRecoveryCode(t *testing.T) {
 			email:     "testing@mail.ru",
 			generator: func() (string, error) { return "123456", nil },
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
-				m.On("GetUser", mock.Anything, "testing@mail.ru").Return(models.User{}, common.ErrorNonexistentUser)
+				m.On("GetUserLink", mock.Anything, "testing@mail.ru").Return(uuid.Nil, common.ErrorNonexistentUser)
 			},
 			senderMock:    func(m *mockSender.SenderLetters) {},
 			expectedError: fmt.Errorf("rep.GetUser: %w", common.ErrorNonexistentUser),

@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -26,12 +25,12 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, requestUser dto.RegistraionInfoRequest) (serviceDto.UserInfoResponse, string, error)
-	LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (serviceDto.UserInfoResponse, string, error)
+	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
+	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
 	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
-	GetUserByEmail(ctx context.Context, email string) (models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (serviceDto.UserInfo, error)
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
@@ -110,7 +109,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.LogIn(r.Context(), dto.LoginInfoRequest{
+	serviceUser, sessionID, err := a.Srv.LogIn(r.Context(), serviceDto.LogInUser{
 		Email:    request.Email,
 		Password: request.Password,
 	})
@@ -125,12 +124,19 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	handlerUser := dto.UserInfoResponse{
+		Link:        serviceUser.Link,
+		DisplayName: serviceUser.DisplayName,
+		Email:       serviceUser.Email,
+		Avatar:      serviceUser.Avatar,
+	}
+
 	http.SetCookie(w, api.NewCookie(
 		service.SessiondIdKey,
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
 
-	api.HandleError(api.RespondOk(w, user))
+	api.HandleError(api.RespondOk(w, handlerUser))
 }
 
 // RegisterUser godoc
@@ -159,10 +165,10 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.Register(r.Context(), dto.RegistraionInfoRequest{
-		Name:     request.DisplayName,
-		Email:    request.Email,
-		Password: request.Password,
+	serviceUser, sessionID, err := a.Srv.Register(r.Context(), serviceDto.RegistrationUser{
+		DisplayName: request.DisplayName,
+		Email:       request.Email,
+		Password:    request.Password,
 	})
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
@@ -170,12 +176,19 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	handlerUser := dto.UserInfoResponse{
+		Link:        serviceUser.Link,
+		DisplayName: serviceUser.DisplayName,
+		Email:       serviceUser.Email,
+		Avatar:      serviceUser.Avatar,
+	}
+
 	http.SetCookie(w, api.NewCookie(
 		service.SessiondIdKey,
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
 
-	api.HandleError(api.RespondCreated(w, user))
+	api.HandleError(api.RespondCreated(w, handlerUser))
 }
 
 // LogOutUser godoc
@@ -388,10 +401,10 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 				password := base64.URLEncoding.EncodeToString(b)
 
-				_, _, err := a.Srv.Register(r.Context(), dto.RegistraionInfoRequest{
-					Name:     userData.FirstName,
-					Password: password,
-					Email:    userEmail,
+				_, _, err := a.Srv.Register(r.Context(), serviceDto.RegistrationUser{
+					DisplayName: userData.FirstName,
+					Password:    password,
+					Email:       userEmail,
 				})
 
 				if err != nil {

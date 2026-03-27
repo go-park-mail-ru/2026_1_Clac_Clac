@@ -57,13 +57,24 @@ func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger
 	return nil, ErrorConnectPosgress
 }
 
-func RunMigrations(dsn string, logger *zerolog.Logger) error {
+func RunMigrations(dsn string, logger *zerolog.Logger) (err error) {
 	m, err := migrate.New(migrationsPath, dsn)
 	if err != nil {
 		return fmt.Errorf("cannot create migrate for database: %w", err)
 	}
 
-	defer m.Close()
+	defer func() {
+		errSource, errDB := m.Close()
+		if errSource != nil {
+			errSource = fmt.Errorf("cannot close migrations source: %w", errSource)
+			err = errors.Join(err, errSource)
+		}
+
+		if errDB != nil {
+			errDb := fmt.Errorf("cannot close migrations db: %w", errDB)
+			err = errors.Join(err, errDb)
+		}
+	}()
 
 	err = m.Up()
 	if err != nil {

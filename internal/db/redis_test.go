@@ -27,7 +27,7 @@ func TestNewPoolRedisError(t *testing.T) {
 				Addr:        "localhost:9999",
 				DialTimeout: 100 * time.Millisecond,
 			},
-			expectedError: ErrorConnectRadis,
+			expectedError: ErrorConnectRedis,
 		},
 	}
 
@@ -35,6 +35,11 @@ func TestNewPoolRedisError(t *testing.T) {
 		t.Run(test.nameTest, func(t *testing.T) {
 			client, err := NewPoolRedis(test.options, &config.RedisConnection{PingSleepTime: pingSleepTime, MaxRetries: maxRetries},
 				&logger)
+
+			defer func() {
+				errClose := client.Close()
+				assert.NoError(t, errClose, "not wait error")
+			}()
 
 			assert.Nil(t, client, "client should be nil on error")
 			assert.ErrorIs(t, err, test.expectedError)

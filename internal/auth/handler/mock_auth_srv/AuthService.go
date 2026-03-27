@@ -5,13 +5,9 @@ package mockAuthSrv
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 
 	mock "github.com/stretchr/testify/mock"
-
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
-
-	servicedto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 
 	uuid "github.com/google/uuid"
 )
@@ -68,22 +64,22 @@ func (_m *AuthService) CreateSessionForUser(ctx context.Context, link uuid.UUID)
 }
 
 // GetUserByEmail provides a mock function with given fields: ctx, email
-func (_m *AuthService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
+func (_m *AuthService) GetUserByEmail(ctx context.Context, email string) (dto.UserInfo, error) {
 	ret := _m.Called(ctx, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserByEmail")
 	}
 
-	var r0 models.User
+	var r0 dto.UserInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (models.User, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) (dto.UserInfo, error)); ok {
 		return rf(ctx, email)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) models.User); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) dto.UserInfo); ok {
 		r0 = rf(ctx, email)
 	} else {
-		r0 = ret.Get(0).(models.User)
+		r0 = ret.Get(0).(dto.UserInfo)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -126,32 +122,32 @@ func (_m *AuthService) GetUserLink(ctx context.Context, sessionID string) (uuid.
 }
 
 // LogIn provides a mock function with given fields: ctx, requestUser
-func (_m *AuthService) LogIn(ctx context.Context, requestUser dto.LoginInfoRequest) (servicedto.UserInfoResponse, string, error) {
+func (_m *AuthService) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, string, error) {
 	ret := _m.Called(ctx, requestUser)
 
 	if len(ret) == 0 {
 		panic("no return value specified for LogIn")
 	}
 
-	var r0 servicedto.UserInfoResponse
+	var r0 dto.UserInfo
 	var r1 string
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.LoginInfoRequest) (servicedto.UserInfoResponse, string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.LogInUser) (dto.UserInfo, string, error)); ok {
 		return rf(ctx, requestUser)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.LoginInfoRequest) servicedto.UserInfoResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.LogInUser) dto.UserInfo); ok {
 		r0 = rf(ctx, requestUser)
 	} else {
-		r0 = ret.Get(0).(servicedto.UserInfoResponse)
+		r0 = ret.Get(0).(dto.UserInfo)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, dto.LoginInfoRequest) string); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, dto.LogInUser) string); ok {
 		r1 = rf(ctx, requestUser)
 	} else {
 		r1 = ret.Get(1).(string)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, dto.LoginInfoRequest) error); ok {
+	if rf, ok := ret.Get(2).(func(context.Context, dto.LogInUser) error); ok {
 		r2 = rf(ctx, requestUser)
 	} else {
 		r2 = ret.Error(2)
@@ -179,32 +175,32 @@ func (_m *AuthService) LogOut(ctx context.Context, sessionID string) error {
 }
 
 // Register provides a mock function with given fields: ctx, requestUser
-func (_m *AuthService) Register(ctx context.Context, requestUser dto.RegistraionInfoRequest) (servicedto.UserInfoResponse, string, error) {
+func (_m *AuthService) Register(ctx context.Context, requestUser dto.RegistrationUser) (dto.UserInfo, string, error) {
 	ret := _m.Called(ctx, requestUser)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Register")
 	}
 
-	var r0 servicedto.UserInfoResponse
+	var r0 dto.UserInfo
 	var r1 string
 	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistraionInfoRequest) (servicedto.UserInfoResponse, string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) (dto.UserInfo, string, error)); ok {
 		return rf(ctx, requestUser)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistraionInfoRequest) servicedto.UserInfoResponse); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) dto.UserInfo); ok {
 		r0 = rf(ctx, requestUser)
 	} else {
-		r0 = ret.Get(0).(servicedto.UserInfoResponse)
+		r0 = ret.Get(0).(dto.UserInfo)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, dto.RegistraionInfoRequest) string); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, dto.RegistrationUser) string); ok {
 		r1 = rf(ctx, requestUser)
 	} else {
 		r1 = ret.Get(1).(string)
 	}
 
-	if rf, ok := ret.Get(2).(func(context.Context, dto.RegistraionInfoRequest) error); ok {
+	if rf, ok := ret.Get(2).(func(context.Context, dto.RegistrationUser) error); ok {
 		r2 = rf(ctx, requestUser)
 	} else {
 		r2 = ret.Error(2)

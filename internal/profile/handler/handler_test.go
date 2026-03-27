@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/dto"
 	mockProfileSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
@@ -47,10 +48,18 @@ func newErrorResponse(code int, message string) api.ErrorResponse {
 
 func TestGetUserProfile(t *testing.T) {
 	targetUserID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	expectedUser := serviceDto.UserInfoResponce{
+	expectedUser := serviceDto.UserInfo{
 		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
+		Avatar:      "",
+	}
+
+	expectedHandlerResponse := dto.UserInfoResponse{
+		Link:        targetUserID,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+		Avatar:      "",
 	}
 
 	tests := []GetProfileTestCase{
@@ -61,7 +70,7 @@ func TestGetUserProfile(t *testing.T) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(expectedUser, nil)
 			},
 			ExpectedStatusCode: http.StatusOK,
-			ExpectedResponse:   newOkResponse(api.StatusOK, expectedUser),
+			ExpectedResponse:   newOkResponse(api.StatusOK, expectedHandlerResponse),
 		},
 		{
 			Name:               "Error user not authorized",
@@ -82,7 +91,7 @@ func TestGetUserProfile(t *testing.T) {
 			CtxValue: targetUserID,
 			MockBehavior: func(m *mockProfileSrv.ProfileService) {
 				m.On("GetProfileUser", mock.Anything, targetUserID).Return(
-					serviceDto.UserInfoResponce{},
+					serviceDto.UserInfo{},
 					errors.New("database connection lost"),
 				)
 			},

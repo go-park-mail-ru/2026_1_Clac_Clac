@@ -6,9 +6,8 @@ import (
 	"testing"
 	"time"
 
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	mockRedisEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/mock_redis_engine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -26,23 +25,27 @@ func TestAddUser(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		user          models.User
-		mockSetup     func(mock pgxmock.PgxPoolIface, user models.User)
-		expectedError bool
+		user          dto.UserInitialize
+		mockSetup     func(mock pgxmock.PgxPoolIface, user dto.UserInitialize)
+		expectedError error
 	}{
 		{
 			nameTest: "Success registration",
-			user: models.User{
-				Link: fixedUUID,
+			user: dto.UserInitialize{
+				Link:         fixedUUID,
+				DisplayName:  "Bobr",
+				PasswordHash: "hash123",
+				Email:        "bobr@mail.ru",
 			},
-			mockSetup: func(mock pgxmock.PgxPoolIface, user models.User) {
-				query := `INSERT INTO "user" \(link, display_name, password_hash, email, avatar\)`
+			mockSetup: func(mock pgxmock.PgxPoolIface, user dto.UserInitialize) {
+				// Убрал avatar, так как в репозитории его нет в INSERT
+				query := `INSERT INTO "user"\s+\(link, display_name, password_hash, email\)\s+VALUES\s+\(\$1, \$2, \$3, \$4\)`
 
 				mock.ExpectExec(query).
-					WithArgs(user.Link, user.DisplayName, user.PasswordHash, user.Email, user.Avatar).
+					WithArgs(user.Link, user.DisplayName, user.PasswordHash, user.Email).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 	}
 
@@ -52,21 +55,23 @@ func TestAddUser(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			test.mockSetup(mockPool, test.user)
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool, test.user)
+			}
 
 			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoUsers.AddUser(ctx, test.user)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }
@@ -74,12 +79,22 @@ func TestAddUser(t *testing.T) {
 func TestAddUserError(t *testing.T) {
 	tests := []struct {
 		nameTest      string
-		emails        []string
+		user          dto.UserInitialize
+		mockSetup     func(mock pgxmock.PgxPoolIface, user dto.UserInitialize)
 		expectedError error
 	}{
 		{
-			nameTest:      "Email is already existing",
-			emails:        []string{"bobr@mail.ru", "bobr@mail.ru"},
+			nameTest: "Email is already existing",
+			user: dto.UserInitialize{
+				Email: "bobr@mail.ru",
+			},
+			mockSetup: func(mock pgxmock.PgxPoolIface, user dto.UserInitialize) {
+				query := `INSERT INTO "user"\s+\(link, display_name, password_hash, email\)\s+VALUES\s+\(\$1, \$2, \$3, \$4\)`
+
+				mock.ExpectExec(query).
+					WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), user.Email).
+					WillReturnError(&pgconn.PgError{Code: common.CodeUniqError})
+			},
 			expectedError: common.ErrorExistingUser,
 		},
 	}
@@ -90,28 +105,19 @@ func TestAddUserError(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			repoUsers := NewRepository(mockPool, nil)
-			var errResult error
-			ctx := context.Background()
-
-			query := `INSERT INTO "user" \(link, display_name, password_hash, email, avatar\)`
-
-			mockPool.ExpectExec(query).
-				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), test.emails[0], pgxmock.AnyArg()).
-				WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
-			mockPool.ExpectExec(query).
-				WithArgs(pgxmock.AnyArg(), pgxmock.AnyArg(), pgxmock.AnyArg(), test.emails[1], pgxmock.AnyArg()).
-				WillReturnError(&pgconn.PgError{Code: common.CodeUniqError})
-
-			for _, email := range test.emails {
-				errResult = repoUsers.AddUser(ctx, models.User{Email: email})
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool, test.user)
 			}
 
-			assert.Equal(t, test.expectedError, errResult)
+			repoUsers := NewRepository(mockPool, nil)
+			ctx := context.Background()
+
+			err = repoUsers.AddUser(ctx, test.user)
+
+			assert.ErrorIs(t, err, test.expectedError)
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }
@@ -119,17 +125,17 @@ func TestAddUserError(t *testing.T) {
 func TestAddSession(t *testing.T) {
 	tests := []struct {
 		nameTest     string
-		session      dto.Session
-		mockBehavior func(m *mockRedisEngine.RedisEngine, session dto.Session)
+		session      dto.SessionEntity
+		mockBehavior func(m *mockRedisEngine.RedisEngine, session dto.SessionEntity)
 	}{
 		{
 			nameTest: "Success add session",
-			session: dto.Session{
+			session: dto.SessionEntity{
 				SessionID: common.FixedSessionID,
 				UserLink:  common.FixedUserUuiD,
 				LifeTime:  24 * time.Hour,
 			},
-			mockBehavior: func(m *mockRedisEngine.RedisEngine, session dto.Session) {
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, session dto.SessionEntity) {
 				key := fmt.Sprintf("session:%s", session.SessionID)
 				m.On("Set", mock.Anything, key, session.UserLink.String(), session.LifeTime).Return(redis.NewStatusResult("OK", nil))
 			},
@@ -209,7 +215,9 @@ func TestGetUserIDBySession(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			redisMock := mockRedisEngine.NewRedisEngine(t)
-			test.mockBehavior(redisMock, test.sessionID, test.expectedUserID)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.sessionID, test.expectedUserID)
+			}
 
 			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
@@ -252,7 +260,7 @@ func TestGetUserIDBySessionError(t *testing.T) {
 			ctx := context.Background()
 
 			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
-			assert.Equal(t, test.expectedError, err)
+			assert.ErrorIs(t, err, test.expectedError) // Единый стиль ErrorIs
 
 			redisMock.AssertExpectations(t)
 		})
@@ -262,17 +270,17 @@ func TestGetUserIDBySessionError(t *testing.T) {
 func TestAddResetToken(t *testing.T) {
 	tests := []struct {
 		nameTest     string
-		token        dto.ResetToken
-		mockBehavior func(m *mockRedisEngine.RedisEngine, token dto.ResetToken)
+		token        dto.ResetTokenEntity
+		mockBehavior func(m *mockRedisEngine.RedisEngine, token dto.ResetTokenEntity)
 	}{
 		{
 			nameTest: "Success add reset token",
-			token: dto.ResetToken{
+			token: dto.ResetTokenEntity{
 				ResetTokenID: "token-123",
 				UserLink:     uuid.New(),
 				LifeTime:     15 * time.Minute,
 			},
-			mockBehavior: func(m *mockRedisEngine.RedisEngine, token dto.ResetToken) {
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, token dto.ResetTokenEntity) {
 				key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
 				m.On("Set", mock.Anything, key, token.UserLink.String(), token.LifeTime).Return(redis.NewStatusResult("OK", nil))
 			},
@@ -342,13 +350,13 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 		nameTest      string
 		tokenID       string
 		expectedError error
-		mockBehaviar  func(m *mockRedisEngine.RedisEngine, tokenID string)
+		mockBehavior  func(m *mockRedisEngine.RedisEngine, tokenID string)
 	}{
 		{
 			nameTest:      "Not existing token",
 			tokenID:       "unknown-token",
 			expectedError: common.ErrorNotExistingResetToken,
-			mockBehaviar: func(m *mockRedisEngine.RedisEngine, tokenID string) {
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string) {
 				key := fmt.Sprintf("reset_token:%s", tokenID)
 				m.On("Get", mock.Anything, key).Return(redis.NewStringResult("", redis.Nil))
 			},
@@ -358,8 +366,8 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			redisMock := mockRedisEngine.NewRedisEngine(t)
-			if test.mockBehaviar != nil {
-				test.mockBehaviar(redisMock, test.tokenID)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.tokenID)
 			}
 
 			repoAuth := NewRepository(nil, redisMock)
@@ -367,7 +375,7 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 
 			_, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
 
-			assert.Equal(t, test.expectedError, err)
+			assert.ErrorIs(t, err, test.expectedError)
 
 			redisMock.AssertExpectations(t)
 		})
@@ -414,13 +422,13 @@ func TestGetUser(t *testing.T) {
 		nameTest     string
 		email        string
 		mockSetup    func(mock pgxmock.PgxPoolIface)
-		expectedUser models.User
+		expectedUser dto.UserEntity
 	}{
 		{
 			nameTest: "Success get user",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar FROM "user" WHERE email = \$1`
+				query := `SELECT link, display_name, password_hash, email, avatar\s+FROM "user"\s+WHERE email = \$1`
 				rows := pgxmock.NewRows([]string{"link", "display_name", "password_hash", "email", "avatar"}).
 					AddRow(common.FixedUserUuiD, "Bobr", "hash", "bobr@mail.ru", "avatar.jpg")
 
@@ -428,7 +436,7 @@ func TestGetUser(t *testing.T) {
 					WithArgs("bobr@mail.ru").
 					WillReturnRows(rows)
 			},
-			expectedUser: models.User{
+			expectedUser: dto.UserEntity{
 				Link:         common.FixedUserUuiD,
 				DisplayName:  "Bobr",
 				PasswordHash: "hash",
@@ -444,7 +452,9 @@ func TestGetUser(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			test.mockSetup(mockPool)
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool)
+			}
 
 			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
@@ -455,7 +465,7 @@ func TestGetUser(t *testing.T) {
 			assert.Equal(t, test.expectedUser, user)
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }
@@ -471,7 +481,7 @@ func TestGetUserError(t *testing.T) {
 			nameTest: "Not existing user",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar FROM "user" WHERE email = \$1`
+				query := `SELECT link, display_name, password_hash, email, avatar\s+FROM "user"\s+WHERE email = \$1`
 
 				mock.ExpectQuery(query).
 					WithArgs("bobr@mail.ru").
@@ -487,17 +497,105 @@ func TestGetUserError(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			test.mockSetup(mockPool)
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool)
+			}
 
 			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			_, err = repoUsers.GetUser(ctx, test.email)
 
-			assert.Equal(t, test.expectedError, err)
+			assert.ErrorIs(t, err, test.expectedError)
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
+		})
+	}
+}
+
+func TestGetUserLink(t *testing.T) {
+	tests := []struct {
+		nameTest         string
+		email            string
+		mockSetUp        func(mock pgxmock.PgxPoolIface)
+		expectedUserLink uuid.UUID
+	}{
+		{
+			nameTest: "Success get user link",
+			email:    "bobr@mail.ru",
+			mockSetUp: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link\s+FROM "user"\s+WHERE email = \$1`
+				row := pgxmock.NewRows([]string{"link"}).AddRow(common.FixedUserUuiD)
+
+				mock.ExpectQuery(query).WithArgs("bobr@mail.ru").WillReturnRows(row)
+			},
+			expectedUserLink: common.FixedUserUuiD,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
+
+			if test.mockSetUp != nil {
+				test.mockSetUp(mockPool)
+			}
+
+			rep := NewRepository(mockPool, nil)
+
+			ctx := context.Background()
+			userLink, err := rep.GetUserLink(ctx, test.email)
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.expectedUserLink, userLink)
+
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "unfulfilled expectations")
+		})
+	}
+}
+
+func TestGetUserLinkError(t *testing.T) {
+	tests := []struct {
+		nameTest      string
+		email         string
+		mockSetUp     func(mock pgxmock.PgxPoolIface)
+		expectedError error
+	}{
+		{
+			nameTest: "Error user not found",
+			email:    "bobr@mail.ru",
+			mockSetUp: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link\s+FROM "user"\s+WHERE email = \$1`
+
+				mock.ExpectQuery(query).WithArgs("bobr@mail.ru").WillReturnError(pgx.ErrNoRows)
+			},
+			expectedError: common.ErrorNonexistentEmail,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
+
+			if test.mockSetUp != nil {
+				test.mockSetUp(mockPool)
+			}
+
+			rep := NewRepository(mockPool, nil)
+
+			ctx := context.Background()
+			_, err = rep.GetUserLink(ctx, test.email)
+
+			assert.ErrorIs(t, err, test.expectedError)
+
+			err = mockPool.ExpectationsWereMet()
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }
@@ -517,7 +615,7 @@ func TestUpdatePassword(t *testing.T) {
 			userID:          targetUserID,
 			newPasswordHash: newHash,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users" SET password_hash = \$1, updated_at = NOW\(\) WHERE link = \$2`
+				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).
@@ -532,7 +630,9 @@ func TestUpdatePassword(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			test.mockSetup(mockPool, test.userID, test.newPasswordHash)
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
+			}
 
 			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
@@ -542,7 +642,7 @@ func TestUpdatePassword(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }
@@ -561,7 +661,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users" SET password_hash = \$1, updated_at = NOW\(\) WHERE link = \$2`
+				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).
@@ -576,17 +676,19 @@ func TestUpdatePasswordError(t *testing.T) {
 			require.NoError(t, err)
 			defer mockPool.Close()
 
-			test.mockSetup(mockPool, test.userID, test.newPasswordHash)
+			if test.mockSetup != nil {
+				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
+			}
 
 			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
 
-			assert.Equal(t, test.expectedError, err)
+			assert.ErrorIs(t, err, test.expectedError)
 
 			err = mockPool.ExpectationsWereMet()
-			assert.NoError(t, err, "wait error")
+			assert.NoError(t, err, "unfulfilled expectations")
 		})
 	}
 }

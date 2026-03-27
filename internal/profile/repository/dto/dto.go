@@ -2,7 +2,7 @@ package dto
 
 import "github.com/google/uuid"
 
-type UserInfo struct {
+type UserInfoEntity struct {
 	Link        uuid.UUID
 	DisplayName string
 	Email       string

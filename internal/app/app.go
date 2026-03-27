@@ -9,7 +9,7 @@ import (
 	"time"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -61,6 +61,11 @@ func NewApp(conf *config.Config) *App {
 
 // Запуск приложения
 func (a *App) Run() {
+	defer func() {
+		errClose := a.Store.Close()
+		a.Logger.Err(errClose).Msg("close strore error")
+	}()
+
 	if err := a.Engine.Start(context.Background()); err != nil {
 		a.Logger.Err(err).Msg("engine error")
 	}
@@ -197,10 +202,10 @@ func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 }
 
 func createDemoUser(m *Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), dto.RegistraionInfoRequest{
-		Name:     "Demo",
-		Password: "12345678",
-		Email:    "demo@demo.ru",
+	user, _, err := m.Auth.Register(context.Background(), serviceDto.RegistrationUser{
+		DisplayName: "Demo",
+		Password:    "12345678",
+		Email:       "demo@demo.ru",
 	})
 	if err != nil {
 		logger.Err(err).Msg("cannot create demo user")

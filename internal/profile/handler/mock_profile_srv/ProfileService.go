@@ -18,22 +18,22 @@ type ProfileService struct {
 }
 
 // GetProfileUser provides a mock function with given fields: ctx, userID
-func (_m *ProfileService) GetProfileUser(ctx context.Context, userID uuid.UUID) (dto.UserInfoResponce, error) {
+func (_m *ProfileService) GetProfileUser(ctx context.Context, userID uuid.UUID) (dto.UserInfo, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProfileUser")
 	}
 
-	var r0 dto.UserInfoResponce
+	var r0 dto.UserInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.UserInfoResponce, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.UserInfo, error)); ok {
 		return rf(ctx, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.UserInfoResponce); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.UserInfo); ok {
 		r0 = rf(ctx, userID)
 	} else {
-		r0 = ret.Get(0).(dto.UserInfoResponce)
+		r0 = ret.Get(0).(dto.UserInfo)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {

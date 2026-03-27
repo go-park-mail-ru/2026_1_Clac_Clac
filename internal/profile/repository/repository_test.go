@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
@@ -17,7 +17,7 @@ import (
 func TestGetProfile(t *testing.T) {
 	targetID := common.FixedUserUuiD
 
-	expectedDTO := dto.UserInfoResponce{
+	expectedDTO := dto.UserInfoEntity{
 		Link:        targetID,
 		DisplayName: "Bobr",
 		Email:       "bobr@mail.ru",
@@ -28,7 +28,7 @@ func TestGetProfile(t *testing.T) {
 		nameTest     string
 		targetID     uuid.UUID
 		mockSetup    func(mock pgxmock.PgxPoolIface, targetID uuid.UUID)
-		expectedUser dto.UserInfoResponce
+		expectedUser dto.UserInfoEntity
 	}{
 		{
 			nameTest: "Success get user profile",
@@ -79,7 +79,7 @@ func TestGetProfileError(t *testing.T) {
 		nameTest      string
 		targetID      uuid.UUID
 		mockSetup     func(mock pgxmock.PgxPoolIface, targetID uuid.UUID)
-		expectedUser  dto.UserInfoResponce
+		expectedUser  dto.UserInfoEntity
 		expectedError error
 	}{
 		{
@@ -94,7 +94,7 @@ func TestGetProfileError(t *testing.T) {
 					WithArgs(targetID).
 					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedUser:  dto.UserInfoResponce{},
+			expectedUser:  dto.UserInfoEntity{},
 			expectedError: common.ErrorNonexistentUser,
 		},
 	}
