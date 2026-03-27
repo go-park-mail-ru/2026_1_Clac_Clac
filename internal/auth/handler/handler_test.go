@@ -65,7 +65,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success login",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "test@mail.ru",
 				Password: "123456789",
 			},
@@ -93,7 +93,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Wrong password or email",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "wrong_password",
 			},
@@ -109,7 +109,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Size password smaller than 8",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "123",
 			},
@@ -119,7 +119,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Size password biger than 128",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "12311111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
@@ -129,7 +129,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email hasn't @",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "testmail.ru",
 				Password: "1234567",
 			},
@@ -210,7 +210,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success registration",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "12345678",
 				RepeatedPassword: "12345678",
@@ -241,7 +241,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Passwords do not match",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "12345678",
 				RepeatedPassword: "65432178",
@@ -253,7 +253,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email is already existing",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -276,7 +276,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Incorrect symbol in password",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "бобёр123",
 				RepeatedPassword: "бобёр123",
@@ -288,7 +288,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Incorrect symbol in email",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234552323",
 				RepeatedPassword: "1234552323",
@@ -300,7 +300,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Size password smaller than 6",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123",
 				RepeatedPassword: "123",
@@ -312,7 +312,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email has 2 @",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -324,7 +324,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email hasn't @",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234567",
 				RepeatedPassword: "1234567",
@@ -336,7 +336,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email has @.",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234567",
 				RepeatedPassword: "1234567",
@@ -348,7 +348,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Error during hash password",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -569,7 +569,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success send email",
-			Request: api.PasswordRecoveryRequest{
+			Request: dto.PasswordRecoveryRequest{
 				Email: "test@mail.ru",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
@@ -581,7 +581,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 		},
 		{
 			Name: "Service error",
-			Request: api.PasswordRecoveryRequest{
+			Request: dto.PasswordRecoveryRequest{
 				Email: "notfound@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, cannotSendEmail),
@@ -646,7 +646,7 @@ func TestResetUserPassword(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success reset password",
-			Request: api.NewPasswordRequest{
+			Request: dto.NewPasswordRequest{
 				TokenID:          "valid-token-123",
 				Password:         "new_password",
 				RepeatedPassword: "new_password",
@@ -660,7 +660,7 @@ func TestResetUserPassword(t *testing.T) {
 		},
 		{
 			Name: "Validation failed",
-			Request: api.NewPasswordRequest{
+			Request: dto.NewPasswordRequest{
 				TokenID:          "valid-token-123",
 				Password:         "new_secure_password",
 				RepeatedPassword: "different_password",
@@ -671,7 +671,7 @@ func TestResetUserPassword(t *testing.T) {
 		},
 		{
 			Name: "Service error",
-			Request: api.NewPasswordRequest{
+			Request: dto.NewPasswordRequest{
 				TokenID:          "expired-token",
 				Password:         "new_secure_password",
 				RepeatedPassword: "new_secure_password",
@@ -738,7 +738,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success check code",
-			Request: api.RecoveryCodeRequest{
+			Request: dto.RecoveryCodeRequest{
 				Code: "123456",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
@@ -750,7 +750,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 		},
 		{
 			Name: "Wrong or expired code",
-			Request: api.RecoveryCodeRequest{
+			Request: dto.RecoveryCodeRequest{
 				Code: "000000",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),

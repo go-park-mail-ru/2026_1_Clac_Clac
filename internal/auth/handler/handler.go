@@ -97,7 +97,7 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.LogInRequest
+	var request dto.LogInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
@@ -153,7 +153,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.RegisterRequest
+	var request dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
 		return
@@ -227,7 +227,7 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.PasswordRecoveryRequest
+	var request dto.PasswordRecoveryRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
@@ -263,7 +263,7 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.RecoveryCodeRequest
+	var request dto.RecoveryCodeRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
@@ -294,7 +294,7 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.NewPasswordRequest
+	var request dto.NewPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)

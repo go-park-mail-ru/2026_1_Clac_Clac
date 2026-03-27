@@ -63,7 +63,9 @@ func NewApp(conf *config.Config) *App {
 func (a *App) Run() {
 	defer func() {
 		errClose := a.Store.Close()
-		a.Logger.Err(errClose).Msg("close strore error")
+		if errClose != nil {
+			a.Logger.Err(errClose).Msg("close strore error")
+		}
 	}()
 
 	if err := a.Engine.Start(context.Background()); err != nil {
