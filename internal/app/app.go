@@ -7,6 +7,7 @@ import (
 	"os"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
+	authUsecase "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/usecase"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -67,7 +68,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 
-	router.HandleFunc("/csrf", auth.SetCSRFCookieHandler(auth.GenerateRandomCSRFToken, logger))
+	router.HandleFunc("/csrf", authUsecase.SetCSRFCookieHandler(authUsecase.GenerateRandomCSRFToken, logger))
 
 	csrfProtected := router.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware)
