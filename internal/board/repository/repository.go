@@ -35,17 +35,6 @@ func NewRepository(pool DBEngine) *Repository {
 }
 
 func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]models.Board, error) {
-	checkExistingQuery := `SELECT EXISTS(SELECT 1 FROM "user" WHERE link = $1)`
-	var userExist bool
-	err := r.pool.QueryRow(ctx, checkExistingQuery, userLink).Scan(&userExist)
-	if err != nil {
-		return []models.Board{}, fmt.Errorf("pool.QueryRow: %w", err)
-	}
-
-	if !userExist {
-		return []models.Board{}, common.ErrorNonexistentUser
-	}
-
 	getBoardQuery := `
 		SELECT b.link, b.created_at
 		FROM board b
@@ -54,6 +43,9 @@ func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]model
 	`
 
 	rows, err := r.pool.Query(ctx, getBoardQuery, userLink)
+	if err != nil {
+		return []models.Board{}, fmt.Errorf("pool.Query: %w", err)
+	}
 
 	boards := make([]models.Board, 0)
 	for rows.Next() {
