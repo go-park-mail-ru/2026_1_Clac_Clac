@@ -20,17 +20,6 @@ INSERT INTO board_version (board_id, board_name, description_board, url_path_bac
 (2, 'Маркетинг 2026', 'Продвижение и реклама', 'https://s3.nexus.com/bg/market.png', now(), NULL),
 (3, 'UI/UX Design', 'Кнопки, цвета, шрифты', '#ffcc00', now(), NULL);
 
-INSERT INTO member_board (board_id, user_id, is_like, is_archive, level_member) VALUES
-(1, 1, true, false, 'creater'),
-(1, 2, false, false, 'editor'),
-(1, 3, true, false, 'admin'),
-(1, 4, false, false, 'viewer'),
-(1, 6, false, false, 'editor'),
-(2, 3, true, false, 'creater'),
-(2, 5, false, false, 'editor'),
-(3, 5, true, false, 'creater'),
-(3, 1, false, false, 'viewer');
-
 INSERT INTO section (board_id) VALUES (1), (1), (1), (1);
 INSERT INTO section (board_id) VALUES (2), (2);
 INSERT INTO section (board_id) VALUES (3), (3);
@@ -55,7 +44,7 @@ INSERT INTO task_version (task_id, section_id, title, description, position, due
 (1, 4, 'Спроектировать БД', 'Сделать BCNF. Все отлично!', 1, now() + interval '1 day', now() - interval '1 day', NULL),
 (2, 2, 'Написать модели на Go', 'Структуры для работы с БД NeXus', 2, now() + interval '5 days', now(), NULL),
 (3, 1, 'Настроить Docker', 'Написать Dockerfile и docker-compose', 2, NULL, now(), NULL),
-(4, 1, 'Написать Unit-тесты', 'Покрытие 80%', 3, now() - interval '1 day', now(), NULL),
+(4, 1, 'Написать Unit-тесты', 'Покрытие 80%', 3, now() + interval '1 day', now(), NULL),
 (5, 5, 'Пост про запуск NeXus', 'Текст для Telegram', 1, now() + interval '3 days', now(), NULL),
 (6, 6, 'Анонс фичи', 'Уже выложили', 1, NULL, now(), NULL),
 (7, 7, 'Иконки для меню', 'Сделать SVG', 1, NULL, now(), NULL),

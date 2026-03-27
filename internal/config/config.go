@@ -9,18 +9,22 @@ import (
 )
 
 type Config struct {
-	App        Application `mapstructure:"app"`
-	Engine     Engine      `mapstructure:"engine"`
-	MailSender MailSender  `mapstructure:"mail_sender"`
-	VkOAuth    VkOAuth     `mapstructure:"vk_oauth"`
+	App             Application        `mapstructure:"app"`
+	Engine          Engine             `mapstructure:"engine"`
+	MailSender      MailSender         `mapstructure:"mail_sender"`
+	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
+	DBConnection    DatabaseConnection `mapstructure:"database"`
+	RedisConnection RedisConnection    `mapstructure:"redis"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:        DefaultApplicationConfig(),
-		Engine:     DefaultEngineConfig(),
-		MailSender: DefaultMailSenderConfig(),
-		VkOAuth:    DefaultVkOAuthConfig(),
+		App:             DefaultApplicationConfig(),
+		Engine:          DefaultEngineConfig(),
+		MailSender:      DefaultMailSenderConfig(),
+		VkOAuth:         DefaultVkOAuthConfig(),
+		DBConnection:    DefaultDBConnectionConfog(),
+		RedisConnection: DefaultRedisConnection(),
 	}
 }
 
@@ -43,6 +47,8 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 
 	SetupEnvMailSender(v)
 	SetupEnvVkOAuth(v)
+	SetupEnvDbConnection(v)
+	SetupEnvRedisConnection(v)
 
 	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)

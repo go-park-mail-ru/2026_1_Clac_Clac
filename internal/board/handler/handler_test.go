@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	mockBoardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/mock_board_service"
+	mockBoardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/mock_board_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -56,13 +56,13 @@ func TestGetUserBoards(t *testing.T) {
 			MockBehavior: func(m *mockBoardService.BoardService) {
 				m.On("GetBoards", mock.Anything, targetUserID).Return(
 					[]models.Board{
-						{ID: boardID},
+						{Link: boardID},
 					}, nil,
 				)
 			},
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedResponse: newOkResponse(api.StatusOK, []models.Board{
-				{ID: boardID},
+				{Link: boardID},
 			}),
 		},
 		{
@@ -114,7 +114,7 @@ func TestGetUserBoards(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.CtxValue != nil {
-				ctx := context.WithValue(request.Context(), middleware.UserIDKey{}, test.CtxValue)
+				ctx := context.WithValue(request.Context(), middleware.UserContextLink{}, test.CtxValue)
 				request = request.WithContext(ctx)
 			}
 

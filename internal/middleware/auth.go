@@ -13,10 +13,10 @@ const (
 	unauthorizedMessage = "unauthorized"
 )
 
-type UserIDKey struct{}
+type UserContextLink struct{}
 
 type SessionCheker interface {
-	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
+	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
 }
 
 func AuthMiddleware(srv SessionCheker) func(http.Handler) http.Handler {
@@ -28,13 +28,13 @@ func AuthMiddleware(srv SessionCheker) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := srv.GetUserID(r.Context(), cookie.Value)
+			userLink, err := srv.GetUserLink(r.Context(), cookie.Value)
 			if err != nil {
 				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey{}, userID)
+			ctx := context.WithValue(r.Context(), UserContextLink{}, userLink)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

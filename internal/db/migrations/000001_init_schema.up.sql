@@ -4,7 +4,6 @@ BEGIN
     IF NEW IS DISTINCT FROM OLD THEN
         NEW.updated_at = now();
     END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -45,16 +44,16 @@ CREATE TABLE board_version (
     valid_to TIMESTAMPTZ,
 
     CONSTRAINT check_length_board_name CHECK (char_length(board_name) <= 128),
-    CONSTRAINT check_length_description_board CHECK (char_length("description_board") <= 1000),
+    CONSTRAINT check_length_description_board CHECK (char_length(description_board) <= 1000),
     CONSTRAINT check_board_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT fk_version_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
 );
 
-CREATE TYPE user_level AS ENUM ('viewer', 'editor', 'admin', 'creater')
+CREATE TYPE user_level AS ENUM ('viewer', 'editor', 'admin', 'creator');
 
 CREATE TABLE member_board (
-    board_id INT NOT NULL,
-    user_id INT NOT NULL,
+    board_link UUID NOT NULL,
+    user_link UUID NOT NULL,
 
     is_like BOOLEAN DEFAULT false NOT NULL,
     is_archive BOOLEAN DEFAULT false NOT NULL,
@@ -63,9 +62,9 @@ CREATE TABLE member_board (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT pk_member_board PRIMARY KEY (board_id, user_id),
-    CONSTRAINT fk_member_user FOREIGN KEY (user_id) REFERENCES "user"(user_id) ON DELETE CASCADE,
-    CONSTRAINT fk_member_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
+    CONSTRAINT pk_member_board PRIMARY KEY (board_link, user_link),
+    CONSTRAINT fk_member_user FOREIGN KEY (user_link) REFERENCES "user"(link) ON DELETE CASCADE,
+    CONSTRAINT fk_member_board FOREIGN KEY (board_link) REFERENCES board(link) ON DELETE CASCADE
 );
 
 CREATE TRIGGER set_member_board_updated_at
@@ -111,14 +110,13 @@ CREATE TABLE task (
     CONSTRAINT fk_task_author FOREIGN KEY (author_id) REFERENCES "user"(user_id) ON DELETE SET NULL
 );
 
-
 CREATE TABLE task_version (
     version_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_id INT NOT NULL,
     section_id INT NOT NULL,
 
     title TEXT DEFAULT '' NOT NULL,
-    "description" TEXT DEFAULT '' NOT NULL,
+    description TEXT DEFAULT '' NOT NULL,
     position INT NOT NULL,
     due_date TIMESTAMPTZ,
 
@@ -126,7 +124,7 @@ CREATE TABLE task_version (
     valid_to TIMESTAMPTZ,
 
     CONSTRAINT check_length_title CHECK (char_length(title) <= 128),
-    CONSTRAINT check_length_description CHECK (char_length("description") <= 1000),
+    CONSTRAINT check_length_description CHECK (char_length(description) <= 1000),
     CONSTRAINT check_due_date CHECK (due_date IS NULL or due_date >= valid_from),
     CONSTRAINT check_task_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT fk_version_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
@@ -138,14 +136,14 @@ CREATE TABLE subtask (
     task_id INT NOT NULL,
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
-    "description" TEXT NOT NULL,
+    description TEXT NOT NULL,
     is_done BOOLEAN DEFAULT false NOT NULL,
     position INT NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_description_length CHECK (char_length("description") <= 500),
+    CONSTRAINT check_description_length CHECK (char_length(description) <= 500),
     CONSTRAINT fk_subtask_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE
 );
 
@@ -164,7 +162,6 @@ CREATE TABLE task_dependency (
     CONSTRAINT pk_task_dependency PRIMARY KEY (blocking_task_id, blocked_task_id),
     CONSTRAINT fk_td_blocking FOREIGN KEY (blocking_task_id) REFERENCES task(task_id) ON DELETE CASCADE,
     CONSTRAINT fk_td_blocked FOREIGN KEY (blocked_task_id) REFERENCES task(task_id) ON DELETE CASCADE
-
 );
 
 CREATE TABLE worker_task (
@@ -195,16 +192,15 @@ CREATE TABLE comment_task (
     parent_id INT,
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
-    "text" TEXT NOT NULL,
+    text TEXT NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_length_text CHECK (char_length("text") <= 1000),
+    CONSTRAINT check_length_text CHECK (char_length(text) <= 1000),
     CONSTRAINT fk_comment_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
     CONSTRAINT fk_comment_parent FOREIGN KEY (parent_id) REFERENCES comment_task(comment_id) ON DELETE CASCADE
 );
-
 
 CREATE TRIGGER set_comment_task_updated_at
 BEFORE UPDATE ON comment_task
@@ -220,7 +216,7 @@ CREATE TABLE board_template(
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_length_btemplate_name CHECK (char_length("template_name") <= 128)
+    CONSTRAINT check_length_btemplate_name CHECK (char_length(template_name) <= 128)
 );
 
 CREATE TRIGGER set_board_template_updated_at
@@ -240,7 +236,7 @@ CREATE TABLE section_template(
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_stemplate_name_length CHECK (char_length("section_name") <= 128),
+    CONSTRAINT check_stemplate_name_length CHECK (char_length(section_name) <= 128),
     CONSTRAINT check_min_tasks CHECK (max_tasks IS NULL or max_tasks > 0),
     CONSTRAINT fk_board_template FOREIGN KEY (btemplate_id) REFERENCES board_template(btemplate_id) ON DELETE CASCADE
 );

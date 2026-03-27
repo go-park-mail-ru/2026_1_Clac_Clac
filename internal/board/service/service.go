@@ -5,14 +5,13 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 
 	"github.com/google/uuid"
 )
 
 type BoardRepository interface {
 	GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error)
-	AddEmptyBoard(ctx context.Context, baord db.Board, userID uuid.UUID) error
+	AddEmptyBoard(ctx context.Context, board models.Board, userID uuid.UUID) error
 }
 
 type Service struct {
@@ -25,8 +24,8 @@ func NewService(rep BoardRepository) *Service {
 	}
 }
 
-func (bs *Service) GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error) {
-	boards, err := bs.rep.GetBoards(ctx, userID)
+func (s *Service) GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error) {
+	boards, err := s.rep.GetBoards(ctx, userID)
 	if err != nil {
 		return []models.Board{}, fmt.Errorf("rep.GetBoards: %w", err)
 	}
@@ -34,12 +33,12 @@ func (bs *Service) GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Bo
 	return boards, nil
 }
 
-func (bs *Service) CreateEmptyBoard(ctx context.Context, userID uuid.UUID) error {
-	emptyBoard := db.Board{
-		ID: uuid.New(),
+func (s *Service) CreateEmptyBoard(ctx context.Context, link uuid.UUID) error {
+	emptyBoard := models.Board{
+		Link: uuid.New(),
 	}
 
-	err := bs.rep.AddEmptyBoard(ctx, emptyBoard, userID)
+	err := s.rep.AddEmptyBoard(ctx, emptyBoard, link)
 	if err != nil {
 		return fmt.Errorf("rep.AddEmptyBoard: %w", err)
 	}
