@@ -7,7 +7,6 @@ import (
 	"os"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
-	authUsecase "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/usecase"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -68,7 +67,8 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 
-	router.HandleFunc("/csrf", authUsecase.SetCSRFCookieHandler(authUsecase.GenerateRandomCSRFToken, logger))
+	authHandler := auth.NewHandler(manager.Auth)
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
 
 	csrfProtected := router.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware)
@@ -79,8 +79,6 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
-	authHandler := auth.NewHandler(manager.Auth)
-
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)

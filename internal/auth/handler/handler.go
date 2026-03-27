@@ -33,6 +33,7 @@ type AuthService interface {
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 	EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (models.User, error)
 	SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error
+	GenerateRandomCSRFToken(ctx context.Context) (string, error)
 }
 
 // mockery --name=VkOAuth --output mock_vk_oauth
@@ -432,4 +433,37 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 		api.Redirect(w, r, redirectTo, http.StatusOK, oauthSuccessAuthMessage)
 	}
+}
+
+// SetCSRFCookieHandler устанавливает CSRF куку
+//
+//	@Summary		Установка CSRF куки
+//	@Description	Генерирует новый CSRF токен и записывает его в Cookie.
+//	@Description	Вместе с кукой также надо отправлять X-CSRF-Token
+//	@Tags			csrf
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"ok"	"Успешная установка куки"
+//	@Header			200	{string}	Set-Cookie			"csrf_token=...; Path=/; Secure; SameSite=Lax"
+//	@Failure		500	{object}	api.ErrorResponse	"internal server error - cannot create token"
+//	@Router			/csrf [get]
+func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	token, err := a.Srv.GenerateRandomCSRFToken(r.Context())
+	if err != nil {
+		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     csrfCookieKey,
+		Value:    token,
+		Secure:   true,
+		HttpOnly: false,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

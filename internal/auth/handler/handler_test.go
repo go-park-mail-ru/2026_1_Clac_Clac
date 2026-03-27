@@ -1110,3 +1110,86 @@ func TestVkOAuthCallback(t *testing.T) {
 		})
 	}
 }
+
+func TestSetCSRFCookieHandler(t *testing.T) {
+	const csrfCookieKey = "csrf_token"
+
+	newCSRFCookie := func(value string) *http.Cookie {
+		return &http.Cookie{
+			Name:     csrfCookieKey,
+			Value:    value,
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: false,
+			SameSite: http.SameSiteLaxMode,
+		}
+	}
+
+	tests := []struct {
+		Name           string
+		ExpectedCode   int
+		ExpectedCookie *http.Cookie
+		MockBehavior   func(*mockAuthSrv.AuthService)
+	}{
+		{
+			Name:           "set cookie",
+			ExpectedCode:   http.StatusOK,
+			ExpectedCookie: newCSRFCookie("123"),
+			MockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("GenerateRandomCSRFToken", mock.Anything).Return("123", nil)
+			},
+		},
+		{
+			Name:           "get token generator error",
+			ExpectedCode:   http.StatusInternalServerError,
+			ExpectedCookie: nil,
+			MockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("GenerateRandomCSRFToken", mock.Anything).Return("", errors.New("cannot generate token"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockAuthService := new(authServiceMocks.AuthService)
+			if test.MockBehavior != nil {
+				test.MockBehavior(mockAuthService)
+			}
+
+			handler := &AuthHandler{Srv: mockAuthService}
+
+			res := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+			handler.SetCSRFCookieHandler(res, req)
+
+			r := res.Result()
+			assert.Equal(t, test.ExpectedCode, r.StatusCode, "http codes must be equal")
+
+			cookies := r.Cookies()
+
+			var csrfCookie *http.Cookie
+			var exists bool
+
+			for _, c := range cookies {
+				if c.Name == csrfCookieKey {
+					csrfCookie = c
+					exists = true
+					break
+				}
+			}
+
+			if test.ExpectedCookie != nil {
+				require.True(t, exists, "cookie must be setted")
+
+				assert.Equal(t, test.ExpectedCookie.Value, csrfCookie.Value, "tokens must be equal")
+				assert.Equal(t, test.ExpectedCookie.HttpOnly, csrfCookie.HttpOnly, "httpOnly must be equal")
+				assert.Equal(t, test.ExpectedCookie.Path, csrfCookie.Path, "path must be equal")
+				assert.Equal(t, test.ExpectedCookie.Secure, csrfCookie.Secure, "secure must be equal")
+				assert.Equal(t, test.ExpectedCookie.SameSite, csrfCookie.SameSite, "sameSite must be equal")
+			} else {
+				require.False(t, exists, "cookie must not be setted")
+			}
+		})
+	}
+}

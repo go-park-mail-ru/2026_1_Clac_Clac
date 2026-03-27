@@ -300,3 +300,15 @@ func (a *Service) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo
 	// TODO: реализовать сохранение в redis
 	return nil
 }
+
+func (a *Service) GenerateRandomCSRFToken(ctx context.Context) (string, error) {
+	const tokenLength = 32
+
+	b := make([]byte, tokenLength)
+
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("rand.Read: %w", err)
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
+}

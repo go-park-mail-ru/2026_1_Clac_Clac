@@ -93,6 +93,34 @@ func (_m *AuthService) EnsureUserByEmail(ctx context.Context, info dto.UserInfo)
 	return r0, r1
 }
 
+// GenerateRandomCSRFToken provides a mock function with given fields: ctx
+func (_m *AuthService) GenerateRandomCSRFToken(ctx context.Context) (string, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GenerateRandomCSRFToken")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (string, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) string); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUserByEmail provides a mock function with given fields: ctx, email
 func (_m *AuthService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
 	ret := _m.Called(ctx, email)
