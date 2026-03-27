@@ -72,7 +72,7 @@ const docTemplate = `{
         },
         "/csrf": {
             "get": {
-                "description": "Генерирует новый CSRF токен и записывает его в Cookie",
+                "description": "Генерирует новый CSRF токен и записывает его в Cookie.\nВместе с кукой также надо отправлять X-CSRF-Token",
                 "produces": [
                     "application/json"
                 ],

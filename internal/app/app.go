@@ -66,12 +66,15 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
-	router.Use(middleware.CSRFMiddleware)
+
+	router.HandleFunc("/csrf", auth.SetCSRFCookieHandler(auth.GenerateRandomCSRFToken, logger))
+
+	csrfProtected := router.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware)
 
 	// Ручки, которым не нужна авторизация
-	public := router.PathPrefix("/").Subrouter()
+	public := csrfProtected.PathPrefix("/").Subrouter()
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
-	public.HandleFunc("/csrf", middleware.SetCSRFCookieHandler(middleware.GenerateRandomCSRFToken, logger))
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
@@ -89,7 +92,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := router.PathPrefix("/").Subrouter()
+	protected := csrfProtected.PathPrefix("/").Subrouter()
 	// Добавление мидлваре для авторизации
 	protected.Use(middleware.AuthMiddleware(manager.Auth))
 	// Руты, на которые пользователь объязательно должен быть авторизован
