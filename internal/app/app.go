@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
@@ -79,6 +80,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
 	authHandler := auth.NewHandler(manager.Auth)
 	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
