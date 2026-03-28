@@ -1,6 +1,10 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type LevelUser int
 
@@ -13,10 +17,9 @@ const (
 
 // User описывает сущность пользователя в системе
 //
-//	@name			models.User
-//	@Description	Полная информация о пользователе
+// @Description Полная информация о пользователе
 type User struct {
-	ID          uuid.UUID `json:"id"                   example:"123e4567-e89b-12d3-a456-426614174000"`
+	Link        uuid.UUID `json:"id"                   example:"123e4567-e89b-12d3-a456-426614174000"`
 	DisplayName string    `json:"display_name"         example:"Ivan Ivanov"`
 	// PasswordHash не отправляется клиенту
 	PasswordHash string `json:"-"                    swaggerignore:"true"`
@@ -28,15 +31,15 @@ type User struct {
 
 // Board представляет рабочую доску пользователя
 //
-//	@name			models.Board
-//	@Description	Краткая информация о доске
+// @Description Краткая информация о доске
 type Board struct {
-	ID uuid.UUID `json:"id" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Link       uuid.UUID `json:"link"`
+	Created_at time.Time `json:"created_at"`
 }
 
 type MemberBoard struct {
-	BoardID uuid.UUID `json:"board_id"`
-	UserID  uuid.UUID `json:"user_id"`
+	BoardLink uuid.UUID `json:"board_link"`
+	UserLink  uuid.UUID `json:"user_link"`
 
 	Level     LevelUser `json:"level"`
 	IsLike    bool      `json:"is_like"`

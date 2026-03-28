@@ -4,28 +4,36 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
 )
 
-type Repository interface {
-	GetProfile(ctx context.Context, userID uuid.UUID) (models.User, error)
+type ProfileRepository interface {
+	GetProfile(ctx context.Context, link uuid.UUID) (repositoryDto.UserInfoEntity, error)
 }
 
 type Service struct {
-	rep Repository
+	rep ProfileRepository
 }
 
-func NewService(rep Repository) *Service {
+func NewService(rep ProfileRepository) *Service {
 	return &Service{
 		rep: rep,
 	}
 }
 
-func (pr *Service) GetProfileUser(ctx context.Context, userID uuid.UUID) (models.User, error) {
-	user, err := pr.rep.GetProfile(ctx, userID)
+func (s *Service) GetProfileUser(ctx context.Context, userID uuid.UUID) (dto.UserInfo, error) {
+	repositoryUser, err := s.rep.GetProfile(ctx, userID)
 	if err != nil {
-		return models.User{}, fmt.Errorf("rep.GetProfile: %w", err)
+		return dto.UserInfo{}, fmt.Errorf("rep.GetProfile: %w", err)
+	}
+
+	user := dto.UserInfo{
+		Link:        repositoryUser.Link,
+		DisplayName: repositoryUser.DisplayName,
+		Email:       repositoryUser.Email,
+		Avatar:      repositoryUser.Avatar,
 	}
 
 	return user, nil

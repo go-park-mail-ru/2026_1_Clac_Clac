@@ -5,10 +5,8 @@ package mockBoardRep
 import (
 	context "context"
 
-	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
-	mock "github.com/stretchr/testify/mock"
-
 	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
+	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
 )
@@ -18,17 +16,17 @@ type BoardRepository struct {
 	mock.Mock
 }
 
-// AddEmptyBoard provides a mock function with given fields: ctx, baord, userID
-func (_m *BoardRepository) AddEmptyBoard(ctx context.Context, baord db.Board, userID uuid.UUID) error {
-	ret := _m.Called(ctx, baord, userID)
+// AddEmptyBoard provides a mock function with given fields: ctx, board, userID
+func (_m *BoardRepository) AddEmptyBoard(ctx context.Context, board models.Board, userID uuid.UUID) error {
+	ret := _m.Called(ctx, board, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddEmptyBoard")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, db.Board, uuid.UUID) error); ok {
-		r0 = rf(ctx, baord, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, models.Board, uuid.UUID) error); ok {
+		r0 = rf(ctx, board, userID)
 	} else {
 		r0 = ret.Error(0)
 	}

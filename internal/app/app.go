@@ -2,58 +2,71 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
-	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"golang.org/x/oauth2"
 )
 
 type App struct {
-	Config   *config.Config
-	Logger   *zerolog.Logger
-	Engine   *engine.Engine
-	Database *db.MapDatabases
-	Store    *Store
-	Manager  *Manager
+	Config  *config.Config
+	Logger  *zerolog.Logger
+	Engine  *engine.Engine
+	Store   *Store
+	Manager *Manager
 }
 
 // Создает приложение, настраивает его компоненты
 func NewApp(conf *config.Config) *App {
 	logger := setupLogger(&conf.App)
 
-	db := setupDatabase()
-	store := setupStore(db)
+	store, err := setupStore(conf, logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot initialise store")
+	}
+
 	manager := setupManager(store, &conf.MailSender)
+
 	createDemoUser(manager, logger)
+
 	router := setupRouter(manager, logger, &conf.VkOAuth)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
 	return &App{
-		Config:   conf,
-		Logger:   logger,
-		Engine:   e,
-		Database: db,
-		Store:    store,
-		Manager:  manager,
+		Config:  conf,
+		Logger:  logger,
+		Engine:  e,
+		Store:   store,
+		Manager: manager,
 	}
 }
 
 // Запуск приложения
 func (a *App) Run() {
+	defer func() {
+		errClose := a.Store.Close()
+		if errClose != nil {
+			a.Logger.Err(errClose).Msg("close strore error")
+		}
+	}()
+
 	if err := a.Engine.Start(context.Background()); err != nil {
 		a.Logger.Err(err).Msg("engine error")
 	}
@@ -129,13 +142,58 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 }
 
 // Настройка подключения к базе данных
-func setupDatabase() *db.MapDatabases {
-	return db.NewMapDatabse()
+func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbConnection.User,
+		dbConnection.Password,
+		dbConnection.Host,
+		dbConnection.Port,
+		dbConnection.Name)
+
+	pool, err := db.NewPoolPostgres(dsn, dbConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.NewPool: %w", err)
+	}
+
+	err = db.RunMigrations(dsn, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.RunMigrations: %w", err)
+	}
+
+	return pool, nil
+}
+
+// Настройка подключения к Redis
+func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
+	redisSettings := redis.Options{
+		Addr:         fmt.Sprintf("%s:%s", redisConnection.Host, redisConnection.Port),
+		Password:     redisConnection.Password,
+		DB:           redisConnection.NumberDB,
+		PoolSize:     redisConnection.MaxConnections,
+		MinIdleConns: redisConnection.MinConnections,
+	}
+
+	client, err := db.NewPoolRedis(&redisSettings, redisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.NewPoolRedis: %w", err)
+	}
+
+	return client, nil
 }
 
 // Настройка стора
-func setupStore(db *db.MapDatabases) *Store {
-	return NewStore(db)
+func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
+	pool, err := setupDatabase(&conf.DBConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupDatabase: %w", err)
+	}
+
+	redisClient, err := setupRedis(&conf.RedisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupRedis: %w", err)
+	}
+
+	return NewStore(pool, redisClient), nil
 }
 
 // Настройка менеджера сервисов
@@ -148,14 +206,18 @@ func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 }
 
 func createDemoUser(m *Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), "Demo", "12345678", "demo@demo.ru")
+	user, _, err := m.Auth.Register(context.Background(), serviceDto.RegistrationUser{
+		DisplayName: "Demo",
+		Password:    "12345678",
+		Email:       "demo@demo.ru",
+	})
 	if err != nil {
 		logger.Err(err).Msg("cannot create demo user")
 	} else {
 		logger.Info().Msg("demo user created")
 	}
 
-	err = m.Board.CreateEmptyBoard(context.Background(), user.ID)
+	err = m.Board.CreateEmptyBoard(context.Background(), user.Link)
 	if err != nil {
 		logger.Err(err).Msg("cannot create demo board")
 	} else {

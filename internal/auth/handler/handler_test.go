@@ -14,11 +14,11 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	authServiceMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_auth_srv"
 	vkOAuthMocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/mock_vk_oauth"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
 	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -66,21 +66,24 @@ func TestLogInUserWithSchema(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success login",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "test@mail.ru",
 				Password: "123456789",
 			},
-			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
-				ID:          common.FixedUserUuiD,
+			ExpectedResponse: newOkResponse(api.StatusOK, dto.UserInfoResponse{
+				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
 			}),
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("LogIn", ctx, "test@mail.ru", "123456789").Return(
-					models.User{
-						ID:          common.FixedUserUuiD,
+				m.On("LogIn", ctx, serviceDto.LogInUser{
+					Email:    "test@mail.ru",
+					Password: "123456789",
+				}).Return(
+					serviceDto.UserInfo{
+						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
 					},
@@ -91,7 +94,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Wrong password or email",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "wrong_password",
 			},
@@ -99,12 +102,15 @@ func TestLogInUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusUnauthorized,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("LogIn", ctx, "artem@mail.ru", "wrong_password").Return(models.User{}, "", service.ErrorWrongPassword)
+				m.On("LogIn", ctx, serviceDto.LogInUser{
+					Email:    "artem@mail.ru",
+					Password: "wrong_password",
+				}).Return(serviceDto.UserInfo{}, "", service.ErrorWrongPassword)
 			},
 		},
 		{
 			Name: "Size password smaller than 8",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
 				Password: "123",
 			},
@@ -114,9 +120,9 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Size password biger than 128",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "artem@mail.ru",
-				Password: "123111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+				Password: "12311111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusBadRequest, ErrInvalidEmailOrPassword.Error()),
 			ExpectedStatusCode: http.StatusBadRequest,
@@ -124,7 +130,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email hasn't @",
-			Request: api.LogInRequest{
+			Request: dto.LogInRequest{
 				Email:    "testmail.ru",
 				Password: "1234567",
 			},
@@ -205,23 +211,27 @@ func TestRegisterUserWithSchema(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success registration",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "12345678",
 				RepeatedPassword: "12345678",
 				Email:            "test@mail.ru",
 			},
-			ExpectedResponse: newOkResponse(api.StatusOK, models.User{
-				ID:          common.FixedUserUuiD,
+			ExpectedResponse: newOkResponse(api.StatusOK, dto.UserInfoResponse{
+				Link:        common.FixedUserUuiD,
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
 			}),
 			ExpectedStatusCode: http.StatusCreated,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "12345678", "test@mail.ru").Return(
-					models.User{
-						ID:          common.FixedUserUuiD,
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Email:       "test@mail.ru",
+					Password:    "12345678",
+				}).Return(
+					serviceDto.UserInfo{
+						Link:        common.FixedUserUuiD,
 						DisplayName: "Artem",
 						Email:       "test@mail.ru",
 					},
@@ -232,7 +242,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Passwords do not match",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "12345678",
 				RepeatedPassword: "65432178",
@@ -244,7 +254,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email is already existing",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -254,8 +264,12 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "123456789", "test@mail.ru").Return(
-					models.User{},
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Email:       "test@mail.ru",
+					Password:    "123456789",
+				}).Return(
+					serviceDto.UserInfo{},
 					"",
 					fmt.Errorf("repo.AddUser: user with this email alreday exists"),
 				)
@@ -263,7 +277,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Incorrect symbol in password",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "бобёр123",
 				RepeatedPassword: "бобёр123",
@@ -275,7 +289,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Incorrect symbol in email",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234552323",
 				RepeatedPassword: "1234552323",
@@ -287,7 +301,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Size password smaller than 6",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123",
 				RepeatedPassword: "123",
@@ -299,7 +313,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email has 2 @",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -311,7 +325,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email hasn't @",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234567",
 				RepeatedPassword: "1234567",
@@ -323,7 +337,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Email has @.",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "1234567",
 				RepeatedPassword: "1234567",
@@ -335,7 +349,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 		},
 		{
 			Name: "Error during hash password",
-			Request: api.RegisterRequest{
+			Request: dto.RegisterRequest{
 				DisplayName:      "Artem",
 				Password:         "123456789",
 				RepeatedPassword: "123456789",
@@ -345,8 +359,12 @@ func TestRegisterUserWithSchema(t *testing.T) {
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("Register", ctx, "Artem", "123456789", "test@mail.ru").Return(
-					models.User{},
+				m.On("Register", ctx, serviceDto.RegistrationUser{
+					DisplayName: "Artem",
+					Password:    "123456789",
+					Email:       "test@mail.ru",
+				}).Return(
+					serviceDto.UserInfo{},
 					"",
 					fmt.Errorf("failed to create hash: error bcrypt"),
 				)
@@ -513,7 +531,7 @@ func TestMeHandler(t *testing.T) {
 			Name: "success",
 			SetupRequest: func(req *http.Request) *http.Request {
 				userID := uuid.New()
-				ctx := context.WithValue(req.Context(), middleware.UserIDKey{}, userID)
+				ctx := context.WithValue(req.Context(), middleware.UserContextLink{}, userID)
 				return req.WithContext(ctx)
 			},
 			ExpectedStatus: http.StatusOK,
@@ -528,7 +546,7 @@ func TestMeHandler(t *testing.T) {
 		{
 			Name: "unauthorized wrong type",
 			SetupRequest: func(req *http.Request) *http.Request {
-				ctx := context.WithValue(req.Context(), middleware.UserIDKey{}, "invalid-uuid-string")
+				ctx := context.WithValue(req.Context(), middleware.UserContextLink{}, "invalid-uuid-string")
 				return req.WithContext(ctx)
 			},
 			ExpectedStatus: http.StatusUnauthorized,
@@ -552,7 +570,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success send email",
-			Request: api.PasswordRecoveryRequest{
+			Request: dto.PasswordRecoveryRequest{
 				Email: "test@mail.ru",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
@@ -564,7 +582,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 		},
 		{
 			Name: "Service error",
-			Request: api.PasswordRecoveryRequest{
+			Request: dto.PasswordRecoveryRequest{
 				Email: "notfound@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrCannotSendRecoveryCode.Error()),
@@ -629,21 +647,21 @@ func TestResetUserPassword(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success reset password",
-			Request: api.NewPasswordRequest{
+			Request: dto.NewPasswordRequest{
 				TokenID:          "valid-token-123",
-				Password:         "new_secure_password",
-				RepeatedPassword: "new_secure_password",
+				Password:         "new_password",
+				RepeatedPassword: "new_password",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("ResetPassword", ctx, "valid-token-123", "new_secure_password").Return(nil)
+				m.On("ResetPassword", ctx, "valid-token-123", "new_password").Return(nil)
 			},
 		},
 		{
-			Name: "Validation failed (passwords do not match)",
-			Request: api.NewPasswordRequest{
+			Name: "Validation failed",
+			Request: dto.NewPasswordRequest{
 				TokenID:          "valid-token-123",
 				Password:         "new_secure_password",
 				RepeatedPassword: "different_password",
@@ -653,8 +671,8 @@ func TestResetUserPassword(t *testing.T) {
 			MockBehavior:       nil,
 		},
 		{
-			Name: "Service error (e.g. token expired)",
-			Request: api.NewPasswordRequest{
+			Name: "Service error",
+			Request: dto.NewPasswordRequest{
 				TokenID:          "expired-token",
 				Password:         "new_secure_password",
 				RepeatedPassword: "new_secure_password",
@@ -721,7 +739,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Success check code",
-			Request: api.RecoveryCodeRequest{
+			Request: dto.RecoveryCodeRequest{
 				Code: "123456",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
@@ -733,7 +751,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 		},
 		{
 			Name: "Wrong or expired code",
-			Request: api.RecoveryCodeRequest{
+			Request: dto.RecoveryCodeRequest{
 				Code: "000000",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrInternalServerError.Error()),
@@ -885,13 +903,13 @@ func TestVkOAuthCallback(t *testing.T) {
 				v.On("Client", mock.Anything, token).Return(successMockClient)
 			},
 			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
-					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).
+					Return(serviceDto.UserInfo{Link: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
 				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
 					Return(nil)
 
-				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
+				a.On("CreateSessionForUser", mock.Anything, mock.Anything).
 					Return("fake-session-id", nil)
 			},
 		},
@@ -1013,8 +1031,8 @@ func TestVkOAuthCallback(t *testing.T) {
 				v.On("Client", mock.Anything, token).Return(successMockClient)
 			},
 			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
-					Return(models.User{}, errors.New("cannot create user"))
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).
+					Return(serviceDto.UserInfo{}, errors.New("cannot create user"))
 			},
 		},
 		{
@@ -1031,10 +1049,10 @@ func TestVkOAuthCallback(t *testing.T) {
 				v.On("Client", mock.Anything, token).Return(successMockClient)
 			},
 			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
-					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).
+					Return(serviceDto.UserInfo{Link: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
-				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
+				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.Anything, mock.Anything).
 					Return(errors.New("cannot save refresh token"))
 			},
 		},
@@ -1052,13 +1070,13 @@ func TestVkOAuthCallback(t *testing.T) {
 				v.On("Client", mock.Anything, token).Return(successMockClient)
 			},
 			AuthServiceMockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.UserInfo")).
-					Return(models.User{ID: common.FixedUserUuiD, Email: testUserEmail}, nil)
+				a.On("EnsureUserByEmail", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).
+					Return(serviceDto.UserInfo{Link: common.FixedUserUuiD, Email: testUserEmail}, nil)
 
 				a.On("SaveRefreshTokenFroUser", mock.Anything, mock.AnythingOfType("dto.UserInfo"), mock.Anything).
 					Return(nil)
 
-				a.On("CreateSessionForUser", mock.Anything, mock.AnythingOfType("models.User")).
+				a.On("CreateSessionForUser", mock.Anything, mock.Anything).
 					Return("", errors.New("cannot create session"))
 			},
 		},
@@ -1071,7 +1089,7 @@ func TestVkOAuthCallback(t *testing.T) {
 				test.VkOAuthMockBehavior(mockVkOAuth)
 			}
 
-			mockAuthService := new(authServiceMocks.AuthService)
+			mockAuthService := new(mockAuthSrv.AuthService)
 			if test.AuthServiceMockBehavior != nil {
 				test.AuthServiceMockBehavior(mockAuthService)
 			}
@@ -1151,7 +1169,7 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			mockAuthService := new(authServiceMocks.AuthService)
+			mockAuthService := new(mockAuthSrv.AuthService)
 			if test.MockBehavior != nil {
 				test.MockBehavior(mockAuthService)
 			}

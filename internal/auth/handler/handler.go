@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/models"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
@@ -22,17 +22,17 @@ import (
 
 // mockery --name=AuthService --output mock_auth_srv
 type AuthService interface {
-	Register(ctx context.Context, name, password, email string) (models.User, string, error)
-	LogIn(ctx context.Context, email, userID string) (models.User, string, error)
-	CreateSessionForUser(ctx context.Context, user models.User) (string, error)
+	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
+	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
+	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
 	LogOut(ctx context.Context, sessionID string) error
-	GetUserID(ctx context.Context, sessionID string) (uuid.UUID, error)
-	GetUserByEmail(ctx context.Context, email string) (models.User, error)
+	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
+	GetUserByEmail(ctx context.Context, email string) (serviceDto.UserInfo, error)
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
-	EnsureUserByEmail(ctx context.Context, info dto.UserInfo) (models.User, error)
-	SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error
+	EnsureUserByEmail(ctx context.Context, info serviceDto.RegistrationUser) (serviceDto.UserInfo, error)
+	SaveRefreshTokenFroUser(ctx context.Context, info serviceDto.UserInfo, token string) error
 	GenerateRandomCSRFToken(ctx context.Context) (string, error)
 }
 
@@ -84,16 +84,15 @@ var (
 
 // MeHandler проверяет текущую сессию пользователя.
 //
-//	@Summary	Проверка авторизации
-//	@Tags		auth
-//	@Produce	json
-//	@Success	200	{string}	string				"ok"
-//	@Failure	401	{object}	map[string]string	"user not authorized"
-//	@Security	CookieAuth
-//	@Router		/me [get]
+// @Summary      Проверка авторизации
+// @Tags         auth
+// @Produce      json
+// @Success      200  {string}  string  "ok"
+// @Failure      401  {object}  map[string]string "user not authorized"
+// @Security     CookieAuth
+// @Router       /me [get]
 func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: возвращать профиль, а не ok
-	value := r.Context().Value(middleware.UserIDKey{})
+	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
 	if !ok {
 		api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
@@ -104,22 +103,21 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // LogInUser godoc
-//
-//	@Summary		Вход в систему
-//	@Description	Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		api.LogInRequest	true	"Учетные данные пользователя"
-//	@Success		200		{object}	models.User			"Успешная аутентификация"
-//	@Failure		400		{object}	map[string]string	"Некорректный запрос (невалидные данные)"
-//	@Failure		401		{object}	map[string]string	"Неверный email или пароль"
-//	@Failure		500		{object}	map[string]string	"Внутренняя ошибка сервера"
-//	@Router			/login [post]
+// @Summary      Вход в систему
+// @Description  Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.LogInRequest true "Учетные данные пользователя"
+// @Success      200 {object} models.User "Успешная аутентификация"
+// @Failure      400 {object} map[string]string "Некорректный запрос (невалидные данные)"
+// @Failure      401 {object} map[string]string "Неверный email или пароль"
+// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router       /auth/login [post]
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.LogInRequest
+	var request dto.LogInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
@@ -131,7 +129,10 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.LogIn(r.Context(), request.Email, request.Password)
+	serviceUser, sessionID, err := a.Srv.LogIn(r.Context(), serviceDto.LogInUser{
+		Email:    request.Email,
+		Password: request.Password,
+	})
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
 			api.RespondError(w, http.StatusUnauthorized, ErrWrongEmailOrPassword.Error())
@@ -143,30 +144,36 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	handlerUser := dto.UserInfoResponse{
+		Link:        serviceUser.Link,
+		DisplayName: serviceUser.DisplayName,
+		Email:       serviceUser.Email,
+		Avatar:      serviceUser.Avatar,
+	}
+
 	http.SetCookie(w, api.NewCookie(
 		service.SessiondIdKey,
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
 
-	api.HandleError(api.RespondOk(w, user))
+	api.HandleError(api.RespondOk(w, handlerUser))
 }
 
 // RegisterUser godoc
-//
-//	@Summary		Регистрация нового пользователя
-//	@Description	Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		api.RegisterRequest	true	"Данные для регистрации"
-//	@Success		201		{object}	models.User			"Пользователь успешно создан"
-//	@Failure		400		{object}	map[string]string	"Ошибка валидации данных"
-//	@Failure		500		{object}	map[string]string	"Внутренняя ошибка сервера"
-//	@Router			/register [post]
+// @Summary      Регистрация нового пользователя
+// @Description  Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.RegisterRequest true "Данные для регистрации"
+// @Success      201 {object} models.User "Пользователь успешно создан"
+// @Failure      400 {object} map[string]string "Ошибка валидации данных"
+// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Router       /auth/register [post]
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.RegisterRequest
+	var request dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
@@ -178,11 +185,22 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, sessionID, err := a.Srv.Register(r.Context(), request.DisplayName, request.Password, request.Email)
+	serviceUser, sessionID, err := a.Srv.Register(r.Context(), serviceDto.RegistrationUser{
+		DisplayName: request.DisplayName,
+		Email:       request.Email,
+		Password:    request.Password,
+	})
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
+	}
+
+	handlerUser := dto.UserInfoResponse{
+		Link:        serviceUser.Link,
+		DisplayName: serviceUser.DisplayName,
+		Email:       serviceUser.Email,
+		Avatar:      serviceUser.Avatar,
 	}
 
 	http.SetCookie(w, api.NewCookie(
@@ -190,17 +208,16 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
 
-	api.HandleError(api.RespondCreated(w, user))
+	api.HandleError(api.RespondCreated(w, handlerUser))
 }
 
 // LogOutUser godoc
-//
-//	@Summary		Выход из системы
-//	@Description	Удаляет сессию пользователя из хранилища и очищает cookie.
-//	@Tags			auth
-//	@Produce		json
-//	@Success		200	{object}	map[string]string	"Успешный выход"
-//	@Router			/logout [post]
+// @Summary      Выход из системы
+// @Description  Удаляет сессию пользователя из хранилища и очищает cookie.
+// @Tags         auth
+// @Produce      json
+// @Success      200 {object} map[string]string "Успешный выход"
+// @Router       /auth/logout [post]
 func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -217,21 +234,20 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // SendRecoveryEmail godoc
-//
-//	@Summary		Запрос восстановления пароля
-//	@Description	Генерирует код восстановления и отправляет его на указанный email.
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		api.PasswordRecoveryRequest	true	"Email пользователя"
-//	@Success		200		{object}	map[string]string			"Код успешно отправлен"
-//	@Failure		400		{object}	map[string]string			"Некорректный запрос"
-//	@Failure		500		{object}	map[string]string			"Ошибка отправки письма"
-//	@Router			/forgot-password [post]
+// @Summary      Запрос восстановления пароля
+// @Description  Генерирует код восстановления и отправляет его на указанный email.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.PasswordRecoveryRequest true "Email пользователя"
+// @Success      200 {object} map[string]string "Код успешно отправлен"
+// @Failure      400 {object} map[string]string "Некорректный запрос"
+// @Failure      500 {object} map[string]string "Ошибка отправки письма"
+// @Router       /auth/recovery/send [post]
 func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.PasswordRecoveryRequest
+	var request dto.PasswordRecoveryRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
@@ -254,21 +270,20 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 }
 
 // CheckRecoveryCode godoc
-//
-//	@Summary		Проверка кода восстановления
-//	@Description	Проверяет корректность 6-значного кода, отправленного на почту.
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		api.RecoveryCodeRequest	true	"Код из письма"
-//	@Success		200		{object}	map[string]string		"Код верен"
-//	@Failure		400		{object}	map[string]string		"Некорректный запрос"
-//	@Failure		500		{object}	map[string]string		"Неверный код или ошибка сервера"
-//	@Router			/check-code [post]
+// @Summary      Проверка кода восстановления
+// @Description  Проверяет корректность 6-значного кода, отправленного на почту.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body api.RecoveryCodeRequest true "Код из письма"
+// @Success      200 {object} map[string]string "Код верен"
+// @Failure      400 {object} map[string]string "Некорректный запрос"
+// @Failure      500 {object} map[string]string "Неверный код или ошибка сервера"
+// @Router       /auth/recovery/check [post]
 func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.RecoveryCodeRequest
+	var request dto.RecoveryCodeRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
@@ -300,7 +315,7 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	var request api.NewPasswordRequest
+	var request dto.NewPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
@@ -401,15 +416,22 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 		userData := usersData.Response[0]
 
-		userInfo := dto.UserInfo{
-			Name:  userData.FirstName,
-			Email: userEmail,
+		registrationUserInfo := serviceDto.RegistrationUser{
+			DisplayName: userData.FirstName,
+			Email:       userEmail,
 		}
-		user, err := a.Srv.EnsureUserByEmail(r.Context(), userInfo)
+		user, err := a.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
 			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
+		}
+
+		userInfo := serviceDto.UserInfo{
+			Link:        user.Link,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Avatar:      user.Avatar,
 		}
 
 		err = a.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
@@ -419,7 +441,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			return
 		}
 
-		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user)
+		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user.Link)
 		if err != nil {
 			logger.Err(err).Msg("authService.CreateSessionForUser")
 			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())

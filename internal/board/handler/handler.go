@@ -29,15 +29,15 @@ type BoardHandler struct {
 }
 
 func (bh *BoardHandler) GetUserBoards(w http.ResponseWriter, r *http.Request) {
-	value := r.Context().Value(middleware.UserIDKey{})
+	value := r.Context().Value(middleware.UserContextLink{})
 
-	userID, ok := value.(uuid.UUID)
+	link, ok := value.(uuid.UUID)
 	if !ok {
 		api.RespondError(w, http.StatusUnauthorized, UnauthorizedMessage)
 		return
 	}
 
-	boards, err := bh.srv.GetBoards(r.Context(), userID)
+	boards, err := bh.srv.GetBoards(r.Context(), link)
 	if err != nil {
 		api.RespondError(w, http.StatusUnauthorized, UnauthorizedMessage)
 		return

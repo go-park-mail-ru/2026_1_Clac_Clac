@@ -7,19 +7,19 @@ import (
 
 	authSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	mockSessionOutput "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware/mock_session_checker"
+	mockSessionChecker "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware/mock_session_checker"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestAuthMiddleware(t *testing.T) {
-	mockAuth := mockSessionOutput.NewSessionCheker(t)
-	mockAuth.On("GetUserID", mock.Anything, mock.AnythingOfType("string")).Return(common.FixedUserUuiD, nil)
+	mockAuth := mockSessionChecker.NewSessionCheker(t)
+	mockAuth.On("GetUserLink", mock.Anything, mock.AnythingOfType("string")).Return(common.FixedUserUuiD, nil)
 
 	protectedAuth := AuthMiddleware(mockAuth)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		val := r.Context().Value(UserIDKey{})
+		val := r.Context().Value(UserContextLink{})
 		assert.NotNil(t, val, "expected userID in context")
 		assert.Equal(t, common.FixedUserUuiD, val, "different userIDs")
 

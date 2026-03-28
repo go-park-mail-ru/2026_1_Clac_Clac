@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -19,8 +20,8 @@ func TestGetBoards(t *testing.T) {
 	targetUserID := uuid.New()
 
 	expectedBoards := []models.Board{
-		{ID: uuid.New()},
-		{ID: uuid.New()},
+		{Link: uuid.New()},
+		{Created_at: time.Now()},
 	}
 
 	tests := []struct {
@@ -119,7 +120,7 @@ func TestAddEmptyBoard(t *testing.T) {
 			nameTest: "Success create empty board",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockBoardRep.BoardRepository) {
-				m.On("AddEmptyBoard", context.Background(), mock.AnythingOfType("db.Board"), targetUserID).Return(nil)
+				m.On("AddEmptyBoard", context.Background(), mock.AnythingOfType("models.Board"), targetUserID).Return(nil)
 			},
 			expectedError: nil,
 		},
@@ -127,7 +128,7 @@ func TestAddEmptyBoard(t *testing.T) {
 			nameTest: "Repository error",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockBoardRep.BoardRepository) {
-				m.On("AddEmptyBoard", context.Background(), mock.AnythingOfType("db.Board"), targetUserID).Return(expectedRepoError)
+				m.On("AddEmptyBoard", context.Background(), mock.AnythingOfType("models.Board"), targetUserID).Return(expectedRepoError)
 			},
 
 			expectedError: fmt.Errorf("rep.AddEmptyBoard: %w", expectedRepoError),

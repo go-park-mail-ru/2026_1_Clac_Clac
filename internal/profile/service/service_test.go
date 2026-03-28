@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	mockProfileRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/mock_profile_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,8 +17,8 @@ import (
 func TestGetProfileUser(t *testing.T) {
 	targetUserID := uuid.New()
 
-	expectedUser := models.User{
-		ID:          targetUserID,
+	expectedUser := dto.UserInfo{
+		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
 	}
@@ -28,14 +29,17 @@ func TestGetProfileUser(t *testing.T) {
 		nameTest      string
 		userID        uuid.UUID
 		mockBehavior  func(m *mockProfileRep.ProfileRepository)
-		expectedUser  models.User
+		expectedUser  dto.UserInfo
 		expectedError error
 	}{
 		{
 			nameTest: "Success get profile",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockProfileRep.ProfileRepository) {
-				m.On("GetProfile", mock.Anything, targetUserID).Return(expectedUser, nil)
+				m.On("GetProfile", mock.Anything, targetUserID).Return(repositoryDto.UserInfoEntity{
+					Link:        targetUserID,
+					DisplayName: "Artem",
+					Email:       "test@mail.ru"}, nil)
 			},
 			expectedUser:  expectedUser,
 			expectedError: nil,
@@ -44,9 +48,9 @@ func TestGetProfileUser(t *testing.T) {
 			nameTest: "Error from repository",
 			userID:   targetUserID,
 			mockBehavior: func(m *mockProfileRep.ProfileRepository) {
-				m.On("GetProfile", mock.Anything, targetUserID).Return(models.User{}, someRepoError)
+				m.On("GetProfile", mock.Anything, targetUserID).Return(repositoryDto.UserInfoEntity{}, someRepoError)
 			},
-			expectedUser:  models.User{},
+			expectedUser:  dto.UserInfo{},
 			expectedError: fmt.Errorf("rep.GetProfile: %w", someRepoError),
 		},
 	}

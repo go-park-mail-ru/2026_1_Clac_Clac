@@ -1,15 +1,5 @@
 basePath: /api
 definitions:
-  api.ErrorResponse:
-    description: Структура сообщения об ошибке
-    properties:
-      code:
-        type: integer
-      message:
-        type: string
-      status:
-        type: string
-    type: object
   api.LogInRequest:
     description: Данные для входа в систему
     properties:
@@ -63,20 +53,14 @@ definitions:
         example: securePassword
         type: string
     type: object
-  api.Response:
-    description: Базовый ответ
-    properties:
-      status:
-        type: string
-    type: object
-  github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.Board:
+  models.Board:
     description: Краткая информация о доске
     properties:
       id:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
     type: object
-  github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User:
+  models.User:
     description: Полная информация о пользователе
     properties:
       avatar:
@@ -85,7 +69,7 @@ definitions:
         type: string
       boards:
         items:
-          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.Board'
+          $ref: '#/definitions/models.Board'
         type: array
       display_name:
         example: Ivan Ivanov
@@ -103,7 +87,100 @@ info:
   description: Наше API
   title: NeXus
 paths:
-  /check-code:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя по email и паролю. Устанавливает HTTP-only
+        cookie с сессией.
+      parameters:
+      - description: Учетные данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.LogInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная аутентификация
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Некорректный запрос (невалидные данные)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверный email или пароль
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Удаляет сессию пользователя из хранилища и очищает cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный выход
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход из системы
+      tags:
+      - auth
+  /auth/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Устанавливает новый пароль пользователя с помощью проверенного
+        токена.
+      parameters:
+      - description: Новый пароль и токен
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.NewPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Пароль успешно изменен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Некорректные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка обновления пароля
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Сброс пароля
+      tags:
+      - auth
+  /auth/recovery/check:
     post:
       consumes:
       - application/json
@@ -139,30 +216,7 @@ paths:
       summary: Проверка кода восстановления
       tags:
       - auth
-  /csrf:
-    get:
-      description: |-
-        Генерирует новый CSRF токен и записывает его в Cookie.
-        Вместе с кукой также надо отправлять X-CSRF-Token
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: "ok\"\t\"Успешная установка куки"
-          headers:
-            Set-Cookie:
-              description: csrf_token=...; Path=/; Secure; SameSite=Lax
-              type: string
-          schema:
-            $ref: '#/definitions/api.Response'
-        "500":
-          description: internal server error - cannot create token
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      summary: Установка CSRF куки
-      tags:
-      - csrf
-  /forgot-password:
+  /auth/recovery/send:
     post:
       consumes:
       - application/json
@@ -198,34 +252,28 @@ paths:
       summary: Запрос восстановления пароля
       tags:
       - auth
-  /login:
+  /auth/register:
     post:
       consumes:
       - application/json
-      description: Аутентификация пользователя по email и паролю. Устанавливает HTTP-only
-        cookie с сессией.
+      description: Создает новый аккаунт и сразу авторизует пользователя, выдавая
+        cookie.
       parameters:
-      - description: Учетные данные пользователя
+      - description: Данные для регистрации
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.LogInRequest'
+          $ref: '#/definitions/api.RegisterRequest'
       produces:
       - application/json
       responses:
-        "200":
-          description: Успешная аутентификация
+        "201":
+          description: Пользователь успешно создан
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User'
+            $ref: '#/definitions/models.User'
         "400":
-          description: Некорректный запрос (невалидные данные)
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Неверный email или пароль
+          description: Ошибка валидации данных
           schema:
             additionalProperties:
               type: string
@@ -236,22 +284,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Вход в систему
-      tags:
-      - auth
-  /logout:
-    post:
-      description: Удаляет сессию пользователя из хранилища и очищает cookie.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Успешный выход
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Выход из системы
+      summary: Регистрация нового пользователя
       tags:
       - auth
   /me:
@@ -272,106 +305,6 @@ paths:
       security:
       - CookieAuth: []
       summary: Проверка авторизации
-      tags:
-      - auth
-  /oauth/vk:
-    get:
-      description: Делает redirect 302, передает code и message через query параметры.
-      parameters:
-      - description: Код авторизации, полученный от ВКонтакте
-        in: query
-        name: code
-        required: true
-        type: string
-      responses:
-        "302":
-          description: Успешная авторизация. Устанавливается Cookie и происходит редирект
-          headers:
-            Location:
-              description: URL редиректа на клиент (например, /?code=200&message=success)
-              type: string
-            Set-Cookie:
-              description: Сессионная кука
-              type: string
-        "400":
-          description: Отсутствует code, email или email некорректный
-        "500":
-          description: Внутренняя ошибка сервера
-        "502":
-          description: Ошибка при обращении к API ВКонтакте
-      summary: VK OAuth Callback
-      tags:
-      - auth
-  /register:
-    post:
-      consumes:
-      - application/json
-      description: Создает новый аккаунт и сразу авторизует пользователя, выдавая
-        cookie.
-      parameters:
-      - description: Данные для регистрации
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Пользователь успешно создан
-          schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User'
-        "400":
-          description: Ошибка валидации данных
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Регистрация нового пользователя
-      tags:
-      - auth
-  /reset-password:
-    post:
-      consumes:
-      - application/json
-      description: Устанавливает новый пароль пользователя с помощью проверенного
-        токена.
-      parameters:
-      - description: Новый пароль и токен
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.NewPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Пароль успешно изменен
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Некорректные данные
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Ошибка обновления пароля
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Сброс пароля
       tags:
       - auth
 swagger: "2.0"

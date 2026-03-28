@@ -5,7 +5,7 @@ package mockProfileRep
 import (
 	context "context"
 
-	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/models"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
@@ -16,27 +16,27 @@ type ProfileRepository struct {
 	mock.Mock
 }
 
-// GetProfile provides a mock function with given fields: ctx, userID
-func (_m *ProfileRepository) GetProfile(ctx context.Context, userID uuid.UUID) (models.User, error) {
-	ret := _m.Called(ctx, userID)
+// GetProfile provides a mock function with given fields: ctx, link
+func (_m *ProfileRepository) GetProfile(ctx context.Context, link uuid.UUID) (dto.UserInfoEntity, error) {
+	ret := _m.Called(ctx, link)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProfile")
 	}
 
-	var r0 models.User
+	var r0 dto.UserInfoEntity
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (models.User, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.UserInfoEntity, error)); ok {
+		return rf(ctx, link)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) models.User); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.UserInfoEntity); ok {
+		r0 = rf(ctx, link)
 	} else {
-		r0 = ret.Get(0).(models.User)
+		r0 = ret.Get(0).(dto.UserInfoEntity)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, userID)
+		r1 = rf(ctx, link)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -15,7 +15,146 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/check-code": {
+        "/auth/login": {
+            "post": {
+                "description": "Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Вход в систему",
+                "parameters": [
+                    {
+                        "description": "Учетные данные пользователя",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.LogInRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная аутентификация",
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос (невалидные данные)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Неверный email или пароль",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Удаляет сессию пользователя из хранилища и очищает cookie.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Выход из системы",
+                "responses": {
+                    "200": {
+                        "description": "Успешный выход",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/reset": {
+            "post": {
+                "description": "Устанавливает новый пароль пользователя с помощью проверенного токена.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Сброс пароля",
+                "parameters": [
+                    {
+                        "description": "Новый пароль и токен",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.NewPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Пароль успешно изменен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка обновления пароля",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/recovery/check": {
             "post": {
                 "description": "Проверяет корректность 6-значного кода, отправленного на почту.",
                 "consumes": [
@@ -70,39 +209,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/csrf": {
-            "get": {
-                "description": "Генерирует новый CSRF токен и записывает его в Cookie.\nВместе с кукой также надо отправлять X-CSRF-Token",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "csrf"
-                ],
-                "summary": "Установка CSRF куки",
-                "responses": {
-                    "200": {
-                        "description": "ok\"\t\"Успешная установка куки",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        },
-                        "headers": {
-                            "Set-Cookie": {
-                                "type": "string",
-                                "description": "csrf_token=...; Path=/; Secure; SameSite=Lax"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "internal server error - cannot create token",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/forgot-password": {
+        "/auth/recovery/send": {
             "post": {
                 "description": "Генерирует код восстановления и отправляет его на указанный email.",
                 "consumes": [
@@ -157,9 +264,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/login": {
+        "/auth/register": {
             "post": {
-                "description": "Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.",
+                "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.",
                 "consumes": [
                     "application/json"
                 ],
@@ -169,36 +276,27 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Вход в систему",
+                "summary": "Регистрация нового пользователя",
                 "parameters": [
                     {
-                        "description": "Учетные данные пользователя",
+                        "description": "Данные для регистрации",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.LogInRequest"
+                            "$ref": "#/definitions/api.RegisterRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Успешная аутентификация",
+                    "201": {
+                        "description": "Пользователь успешно создан",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос (невалидные данные)",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Неверный email или пароль",
+                        "description": "Ошибка валидации данных",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -208,29 +306,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/logout": {
-            "post": {
-                "description": "Удаляет сессию пользователя из хранилища и очищает cookie.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Выход из системы",
-                "responses": {
-                    "200": {
-                        "description": "Успешный выход",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -273,173 +348,9 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/oauth/vk": {
-            "get": {
-                "description": "Делает redirect 302, передает code и message через query параметры.",
-                "tags": [
-                    "auth"
-                ],
-                "summary": "VK OAuth Callback",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Код авторизации, полученный от ВКонтакте",
-                        "name": "code",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Успешная авторизация. Устанавливается Cookie и происходит редирект",
-                        "headers": {
-                            "Location": {
-                                "type": "string",
-                                "description": "URL редиректа на клиент (например, /?code=200\u0026message=success)"
-                            },
-                            "Set-Cookie": {
-                                "type": "string",
-                                "description": "Сессионная кука"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Отсутствует code, email или email некорректный"
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера"
-                    },
-                    "502": {
-                        "description": "Ошибка при обращении к API ВКонтакте"
-                    }
-                }
-            }
-        },
-        "/register": {
-            "post": {
-                "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Регистрация нового пользователя",
-                "parameters": [
-                    {
-                        "description": "Данные для регистрации",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.RegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Пользователь успешно создан",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка валидации данных",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/reset-password": {
-            "post": {
-                "description": "Устанавливает новый пароль пользователя с помощью проверенного токена.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Сброс пароля",
-                "parameters": [
-                    {
-                        "description": "Новый пароль и токен",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.NewPasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Пароль успешно изменен",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректные данные",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Ошибка обновления пароля",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "api.ErrorResponse": {
-            "description": "Структура сообщения об ошибке",
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
         "api.LogInRequest": {
             "description": "Данные для входа в систему",
             "type": "object",
@@ -514,16 +425,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.Response": {
-            "description": "Базовый ответ",
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.Board": {
+        "models.Board": {
             "description": "Краткая информация о доске",
             "type": "object",
             "properties": {
@@ -533,7 +435,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.User": {
+        "models.User": {
             "description": "Полная информация о пользователе",
             "type": "object",
             "properties": {
@@ -545,7 +447,7 @@ const docTemplate = `{
                 "boards": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_models.Board"
+                        "$ref": "#/definitions/models.Board"
                     }
                 },
                 "display_name": {

@@ -2,256 +2,132 @@ package repository
 
 import (
 	"context"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/google/uuid"
+	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetBoards(t *testing.T) {
 	userID1 := uuid.New()
-	userID2 := uuid.New()
 
-	board1 := models.Board{ID: uuid.New()}
-	board2 := models.Board{ID: uuid.New()}
-	board3 := models.Board{ID: uuid.New()}
+	board1 := models.Board{Link: uuid.New(), Created_at: time.Now()}
+	board2 := models.Board{Link: uuid.New(), Created_at: time.Now()}
 
 	tests := []struct {
 		nameTest       string
 		targetID       uuid.UUID
-		users          []models.User
+		mockSetup      func(mock pgxmock.PgxPoolIface, targetID uuid.UUID)
 		expectedBoards []models.Board
 	}{
 		{
 			nameTest: "Success get user boards",
 			targetID: userID1,
-			users: []models.User{
-				{ID: userID1, Boards: []models.Board{board1, board2}},
-				{ID: userID2, Boards: []models.Board{board3}},
+			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
+				getBoardQuery := `SELECT b.link, b.created_at
+				FROM board b
+				JOIN member_board mb ON b.link = mb.board_link
+				WHERE mb.user_link = \$1`
+				rows := pgxmock.NewRows([]string{"link", "created_at"}).
+					AddRow(board1.Link, board1.Created_at).
+					AddRow(board2.Link, board2.Created_at)
+
+				mock.ExpectQuery(getBoardQuery).
+					WithArgs(targetID).
+					WillReturnRows(rows)
 			},
 			expectedBoards: []models.Board{board1, board2},
 		},
 		{
 			nameTest: "User has no boards",
 			targetID: userID1,
-			users: []models.User{
-				{ID: userID1, Boards: []models.Board{}},
+			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
+				getBoardQuery := `SELECT b\.link, b\.created_at FROM board b JOIN member_board mb ON b\.link = mb\.board_link WHERE mb\.user_link = \$1`
+				rows := pgxmock.NewRows([]string{"link", "created_at"})
+
+				mock.ExpectQuery(getBoardQuery).
+					WithArgs(targetID).
+					WillReturnRows(rows)
 			},
 			expectedBoards: []models.Board{},
 		},
-		{
-			nameTest: "User not found",
-			targetID: uuid.New(),
-			users: []models.User{
-				{ID: userID2, Boards: []models.Board{board3}},
-			},
-			expectedBoards: nil,
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
+			mock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mock.Close()
 
-			for _, user := range test.users {
-				dbBoards := []db.Board{}
+			test.mockSetup(mock, test.targetID)
 
-				for i := 0; i < len(user.Boards); i++ {
-					dbBoards = append(dbBoards, db.Board(user.Boards[i]))
-				}
-
-				conectionDb.UsersDB[user.ID] = db.User{
-					ID:           user.ID,
-					DisplayName:  user.DisplayName,
-					PasswordHash: user.PasswordHash,
-					Email:        user.Email,
-					Avatar:       user.Avatar,
-					Boards:       dbBoards,
-				}
-			}
-
-			baords := NewRepository(conectionDb)
+			repoBoards := NewRepository(mock)
 			ctx := context.Background()
 
-			boards, _ := baords.GetBoards(ctx, test.targetID)
+			boards, err := repoBoards.GetBoards(ctx, test.targetID)
 
+			assert.NoError(t, err)
 			assert.Equal(t, test.expectedBoards, boards)
-		})
-	}
-}
 
-func TestGetBoardsError(t *testing.T) {
-	userID1 := uuid.New()
-	board1 := models.Board{ID: uuid.New()}
-
-	tests := []struct {
-		nameTest       string
-		targetID       uuid.UUID
-		users          []models.User
-		expectedBoards []models.Board
-		expectedError  error
-	}{
-		{
-			nameTest: "User not found",
-			targetID: uuid.New(),
-			users: []models.User{
-				{ID: userID1, Boards: []models.Board{board1}},
-			},
-			expectedBoards: nil,
-			expectedError:  common.ErrorNonexistentUser,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-
-			for _, user := range test.users {
-				dbBoards := []db.Board{}
-
-				for i := 0; i < len(user.Boards); i++ {
-					dbBoards = append(dbBoards, db.Board(user.Boards[i]))
-				}
-
-				conectionDb.UsersDB[user.ID] = db.User{
-					ID:           user.ID,
-					DisplayName:  user.DisplayName,
-					PasswordHash: user.PasswordHash,
-					Email:        user.Email,
-					Avatar:       user.Avatar,
-					Boards:       dbBoards,
-				}
-			}
-
-			baords := NewRepository(conectionDb)
-			ctx := context.Background()
-
-			boards, err := baords.GetBoards(ctx, test.targetID)
-
-			assert.Equal(t, test.expectedBoards, boards)
-			assert.Equal(t, test.expectedError, err)
+			err = mock.ExpectationsWereMet()
+			assert.NoError(t, err, "not wait error")
 		})
 	}
 }
 
 func TestCreateEmptyBoard(t *testing.T) {
-	userID1 := uuid.New()
-	userID2 := uuid.New()
-	board1 := models.Board{ID: uuid.New()}
-
-	tests := []struct {
-		nameTest            string
-		targetID            uuid.UUID
-		users               []models.User
-		expectedBoardsCount int
-	}{
-		{
-			nameTest: "success create board for new user",
-			targetID: userID1,
-			users: []models.User{
-				{ID: userID1, Boards: []models.Board{}},
-			},
-			expectedBoardsCount: 1,
-		},
-		{
-			nameTest: "success create board for old user",
-			targetID: userID2,
-			users: []models.User{
-				{ID: userID2, Boards: []models.Board{board1}},
-			},
-			expectedBoardsCount: 2,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
-
-			for _, user := range test.users {
-				dbBoards := []db.Board{}
-
-				for i := 0; i < len(user.Boards); i++ {
-					dbBoards = append(dbBoards, db.Board(user.Boards[i]))
-				}
-
-				conectionDb.UsersDB[user.ID] = db.User{
-					ID:           user.ID,
-					DisplayName:  user.DisplayName,
-					PasswordHash: user.PasswordHash,
-					Email:        user.Email,
-					Avatar:       user.Avatar,
-
-					Boards: dbBoards,
-				}
-			}
-
-			baords := NewRepository(conectionDb)
-			ctx := context.Background()
-
-			err := baords.AddEmptyBoard(ctx, db.Board{ID: common.FixedBoardUuiD}, test.targetID)
-			require.NoError(t, err)
-
-			updatedUser := conectionDb.UsersDB[test.targetID]
-			assert.Equal(t, test.expectedBoardsCount, len(updatedUser.Boards))
-
-			if len(updatedUser.Boards) > 0 {
-				lastBoard := updatedUser.Boards[len(updatedUser.Boards)-1]
-				assert.NotEqual(t, uuid.Nil, lastBoard.ID)
-			}
-		})
-	}
-}
-
-func TestCreateEmptyBoardError(t *testing.T) {
-	userID1 := uuid.New()
-
 	tests := []struct {
 		nameTest      string
 		targetID      uuid.UUID
-		users         []models.User
+		board         models.Board
+		mockSetup     func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board)
 		expectedError error
 	}{
 		{
-			nameTest: "user not found",
+			nameTest: "Success create empty board",
 			targetID: uuid.New(),
-			users: []models.User{
-				{ID: userID1, Boards: []models.Board{}},
+			board:    models.Board{Link: uuid.New()},
+			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board) {
+
+				addEmptyBoardQuery := `INSERT INTO board (link) VALUES ($1)`
+				mock.ExpectExec(regexp.QuoteMeta(addEmptyBoardQuery)).
+					WithArgs(board.Link).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				addMemberBoardQuery := `INSERT INTO member_board (board_link, user_link) VALUES ($1, $2)`
+				mock.ExpectExec(regexp.QuoteMeta(addMemberBoardQuery)).
+					WithArgs(board.Link, targetID).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 			},
-			expectedError: common.ErrorNonexistentUser,
+			expectedError: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			conectionDb := db.NewMapDatabse()
+			mock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mock.Close()
 
-			for _, user := range test.users {
-				dbBoards := []db.Board{}
+			test.mockSetup(mock, test.targetID, test.board)
 
-				for i := 0; i < len(user.Boards); i++ {
-					dbBoards = append(dbBoards, db.Board(user.Boards[i]))
-				}
-
-				conectionDb.UsersDB[user.ID] = db.User{
-					ID:           user.ID,
-					DisplayName:  user.DisplayName,
-					PasswordHash: user.PasswordHash,
-					Email:        user.Email,
-					Avatar:       user.Avatar,
-					Boards:       dbBoards,
-				}
-			}
-
-			baords := NewRepository(conectionDb)
+			repoBoards := NewRepository(mock)
 			ctx := context.Background()
 
-			err := baords.AddEmptyBoard(ctx, db.Board{ID: uuid.New()}, test.targetID)
+			err = repoBoards.AddEmptyBoard(ctx, test.board, test.targetID)
 
-			assert.Equal(t, test.expectedError, err)
+			if test.expectedError == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, test.expectedError, err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			assert.NoError(t, err, "not wait error")
 		})
 	}
 }
