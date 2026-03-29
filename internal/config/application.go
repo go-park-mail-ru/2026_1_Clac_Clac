@@ -6,16 +6,19 @@ const (
 )
 
 const (
-	defaultLogLevel = DebugLevel
+	defaultLogLevel           = DebugLevel
+	defaultMaxTextRequestSize = 10 * 1024 // 10 кБ
 )
 
 type Application struct {
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel           string `mapstructure:"log_level"`
+	MaxTextRequestSize int64  `mapstructure:"max_text_request_size"`
 }
 
 func DefaultApplicationConfig() Application {
 	return Application{
-		LogLevel: defaultLogLevel,
+		LogLevel:           defaultLogLevel,
+		MaxTextRequestSize: defaultMaxTextRequestSize,
 	}
 }
 
