@@ -21,7 +21,8 @@ const (
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
 		App: config.Application{
-			LogLevel: DebugLevel,
+			LogLevel:           DebugLevel,
+			MaxTextRequestSize: 10 * 1024, // 10 кБ
 		},
 		Engine: config.Engine{
 			Addr:                    ":8080",
@@ -50,6 +51,7 @@ func TestConfigReading(t *testing.T) {
 	var yamlTest = []byte(`
 app:
   log_level: debug
+  max_text_request_size: 10240
 
 engine:
   addr: ":8080"

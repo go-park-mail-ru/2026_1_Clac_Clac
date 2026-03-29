@@ -46,7 +46,7 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, logger, &conf.VkOAuth)
+	router := setupRouter(manager, &conf.App, &conf.VkOAuth, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -74,12 +74,13 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
+func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *config.VkOAuth, logger *zerolog.Logger) *mux.Router {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.LimitRequestSizeMiddleware(appConf.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
 	authHandler := auth.NewHandler(manager.Auth)
@@ -120,9 +121,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	return router
 }
 
-// Настройка сервера
 func setupEngine(conf *config.Engine, logger *zerolog.Logger, router *mux.Router) *engine.Engine {
-	// Создание сервера
 	return engine.New(conf, logger, router)
 }
 
