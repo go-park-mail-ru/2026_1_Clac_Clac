@@ -15,13 +15,13 @@ type AWSClient struct {
 	client *awsS3.Client
 }
 
-func (s *AWSClient) NewBucket(bucket string, prefix string, keyGenerator func() (string, error), defaultACL awsTypes.ObjectCannedACL) *AWSBucket {
+func (s *AWSClient) NewBucket(bucket string, prefix string, keyGenerator func() (string, error)) S3Bucket {
 	return &AWSBucket{
 		client:       s.client,
 		bucket:       bucket,
 		prefix:       prefix,
 		keyGenerator: keyGenerator,
-		acl:          defaultACL,
+		acl:          awsTypes.ObjectCannedACLPublicRead,
 	}
 }
 
