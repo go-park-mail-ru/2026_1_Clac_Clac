@@ -12,8 +12,14 @@ import (
 	awsTypes "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+//go:generate mockery --name AWSClientAPI --output mock_aws_client
+type AWSClientAPI interface {
+	PutObject(ctx context.Context, params *awsS3.PutObjectInput, optFns ...func(*awsS3.Options)) (*awsS3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *awsS3.DeleteObjectInput, optFns ...func(*awsS3.Options)) (*awsS3.DeleteObjectOutput, error)
+}
+
 type AWSBucket struct {
-	client       *awsS3.Client
+	client       AWSClientAPI
 	bucket       string
 	prefix       string
 	acl          awsTypes.ObjectCannedACL

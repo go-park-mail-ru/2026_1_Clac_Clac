@@ -51,6 +51,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	SetupEnvVkOAuth(v)
 	SetupEnvDbConnection(v)
 	SetupEnvRedisConnection(v)
+	SetupEnvS3Avatars(v)
 
 	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)
