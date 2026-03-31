@@ -46,7 +46,7 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, &conf.App, &conf.VkOAuth, logger)
+	router := setupRouter(manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -74,13 +74,14 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *config.VkOAuth, logger *zerolog.Logger) *mux.Router {
+func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
-	router.Use(middleware.LimitRequestSizeMiddleware(appConf.MaxTextRequestSize))
+	router.Use(middleware.CORSMiddleware(&conf.CORS))
+	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
 	authHandler := auth.NewHandler(manager.Auth)
@@ -99,8 +100,8 @@ func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *con
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
-	vkOAuth := setupVKOAuth(vkOAuthConf)
-	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
+	vkOAuth := setupVKOAuth(&conf.VkOAuth)
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(&conf.VkOAuth, "/", vkOAuth))
 
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
