@@ -20,7 +20,8 @@ func TestNewPoolPostgresError(t *testing.T) {
 		MaxConnectionLifetime: time.Hour,
 		MaxHealthCheckPeriod:  time.Minute,
 		PingSleepTime:         pingSleepTime,
-		MaxRetries:            5,
+		TimeOut:               pingSleepTime,
+		MaxRetries:            1,
 	}
 
 	tests := []struct {
@@ -38,6 +39,24 @@ func TestNewPoolPostgresError(t *testing.T) {
 		{
 			nameTest:      "Error connection timeout",
 			dsn:           "postgres://user:pass@localhost:9999/testdb?sslmode=disable",
+			expectedError: ErrorConnectPosgress,
+			errorContains: "",
+		},
+		{
+			nameTest:      "Error empty DSN string",
+			dsn:           "",
+			expectedError: ErrorConnectPosgress,
+			errorContains: "",
+		},
+		{
+			nameTest:      "Error unknown host in DSN",
+			dsn:           "postgres://user:pass@unknown-host-that-does-not-exist:5432/testdb",
+			expectedError: ErrorConnectPosgress,
+			errorContains: "",
+		},
+		{
+			nameTest:      "Error missing database name in DSN",
+			dsn:           "postgres://user:pass@localhost:5432/",
 			expectedError: ErrorConnectPosgress,
 			errorContains: "",
 		},
@@ -80,6 +99,24 @@ func TestRunMigrationsError(t *testing.T) {
 			nameTest:      "Error invalid migrations path",
 			dsn:           "postgres://user:pass@localhost:5432/testdb?sslmode=disable",
 			mockPath:      "file://invalid_path_that_does_not_exist",
+			errorContains: "cannot create migrate for database",
+		},
+		{
+			nameTest:      "Error empty DSN string",
+			dsn:           "",
+			expectedError: nil,
+			errorContains: "cannot create migrate for database",
+		},
+		{
+			nameTest:      "Error malformed postgres URL",
+			dsn:           "postgres://user@:pass@localhost/db",
+			mockPath:      "file://migrations",
+			errorContains: "cannot create migrate for database",
+		},
+		{
+			nameTest:      "Error unreachable host with fast timeout",
+			dsn:           "postgres://user:pass@10.255.255.1:5432/db?connect_timeout=1",
+			mockPath:      "file://migrations",
 			errorContains: "cannot create migrate for database",
 		},
 	}

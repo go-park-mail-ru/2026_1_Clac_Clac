@@ -43,6 +43,26 @@ func (_m *RedisEngine) Del(ctx context.Context, keys ...string) *redis.IntCmd {
 	return r0
 }
 
+// Expire provides a mock function with given fields: ctx, key, expiration
+func (_m *RedisEngine) Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd {
+	ret := _m.Called(ctx, key, expiration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Expire")
+	}
+
+	var r0 *redis.BoolCmd
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) *redis.BoolCmd); ok {
+		r0 = rf(ctx, key, expiration)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*redis.BoolCmd)
+		}
+	}
+
+	return r0
+}
+
 // Get provides a mock function with given fields: ctx, key
 func (_m *RedisEngine) Get(ctx context.Context, key string) *redis.StringCmd {
 	ret := _m.Called(ctx, key)
@@ -63,6 +83,26 @@ func (_m *RedisEngine) Get(ctx context.Context, key string) *redis.StringCmd {
 	return r0
 }
 
+// Pipeline provides a mock function with no fields
+func (_m *RedisEngine) Pipeline() redis.Pipeliner {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Pipeline")
+	}
+
+	var r0 redis.Pipeliner
+	if rf, ok := ret.Get(0).(func() redis.Pipeliner); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(redis.Pipeliner)
+		}
+	}
+
+	return r0
+}
+
 // Set provides a mock function with given fields: ctx, key, value, expiration
 func (_m *RedisEngine) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd {
 	ret := _m.Called(ctx, key, value, expiration)
@@ -77,6 +117,46 @@ func (_m *RedisEngine) Set(ctx context.Context, key string, value interface{}, e
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*redis.StatusCmd)
+		}
+	}
+
+	return r0
+}
+
+// SetNX provides a mock function with given fields: ctx, key, value, expiration
+func (_m *RedisEngine) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd {
+	ret := _m.Called(ctx, key, value, expiration)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetNX")
+	}
+
+	var r0 *redis.BoolCmd
+	if rf, ok := ret.Get(0).(func(context.Context, string, interface{}, time.Duration) *redis.BoolCmd); ok {
+		r0 = rf(ctx, key, value, expiration)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*redis.BoolCmd)
+		}
+	}
+
+	return r0
+}
+
+// TTL provides a mock function with given fields: ctx, key
+func (_m *RedisEngine) TTL(ctx context.Context, key string) *redis.DurationCmd {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TTL")
+	}
+
+	var r0 *redis.DurationCmd
+	if rf, ok := ret.Get(0).(func(context.Context, string) *redis.DurationCmd); ok {
+		r0 = rf(ctx, key)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*redis.DurationCmd)
 		}
 	}
 

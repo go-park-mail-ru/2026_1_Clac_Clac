@@ -9,6 +9,7 @@ import (
 	"time"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
+	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
@@ -96,8 +97,19 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
-	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
-	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+
+	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig{
+		Limit:  5,
+		Action: "login",
+		Window: 1 * time.Minute,
+	}, logger, authHandler.LogInUser)).Methods(http.MethodPost)
+
+	public.Handle("/register", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig{
+		Limit:  5,
+		Action: "register",
+		Window: 1 * time.Hour,
+	}, logger, authHandler.RegisterUser)).Methods(http.MethodPost)
+
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
 	vkOAuth := setupVKOAuth(&conf.VkOAuth)
@@ -110,7 +122,7 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := csrfProtected.PathPrefix("/").Subrouter()
 	// Добавление мидлваре для авторизации
-	protected.Use(middleware.AuthMiddleware(manager.Auth))
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
 	// Руты, на которые пользователь объязательно должен быть авторизован
 	boardHandler := board.NewHandler(manager.Board)
 	profileHandler := profile.NewHandler(manager.Profile)

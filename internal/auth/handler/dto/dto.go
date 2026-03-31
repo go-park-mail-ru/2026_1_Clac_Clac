@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type UserInfoResponse struct {
 	Link        uuid.UUID `json:"link"`
@@ -48,4 +52,10 @@ type NewPasswordRequest struct {
 	TokenID          string `json:"token_id"          example:"uuid-token-string"`
 	Password         string `json:"password"          example:"new_password_123"`
 	RepeatedPassword string `json:"repeated_password" example:"new_password_123"`
+}
+
+type RateLimitConfig struct {
+	Limit  int64
+	Action string
+	Window time.Duration
 }

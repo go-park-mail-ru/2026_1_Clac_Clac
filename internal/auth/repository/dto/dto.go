@@ -32,3 +32,15 @@ type ResetTokenEntity struct {
 	UserLink     uuid.UUID
 	LifeTime     time.Duration
 }
+
+type RateLimiterConfig struct {
+	UserIP string
+	Action string
+	Window time.Duration
+}
+
+type CoolDownConfig struct {
+	Name       string
+	Email      string
+	Expiration time.Duration
+}
