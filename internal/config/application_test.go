@@ -13,9 +13,13 @@ import (
 func TestApplicationConfig(t *testing.T) {
 	t.Run("test unmarshal", func(t *testing.T) {
 		want := config.Application{
-			LogLevel: DebugLevel,
+			LogLevel:           DebugLevel,
+			MaxTextRequestSize: 10 * 1024, // 10 кБ
 		}
-		var yamlTest = []byte(`log_level: debug`)
+		var yamlTest = []byte(`
+			log_level: debug
+			max_text_request_size: 10240
+		`)
 
 		viper.SetConfigType("yaml")
 		viper.ReadConfig(bytes.NewBuffer(yamlTest))
