@@ -1,4 +1,4 @@
-package api_test
+package handler_test
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +43,7 @@ func TestRedirect(t *testing.T) {
 			res := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/callback", nil)
 
-			w, err := api.Redirect(res, req, test.TargetURL, test.ExpectedCode, test.ExpectedMessage)
+			w, err := handler.Redirect(res, req, test.TargetURL, test.ExpectedCode, test.ExpectedMessage)
 			require.Equal(t, res, w, "responses must be equal")
 			if test.ExpectError {
 				require.Error(t, err, "redirect must return error")

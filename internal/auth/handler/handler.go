@@ -358,32 +358,32 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		code := r.FormValue(oauthCodeKey)
 		if code == "" {
 			logger.Err(ErrOAuthCodeEmpty).Msg("vk oauth callback")
-			api.Redirect(w, r, redirectTo, http.StatusBadRequest, ErrOAuthCodeEmpty.Error())
+			Redirect(w, r, redirectTo, http.StatusBadRequest, ErrOAuthCodeEmpty.Error())
 			return
 		}
 
 		token, err := vkOAuth.Exchange(r.Context(), code)
 		if err != nil {
 			logger.Err(err).Msg("vk oauth exchange")
-			api.Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthExchangeFailed.Error())
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthExchangeFailed.Error())
 			return
 		}
 
 		rawEmail := token.Extra(oauthEmailKey)
 		if rawEmail == nil {
-			api.Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
 			return
 		}
 
 		var ok bool
 		var userEmail string
 		if userEmail, ok = rawEmail.(string); !ok {
-			api.Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
 			return
 		}
 
 		if ok := ValidateEmail(userEmail); !ok {
-			api.Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthInvalidEmail.Error())
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthInvalidEmail.Error())
 			return
 		}
 
@@ -391,7 +391,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
 		if err != nil {
 			logger.Err(err).Msg("vk api cannot request data")
-			api.Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthCannotRequestUserData.Error())
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthCannotRequestUserData.Error())
 			return
 		}
 
@@ -404,13 +404,13 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		usersData := &api.VkAPIUsersData{}
 		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
 			logger.Err(err).Msg("vk api cannot read response body")
-			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
 		if len(usersData.Response) < 1 {
 			logger.Err(ErrOAuthEmptyUserData).Msg("vk api: empty user data")
-			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthEmptyUserData.Error())
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthEmptyUserData.Error())
 			return
 		}
 
@@ -423,7 +423,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		user, err := a.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
-			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
@@ -437,14 +437,14 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 		err = a.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
 		if err != nil {
 			logger.Err(ErrOAuthCannotSaveRefreshToken).Msg("authService.SaveRefreshToken")
-			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
 		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user.Link)
 		if err != nil {
 			logger.Err(err).Msg("authService.CreateSessionForUser")
-			api.Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
@@ -453,7 +453,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
 
-		api.Redirect(w, r, redirectTo, http.StatusOK, oauthSuccessAuthMessage)
+		Redirect(w, r, redirectTo, http.StatusOK, oauthSuccessAuthMessage)
 	}
 }
 
