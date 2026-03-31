@@ -98,17 +98,11 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
 
-	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig{
-		Limit:  5,
-		Action: "login",
-		Window: 1 * time.Minute,
-	}, logger, authHandler.LogInUser)).Methods(http.MethodPost)
+	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
+		logger, authHandler.LogInUser)).Methods(http.MethodPost)
 
-	public.Handle("/register", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig{
-		Limit:  5,
-		Action: "register",
-		Window: 1 * time.Hour,
-	}, logger, authHandler.RegisterUser)).Methods(http.MethodPost)
+	public.Handle("/register", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.RegisterUser)),
+		logger, authHandler.RegisterUser)).Methods(http.MethodPost)
 
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 

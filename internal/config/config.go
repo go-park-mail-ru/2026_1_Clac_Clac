@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	App             Application        `mapstructure:"app"`
-	Engine          Engine             `mapstructure:"engine"`
-	MailSender      MailSender         `mapstructure:"mail_sender"`
-	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
-	DBConnection    DatabaseConnection `mapstructure:"database"`
-	RedisConnection RedisConnection    `mapstructure:"redis"`
-	CORS            CORS               `mapstructure:"cors"`
+	App             Application          `mapstructure:"app"`
+	Engine          Engine               `mapstructure:"engine"`
+	MailSender      MailSender           `mapstructure:"mail_sender"`
+	VkOAuth         VkOAuth              `mapstructure:"vk_oauth"`
+	DBConnection    DatabaseConnection   `mapstructure:"database"`
+	RedisConnection RedisConnection      `mapstructure:"redis"`
+	CORS            CORS                 `mapstructure:"cors"`
+	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
 }
 
 func DefaultConfig() Config {
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
+		DBRateLimiters:  DefaultActionsRateLimiters(),
 	}
 }
 
