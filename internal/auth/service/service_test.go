@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegister(t *testing.T) {
@@ -799,9 +800,6 @@ func TestResetPassword(t *testing.T) {
 
 				m.On("UpdatePassword", ctx, common.FixedUserUuiD, "hash_new_password").
 					Return(nil)
-
-				m.On("DeleteResetToken", ctx, common.FixedResetTokenID).
-					Return(nil)
 			},
 		},
 	}
@@ -904,6 +902,80 @@ func TestResetPasswordError(t *testing.T) {
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
 			assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
+		})
+	}
+}
+
+func TestEnsureUserByEmail(t *testing.T) {
+	testUserInfo := dto.RegistrationUser{
+		Email: "info@mail.ru",
+	}
+
+	tests := []struct {
+		Name         string
+		ExpectError  bool
+		MockBehavior func(r *mockAuthRep.AuthRepository)
+	}{
+		{
+			Name:        "no error, user exists",
+			ExpectError: false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUserInfo.Email).
+					Return(repositoryDto.UserEntity{Email: testUserInfo.Email}, nil)
+			},
+		},
+		{
+			Name:        "no error, user does not exists",
+			ExpectError: false,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUserInfo.Email).
+					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentUser)
+
+				r.On("AddUser", mock.Anything, mock.Anything).
+					Return(nil)
+
+				r.On("AddSession", mock.Anything, mock.Anything).
+					Return(nil)
+			},
+		},
+		{
+			Name:        "cannot find user error",
+			ExpectError: true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUserInfo.Email).
+					Return(repositoryDto.UserEntity{}, errors.New("cannot find user"))
+			},
+		},
+		{
+			Name:        "cannot register error",
+			ExpectError: true,
+			MockBehavior: func(r *mockAuthRep.AuthRepository) {
+				r.On("GetUser", mock.Anything, testUserInfo.Email).
+					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentUser)
+
+				r.On("AddUser", mock.Anything, mock.Anything).
+					Return(errors.New("cannot register user"))
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			authRepo := new(mockAuthRep.AuthRepository)
+			if test.MockBehavior != nil {
+				test.MockBehavior(authRepo)
+			}
+
+			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil)
+			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
+			if test.ExpectError {
+				require.Error(t, err, "must return error")
+				return
+			}
+
+			assert.Equal(t, testUserInfo.Email, user.Email, "users must be equal")
+
+			authRepo.AssertExpectations(t)
 		})
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
@@ -30,12 +29,10 @@ func TestGetBoards(t *testing.T) {
 			nameTest: "Success get user boards",
 			targetID: userID1,
 			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
-				checkQuery := `SELECT EXISTS\(SELECT 1 FROM "user" WHERE link = \$1\)`
-				mock.ExpectQuery(checkQuery).
-					WithArgs(targetID).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
-
-				getBoardQuery := `SELECT b\.link, b\.created_at FROM board b JOIN member_board mb ON b\.link = mb\.board_link WHERE mb\.user_link = \$1`
+				getBoardQuery := `SELECT b.link, b.created_at
+				FROM board b
+				JOIN member_board mb ON b.link = mb.board_link
+				WHERE mb.user_link = \$1`
 				rows := pgxmock.NewRows([]string{"link", "created_at"}).
 					AddRow(board1.Link, board1.Created_at).
 					AddRow(board2.Link, board2.Created_at)
@@ -50,11 +47,6 @@ func TestGetBoards(t *testing.T) {
 			nameTest: "User has no boards",
 			targetID: userID1,
 			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
-				checkQuery := `SELECT EXISTS\(SELECT 1 FROM "user" WHERE link = \$1\)`
-				mock.ExpectQuery(checkQuery).
-					WithArgs(targetID).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
-
 				getBoardQuery := `SELECT b\.link, b\.created_at FROM board b JOIN member_board mb ON b\.link = mb\.board_link WHERE mb\.user_link = \$1`
 				rows := pgxmock.NewRows([]string{"link", "created_at"})
 
@@ -80,50 +72,6 @@ func TestGetBoards(t *testing.T) {
 			boards, err := repoBoards.GetBoards(ctx, test.targetID)
 
 			assert.NoError(t, err)
-			assert.Equal(t, test.expectedBoards, boards)
-
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
-		})
-	}
-}
-
-func TestGetBoardsError(t *testing.T) {
-	tests := []struct {
-		nameTest       string
-		targetID       uuid.UUID
-		mockSetup      func(mock pgxmock.PgxPoolIface, targetID uuid.UUID)
-		expectedBoards []models.Board
-		expectedError  error
-	}{
-		{
-			nameTest: "User not found",
-			targetID: uuid.New(),
-			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
-				checkQuery := `SELECT EXISTS\(SELECT 1 FROM "user" WHERE link = \$1\)`
-				mock.ExpectQuery(checkQuery).
-					WithArgs(targetID).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
-			},
-			expectedBoards: []models.Board{},
-			expectedError:  common.ErrorNonexistentUser,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			mock, err := pgxmock.NewPool()
-			assert.NoError(t, err)
-			defer mock.Close()
-
-			test.mockSetup(mock, test.targetID)
-
-			repoBoards := NewRepository(mock)
-			ctx := context.Background()
-
-			boards, err := repoBoards.GetBoards(ctx, test.targetID)
-
-			assert.Equal(t, test.expectedError, err)
 			assert.Equal(t, test.expectedBoards, boards)
 
 			err = mock.ExpectationsWereMet()

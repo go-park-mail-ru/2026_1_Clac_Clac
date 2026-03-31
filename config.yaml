@@ -2,8 +2,14 @@ app:
   log_level: info
 
 engine:
-  addr: 127.0.0.1:8082
+  addr: 127.0.0.1:8080
   write_timeout: 15
   read_timeout: 15
   idle_timeout: 60
   graceful_shutdown_timeout: 15
+
+cors:
+  credentials: "true"
+  methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
+  max_age: 864000

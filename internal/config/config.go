@@ -15,6 +15,7 @@ type Config struct {
 	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
 	DBConnection    DatabaseConnection `mapstructure:"database"`
 	RedisConnection RedisConnection    `mapstructure:"redis"`
+	CORS            CORS               `mapstructure:"cors"`
 }
 
 func DefaultConfig() Config {

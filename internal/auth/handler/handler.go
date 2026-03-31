@@ -2,14 +2,10 @@ package handler
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
@@ -24,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// mockery --name=AuthService --output mock_auth_srv
 type AuthService interface {
 	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
 	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
@@ -34,11 +31,19 @@ type AuthService interface {
 	SendRecoveryCode(ctx context.Context, email string) error
 	CheckRecoveryCode(ctx context.Context, tokenID string) error
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
+	EnsureUserByEmail(ctx context.Context, info serviceDto.RegistrationUser) (serviceDto.UserInfo, error)
+	SaveRefreshTokenFroUser(ctx context.Context, info serviceDto.UserInfo, token string) error
+	GenerateRandomCSRFToken(ctx context.Context) (string, error)
 }
 
+// mockery --name=VkOAuth --output mock_vk_oauth
 type VkOAuth interface {
 	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
 	Client(ctx context.Context, t *oauth2.Token) *http.Client
+}
+
+type AuthHandler struct {
+	Srv AuthService
 }
 
 func NewHandler(srv AuthService) *AuthHandler {
@@ -47,19 +52,34 @@ func NewHandler(srv AuthService) *AuthHandler {
 	}
 }
 
-type AuthHandler struct {
-	Srv AuthService
-}
-
 const (
-	invalidDataMessage     = "invalid data"
-	invalidEmailOrPassword = "invalid email or password"
-	wrongEmailOrPassword   = "wrong email or password"
-	cannotSendEmail        = "cannot send email"
-	cannotResetPassword    = "cannot reset password"
-	somethingWentWrong     = "something went wrong"
-	userNotAuthorized      = "user not authorized"
-	userDoesNotExists      = "user does not exists"
+	oauthCodeKey            = "code"
+	oauthEmailKey           = "email"
+	oauthSuccessAuthMessage = "success"
+
+	csrfCookieKey = "csrf_token"
+)
+
+var (
+	ErrInvalidRequestSchema   = errors.New("invalid schema")
+	ErrInvalidEmailOrPassword = errors.New("invalid email or password")
+	ErrWrongEmailOrPassword   = errors.New("wrong email or password")
+	ErrCannotSendRecoveryCode = errors.New("cannot send recovery code")
+	ErrCannotResetPassword    = errors.New("cannot reset password")
+	ErrInternalServerError    = errors.New("something went wrong")
+	ErrUserNotAuthorized      = errors.New("user not authorized")
+	ErrUserDoesNotExists      = errors.New("user does not exists")
+
+	ErrOAuthCodeEmpty              = errors.New("oauth_code_empty")
+	ErrOAuthExchangeFailed         = errors.New("oauth_error")
+	ErrOAuthNoEmailProvided        = errors.New("oauth_no_email")
+	ErrOAuthInvalidEmail           = errors.New("oauth_invalid_email")
+	ErrOAuthCannotRequestUserData  = errors.New("oauth_cannot_request_user_data")
+	ErrOAuthEmptyUserData          = errors.New("oauth_no_user_data")
+	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
+	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
+
+	ErrCannotCreateCSRFToken = errors.New("cannot create csrf token")
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -75,7 +95,7 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, userNotAuthorized)
+		api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
 		return
 	}
 
@@ -99,13 +119,13 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 	var request dto.LogInRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	err := ValidatorRequestAuth(request.Email, request.Password)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -115,12 +135,12 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
-			api.RespondError(w, http.StatusUnauthorized, wrongEmailOrPassword)
+			api.RespondError(w, http.StatusUnauthorized, ErrWrongEmailOrPassword.Error())
 			return
 		}
 
 		logger.Err(fmt.Errorf("auth.Login: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
 
@@ -155,13 +175,13 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	var request dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -172,7 +192,7 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
 
@@ -230,19 +250,19 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	var request dto.PasswordRecoveryRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	err = a.Srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusBadRequest, userDoesNotExists)
+			api.RespondError(w, http.StatusNotFound, ErrUserDoesNotExists.Error())
 			return
 		}
 
 		logger.Err(fmt.Errorf("auth.SendRecoveryCode: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, cannotSendEmail)
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotSendRecoveryCode.Error())
 		return
 	}
 
@@ -266,14 +286,14 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	var request dto.RecoveryCodeRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	err = a.Srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.CheckRecoveryCode: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, somethingWentWrong)
+		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
 
@@ -281,89 +301,97 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 }
 
 // ResetUserPassword godoc
-// @Summary      Сброс пароля
-// @Description  Устанавливает новый пароль пользователя с помощью проверенного токена.
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        request body api.NewPasswordRequest true "Новый пароль и токен"
-// @Success      200 {object} map[string]string "Пароль успешно изменен"
-// @Failure      400 {object} map[string]string "Некорректные данные"
-// @Failure      500 {object} map[string]string "Ошибка обновления пароля"
-// @Router       /auth/password/reset [post]
+//
+//	@Summary		Сброс пароля
+//	@Description	Устанавливает новый пароль пользователя с помощью проверенного токена.
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		api.NewPasswordRequest	true	"Новый пароль и токен"
+//	@Success		200		{object}	map[string]string		"Пароль успешно изменен"
+//	@Failure		400		{object}	map[string]string		"Некорректные данные"
+//	@Failure		500		{object}	map[string]string		"Ошибка обновления пароля"
+//	@Router			/reset-password [post]
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	var request dto.NewPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidDataMessage)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, invalidEmailOrPassword)
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
 	err = a.Srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.ResetPassword: %w", err))
-		api.RespondError(w, http.StatusInternalServerError, cannotResetPassword)
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotResetPassword.Error())
 		return
 	}
 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// VkOAuthCallback godoc
+//
+//	@Summary		VK OAuth Callback
+//	@Description	Делает redirect 302, передает code и message через query параметры.
+//	@Tags			auth
+//	@Param			code	query	string	true	"Код авторизации, полученный от ВКонтакте"
+//	@Success		302		"Успешная авторизация. Устанавливается Cookie и происходит редирект"
+//	@Header			302		{string}	Location	"URL редиректа на клиент (например, /?code=200&message=success)"
+//	@Header			302		{string}	Set-Cookie	"Сессионная кука"
+//	@Failure		400		"Отсутствует code, email или email некорректный"
+//	@Failure		500		"Внутренняя ошибка сервера"
+//	@Failure		502		"Ошибка при обращении к API ВКонтакте"
+//	@Router			/oauth/vk [get]
 func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
-	redirectWithMessage := func(w http.ResponseWriter, r *http.Request, statusCode int, errorMessage string) {
-		params := url.Values{}
-		params.Add("message", errorMessage)
-		params.Add("code", strconv.Itoa(statusCode))
-
-		targetURL := fmt.Sprintf("%s?%s", redirectTo, params.Encode())
-
-		http.Redirect(w, r, targetURL, http.StatusFound)
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		const vkOAuthCodeKey = "code"
-		const emailKey = "email"
-		const randomPasswordLength = 32
+		logger := zerolog.Ctx(r.Context())
 
-		ctx := r.Context()
-		logger := zerolog.Ctx(ctx)
-
-		code := r.FormValue(vkOAuthCodeKey)
-
-		token, err := vkOAuth.Exchange(ctx, code)
-		if err != nil {
-			logger.Err(err).Msg("vk oauth exchange")
-			redirectWithMessage(w, r, http.StatusBadRequest, "vk_oauth_error")
+		code := r.FormValue(oauthCodeKey)
+		if code == "" {
+			logger.Err(ErrOAuthCodeEmpty).Msg("vk oauth callback")
+			Redirect(w, r, redirectTo, http.StatusBadRequest, ErrOAuthCodeEmpty.Error())
 			return
 		}
 
-		var userEmail string
+		token, err := vkOAuth.Exchange(r.Context(), code)
+		if err != nil {
+			logger.Err(err).Msg("vk oauth exchange")
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthExchangeFailed.Error())
+			return
+		}
+
+		rawEmail := token.Extra(oauthEmailKey)
+		if rawEmail == nil {
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
+			return
+		}
+
 		var ok bool
-		if emailRaw := token.Extra(emailKey); emailRaw != nil {
-			if userEmail, ok = emailRaw.(string); !ok {
-				redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
-				return
-			}
+		var userEmail string
+		if userEmail, ok = rawEmail.(string); !ok {
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
+			return
 		}
 
 		if ok := ValidateEmail(userEmail); !ok {
-			redirectWithMessage(w, r, http.StatusBadRequest, "no_valid_email")
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthInvalidEmail.Error())
 			return
 		}
 
-		client := vkOAuth.Client(ctx, token)
+		client := vkOAuth.Client(r.Context(), token)
 		res, err := client.Get(fmt.Sprintf(conf.APIMethod, token.AccessToken))
 		if err != nil {
 			logger.Err(err).Msg("vk api cannot request data")
-			redirectWithMessage(w, r, http.StatusBadRequest, "cannot_request_data")
+			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthCannotRequestUserData.Error())
 			return
 		}
 
@@ -375,55 +403,49 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 
 		usersData := &api.VkAPIUsersData{}
 		if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
-			logger.Err(err).Msg("cannot read response body")
-			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
+			logger.Err(err).Msg("vk api cannot read response body")
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
 		if len(usersData.Response) < 1 {
-			logger.Err(errors.New("cannot find user")).Msg("read user data from vk api")
-			redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
+			logger.Err(ErrOAuthEmptyUserData).Msg("vk api: empty user data")
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthEmptyUserData.Error())
 			return
 		}
 
 		userData := usersData.Response[0]
 
-		var sessionID string
-		user, err := a.Srv.GetUserByEmail(ctx, userEmail)
+		registrationUserInfo := serviceDto.RegistrationUser{
+			DisplayName: userData.FirstName,
+			Email:       userEmail,
+		}
+		user, err := a.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
-			if errors.Is(err, common.ErrorNonexistentUser) {
-				b := make([]byte, randomPasswordLength)
-				if _, err := rand.Read(b); err != nil {
-					logger.Err(err).Msg("vk oauth generate user password")
-					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-					return
-				}
+			logger.Err(err).Msg("authService.EnsureUserByEmail")
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			return
+		}
 
-				password := base64.URLEncoding.EncodeToString(b)
+		userInfo := serviceDto.UserInfo{
+			Link:        user.Link,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			Avatar:      user.Avatar,
+		}
 
-				_, _, err := a.Srv.Register(r.Context(), serviceDto.RegistrationUser{
-					DisplayName: userData.FirstName,
-					Password:    password,
-					Email:       userEmail,
-				})
+		err = a.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
+		if err != nil {
+			logger.Err(ErrOAuthCannotSaveRefreshToken).Msg("authService.SaveRefreshToken")
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			return
+		}
 
-				if err != nil {
-					logger.Err(fmt.Errorf("auth.Register: %w", err))
-					redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-					return
-				}
-			} else {
-				logger.Err(err).Msg("service.GetUser")
-				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-				return
-			}
-		} else {
-			sessionID, err = a.Srv.CreateSessionForUser(ctx, user.Link)
-			if err != nil {
-				logger.Err(err).Msg("service.CreateSessionForUser")
-				redirectWithMessage(w, r, http.StatusInternalServerError, "something_went_wrong")
-				return
-			}
+		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user.Link)
+		if err != nil {
+			logger.Err(err).Msg("authService.CreateSessionForUser")
+			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
+			return
 		}
 
 		http.SetCookie(w, api.NewCookie(
@@ -431,6 +453,39 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
 
-		redirectWithMessage(w, r, http.StatusOK, "success")
+		Redirect(w, r, redirectTo, http.StatusOK, oauthSuccessAuthMessage)
 	}
+}
+
+// SetCSRFCookieHandler устанавливает CSRF куку
+//
+//	@Summary		Установка CSRF куки
+//	@Description	Генерирует новый CSRF токен и записывает его в Cookie.
+//	@Description	Вместе с кукой также надо отправлять X-CSRF-Token
+//	@Tags			csrf
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"ok"	"Успешная установка куки"
+//	@Header			200	{string}	Set-Cookie			"csrf_token=...; Path=/; Secure; SameSite=Lax"
+//	@Failure		500	{object}	api.ErrorResponse	"internal server error - cannot create token"
+//	@Router			/csrf [get]
+func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	token, err := a.Srv.GenerateRandomCSRFToken(r.Context())
+	if err != nil {
+		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     csrfCookieKey,
+		Value:    token,
+		Secure:   true,
+		HttpOnly: false,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

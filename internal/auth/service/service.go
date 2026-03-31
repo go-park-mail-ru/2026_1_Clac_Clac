@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -32,7 +34,7 @@ type SenderLetters interface {
 type AuthRepository interface {
 	AddUser(ctx context.Context, user repositoryDto.UserInitialize) error
 	AddSession(ctx context.Context, session repositoryDto.SessionEntity) error
-	GetUser(ctx context.Context, enail string) (repositoryDto.UserEntity, error)
+	GetUser(ctx context.Context, email string) (repositoryDto.UserEntity, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 	DeleteSession(ctx context.Context, sessionID string) error
 	GetUserIDBySession(ctx context.Context, sessionID string) (string, error)
@@ -251,8 +253,6 @@ func (a *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
 }
 
 func (a *Service) ResetPassword(ctx context.Context, tokenID, newPassword string) error {
-	logger := zerolog.Ctx(ctx)
-
 	userLink, err := a.rep.GetUserLinkByResetToken(ctx, tokenID)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
@@ -273,10 +273,57 @@ func (a *Service) ResetPassword(ctx context.Context, tokenID, newPassword string
 		return fmt.Errorf("rep.UpdatePassword: %w", err)
 	}
 
-	err = a.rep.DeleteResetToken(ctx, tokenID)
+	return nil
+}
+
+func (a *Service) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUser) (dto.UserInfo, error) {
+	const randomPasswordLength = 32
+
+	user, err := a.GetUserByEmail(ctx, info.Email)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to delete reset token after successful password change")
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			b := make([]byte, randomPasswordLength)
+			if _, err := rand.Read(b); err != nil {
+				return dto.UserInfo{}, fmt.Errorf("generate random password: %w", err)
+			}
+
+			password := base64.URLEncoding.EncodeToString(b)
+
+			// TODO: просто игнорирую сессию, но как-то это некрасиво
+			// Что если нам регистрировать пользователя, а потом уже создавать сессию?
+			// Или добавить usecase для этого, который уже будет сразу создавать сессию
+			registerUserInfo := dto.RegistrationUser{
+				DisplayName: info.DisplayName,
+				Email:       info.Email,
+				Password:    password,
+			}
+			user, _, err = a.Register(ctx, registerUserInfo)
+			if err != nil {
+				return dto.UserInfo{}, fmt.Errorf("authService.Register: %w", err)
+			}
+
+			return user, nil
+		}
+
+		return dto.UserInfo{}, fmt.Errorf("authService.GetUserByEmail: %w", err)
 	}
 
+	return user, nil
+}
+
+func (a *Service) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error {
+	// TODO: реализовать сохранение в redis
 	return nil
+}
+
+func (a *Service) GenerateRandomCSRFToken(ctx context.Context) (string, error) {
+	const tokenLength = 32
+
+	b := make([]byte, tokenLength)
+
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("rand.Read: %w", err)
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
 }

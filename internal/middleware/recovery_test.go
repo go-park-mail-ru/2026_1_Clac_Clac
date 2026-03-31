@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestRecoverMiddleware(t *testing.T) {
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		m := RecoveryMiddleware(&logger).Middleware(h)
+		m := middleware.RecoveryMiddleware(&logger).Middleware(h)
 
 		m.ServeHTTP(res, req)
 
@@ -42,8 +43,7 @@ func TestRecoverMiddleware(t *testing.T) {
 		h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			panic("oh no...")
 		})
-
-		m := RecoveryMiddleware(&logger).Middleware(h)
+		m := middleware.RecoveryMiddleware(&logger).Middleware(h)
 
 		m.ServeHTTP(res, req)
 

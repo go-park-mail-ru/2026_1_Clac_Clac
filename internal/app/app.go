@@ -46,7 +46,7 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, logger, &conf.VkOAuth)
+	router := setupRouter(manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -74,35 +74,41 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.VkOAuth) *mux.Router {
+func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.CORSMiddleware(&conf.CORS))
+	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
-	// Ручки, которым не нужна авторизация
-	public := router.PathPrefix("/").Subrouter()
-	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
-	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
-	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
-	// Добавление рутов, зависящих от сервисов
 	authHandler := auth.NewHandler(manager.Auth)
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
 
+	csrfProtected := router.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware)
+
+	// Ручки, которым не нужна авторизация
+	public := csrfProtected.PathPrefix("/").Subrouter()
+	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
+	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
+	// Добавление рутов, зависящих от сервисов
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
-	vkOAuth := setupVKOAuth(vkOAuthConf)
-	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(vkOAuthConf, "/", vkOAuth))
+	vkOAuth := setupVKOAuth(&conf.VkOAuth)
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(&conf.VkOAuth, "/", vkOAuth))
 
 	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := router.PathPrefix("/").Subrouter()
+	protected := csrfProtected.PathPrefix("/").Subrouter()
 	// Добавление мидлваре для авторизации
 	protected.Use(middleware.AuthMiddleware(manager.Auth))
 	// Руты, на которые пользователь объязательно должен быть авторизован
@@ -116,9 +122,7 @@ func setupRouter(manager *Manager, logger *zerolog.Logger, vkOAuthConf *config.V
 	return router
 }
 
-// Настройка сервера
 func setupEngine(conf *config.Engine, logger *zerolog.Logger, router *mux.Router) *engine.Engine {
-	// Создание сервера
 	return engine.New(conf, logger, router)
 }
 
