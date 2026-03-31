@@ -15,6 +15,7 @@ type Config struct {
 	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
 	DBConnection    DatabaseConnection `mapstructure:"database"`
 	RedisConnection RedisConnection    `mapstructure:"redis"`
+	S3Avatars       S3Avatars          `mapstructure:"s3_avatars"`
 }
 
 func DefaultConfig() Config {
@@ -25,6 +26,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
+		S3Avatars:       DefaultS3AvatarsConfig(),
 	}
 }
 
