@@ -15,11 +15,19 @@ type Manager struct {
 	MailSender *mail.MailSender
 }
 
-func NewManager(s *Store, mailSenderConf *config.MailSender) *Manager {
-	mailSender := mail.NewMailSender(mailSenderConf)
+func NewManager(s *Store, conf config.Config) *Manager {
+	mailSender := mail.NewMailSender(&conf.MailSender)
 
 	return &Manager{
-		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode),
+		Auth: auth.NewFromConfig(auth.AuthServiceConfig{
+			AuthRepository:     s.Auth,
+			EmailSender:        &mailSender,
+			Hasher:             auth.HashPassword,
+			Checker:            auth.CheckPassword,
+			IdGenerator:        auth.GenerateSessionID,
+			ResetCodeGenerator: auth.GeneratorCode,
+			CSRFSecret:         conf.Auth.CSRFSecret,
+		}),
 		Board:      board.NewService(s.Boards),
 		Profile:    profile.NewService(s.Profiles),
 		MailSender: &mailSender,

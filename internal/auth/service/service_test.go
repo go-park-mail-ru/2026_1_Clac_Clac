@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -976,6 +981,120 @@ func TestEnsureUserByEmail(t *testing.T) {
 			assert.Equal(t, testUserInfo.Email, user.Email, "users must be equal")
 
 			authRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGenerateCSRFToken(t *testing.T) {
+	ctx := context.Background()
+
+	secret := "super-secret"
+	svc := &Service{csrfSecret: secret}
+
+	t.Run("success generation", func(t *testing.T) {
+		sessionID := "user-123"
+		expire := time.Now().Add(time.Hour).Unix()
+
+		token, err := svc.GenerateCSRFToken(ctx, sessionID, expire)
+		require.NoError(t, err, "must not return error")
+
+		parts := strings.Split(token, ":")
+		assert.Equal(t, 2, len(parts), "expected 2 parts in token")
+		assert.Equal(t, strconv.FormatInt(expire, 10), parts[1], "expires must be equal")
+	})
+
+	t.Run("deterministic", func(t *testing.T) {
+		t1, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
+		t2, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
+		require.Equal(t, t1, t2, "tokens should be identical for same input")
+	})
+
+	t.Run("secret sensitivity", func(t *testing.T) {
+		svc1 := &Service{csrfSecret: "secret1"}
+		svc2 := &Service{csrfSecret: "secret2"}
+
+		t1, _ := svc1.GenerateCSRFToken(ctx, "sid", 123)
+		t2, _ := svc2.GenerateCSRFToken(ctx, "sid", 123)
+		require.NotEqual(t, t1, t2, "tokens must differ if secrets are different")
+	})
+}
+
+func TestCheckCSRFToken(t *testing.T) {
+	secret := "test-secret-key"
+	svc := &Service{csrfSecret: secret}
+	ctx := context.Background()
+
+	validSessionID := "user-session-123"
+	futureTime := time.Now().Add(time.Hour).Unix()
+	pastTime := time.Now().Add(-time.Hour).Unix()
+
+	generateTestToken := func(sid string, exp int64, key string) string {
+		h := hmac.New(sha256.New, []byte(key))
+		data := fmt.Sprintf("%s:%d", sid, exp)
+		h.Write([]byte(data))
+		return fmt.Sprintf("%s:%d", hex.EncodeToString(h.Sum(nil)), exp)
+	}
+
+	tests := []struct {
+		Name          string
+		SessionId     string
+		Token         string
+		ExpectedError error
+	}{
+		{
+			Name:          "valid token",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, futureTime, secret),
+			ExpectedError: nil,
+		},
+		{
+			Name:          "invalid format (no colon)",
+			SessionId:     validSessionID,
+			Token:         "sometokenwithoutcolon",
+			ExpectedError: ErrInvalidCSRFToken,
+		},
+		{
+			Name:          "invalid expire time format",
+			SessionId:     validSessionID,
+			Token:         "hash:notanumber",
+			ExpectedError: ErrCannotParseExpireTimeCSRFToken,
+		},
+		{
+			Name:          "token expired",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, pastTime, secret),
+			ExpectedError: ErrCSRFTokenExpired,
+		},
+		{
+			Name:          "invalid hex decoding",
+			SessionId:     validSessionID,
+			Token:         "not-hex-chars-!!:" + strconv.FormatInt(futureTime, 10),
+			ExpectedError: ErrCannotDecodeRecievedCSRFToken,
+		},
+		{
+			Name:          "tampered SessionID",
+			SessionId:     "another-session",
+			Token:         generateTestToken(validSessionID, futureTime, secret),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+		{
+			Name:          "tampered Secret Key",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, futureTime, "wrong-secret"),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+		{
+			Name:          "tampered Hash (valid hex but wrong data)",
+			SessionId:     validSessionID,
+			Token:         hex.EncodeToString([]byte("wrong-hash")) + ":" + strconv.FormatInt(futureTime, 10),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := svc.CheckCSRFToken(ctx, test.SessionId, test.Token)
+			require.ErrorIs(t, err, test.ExpectedError)
 		})
 	}
 }

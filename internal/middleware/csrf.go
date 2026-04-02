@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -13,6 +16,7 @@ const (
 )
 
 var (
+	ErrUserNotAuthorized  = errors.New("user not authorized")
 	ErrCSRFTokenIncorrect = errors.New("csrf token incorrect")
 )
 
@@ -23,23 +27,38 @@ var safeMethods = map[string]struct{}{
 	http.MethodTrace:   {},
 }
 
-func CSRFMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, isSafe := safeMethods[r.Method]; !isSafe {
-			cookie, err := r.Cookie(csrfCookieKey)
+func CSRFMiddleware(tokenChecker func(ctx context.Context, sessionId string, token string) error) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sessionCookie, err := r.Cookie(service.SessiondIdKey)
 			if err != nil {
-				api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+				api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
 				return
 			}
+			sessionId := sessionCookie.Value
 
-			headerToken := r.Header.Get(xCsrfHeader)
+			if _, isSafe := safeMethods[r.Method]; !isSafe {
+				csrfCookie, err := r.Cookie(csrfCookieKey)
+				if err != nil {
+					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					return
+				}
 
-			if cookie == nil || headerToken == "" || headerToken != cookie.Value {
-				api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
-				return
+				headerToken := r.Header.Get(xCsrfHeader)
+
+				if csrfCookie == nil || headerToken == "" || headerToken != csrfCookie.Value {
+					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					return
+				}
+
+				err = tokenChecker(r.Context(), sessionId, csrfCookie.Value)
+				if err != nil {
+					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					return
+				}
 			}
-		}
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }

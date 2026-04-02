@@ -1,10 +1,13 @@
 package middleware_test
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,15 +17,11 @@ const (
 	xCSRFTokenHeader = "X-CSRF-Token"
 )
 
-func TestTestCSRFMiddleware(t *testing.T) {
-	newCSRFCookie := func(value string) *http.Cookie {
+func TestCSRFMiddleware(t *testing.T) {
+	newCookie := func(name, value string) *http.Cookie {
 		return &http.Cookie{
-			Name:     csrfCookieKey,
-			Value:    value,
-			Path:     "/",
-			Secure:   true,
-			HttpOnly: false,
-			SameSite: http.SameSiteLaxMode,
+			Name:  name,
+			Value: value,
 		}
 	}
 
@@ -30,88 +29,97 @@ func TestTestCSRFMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	type tokenCheckerBehavior int
+	const (
+		CheckSuccess tokenCheckerBehavior = iota
+		CheckFail
+	)
+
 	tests := []struct {
 		Name          string
 		Method        string
 		HeaderValue   string
-		RequestCookie *http.Cookie
+		SessionCookie *http.Cookie
+		CSRFCookie    *http.Cookie
+		CheckerResult tokenCheckerBehavior
 		ExpectedCode  int
 	}{
 		{
-			Name:          "send user csrf_token cookie, get method",
+			Name:          "no session cookie - fail even on GET",
 			Method:        http.MethodGet,
-			HeaderValue:   "",
-			RequestCookie: nil,
+			SessionCookie: nil,
+			ExpectedCode:  http.StatusUnauthorized,
+		},
+		{
+			Name:          "valid session, GET method - success (CSRF ignored)",
+			Method:        http.MethodGet,
+			SessionCookie: newCookie(service.SessiondIdKey, "sess-123"),
 			ExpectedCode:  http.StatusOK,
 		},
 		{
-			Name:          "do nothing, get method",
-			Method:        http.MethodGet,
-			HeaderValue:   "123",
-			RequestCookie: newCSRFCookie("123"),
-			ExpectedCode:  http.StatusOK,
-		},
-		{
-			Name:          "header and cookie dont equal, skipped for get method",
-			Method:        http.MethodGet,
-			HeaderValue:   "123567",
-			RequestCookie: newCSRFCookie("123"),
-			ExpectedCode:  http.StatusOK,
-		},
-		{
-			Name:          "header and cookie correct, post method",
+			Name:          "POST, all valid",
 			Method:        http.MethodPost,
-			HeaderValue:   "123",
-			RequestCookie: newCSRFCookie("123"),
+			SessionCookie: newCookie(service.SessiondIdKey, "sess-123"),
+			CSRFCookie:    newCookie(csrfCookieKey, "valid-token"),
+			HeaderValue:   "valid-token",
+			CheckerResult: CheckSuccess,
 			ExpectedCode:  http.StatusOK,
 		},
 		{
-			Name:          "no cookie, post method",
+			Name:          "POST, no CSRF cookie",
 			Method:        http.MethodPost,
-			HeaderValue:   "123",
-			RequestCookie: nil,
+			SessionCookie: newCookie(service.SessiondIdKey, "sess-123"),
+			CSRFCookie:    nil,
+			HeaderValue:   "some-token",
 			ExpectedCode:  http.StatusForbidden,
 		},
 		{
-			Name:          "no header, post method",
+			Name:          "POST, header and cookie mismatch",
 			Method:        http.MethodPost,
-			HeaderValue:   "",
-			RequestCookie: newCSRFCookie("123"),
+			SessionCookie: newCookie(service.SessiondIdKey, "sess-123"),
+			CSRFCookie:    newCookie(csrfCookieKey, "token-a"),
+			HeaderValue:   "token-b",
 			ExpectedCode:  http.StatusForbidden,
 		},
 		{
-			Name:          "header and cookie dont equal, post method",
+			Name:          "POST, tokenChecker failed (expired or invalid HMAC)",
 			Method:        http.MethodPost,
-			HeaderValue:   "123567",
-			RequestCookie: newCSRFCookie("123"),
-			ExpectedCode:  http.StatusForbidden,
-		},
-		{
-			Name:          "header and cookie dont equal, post method",
-			Method:        http.MethodPost,
-			HeaderValue:   "123567",
-			RequestCookie: newCSRFCookie("123"),
+			SessionCookie: newCookie(service.SessiondIdKey, "sess-123"),
+			CSRFCookie:    newCookie(csrfCookieKey, "invalid-hmac-token"),
+			HeaderValue:   "invalid-hmac-token",
+			CheckerResult: CheckFail,
 			ExpectedCode:  http.StatusForbidden,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			res := httptest.NewRecorder()
-			req := httptest.NewRequest(test.Method, "/", nil)
-
-			req.Header.Add(xCSRFTokenHeader, test.HeaderValue)
-
-			if test.RequestCookie != nil {
-				req.AddCookie(test.RequestCookie)
+			mockChecker := func(ctx context.Context, sid string, token string) error {
+				if test.CheckerResult == CheckFail {
+					return errors.New("check failed")
+				}
+				return nil
 			}
 
-			h := middleware.CSRFMiddleware(successHandler)
+			req := httptest.NewRequest(test.Method, "/", nil)
+			if test.SessionCookie != nil {
+				req.AddCookie(test.SessionCookie)
+			}
+			if test.CSRFCookie != nil {
+				req.AddCookie(test.CSRFCookie)
+			}
+			if test.HeaderValue != "" {
+				req.Header.Add(xCSRFTokenHeader, test.HeaderValue)
+			}
+
+			res := httptest.NewRecorder()
+
+			mw := middleware.CSRFMiddleware(mockChecker)
+			h := mw(successHandler)
 
 			h.ServeHTTP(res, req)
 
-			r := res.Result()
-			assert.Equal(t, test.ExpectedCode, r.StatusCode, "http codes must be equal")
+			assert.Equal(t, test.ExpectedCode, res.Code, "Response code mismatch")
 		})
 	}
 }

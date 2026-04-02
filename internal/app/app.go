@@ -42,7 +42,7 @@ func NewApp(conf *config.Config) *App {
 		logger.Fatal().Err(err).Msg("cannot initialise store")
 	}
 
-	manager := setupManager(store, &conf.MailSender)
+	manager := setupManager(store, conf)
 
 	createDemoUser(manager, logger)
 
@@ -84,18 +84,14 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
-	authHandler := auth.NewHandler(manager.Auth)
-	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
-
-	csrfProtected := router.PathPrefix("/").Subrouter()
-	csrfProtected.Use(middleware.CSRFMiddleware)
-
 	// Ручки, которым не нужна авторизация
-	public := csrfProtected.PathPrefix("/").Subrouter()
+	public := router.PathPrefix("/").Subrouter()
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
+	authHandler := auth.NewHandler(manager.Auth)
+
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
@@ -108,16 +104,20 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := csrfProtected.PathPrefix("/").Subrouter()
-	// Добавление мидлваре для авторизации
+	protected := router.PathPrefix("/").Subrouter()
 	protected.Use(middleware.AuthMiddleware(manager.Auth))
-	// Руты, на которые пользователь объязательно должен быть авторизован
+
+	protected.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
+
+	csrfProtected := protected.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
+
 	boardHandler := board.NewHandler(manager.Board)
 	profileHandler := profile.NewHandler(manager.Profile)
 
-	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
-	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
 	return router
 }
@@ -199,8 +199,8 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 }
 
 // Настройка менеджера сервисов
-func setupManager(s *Store, mailSenderConf *config.MailSender) *Manager {
-	return NewManager(s, mailSenderConf)
+func setupManager(s *Store, conf *config.Config) *Manager {
+	return NewManager(s, *conf)
 }
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {

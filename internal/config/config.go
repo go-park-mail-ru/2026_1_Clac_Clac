@@ -16,6 +16,7 @@ type Config struct {
 	DBConnection    DatabaseConnection `mapstructure:"database"`
 	RedisConnection RedisConnection    `mapstructure:"redis"`
 	CORS            CORS               `mapstructure:"cors"`
+	Auth            Auth               `mapstructure:"auth"`
 }
 
 func DefaultConfig() Config {
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
+		Auth:            DefaultAuthConfig(),
 	}
 }
 
