@@ -45,7 +45,7 @@ func NewApp(conf *config.Config) *App {
 		logger.Fatal().Err(err).Msg("cannot initialise store")
 	}
 
-	manager := setupManager(store, &conf.MailSender)
+	manager := setupManager(store, &conf.MailSender, &conf.S3Avatars)
 
 	createDemoUser(manager, logger)
 
@@ -126,6 +126,7 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
 
 	return router
 }
@@ -225,8 +226,8 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 }
 
 // Настройка менеджера сервисов
-func setupManager(s *Store, mailSenderConf *config.MailSender) *Manager {
-	return NewManager(s, mailSenderConf)
+func setupManager(s *Store, mailSenderConf *config.MailSender, S3conf *config.S3Avatars) *Manager {
+	return NewManager(s, mailSenderConf, S3conf)
 }
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {

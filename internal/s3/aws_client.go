@@ -52,3 +52,7 @@ func NewAWSClient(ctx context.Context, region, endpoint, access_key, secret_key 
 		client: client,
 	}, nil
 }
+
+func GenerateBaseURL(bucket, endpoint string) string {
+	return fmt.Sprintf("https://%s/%s/", endpoint, bucket)
+}

@@ -70,6 +70,8 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 	return nil
 }
 
+// TODO: create key in service
+
 func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) error {
 	key := fmt.Sprintf("session:%s", session.SessionID)
 
@@ -242,7 +244,7 @@ func (r *Repository) DeleteResetToken(ctx context.Context, tokenID string) error
 
 func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPasswordHash string) error {
 	updatePasswordQuery := `
-	UPDATE "users" 
+	UPDATE "user" 
 	SET password_hash = $1,
 	updated_at = NOW()
 	WHERE link = $2

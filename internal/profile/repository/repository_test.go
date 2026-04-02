@@ -24,7 +24,7 @@ func TestGetProfile(t *testing.T) {
 		Link:        targetID,
 		DisplayName: "Bobr",
 		Email:       "bobr@mail.ru",
-		Avatar:      "avatar.jpg",
+		AvatarKey:   "avatar.jpg",
 	}
 
 	tests := []struct {
@@ -43,7 +43,7 @@ func TestGetProfile(t *testing.T) {
 				`
 
 				rows := pgxmock.NewRows([]string{"link", "display_name", "email", "avatar"}).
-					AddRow(expectedDTO.Link, expectedDTO.DisplayName, expectedDTO.Email, expectedDTO.Avatar)
+					AddRow(expectedDTO.Link, expectedDTO.DisplayName, expectedDTO.Email, expectedDTO.AvatarKey)
 
 				mock.ExpectQuery(regexp.QuoteMeta(getProfileQuery)).
 					WithArgs(targetID).

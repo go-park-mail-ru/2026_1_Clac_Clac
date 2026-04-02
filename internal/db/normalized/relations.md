@@ -29,9 +29,9 @@
 Ниже представлены все нетривиальные функциональные зависимости для каждого отношения с учетом системных полей аудита:
 
 **Relation User:**
-`{ID} -> Link, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt`
-`{Email} -> ID, Link, DisplayName, PasswordHash, Avatar, CreatedAt, UpdatedAt`
-`{Link} -> ID, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt`
+`{ID} -> Link, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt, DescriptionUser`
+`{Email} -> ID, Link, DisplayName, PasswordHash, Avatar, CreatedAt, UpdatedAt, DescriptionUser`
+`{Link} -> ID, DisplayName, PasswordHash, Email, Avatar, CreatedAt, UpdatedAt, DescriptionUser`
 
 **Relation Board:**
 `{ID} -> Link, CreatedAt`
@@ -127,9 +127,10 @@ erDiagram
         int ID PK
         uuid Link
         string DisplayName
+        string DescriptionUser
         string PasswordHash
         string Email
-        string Avatar
+        string AvatarKey
         timestamp CreatedAt
         timestamp UpdatedAt
     }

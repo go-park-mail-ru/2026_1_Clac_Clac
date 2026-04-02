@@ -52,14 +52,14 @@ func TestGetUserProfile(t *testing.T) {
 		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
-		Avatar:      "",
+		AvatarURL:   "",
 	}
 
 	expectedHandlerResponse := dto.UserInfoResponse{
 		Link:        targetUserID,
 		DisplayName: "Artem",
 		Email:       "test@mail.ru",
-		Avatar:      "",
+		AvatarURL:   "",
 	}
 
 	tests := []GetProfileTestCase{

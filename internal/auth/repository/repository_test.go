@@ -845,7 +845,7 @@ func TestUpdatePassword(t *testing.T) {
 			userID:          targetUserID,
 			newPasswordHash: newHash,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).
@@ -891,7 +891,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).

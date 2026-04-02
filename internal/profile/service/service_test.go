@@ -63,7 +63,7 @@ func TestGetProfileUser(t *testing.T) {
 				test.mockBehavior(mockProfileRepo)
 			}
 
-			profileService := NewService(mockProfileRepo)
+			profileService := NewService(mockProfileRepo, nil, "") // TODO: править
 			ctx := context.Background()
 
 			user, err := profileService.GetProfileUser(ctx, test.userID)
