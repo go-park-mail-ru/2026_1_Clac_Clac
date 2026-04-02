@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	awsTypes "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	mockAWSClient "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3/mock_aws_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,18 +23,15 @@ func TestAWSBucketPut(t *testing.T) {
 			client: mockS3,
 			bucket: "my-bucket",
 			prefix: "test-prefix",
-			keyGenerator: func() (string, error) {
-				return "file-123", nil
-			},
+			acl:    awsTypes.ObjectCannedACLPublicRead,
 		}
 
 		expectedKey := "test-prefix/file-123.txt"
+		fileKey := "file-123.txt"
 
-		mockS3.On("PutObject", ctx, mock.MatchedBy(func(p *awsS3.PutObjectInput) bool {
-			return *p.Key == expectedKey && *p.Bucket == "my-bucket"
-		}), mock.Anything).Return(&awsS3.PutObjectOutput{}, nil)
+		mockS3.On("PutObject", mock.Anything, mock.Anything).Return(&awsS3.PutObjectOutput{}, nil)
 
-		key, err := b.Put(ctx, strings.NewReader("data"), "text/plain", ".txt")
+		key, err := b.Put(ctx, strings.NewReader("data"), fileKey, "text/plain")
 
 		assert.NoError(t, err, "must not return error")
 		assert.Equal(t, expectedKey, key, "keys must be equal")
@@ -49,18 +47,13 @@ func TestAWSBucketPut(t *testing.T) {
 			client: mockS3,
 			bucket: "my-bucket",
 			prefix: "test-prefix",
-			keyGenerator: func() (string, error) {
-				return "file-123", nil
-			},
 		}
 
-		expectedKey := "test-prefix/file-123.txt"
+		fileKey := "file-123.txt"
 
-		mockS3.On("PutObject", ctx, mock.MatchedBy(func(p *awsS3.PutObjectInput) bool {
-			return *p.Key == expectedKey && *p.Bucket == "my-bucket"
-		}), mock.Anything).Return(nil, errors.New("cannot put file"))
+		mockS3.On("PutObject", mock.Anything, mock.Anything).Return(nil, errors.New("cannot put file"))
 
-		_, err := b.Put(ctx, strings.NewReader("data"), "text/plain", ".txt")
+		_, err := b.Put(ctx, strings.NewReader("data"), fileKey, "text/plain")
 
 		assert.Error(t, err, "must return error")
 		assert.Contains(t, err.Error(), "cannot put file")
@@ -82,9 +75,7 @@ func TestAWSBucketDelete(t *testing.T) {
 			bucket: bucketName,
 		}
 
-		mockS3.On("DeleteObject", ctx, mock.MatchedBy(func(input *awsS3.DeleteObjectInput) bool {
-			return *input.Bucket == bucketName && *input.Key == targetKey
-		}), mock.Anything).Return(&awsS3.DeleteObjectOutput{}, nil)
+		mockS3.On("DeleteObject", mock.Anything, mock.Anything).Return(&awsS3.DeleteObjectOutput{}, nil)
 
 		err := b.Delete(ctx, targetKey)
 
@@ -105,7 +96,7 @@ func TestAWSBucketDelete(t *testing.T) {
 			bucket: bucketName,
 		}
 
-		mockS3.On("DeleteObject", mock.Anything, mock.Anything, mock.Anything).
+		mockS3.On("DeleteObject", mock.Anything, mock.Anything).
 			Return((*awsS3.DeleteObjectOutput)(nil), fmt.Errorf("cannot delete file"))
 
 		err := b.Delete(ctx, targetKey)

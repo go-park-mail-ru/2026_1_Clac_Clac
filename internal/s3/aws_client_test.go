@@ -11,12 +11,11 @@ import (
 func TestCreateNewBucket(t *testing.T) {
 	const expectedBucket = "my-test-bucket"
 	const expectedPrefix = "uploads/"
-	keyGen := func() (string, error) { return "unique-key", nil }
 
 	mockS3Client := &awsS3.Client{}
 	s := &AWSClient{client: mockS3Client}
 
-	bucket := s.NewBucket(expectedBucket, expectedPrefix, keyGen)
+	bucket := s.NewBucket(expectedBucket, expectedPrefix, ACL.PublicRead)
 
 	require.NotNil(t, bucket, "bucket must not be nil")
 }

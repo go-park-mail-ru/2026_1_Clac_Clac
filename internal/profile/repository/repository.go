@@ -29,7 +29,7 @@ type Repository struct {
 func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Avatars) *Repository {
 	return &Repository{
 		pool:    pool,
-		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, generateAvatarKey),
+		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
 	}
 }
 

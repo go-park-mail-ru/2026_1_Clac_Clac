@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -19,22 +18,17 @@ type AWSClientAPI interface {
 }
 
 type AWSBucket struct {
-	client       AWSClientAPI
-	bucket       string
-	prefix       string
-	acl          awsTypes.ObjectCannedACL
-	keyGenerator func() (string, error)
+	client AWSClientAPI
+	bucket string
+	prefix string
+	acl    awsTypes.ObjectCannedACL
 }
 
 // Подставляет префикс
-func (b *AWSBucket) Put(ctx context.Context, data io.Reader, contentType string, extension string) (string, error) {
-	key, err := b.keyGenerator()
-	if err != nil {
-		return "", fmt.Errorf("cannot generate key: %w", err)
-	}
-	objectKey := path.Join(b.prefix, key+strings.ToLower(extension))
+func (b *AWSBucket) Put(ctx context.Context, data io.Reader, key string, contentType string) (string, error) {
+	objectKey := path.Join(b.prefix, key)
 
-	_, err = b.client.PutObject(ctx, &awsS3.PutObjectInput{
+	_, err := b.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket:      aws.String(b.bucket),
 		Key:         aws.String(objectKey),
 		Body:        data,
