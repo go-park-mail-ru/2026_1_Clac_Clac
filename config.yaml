@@ -7,3 +7,9 @@ engine:
   read_timeout: 15
   idle_timeout: 60
   graceful_shutdown_timeout: 15
+
+cors:
+  credentials: "true"
+  methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
+  max_age: 864000

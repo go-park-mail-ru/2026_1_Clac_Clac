@@ -6,8 +6,10 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"sync"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -22,18 +24,36 @@ var xssRules = []*regexp.Regexp{
 }
 
 func XSSMiddleware(next http.Handler) http.Handler {
+	buffersPool := sync.Pool{
+		New: func() any {
+			return new(bytes.Buffer)
+		},
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
+		logger := zerolog.Ctx(r.Context())
+
+		buf := buffersPool.Get().(*bytes.Buffer)
+		defer func() {
+			buf.Reset()
+			buffersPool.Put(buf)
+		}()
+
+		defer func(requestBody io.ReadCloser) {
+			if err := requestBody.Close(); err != nil {
+				logger.Warn().Err(err).Msg("xss middleware")
+			}
+		}(r.Body)
+
+		if _, err := buf.ReadFrom(r.Body); err != nil {
 			api.RespondError(w, http.StatusBadRequest, ErrCannotReadRequestBody.Error())
 			return
 		}
 
-		err = r.Body.Close()
-		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, ErrCannotReadRequestBody.Error())
-			return
-		}
+		// Если в хендлере вызовется горутина,
+		// которая будет читать тело запроса,
+		// то все сломается. Но у нас такого нет
+		body := buf.Bytes()
 
 		for _, rule := range xssRules {
 			if !rule.Match(body) {

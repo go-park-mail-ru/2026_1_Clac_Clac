@@ -13,7 +13,10 @@ import (
 
 func TestLimitRequestSizeMiddleware(t *testing.T) {
 	reader := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
+		defer func() {
+			err := r.Body.Close()
+			assert.NoError(t, err, "must not return error")
+		}()
 
 		_, err := io.ReadAll(r.Body)
 		if err != nil {

@@ -16,6 +16,7 @@ type Config struct {
 	DBConnection    DatabaseConnection `mapstructure:"database"`
 	RedisConnection RedisConnection    `mapstructure:"redis"`
 	S3Avatars       S3Avatars          `mapstructure:"s3_avatars"`
+	CORS            CORS               `mapstructure:"cors"`
 }
 
 func DefaultConfig() Config {
