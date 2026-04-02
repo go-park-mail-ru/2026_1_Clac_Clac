@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrCannotReadRequestBody = errors.New("bad request")
-	ErrSuspiciousRequestBody = errors.New("bad request")
+	ErrCannotReadRequestBody  = errors.New("cannot read request body")
+	ErrCannotCloseRequestBody = errors.New("cannot close request body")
+	ErrSuspiciousRequestBody  = errors.New("suspicious request body")
 )
 
 // Если тело запроса не удовлятворяет хотя бы одному
