@@ -12,13 +12,13 @@ const (
 )
 
 type ActionRateLimiters struct {
-	Limit  int64
-	Action string
-	Window time.Duration
+	Limit  int64         `mapstructure:"limit"`
+	Action string        `mapstructure:"action"`
+	Window time.Duration `mapstructure:"window"`
 }
 
 type DataBaseRateLimiters struct {
-	DBActions map[string]ActionRateLimiters
+	DBActions map[string]ActionRateLimiters `mapstructure:"database_actions"`
 }
 
 func (d *DataBaseRateLimiters) GetParameters(action string) ActionRateLimiters {
