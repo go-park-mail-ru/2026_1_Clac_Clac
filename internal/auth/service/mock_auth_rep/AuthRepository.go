@@ -8,6 +8,8 @@ import (
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	mock "github.com/stretchr/testify/mock"
 
+	time "time"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -70,6 +72,34 @@ func (_m *AuthRepository) AddUser(ctx context.Context, user dto.UserInitialize) 
 	return r0
 }
 
+// CheckLimit provides a mock function with given fields: ctx, configLimiter
+func (_m *AuthRepository) CheckLimit(ctx context.Context, configLimiter dto.RateLimiterConfig) (int64, error) {
+	ret := _m.Called(ctx, configLimiter)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckLimit")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.RateLimiterConfig) (int64, error)); ok {
+		return rf(ctx, configLimiter)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.RateLimiterConfig) int64); ok {
+		r0 = rf(ctx, configLimiter)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.RateLimiterConfig) error); ok {
+		r1 = rf(ctx, configLimiter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteResetToken provides a mock function with given fields: ctx, tokenID
 func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) error {
 	ret := _m.Called(ctx, tokenID)
@@ -106,9 +136,27 @@ func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 	return r0
 }
 
-// GetUser provides a mock function with given fields: ctx, enail
-func (_m *AuthRepository) GetUser(ctx context.Context, enail string) (dto.UserEntity, error) {
-	ret := _m.Called(ctx, enail)
+// ExtendSession provides a mock function with given fields: ctx, sessionID, sessionLifetime
+func (_m *AuthRepository) ExtendSession(ctx context.Context, sessionID string, sessionLifetime time.Duration) error {
+	ret := _m.Called(ctx, sessionID, sessionLifetime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExtendSession")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) error); ok {
+		r0 = rf(ctx, sessionID, sessionLifetime)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetUser provides a mock function with given fields: ctx, email
+func (_m *AuthRepository) GetUser(ctx context.Context, email string) (dto.UserEntity, error) {
+	ret := _m.Called(ctx, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUser")
@@ -117,16 +165,16 @@ func (_m *AuthRepository) GetUser(ctx context.Context, enail string) (dto.UserEn
 	var r0 dto.UserEntity
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (dto.UserEntity, error)); ok {
-		return rf(ctx, enail)
+		return rf(ctx, email)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) dto.UserEntity); ok {
-		r0 = rf(ctx, enail)
+		r0 = rf(ctx, email)
 	} else {
 		r0 = ret.Get(0).(dto.UserEntity)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, enail)
+		r1 = rf(ctx, email)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -218,6 +266,41 @@ func (_m *AuthRepository) GetUserLinkByResetToken(ctx context.Context, tokenID s
 	}
 
 	return r0, r1
+}
+
+// SetCooldown provides a mock function with given fields: ctx, config
+func (_m *AuthRepository) SetCooldown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
+	ret := _m.Called(ctx, config)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetCooldown")
+	}
+
+	var r0 bool
+	var r1 time.Duration
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CoolDownConfig) (bool, time.Duration, error)); ok {
+		return rf(ctx, config)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CoolDownConfig) bool); ok {
+		r0 = rf(ctx, config)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CoolDownConfig) time.Duration); ok {
+		r1 = rf(ctx, config)
+	} else {
+		r1 = ret.Get(1).(time.Duration)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, dto.CoolDownConfig) error); ok {
+		r2 = rf(ctx, config)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // UpdatePassword provides a mock function with given fields: ctx, userID, newPasswordHash

@@ -9,14 +9,16 @@ import (
 )
 
 type Config struct {
-	App             Application        `mapstructure:"app"`
-	Engine          Engine             `mapstructure:"engine"`
-	MailSender      MailSender         `mapstructure:"mail_sender"`
-	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
-	DBConnection    DatabaseConnection `mapstructure:"database"`
-	RedisConnection RedisConnection    `mapstructure:"redis"`
-	CORS            CORS               `mapstructure:"cors"`
-	Auth            Auth               `mapstructure:"auth"`
+	App             Application          `mapstructure:"app"`
+	Engine          Engine               `mapstructure:"engine"`
+	MailSender      MailSender           `mapstructure:"mail_sender"`
+	VkOAuth         VkOAuth              `mapstructure:"vk_oauth"`
+	DBConnection    DatabaseConnection   `mapstructure:"database"`
+	RedisConnection RedisConnection      `mapstructure:"redis"`
+	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
+	CORS            CORS                 `mapstructure:"cors"`
+	Auth            Auth                 `mapstructure:"auth"`
+	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
 }
 
 func DefaultConfig() Config {
@@ -28,6 +30,8 @@ func DefaultConfig() Config {
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
 		Auth:            DefaultAuthConfig(),
+		DBRateLimiters:  DefaultActionsRateLimiters(),
+		S3Avatars:       DefaultS3AvatarsConfig(),
 	}
 }
 
@@ -52,6 +56,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	SetupEnvVkOAuth(v)
 	SetupEnvDbConnection(v)
 	SetupEnvRedisConnection(v)
+	SetupEnvS3Avatars(v)
 
 	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)

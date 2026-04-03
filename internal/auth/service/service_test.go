@@ -417,6 +417,253 @@ func TestCreateSessionForUserError(t *testing.T) {
 	}
 }
 
+func TestRefreshSession(t *testing.T) {
+	t.Run("Success refresh session", func(t *testing.T) {
+		mockRep := mockAuthRep.NewAuthRepository(t)
+		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(nil)
+
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
+
+		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
+
+		assert.NoError(t, err, "not wait error")
+
+		mockRep.AssertExpectations(t)
+	})
+}
+
+func TestUpdateCountRequests(t *testing.T) {
+	defaultConfig := dto.RateLimiterConfig{
+		UserIP: common.FixedUserIP,
+		Limit:  5,
+		Action: "action",
+		Window: 1 * time.Minute,
+	}
+
+	tests := []struct {
+		nameTest      string
+		config        dto.RateLimiterConfig
+		mockAuthRep   func(m *mockAuthRep.AuthRepository)
+		expectedValue bool
+		expectedError error
+	}{
+		{
+			nameTest: "First success request",
+			config:   defaultConfig,
+			mockAuthRep: func(m *mockAuthRep.AuthRepository) {
+				m.On("CheckLimit", mock.Anything, repositoryDto.RateLimiterConfig{
+					UserIP: defaultConfig.UserIP,
+					Action: defaultConfig.Action,
+					Window: defaultConfig.Window,
+				}).Return(int64(1), nil)
+			},
+			expectedValue: false,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Exceeded limit requests",
+			config:   defaultConfig,
+			mockAuthRep: func(m *mockAuthRep.AuthRepository) {
+				m.On("CheckLimit", mock.Anything, repositoryDto.RateLimiterConfig{
+					UserIP: defaultConfig.UserIP,
+					Action: defaultConfig.Action,
+					Window: defaultConfig.Window,
+				}).Return(int64(6), nil)
+			},
+			expectedValue: true,
+			expectedError: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRepo := mockAuthRep.NewAuthRepository(t)
+			if test.mockAuthRep != nil {
+				test.mockAuthRep(mockRepo)
+			}
+
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+
+			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
+
+			assert.Equal(t, test.expectedValue, isFull, fmt.Sprintf("wait %t, get %t", test.expectedValue, test.expectedError))
+			assert.NoError(t, err, "not wait error")
+		})
+	}
+}
+
+func TestUpdateCountRequestsError(t *testing.T) {
+	errCheckLimitFailed := errors.New("fail checkLimit")
+
+	defaultConfig := dto.RateLimiterConfig{
+		UserIP: common.FixedUserIP,
+		Limit:  5,
+		Action: "action",
+		Window: 1 * time.Minute,
+	}
+	tests := []struct {
+		nameTest      string
+		config        dto.RateLimiterConfig
+		mockAuthRep   func(m *mockAuthRep.AuthRepository)
+		expectedError error
+	}{
+		{
+			nameTest: "Error check limit",
+			config:   defaultConfig,
+			mockAuthRep: func(m *mockAuthRep.AuthRepository) {
+				m.On("CheckLimit", mock.Anything, repositoryDto.RateLimiterConfig{
+					UserIP: defaultConfig.UserIP,
+					Action: defaultConfig.Action,
+					Window: defaultConfig.Window,
+				}).Return(int64(0), errCheckLimitFailed)
+			},
+			expectedError: errCheckLimitFailed,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRepo := mockAuthRep.NewAuthRepository(t)
+			if test.mockAuthRep != nil {
+				test.mockAuthRep(mockRepo)
+			}
+
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+
+			_, err := srv.UpdateCountRequests(context.Background(), test.config)
+
+			assert.ErrorIs(t, err, test.expectedError, fmt.Sprintf("wait %s", test.expectedError))
+		})
+	}
+}
+
+func TestCheckCoolDown(t *testing.T) {
+	defaultConfig := dto.CoolDownConfig{
+		Name:       "recovery_email",
+		Email:      "test@mail.ru",
+		Expiration: 1 * time.Minute,
+	}
+
+	expectedRepoConfig := repositoryDto.CoolDownConfig{
+		Name:       defaultConfig.Name,
+		Email:      defaultConfig.Email,
+		Expiration: defaultConfig.Expiration,
+	}
+
+	tests := []struct {
+		nameTest        string
+		config          dto.CoolDownConfig
+		mockBehavior    func(m *mockAuthRep.AuthRepository)
+		expectedAllowed bool
+		expectedTTL     time.Duration
+	}{
+		{
+			nameTest: "Success cooldown allowed",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				m.On("SetCooldown", mock.Anything, expectedRepoConfig).
+					Return(true, time.Duration(0), nil)
+			},
+			expectedAllowed: true,
+			expectedTTL:     0,
+		},
+		{
+			nameTest: "Success cooldown not allowed",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				m.On("SetCooldown", mock.Anything, expectedRepoConfig).
+					Return(false, 30*time.Second, nil)
+			},
+			expectedAllowed: false,
+			expectedTTL:     30 * time.Second,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRepo := mockAuthRep.NewAuthRepository(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRepo)
+			}
+
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+
+			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
+
+			assert.NoError(t, err, "expected no error")
+			assert.Equal(t, test.expectedAllowed, isAllowed, "incorrect isAllowed result")
+			assert.Equal(t, test.expectedTTL, ttl, "incorrect TTL result")
+		})
+	}
+}
+
+func TestCheckCoolDownError(t *testing.T) {
+	defaultConfig := dto.CoolDownConfig{
+		Name:       "recovery_email",
+		Email:      "test@mail.ru",
+		Expiration: 1 * time.Minute,
+	}
+
+	expectedRepoConfig := repositoryDto.CoolDownConfig{
+		Name:       defaultConfig.Name,
+		Email:      defaultConfig.Email,
+		Expiration: defaultConfig.Expiration,
+	}
+
+	errRepo := errors.New("repository error")
+
+	tests := []struct {
+		nameTest      string
+		config        dto.CoolDownConfig
+		mockBehavior  func(m *mockAuthRep.AuthRepository)
+		expectedError error
+	}{
+		{
+			nameTest: "Error from repository",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				m.On("SetCooldown", mock.Anything, expectedRepoConfig).
+					Return(false, time.Duration(0), errRepo)
+			},
+			expectedError: errRepo,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRepo := mockAuthRep.NewAuthRepository(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRepo)
+			}
+
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+
+			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
+
+			assert.ErrorIs(t, err, test.expectedError, "incorrect error type")
+			assert.False(t, isAllowed, "isAllowed should be false on error")
+			assert.Equal(t, time.Duration(0), ttl, "ttl should be 0 on error")
+		})
+	}
+}
+
+func TestRefreshSessionError(t *testing.T) {
+	t.Run("Error refresh session", func(t *testing.T) {
+		newErr := errors.New("error refresh")
+
+		mockRep := mockAuthRep.NewAuthRepository(t)
+		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(newErr)
+
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
+
+		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
+
+		assert.Error(t, err, "wait error")
+
+		mockRep.AssertExpectations(t)
+	})
+}
+
 func TestLogOut(t *testing.T) {
 	tests := []struct {
 		nameTest     string
@@ -457,6 +704,8 @@ func TestLogOut(t *testing.T) {
 }
 
 func TestLogOutError(t *testing.T) {
+	errInternalDB := errors.New("internal database failure")
+
 	tests := []struct {
 		nameTest      string
 		sessionID     string
@@ -476,7 +725,19 @@ func TestLogOutError(t *testing.T) {
 				ctx := context.Background()
 				m.On("DeleteSession", ctx, common.FixedSessionID).Return(common.ErrorNotExistingSession)
 			},
-			expectedError: fmt.Errorf("rep.DeleteSession: %w", common.ErrorNotExistingSession),
+			expectedError: common.ErrorNotExistingSession,
+		},
+		{
+			nameTest:  "Error internal database failure",
+			sessionID: common.FixedSessionID,
+			checker:   spyChecker,
+			hasher:    spyHasher,
+			generator: spyGenerator,
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				ctx := context.Background()
+				m.On("DeleteSession", ctx, common.FixedSessionID).Return(errInternalDB)
+			},
+			expectedError: errInternalDB,
 		},
 	}
 
@@ -492,8 +753,10 @@ func TestLogOutError(t *testing.T) {
 			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
-			assert.Error(t, err, "expected error")
-			assert.EqualError(t, test.expectedError, err.Error(), "incorrect error message")
+
+			require.Error(t, err, "expected error to be returned")
+
+			assert.ErrorIs(t, err, test.expectedError, "incorrect error returned")
 		})
 	}
 }
@@ -551,6 +814,7 @@ func TestGetUserLinkError(t *testing.T) {
 		generator     func() (string, error)
 		mockBehavior  func(m *mockAuthRep.AuthRepository)
 		expectedError error
+		errorContains string
 	}{
 		{
 			nameTest:  "Error session not found",
@@ -562,7 +826,19 @@ func TestGetUserLinkError(t *testing.T) {
 				ctx := context.Background()
 				m.On("GetUserIDBySession", ctx, common.FixedSessionID).Return("", common.ErrorNotExistingSession)
 			},
-			expectedError: fmt.Errorf("rep.GetUserIDBySession: %w", common.ErrorNotExistingSession),
+			expectedError: common.ErrorNotExistingSession,
+		},
+		{
+			nameTest:  "Error invalid UUID in DB",
+			sessionID: common.FixedSessionID,
+			checker:   spyChecker,
+			hasher:    spyHasher,
+			generator: spyGenerator,
+			mockBehavior: func(m *mockAuthRep.AuthRepository) {
+				ctx := context.Background()
+				m.On("GetUserIDBySession", ctx, common.FixedSessionID).Return("not valid uuid", nil)
+			},
+			errorContains: "uuid.Parse",
 		},
 	}
 
@@ -578,9 +854,13 @@ func TestGetUserLinkError(t *testing.T) {
 			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
-			assert.Error(t, err, "expected error")
-			assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
+
+			require.Error(t, err, "expected error")
 			assert.Equal(t, uuid.Nil, userID, "expected nil uuid")
+
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError, "incorrect error type")
+			}
 		})
 	}
 }

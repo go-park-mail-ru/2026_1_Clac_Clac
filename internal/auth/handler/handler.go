@@ -25,6 +25,9 @@ type AuthService interface {
 	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
 	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
 	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
+	RefreshSession(ctx context.Context, sessionID string) error
+	UpdateCountRequests(ctx context.Context, config serviceDto.RateLimiterConfig) (bool, error)
+	CheckCoolDown(ctx context.Context, config serviceDto.CoolDownConfig) (bool, time.Duration, error)
 	LogOut(ctx context.Context, sessionID string) error
 	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
 	GetUserByEmail(ctx context.Context, email string) (serviceDto.UserInfo, error)
@@ -60,6 +63,8 @@ const (
 	oauthSuccessAuthMessage = "success"
 
 	csrfCookieKey = "csrf_token"
+
+	nameCoolDown = "recovery_email"
 )
 
 var (
@@ -154,7 +159,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		Avatar:      serviceUser.Avatar,
 	}
 
-	http.SetCookie(w, api.NewCookie(
+	http.SetCookie(w, api.NewSessionCookie(
 		service.SessiondIdKey,
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
@@ -206,7 +211,7 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Avatar:      serviceUser.Avatar,
 	}
 
-	http.SetCookie(w, api.NewCookie(
+	http.SetCookie(w, api.NewSessionCookie(
 		service.SessiondIdKey,
 		sessionID,
 		time.Now().Add(service.SessionLifetime)))
@@ -254,6 +259,25 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	isAllowed, waitTime, err := a.Srv.CheckCoolDown(r.Context(), serviceDto.CoolDownConfig{
+		Name:       nameCoolDown,
+		Email:      request.Email,
+		Expiration: 1 * time.Minute,
+	})
+
+	if err != nil {
+		api.RespondError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if !isAllowed {
+		w.Header().Set("Retry-After", fmt.Sprintf("%.0f", waitTime.Seconds()))
+		errMsg := fmt.Sprintf("Too many requests. Wait %d seconds", int(waitTime.Seconds()))
+
+		api.RespondError(w, http.StatusTooManyRequests, errMsg)
 		return
 	}
 
@@ -451,7 +475,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			return
 		}
 
-		http.SetCookie(w, api.NewCookie(
+		http.SetCookie(w, api.NewSessionCookie(
 			service.SessiondIdKey,
 			sessionID,
 			time.Now().Add(service.SessionLifetime)))
@@ -495,15 +519,7 @@ func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     csrfCookieKey,
-		Value:    token,
-		Secure:   true,
-		HttpOnly: false,
-		Path:     "/",
-		SameSite: http.SameSiteLaxMode,
-		Expires:  expireTime,
-	})
+	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token, expireTime))
 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

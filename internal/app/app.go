@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
+	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
@@ -17,6 +19,7 @@ import (
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -94,6 +97,13 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+
+	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
+		logger, authHandler.LogInUser)).Methods(http.MethodPost)
+
+	public.Handle("/register", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.RegisterUser)),
+		logger, authHandler.RegisterUser)).Methods(http.MethodPost)
+
 	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
 
 	vkOAuth := setupVKOAuth(&conf.VkOAuth)
@@ -105,7 +115,7 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := router.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware(manager.Auth))
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
 
 	protected.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
 
@@ -195,7 +205,25 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 		return nil, fmt.Errorf("setupRedis: %w", err)
 	}
 
-	return NewStore(pool, redisClient), nil
+	const intConvertationBase = 10
+	const intConvertationSize = 64
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3Avatars.ConnectTimeout, intConvertationBase, intConvertationSize)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
+	defer cancel()
+
+	s3Client, err := s3.NewAWSClient(
+		ctx,
+		conf.S3Avatars.Region,
+		conf.S3Avatars.Endpoint,
+		conf.S3Avatars.AccessKey,
+		conf.S3Avatars.SecretKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
+	}
+
+	return NewStore(pool, redisClient, s3Client, conf.S3Avatars), nil
 }
 
 // Настройка менеджера сервисов

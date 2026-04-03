@@ -5,29 +5,38 @@ import (
 	"time"
 )
 
-const (
-	defaultHttpOnly = true
-	defaultPath     = "/"
-	defaultMaxAge   = -1
-	zeroValue       = ""
-)
-
-func NewCookie(key string, value string, expires time.Time) *http.Cookie {
+func NewSessionCookie(key string, value string, expires time.Time) *http.Cookie {
 	return &http.Cookie{
 		Name:     key,
 		Value:    value,
 		Expires:  expires,
-		HttpOnly: defaultHttpOnly,
-		Path:     defaultPath,
+		Secure:   true,
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+func NewCSRFCookie(name string, value string, expireTime time.Time) *http.Cookie {
+	return &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Secure:   true,
+		HttpOnly: false,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Expires:  expireTime,
 	}
 }
 
 func NewExpiredCookie(key string) *http.Cookie {
 	return &http.Cookie{
 		Name:     key,
-		Value:    zeroValue,
-		MaxAge:   defaultMaxAge,
-		HttpOnly: defaultHttpOnly,
-		Path:     defaultPath,
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	}
 }

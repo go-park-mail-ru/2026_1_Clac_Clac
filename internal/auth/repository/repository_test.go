@@ -2,19 +2,20 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/dto"
 	mockRedisEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository/mock_redis_engine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v4"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,6 @@ func TestAddUser(t *testing.T) {
 				Email:        "bobr@mail.ru",
 			},
 			mockSetup: func(mock pgxmock.PgxPoolIface, user dto.UserInitialize) {
-				// Убрал avatar, так как в репозитории его нет в INSERT
 				query := `INSERT INTO "user"\s+\(link, display_name, password_hash, email\)\s+VALUES\s+\(\$1, \$2, \$3, \$4\)`
 
 				mock.ExpectExec(query).
@@ -160,6 +160,236 @@ func TestAddSession(t *testing.T) {
 	}
 }
 
+func TestExtendSession(t *testing.T) {
+	tests := []struct {
+		nameTest     string
+		sessionID    string
+		timeExpires  time.Duration
+		mockBehavior func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration)
+	}{
+		{
+			nameTest:    "Success extend session",
+			sessionID:   common.FixedSessionID,
+			timeExpires: time.Hour * 24,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration) {
+				key := fmt.Sprintf("session:%s", sessionID)
+
+				successfulCmd := redis.NewBoolResult(true, nil)
+
+				m.On("Expire", mock.Anything, key, timeExpires).Return(successfulCmd)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
+			}
+
+			repoUsers := NewRepository(nil, redisMock)
+			err := repoUsers.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
+
+			assert.NoError(t, err, "not wait error")
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestExtendSessionError(t *testing.T) {
+	tests := []struct {
+		nameTest     string
+		sessionID    string
+		timeExpires  time.Duration
+		mockBehavior func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration)
+	}{
+		{
+			nameTest:    "Error extend session",
+			sessionID:   common.FixedSessionID,
+			timeExpires: time.Hour * 24,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration) {
+				key := fmt.Sprintf("session:%s", sessionID)
+
+				redisErr := errors.New("redis connection timeout")
+				errorCmd := redis.NewBoolResult(false, redisErr)
+
+				m.On("Expire", mock.Anything, key, timeExpires).Return(errorCmd)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			redisMock := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
+			}
+
+			rep := NewRepository(nil, redisMock)
+			err := rep.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
+
+			assert.Error(t, err, "wait error")
+
+			redisMock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestSetCooldown(t *testing.T) {
+	defaultConfig := dto.CoolDownConfig{
+		Name:       "recovery_email",
+		Email:      "test@mail.ru",
+		Expiration: 1 * time.Minute,
+	}
+
+	errRedis := errors.New("redis internal error")
+
+	tests := []struct {
+		nameTest        string
+		config          dto.CoolDownConfig
+		mockBehavior    func(m *mockRedisEngine.RedisEngine)
+		expectedAllowed bool
+		expectedTTL     time.Duration
+		expectedError   error
+	}{
+		{
+			nameTest: "Success set cooldown",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
+				ctx := context.Background()
+				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
+
+				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
+			},
+			expectedAllowed: true,
+			expectedTTL:     0,
+			expectedError:   nil,
+		},
+		{
+			nameTest: "Cooldown already exists",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
+				ctx := context.Background()
+				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
+
+				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(30*time.Second, nil))
+			},
+			expectedAllowed: false,
+			expectedTTL:     30 * time.Second,
+			expectedError:   nil,
+		},
+		{
+			nameTest: "Cooldown exists but negative TTL",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
+				ctx := context.Background()
+				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
+
+				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(-2*time.Second, nil))
+			},
+			expectedAllowed: false,
+			expectedTTL:     0,
+			expectedError:   nil,
+		},
+		{
+			nameTest: "Error from SetNX",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
+				ctx := context.Background()
+				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
+
+				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
+			},
+			expectedAllowed: false,
+			expectedTTL:     0,
+			expectedError:   errRedis,
+		},
+		{
+			nameTest: "Error from TTL",
+			config:   defaultConfig,
+			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
+				ctx := context.Background()
+				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
+
+				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(0, errRedis))
+			},
+			expectedAllowed: false,
+			expectedTTL:     0,
+			expectedError:   errRedis,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRedis := mockRedisEngine.NewRedisEngine(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRedis)
+			}
+
+			rep := NewRepository(nil, mockRedis)
+
+			isAllowed, ttl, err := rep.SetCooldown(context.Background(), test.config)
+
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError, "incorrect error type")
+			} else {
+				assert.NoError(t, err, "expected no error")
+			}
+
+			assert.Equal(t, test.expectedAllowed, isAllowed, "incorrect isAllowed result")
+			assert.Equal(t, test.expectedTTL, ttl, "incorrect TTL result")
+		})
+	}
+}
+
+func TestCheckLimit(t *testing.T) {
+	mr, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer mr.Close()
+
+	client := redis.NewClient(&redis.Options{
+		Addr: mr.Addr(),
+	})
+
+	defaultConfig := dto.RateLimiterConfig{
+		UserIP: "1.1.1.1",
+		Action: "login",
+		Window: 1 * time.Minute,
+	}
+
+	tests := []struct {
+		nameTest      string
+		configLimiter dto.RateLimiterConfig
+		expectedValue int64
+		expectedError error
+	}{
+		{
+			nameTest:      "Success exec request",
+			configLimiter: defaultConfig,
+			expectedValue: 1,
+			expectedError: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			rep := NewRepository(nil, client)
+
+			val, err := rep.CheckLimit(context.Background(), test.configLimiter)
+
+			assert.NoError(t, err, "not expected error")
+			assert.Equal(t, test.expectedValue, val, fmt.Sprintf("expected %d, got %d", test.expectedValue, val))
+
+			val2, _ := rep.CheckLimit(context.Background(), test.configLimiter)
+			assert.Equal(t, int64(2), val2, "second call should increment counter")
+		})
+	}
+}
 func TestDeleteSession(t *testing.T) {
 	tests := []struct {
 		nameTest     string
@@ -260,7 +490,7 @@ func TestGetUserIDBySessionError(t *testing.T) {
 			ctx := context.Background()
 
 			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
-			assert.ErrorIs(t, err, test.expectedError) // Единый стиль ErrorIs
+			assert.ErrorIs(t, err, test.expectedError)
 
 			redisMock.AssertExpectations(t)
 		})
