@@ -55,18 +55,6 @@ type AuthRepository interface {
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
 
-// Было лень править тесты из-за нового поля csrfSecret
-// Поэтому написал конфиг для создания сервиса из него
-type AuthServiceConfig struct {
-	AuthRepository     AuthRepository
-	EmailSender        SenderLetters
-	Hasher             func(password string) (string, error)
-	Checker            func(string, string) error
-	IdGenerator        func() (string, error)
-	ResetCodeGenerator func() (string, error)
-	CSRFSecret         string
-}
-
 type Service struct {
 	rep               AuthRepository
 	sender            SenderLetters
@@ -77,8 +65,7 @@ type Service struct {
 	csrfSecret        string
 }
 
-// Метод не поддерживает передачу секрета для генерации CSRF токена
-func NewService(rep AuthRepository, sender SenderLetters, hasher func(password string) (string, error), checker func(string, string) error, generatorID func() (string, error), generateResetCode func() (string, error)) *Service {
+func NewService(rep AuthRepository, sender SenderLetters, hasher func(password string) (string, error), checker func(string, string) error, generatorID func() (string, error), generateResetCode func() (string, error), csrfSecret string) *Service {
 	return &Service{
 		rep:               rep,
 		sender:            sender,
@@ -86,18 +73,7 @@ func NewService(rep AuthRepository, sender SenderLetters, hasher func(password s
 		checker:           checker,
 		generatorID:       generatorID,
 		generateResetCode: generateResetCode,
-	}
-}
-
-func NewFromConfig(conf AuthServiceConfig) *Service {
-	return &Service{
-		rep:               conf.AuthRepository,
-		sender:            conf.EmailSender,
-		hasher:            conf.Hasher,
-		checker:           conf.Checker,
-		generatorID:       conf.IdGenerator,
-		generateResetCode: conf.ResetCodeGenerator,
-		csrfSecret:        conf.CSRFSecret,
+		csrfSecret:        csrfSecret,
 	}
 }
 
@@ -354,33 +330,26 @@ func (a *Service) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo
 }
 
 func (a *Service) GetCSRFTokenExpireTime(ctx context.Context) (time.Time, error) {
-	const expireInHours = 24
-	return time.Now().Add(expireInHours * time.Hour), nil
+	return time.Now().Add(csrfTokenExpireInHours * time.Hour), nil
 }
 
 func (a *Service) GenerateCSRFToken(ctx context.Context, sessionId string, expireTime int64) (string, error) {
-	const intConvertationBase = 10
-
 	h := hmac.New(sha256.New, []byte(a.csrfSecret))
 	data := fmt.Sprintf("%s:%d", sessionId, expireTime)
 	h.Write([]byte(data))
 
-	token := fmt.Sprintf("%s:%s", hex.EncodeToString(h.Sum(nil)), strconv.FormatInt(expireTime, intConvertationBase))
+	token := fmt.Sprintf("%s:%s", hex.EncodeToString(h.Sum(nil)), strconv.FormatInt(expireTime, csrfTokenExpireTimeConvertationBase))
 
 	return token, nil
 }
 
 func (a *Service) CheckCSRFToken(ctx context.Context, sessionId string, token string) error {
-	const requiredTokenDataLength = 2
-	const intConvertationBase = 10
-	const intConvertationSize = 64
-
 	tokenData := strings.Split(token, ":")
-	if len(tokenData) != requiredTokenDataLength {
+	if len(tokenData) != csrfTokenPartsCount {
 		return ErrInvalidCSRFToken
 	}
 
-	expireTime, err := strconv.ParseInt(tokenData[1], intConvertationBase, intConvertationSize)
+	expireTime, err := strconv.ParseInt(tokenData[1], csrfTokenExpireTimeConvertationBase, csrfTokenExpireTimeConvertationTypeSize)
 	if err != nil {
 		return ErrCannotParseExpireTimeCSRFToken
 	}

@@ -81,7 +81,8 @@ var (
 	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
 	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
 
-	ErrCannotCreateCSRFToken = errors.New("cannot create csrf token")
+	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
+	ErrCannotGetCSRFTokenExpireTime = errors.New("cannot get csrf token expire time")
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -482,7 +483,7 @@ func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Reques
 
 	expireTime, err := a.Srv.GetCSRFTokenExpireTime(r.Context())
 	if err != nil {
-		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("get csrf token expire time")
+		logger.Error().Err(ErrCannotGetCSRFTokenExpireTime).Msg("get csrf token expire time")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
 		return
 	}

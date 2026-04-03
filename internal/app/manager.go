@@ -19,15 +19,7 @@ func NewManager(s *Store, conf config.Config) *Manager {
 	mailSender := mail.NewMailSender(&conf.MailSender)
 
 	return &Manager{
-		Auth: auth.NewFromConfig(auth.AuthServiceConfig{
-			AuthRepository:     s.Auth,
-			EmailSender:        &mailSender,
-			Hasher:             auth.HashPassword,
-			Checker:            auth.CheckPassword,
-			IdGenerator:        auth.GenerateSessionID,
-			ResetCodeGenerator: auth.GeneratorCode,
-			CSRFSecret:         conf.Auth.CSRFSecret,
-		}),
+		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, conf.Auth.CSRFSecret),
 		Board:      board.NewService(s.Boards),
 		Profile:    profile.NewService(s.Profiles),
 		MailSender: &mailSender,
