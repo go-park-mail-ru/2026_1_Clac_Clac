@@ -179,6 +179,8 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	request.Sanitize()
+
 	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
