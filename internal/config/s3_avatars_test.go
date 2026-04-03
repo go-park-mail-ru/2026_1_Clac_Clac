@@ -13,14 +13,16 @@ import (
 func TestS3AvatarsConfig(t *testing.T) {
 	t.Run("test reading from env", func(t *testing.T) {
 		want := config.S3Avatars{
-			Bucket:    "klsdfskljf",
-			Prefix:    "slkdfnmls",
-			Region:    "lksdjfklsdj",
-			Endpoint:  "https://localhost",
-			AccessKey: "lksdksfj",
-			SecretKey: "lksjdnleun",
+			ConnectTimeout: "90",
+			Bucket:         "klsdfskljf",
+			Prefix:         "slkdfnmls",
+			Region:         "lksdjfklsdj",
+			Endpoint:       "https://localhost",
+			AccessKey:      "lksdksfj",
+			SecretKey:      "lksjdnleun",
 		}
 
+		t.Setenv("S3_AVATARS_CONNECT_TIMEOUT", want.ConnectTimeout)
 		t.Setenv("S3_AVATARS_BUCKET", want.Bucket)
 		t.Setenv("S3_AVATARS_PREFIX", want.Prefix)
 		t.Setenv("S3_AVATARS_REGION", want.Region)

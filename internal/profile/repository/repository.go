@@ -17,10 +17,6 @@ type DBEngine interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func generateAvatarKey() (string, error) {
-	return uuid.New().String(), nil
-}
-
 type Repository struct {
 	pool    DBEngine
 	avatars s3.S3Bucket
