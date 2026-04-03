@@ -62,6 +62,12 @@ func TestGetUserProfile(t *testing.T) {
 		AvatarURL:   "",
 	}
 
+	vaildExtensions := map[string]struct{}{
+		"image/jpg":  {},
+		"image/png":  {},
+		"image/webp": {},
+	}
+
 	tests := []GetProfileTestCase{
 		{
 			Name:     "Success get profile",
@@ -96,7 +102,7 @@ func TestGetUserProfile(t *testing.T) {
 				)
 			},
 			ExpectedStatusCode: http.StatusInternalServerError,
-			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, somethingWentWrong),
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetInfoUser),
 		},
 	}
 
@@ -107,7 +113,7 @@ func TestGetUserProfile(t *testing.T) {
 				test.MockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(mockProfileService)
+			handler := NewHandler(mockProfileService, vaildExtensions)
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.CtxValue != nil {

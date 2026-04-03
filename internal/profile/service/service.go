@@ -12,13 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
 type ProfileRepository interface {
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
 	GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error)
-	UploadAvatar(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
-	UploadAvatarURL(ctx context.Context, userLink uuid.UUID, objectKey string) error
-	DeleteAvatar(ctx context.Context, key string) error
-	DeleteAvatarURL(ctx context.Context, userLink uuid.UUID) error
+	UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
+	UploadURLAvatar(ctx context.Context, userLink uuid.UUID, objectKey string) error
+	DeleteAvatarS3(ctx context.Context, key string) error
+	DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
 type Service struct {
@@ -67,6 +68,8 @@ func (s *Service) UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.
 		format = ".jpg"
 	case "image/png":
 		format = ".png"
+	case "image/webp":
+		format = ".webp"
 	}
 
 	key, err := s.generateAvatarKey()
@@ -76,16 +79,16 @@ func (s *Service) UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.
 
 	pathFile := fmt.Sprintf("%s/%s%s", userLink.String(), key, format)
 
-	objectKey, err := s.rep.UploadAvatar(ctx, file, pathFile, mimeType)
+	objectKey, err := s.rep.UploadAvatarS3(ctx, file, pathFile, mimeType)
 	if err != nil {
 		return "", fmt.Errorf("UploadAvatar: %w", err)
 	}
 
-	errUploadDB := s.rep.UploadAvatarURL(ctx, userLink, objectKey)
+	errUploadDB := s.rep.UploadURLAvatar(ctx, userLink, objectKey)
 	if errUploadDB != nil {
 		resultError := fmt.Errorf("rep.UploadAvatarURL: %w", errUploadDB)
 
-		errDelete := s.rep.DeleteAvatar(ctx, objectKey)
+		errDelete := s.rep.DeleteAvatarS3(ctx, objectKey)
 		if errDelete != nil {
 			resultError = errors.Join(resultError, errDelete)
 		}
@@ -111,12 +114,12 @@ func (s *Service) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
 		return nil
 	}
 
-	err = s.rep.DeleteAvatar(ctx, avatarKey)
+	err = s.rep.DeleteAvatarS3(ctx, avatarKey)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteAvatar: %w", err)
 	}
 
-	err = s.rep.DeleteAvatarURL(ctx, userLink)
+	err = s.rep.DeleteURLAvatar(ctx, userLink)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteAvatarURL: %w", err)
 	}

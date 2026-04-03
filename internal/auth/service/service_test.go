@@ -63,7 +63,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -143,7 +143,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			_, _, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -209,7 +209,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -293,7 +293,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			_, _, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -322,9 +322,9 @@ func TestCreateSessionForUser(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				expectedSession := repositoryDto.SessionEntity{
-					SessionID: "sessionCLAC",
-					UserLink:  userUUID,
-					LifeTime:  SessionLifetime,
+					SessionKey: "sessionCLAC",
+					UserLink:   userUUID,
+					LifeTime:   SessionLifetime,
 				}
 
 				m.On("AddSession", ctx, expectedSession).Return(nil)
@@ -342,7 +342,7 @@ func TestCreateSessionForUser(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil)
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, CreaterResetKey, CreaterSessionKey)
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -381,9 +381,9 @@ func TestCreateSessionForUserError(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				expectedSession := repositoryDto.SessionEntity{
-					SessionID: "sessionCLAC",
-					UserLink:  userUUID,
-					LifeTime:  SessionLifetime,
+					SessionKey: "sessionCLAC",
+					UserLink:   userUUID,
+					LifeTime:   SessionLifetime,
 				}
 
 				m.On("AddSession", ctx, expectedSession).
@@ -402,7 +402,7 @@ func TestCreateSessionForUserError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil)
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, CreaterResetKey, CreaterSessionKey)
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -690,7 +690,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -745,7 +745,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 
@@ -791,7 +791,7 @@ func TestGetUserLink(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -846,7 +846,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 
@@ -902,7 +902,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, nil, nil)
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.NoError(t, err, "not expected error")
@@ -947,7 +947,7 @@ func TestGetUserByEmailError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, CreaterResetKey, CreaterSessionKey)
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.Error(t, err, "expected error")
@@ -974,7 +974,7 @@ func TestSendRecoveryCode(t *testing.T) {
 			generator: func() (string, error) { return "123456", nil },
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				m.On("GetUserLink", mock.Anything, targetEmail).Return(common.FixedUserUuiD, nil)
-				m.On("AddResetToken", mock.Anything, mock.AnythingOfType("dto.ResetTokenEntity")).Return(nil)
+				m.On("AddResetToken", mock.Anything, mock.Anything).Return(nil)
 			},
 			senderMock: func(m *mockSender.SenderLetters) {
 				m.On("SendLetter", targetEmail, "Code to create a new password", mock.AnythingOfType("string")).Return(nil)
@@ -1005,7 +1005,7 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator)
+			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator, CreaterResetKey, CreaterSessionKey)
 
 			err := service.SendRecoveryCode(context.Background(), test.email)
 
@@ -1047,7 +1047,7 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := NewService(mockRepo, nil, nil, nil, nil, nil)
+			service := NewService(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {
@@ -1093,7 +1093,7 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, nil, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1177,7 +1177,7 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, nil, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1246,7 +1246,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 				test.MockBehavior(authRepo)
 			}
 
-			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil)
+			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil, nil, nil)
 			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
 			if test.ExpectError {
 				require.Error(t, err, "must return error")

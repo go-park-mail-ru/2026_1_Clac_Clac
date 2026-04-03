@@ -18,10 +18,10 @@ type Manager struct {
 
 func NewManager(s *Store, mailSenderConf *config.MailSender, S3conf *config.S3Avatars) *Manager {
 	mailSender := mail.NewMailSender(mailSenderConf)
-	baseURLAvatar := s3.GenerateBaseURL(S3conf.Bucket, S3conf.Endpoint, S3conf.Prefix)
+	baseURLAvatar := s3.GenerateBaseURL(S3conf.Bucket, S3conf.Endpoint)
 
 	return &Manager{
-		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode),
+		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, auth.CreaterResetKey, auth.CreaterSessionKey),
 		Board:      board.NewService(s.Boards),
 		Profile:    profile.NewService(s.Profiles, profile.GenerateAvatarKey, baseURLAvatar),
 		MailSender: &mailSender,

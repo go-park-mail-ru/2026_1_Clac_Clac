@@ -22,15 +22,15 @@ type UserEntity struct {
 }
 
 type SessionEntity struct {
-	SessionID string
-	UserLink  uuid.UUID
-	LifeTime  time.Duration
+	SessionKey string
+	UserLink   uuid.UUID
+	LifeTime   time.Duration
 }
 
 type ResetTokenEntity struct {
-	ResetTokenID string
-	UserLink     uuid.UUID
-	LifeTime     time.Duration
+	ResetTokenKey string
+	UserLink      uuid.UUID
+	LifeTime      time.Duration
 }
 
 type RateLimiterConfig struct {

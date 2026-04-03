@@ -70,12 +70,8 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 	return nil
 }
 
-// TODO: create key in service
-
 func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) error {
-	key := fmt.Sprintf("session:%s", session.SessionID)
-
-	err := r.redisClient.Set(ctx, key, session.UserLink.String(), session.LifeTime).Err()
+	err := r.redisClient.Set(ctx, session.SessionKey, session.UserLink.String(), session.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -150,10 +146,8 @@ func (r *Repository) GetUserIDBySession(ctx context.Context, sessionID string) (
 	return userLink, nil
 }
 
-func (r *Repository) DeleteSession(ctx context.Context, sessionID string) error {
-	key := fmt.Sprintf("session:%s", sessionID)
-
-	err := r.redisClient.Del(ctx, key).Err()
+func (r *Repository) DeleteSession(ctx context.Context, sessionKey string) error {
+	err := r.redisClient.Del(ctx, sessionKey).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}
@@ -206,9 +200,7 @@ func (r *Repository) GetUserLink(ctx context.Context, email string) (uuid.UUID, 
 }
 
 func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetTokenEntity) error {
-	key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
-
-	err := r.redisClient.Set(ctx, key, token.UserLink.String(), token.LifeTime).Err()
+	err := r.redisClient.Set(ctx, token.ResetTokenKey, token.UserLink.String(), token.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -216,10 +208,8 @@ func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetTokenEnti
 	return nil
 }
 
-func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenID string) (string, error) {
-	key := fmt.Sprintf("reset_token:%s", tokenID)
-
-	userLink, err := r.redisClient.Get(ctx, key).Result()
+func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenKey string) (string, error) {
+	userLink, err := r.redisClient.Get(ctx, tokenKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingResetToken
@@ -231,10 +221,8 @@ func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenID string
 	return userLink, nil
 }
 
-func (r *Repository) DeleteResetToken(ctx context.Context, tokenID string) error {
-	key := fmt.Sprintf("reset_token:%s", tokenID)
-
-	err := r.redisClient.Del(ctx, key).Err()
+func (r *Repository) DeleteResetToken(ctx context.Context, tokenKey string) error {
+	err := r.redisClient.Del(ctx, tokenKey).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}

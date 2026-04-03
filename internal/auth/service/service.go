@@ -49,22 +49,29 @@ type AuthRepository interface {
 }
 
 type Service struct {
-	rep               AuthRepository
-	sender            SenderLetters
-	hasher            func(password string) (string, error)
-	checker           func(string, string) error
-	generatorID       func() (string, error)
-	generateResetCode func() (string, error)
+	rep                AuthRepository
+	sender             SenderLetters
+	hasher             func(password string) (string, error)
+	checker            func(string, string) error
+	generatorID        func() (string, error)
+	generatorResetCode func() (string, error)
+	createrResetKey    func(string) string
+	createrSessionKey  func(string) string
 }
 
-func NewService(rep AuthRepository, sender SenderLetters, hasher func(password string) (string, error), checker func(string, string) error, generatorID func() (string, error), generateResetCode func() (string, error)) *Service {
+func NewService(rep AuthRepository, sender SenderLetters,
+	hasher func(password string) (string, error), checker func(string, string) error,
+	generatorID func() (string, error), generateResetCode func() (string, error),
+	createrResetKey func(string) string, createrSessionKey func(string) string) *Service {
 	return &Service{
-		rep:               rep,
-		sender:            sender,
-		hasher:            hasher,
-		checker:           checker,
-		generatorID:       generatorID,
-		generateResetCode: generateResetCode,
+		rep:                rep,
+		sender:             sender,
+		hasher:             hasher,
+		checker:            checker,
+		generatorID:        generatorID,
+		generatorResetCode: generateResetCode,
+		createrResetKey:    createrResetKey,
+		createrSessionKey:  createrSessionKey,
 	}
 }
 
@@ -85,9 +92,9 @@ func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.Use
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionID: sessionID,
-		UserLink:  user.Link,
-		LifeTime:  24 * time.Hour,
+		SessionKey: sessionID,
+		UserLink:   user.Link,
+		LifeTime:   24 * time.Hour,
 	}
 
 	err = s.rep.AddSession(ctx, session)
@@ -110,9 +117,9 @@ func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionID: sessionID,
-		UserLink:  link,
-		LifeTime:  SessionLifetime,
+		SessionKey: sessionID,
+		UserLink:   link,
+		LifeTime:   SessionLifetime,
 	}
 
 	err = s.rep.AddSession(ctx, session)
@@ -173,9 +180,9 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionID: sessionID,
-		UserLink:  user.Link,
-		LifeTime:  24 * time.Hour,
+		SessionKey: sessionID,
+		UserLink:   user.Link,
+		LifeTime:   24 * time.Hour,
 	}
 
 	err = s.rep.AddSession(ctx, session)
@@ -256,9 +263,9 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 	}
 
 	resetToken := repositoryDto.ResetTokenEntity{
-		ResetTokenID: resetCode,
-		UserLink:     userLink,
-		LifeTime:     time.Minute * 15,
+		ResetTokenKey: resetCode,
+		UserLink:      userLink,
+		LifeTime:      time.Minute * 15,
 	}
 
 	err = s.rep.AddResetToken(ctx, resetToken)

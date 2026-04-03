@@ -84,7 +84,7 @@ func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (stri
 	return *avatarKeyPtr, nil
 }
 
-func (r *Repository) UploadAvatar(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error) {
+func (r *Repository) UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error) {
 	key, err := r.avatars.Put(ctx, file, pathFile, contentType)
 	if err != nil {
 		return "", fmt.Errorf("avatars.Put: %w", err)
@@ -93,7 +93,7 @@ func (r *Repository) UploadAvatar(ctx context.Context, file io.Reader, pathFile,
 	return key, nil
 }
 
-func (r *Repository) UploadAvatarURL(ctx context.Context, userLink uuid.UUID, objectKey string) error {
+func (r *Repository) UploadURLAvatar(ctx context.Context, userLink uuid.UUID, objectKey string) error {
 	updateAvatar := `
 	UPDATE "user"
 	SET avatar_key = $1,
@@ -113,7 +113,7 @@ func (r *Repository) UploadAvatarURL(ctx context.Context, userLink uuid.UUID, ob
 	return nil
 }
 
-func (r *Repository) DeleteAvatar(ctx context.Context, key string) error {
+func (r *Repository) DeleteAvatarS3(ctx context.Context, key string) error {
 	err := r.avatars.Delete(ctx, key)
 	if err != nil {
 		return fmt.Errorf("avatars.Delete: %w", err)
@@ -122,7 +122,7 @@ func (r *Repository) DeleteAvatar(ctx context.Context, key string) error {
 	return nil
 }
 
-func (r *Repository) DeleteAvatarURL(ctx context.Context, userLink uuid.UUID) error {
+func (r *Repository) DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) error {
 	query := `
 	UPDATE "user"
 	SET avatar_key = $1,

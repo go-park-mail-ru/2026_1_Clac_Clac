@@ -49,7 +49,7 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, conf, logger)
+	router := setupRouter(manager, &conf.App, &conf.VkOAuth, &conf.S3Avatars, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -77,7 +77,11 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
+<<<<<<< HEAD
 func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+=======
+func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *config.VkOAuth, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+>>>>>>> 76adcbd (refactor:auth/repository, profile)
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
@@ -121,10 +125,11 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
 	// Руты, на которые пользователь объязательно должен быть авторизован
 	boardHandler := board.NewHandler(manager.Board)
-	profileHandler := profile.NewHandler(manager.Profile)
+	profileHandler := profile.NewHandler(manager.Profile, s3Conf.ValidExtensions)
 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
 
