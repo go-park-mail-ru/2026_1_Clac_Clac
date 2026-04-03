@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
@@ -15,6 +17,7 @@ import (
 )
 
 func TestGetProfile(t *testing.T) {
+	s3AvatarsConf := config.DefaultS3AvatarsConfig()
 	targetID := common.FixedUserUuiD
 
 	expectedDTO := dto.UserInfoEntity{
@@ -58,7 +61,7 @@ func TestGetProfile(t *testing.T) {
 
 			test.mockSetup(mock, test.targetID)
 
-			repoProfile := NewRepository(mock)
+			repoProfile := NewRepository(mock, &s3.AWSClient{}, &s3AvatarsConf)
 			ctx := context.Background()
 
 			user, err := repoProfile.GetProfile(ctx, test.targetID)
@@ -73,6 +76,7 @@ func TestGetProfile(t *testing.T) {
 }
 
 func TestGetProfileError(t *testing.T) {
+	s3AvatarsConf := config.DefaultS3AvatarsConfig()
 	targetID := uuid.New()
 
 	tests := []struct {
@@ -107,7 +111,7 @@ func TestGetProfileError(t *testing.T) {
 
 			test.mockSetup(mock, test.targetID)
 
-			repoProfile := NewRepository(mock)
+			repoProfile := NewRepository(mock, &s3.AWSClient{}, &s3AvatarsConf)
 			ctx := context.Background()
 
 			user, err := repoProfile.GetProfile(ctx, test.targetID)

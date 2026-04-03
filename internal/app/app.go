@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
@@ -18,6 +19,7 @@ import (
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -201,7 +203,25 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 		return nil, fmt.Errorf("setupRedis: %w", err)
 	}
 
-	return NewStore(pool, redisClient), nil
+	const intConvertationBase = 10
+	const intConvertationSize = 64
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3Avatars.ConnectTimeout, intConvertationBase, intConvertationSize)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
+	defer cancel()
+
+	s3Client, err := s3.NewAWSClient(
+		ctx,
+		conf.S3Avatars.Region,
+		conf.S3Avatars.Endpoint,
+		conf.S3Avatars.AccessKey,
+		conf.S3Avatars.SecretKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
+	}
+
+	return NewStore(pool, redisClient, s3Client, conf.S3Avatars), nil
 }
 
 // Настройка менеджера сервисов
