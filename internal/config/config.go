@@ -15,6 +15,7 @@ type Config struct {
 	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
 	DBConnection    DatabaseConnection `mapstructure:"database"`
 	RedisConnection RedisConnection    `mapstructure:"redis"`
+	S3Avatars       S3Avatars          `mapstructure:"s3_avatars"`
 	CORS            CORS               `mapstructure:"cors"`
 }
 
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
+		S3Avatars:       DefaultS3AvatarsConfig(),
 	}
 }
 
@@ -50,6 +52,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	SetupEnvVkOAuth(v)
 	SetupEnvDbConnection(v)
 	SetupEnvRedisConnection(v)
+	SetupEnvS3Avatars(v)
 
 	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)

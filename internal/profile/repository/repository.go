@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,12 +18,14 @@ type DBEngine interface {
 }
 
 type Repository struct {
-	pool DBEngine
+	pool    DBEngine
+	avatars s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine) *Repository {
+func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Avatars) *Repository {
 	return &Repository{
-		pool: pool,
+		pool:    pool,
+		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
 	}
 }
 
