@@ -79,10 +79,8 @@ func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) 
 	return nil
 }
 
-func (r *Repository) ExtendSession(ctx context.Context, sessionID string, sessionLifetime time.Duration) error {
-	key := fmt.Sprintf("session:%s", sessionID)
-
-	err := r.redisClient.Expire(ctx, key, sessionLifetime).Err()
+func (r *Repository) ExtendSession(ctx context.Context, sessionKey string, sessionLifetime time.Duration) error {
+	err := r.redisClient.Expire(ctx, sessionKey, sessionLifetime).Err()
 	if err != nil {
 		return fmt.Errorf("redisClient.Expire: %w", err)
 	}
@@ -91,9 +89,7 @@ func (r *Repository) ExtendSession(ctx context.Context, sessionID string, sessio
 }
 
 func (r *Repository) SetCooldown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
-	fullKey := fmt.Sprintf("cd:%s:%s", config.Name, config.Email)
-
-	isSet, err := r.redisClient.SetNX(ctx, fullKey, "", config.Expiration).Result()
+	isSet, err := r.redisClient.SetNX(ctx, config.Key, "", config.Expiration).Result()
 	if err != nil {
 		return false, 0, fmt.Errorf("redisClient.SetNX: %w", err)
 	}
@@ -102,7 +98,7 @@ func (r *Repository) SetCooldown(ctx context.Context, config dto.CoolDownConfig)
 		return true, 0, nil
 	}
 
-	ttl, err := r.redisClient.TTL(ctx, fullKey).Result()
+	ttl, err := r.redisClient.TTL(ctx, config.Key).Result()
 	if err != nil {
 		return false, 0, fmt.Errorf("redisClient.TTL: %w", err)
 	}
@@ -131,10 +127,8 @@ func (r *Repository) CheckLimit(ctx context.Context, configLimiter dto.RateLimit
 	return size.Val(), nil
 }
 
-func (r *Repository) GetUserIDBySession(ctx context.Context, sessionID string) (string, error) {
-	key := fmt.Sprintf("session:%s", sessionID)
-
-	userLink, err := r.redisClient.Get(ctx, key).Result()
+func (r *Repository) GetUserIDBySession(ctx context.Context, sessionKey string) (string, error) {
+	userLink, err := r.redisClient.Get(ctx, sessionKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingSession

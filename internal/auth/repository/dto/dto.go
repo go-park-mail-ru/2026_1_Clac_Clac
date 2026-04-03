@@ -40,7 +40,6 @@ type RateLimiterConfig struct {
 }
 
 type CoolDownConfig struct {
-	Name       string
-	Email      string
+	Key        string
 	Expiration time.Duration
 }

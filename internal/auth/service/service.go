@@ -35,15 +35,15 @@ type SenderLetters interface {
 type AuthRepository interface {
 	AddUser(ctx context.Context, user repositoryDto.UserInitialize) error
 	AddSession(ctx context.Context, session repositoryDto.SessionEntity) error
-	ExtendSession(ctx context.Context, sessionID string, sessionLifetime time.Duration) error
-	DeleteSession(ctx context.Context, sessionID string) error
+	ExtendSession(ctx context.Context, sessionKey string, sessionLifetime time.Duration) error
+	DeleteSession(ctx context.Context, sessionKey string) error
 	GetUser(ctx context.Context, email string) (repositoryDto.UserEntity, error)
 	CheckLimit(ctx context.Context, configLimiter repositoryDto.RateLimiterConfig) (int64, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
-	GetUserIDBySession(ctx context.Context, sessionID string) (string, error)
+	GetUserIDBySession(ctx context.Context, sessionKey string) (string, error)
 	GetUserLinkByResetToken(ctx context.Context, tokenID string) (string, error)
 	SetCooldown(ctx context.Context, config repositoryDto.CoolDownConfig) (bool, time.Duration, error)
-	DeleteResetToken(ctx context.Context, tokenID string) error
+	DeleteResetToken(ctx context.Context, tokenKey string) error
 	AddResetToken(ctx context.Context, token repositoryDto.ResetTokenEntity) error
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
@@ -92,7 +92,7 @@ func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.Use
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: sessionID,
+		SessionKey: s.createrSessionKey(sessionID),
 		UserLink:   user.Link,
 		LifeTime:   24 * time.Hour,
 	}
@@ -117,7 +117,7 @@ func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: sessionID,
+		SessionKey: s.createrSessionKey(sessionID),
 		UserLink:   link,
 		LifeTime:   SessionLifetime,
 	}
@@ -131,7 +131,9 @@ func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 }
 
 func (s *Service) RefreshSession(ctx context.Context, sessionID string) error {
-	err := s.rep.ExtendSession(ctx, sessionID, SessionLifetime)
+	key := s.createrSessionKey(sessionID)
+
+	err := s.rep.ExtendSession(ctx, key, SessionLifetime)
 	if err != nil {
 		return fmt.Errorf("rep.UpdateExpirationSession: %w", err)
 	}
@@ -180,7 +182,7 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: sessionID,
+		SessionKey: s.createrSessionKey(sessionID),
 		UserLink:   user.Link,
 		LifeTime:   24 * time.Hour,
 	}
@@ -198,7 +200,8 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 }
 
 func (s *Service) LogOut(ctx context.Context, sessionID string) error {
-	err := s.rep.DeleteSession(ctx, sessionID)
+	key := s.createrSessionKey(sessionID)
+	err := s.rep.DeleteSession(ctx, key)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteSession: %w", err)
 	}
@@ -207,7 +210,8 @@ func (s *Service) LogOut(ctx context.Context, sessionID string) error {
 }
 
 func (s *Service) GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	userLink, err := s.rep.GetUserIDBySession(ctx, sessionID)
+	key := s.createrSessionKey(sessionID)
+	userLink, err := s.rep.GetUserIDBySession(ctx, key)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("rep.GetUserIDBySession: %w", err)
 	}
@@ -237,9 +241,10 @@ func (s *Service) GetUserByEmail(ctx context.Context, email string) (dto.UserInf
 }
 
 func (s *Service) CheckCoolDown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
+	fullKey := fmt.Sprintf("cd:%s:%s", config.Name, config.Email)
+
 	isAllowed, waitTime, err := s.rep.SetCooldown(ctx, repositoryDto.CoolDownConfig{
-		Name:       config.Name,
-		Email:      config.Email,
+		Key:        fullKey,
 		Expiration: config.Expiration,
 	})
 	if err != nil {
@@ -263,7 +268,7 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 	}
 
 	resetToken := repositoryDto.ResetTokenEntity{
-		ResetTokenKey: resetCode,
+		ResetTokenKey: s.createrResetKey(resetCode),
 		UserLink:      userLink,
 		LifeTime:      time.Minute * 15,
 	}
@@ -294,7 +299,8 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 }
 
 func (s *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
-	_, err := s.rep.GetUserLinkByResetToken(ctx, tokenID)
+	tokenKey := s.createrResetKey(tokenID)
+	_, err := s.rep.GetUserLinkByResetToken(ctx, tokenKey)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
 	}
@@ -303,7 +309,8 @@ func (s *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
 }
 
 func (s *Service) ResetPassword(ctx context.Context, tokenID, newPassword string) error {
-	userLink, err := s.rep.GetUserLinkByResetToken(ctx, tokenID)
+	tokenKey := s.createrResetKey(tokenID)
+	userLink, err := s.rep.GetUserLinkByResetToken(ctx, tokenKey)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
 	}

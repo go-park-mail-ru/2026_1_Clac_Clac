@@ -64,6 +64,7 @@ func TestGetUserProfile(t *testing.T) {
 		"image/webp": {},
 	}
 
+<<<<<<< HEAD
 	tests := []struct {
 		nameTest           string
 		ctxValue           any
@@ -71,6 +72,9 @@ func TestGetUserProfile(t *testing.T) {
 		expectedStatusCode int
 		expectedResponse   any
 	}{
+=======
+	tests := []GetProfileTestCase{
+>>>>>>> 76adcbd (refactor:auth/repository, profile)
 		{
 			nameTest: "Success get profile",
 			ctxValue: targetUserLink,
@@ -103,8 +107,13 @@ func TestGetUserProfile(t *testing.T) {
 					errors.New("database connection lost"),
 				)
 			},
+<<<<<<< HEAD
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetInfoUser),
+=======
+			ExpectedStatusCode: http.StatusInternalServerError,
+			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetInfoUser),
+>>>>>>> 76adcbd (refactor:auth/repository, profile)
 		},
 	}
 

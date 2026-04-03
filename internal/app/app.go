@@ -49,7 +49,11 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
+<<<<<<< HEAD
 	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
+=======
+	router := setupRouter(manager, &conf.App, &conf.VkOAuth, &conf.S3Avatars, logger)
+>>>>>>> 76adcbd (refactor:auth/repository, profile)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -77,7 +81,11 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
+<<<<<<< HEAD
 func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+=======
+func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *config.VkOAuth, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+>>>>>>> 76adcbd (refactor:auth/repository, profile)
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре

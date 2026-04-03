@@ -540,8 +540,7 @@ func TestCheckCoolDown(t *testing.T) {
 	}
 
 	expectedRepoConfig := repositoryDto.CoolDownConfig{
-		Name:       defaultConfig.Name,
-		Email:      defaultConfig.Email,
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: defaultConfig.Expiration,
 	}
 
@@ -600,8 +599,7 @@ func TestCheckCoolDownError(t *testing.T) {
 	}
 
 	expectedRepoConfig := repositoryDto.CoolDownConfig{
-		Name:       defaultConfig.Name,
-		Email:      defaultConfig.Email,
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: defaultConfig.Expiration,
 	}
 

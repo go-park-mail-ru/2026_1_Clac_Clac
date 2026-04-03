@@ -238,8 +238,7 @@ func TestExtendSessionError(t *testing.T) {
 
 func TestSetCooldown(t *testing.T) {
 	defaultConfig := dto.CoolDownConfig{
-		Name:       "recovery_email",
-		Email:      "test@mail.ru",
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: 1 * time.Minute,
 	}
 
@@ -258,9 +257,8 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
 			},
 			expectedAllowed: true,
 			expectedTTL:     0,
@@ -271,10 +269,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(30*time.Second, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(30*time.Second, nil))
 			},
 			expectedAllowed: false,
 			expectedTTL:     30 * time.Second,
@@ -285,10 +282,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(-2*time.Second, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(-2*time.Second, nil))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
@@ -299,9 +295,8 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
@@ -312,10 +307,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(0, errRedis))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(0, errRedis))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
