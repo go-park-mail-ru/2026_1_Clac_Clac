@@ -259,7 +259,7 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	isAllowed, waitTime, err := a.Srv.CheckCoolDown(r.Context(), serviceDto.CoolDownConfig{
+	isAllowed, waitTime, err := a.srv.CheckCoolDown(r.Context(), serviceDto.CoolDownConfig{
 		Name:       nameCoolDown,
 		Email:      request.Email,
 		Expiration: 1 * time.Minute,
@@ -278,7 +278,7 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = a.Srv.SendRecoveryCode(r.Context(), request.Email)
+	err = a.srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, ErrUserDoesNotExists.Error())
