@@ -13,3 +13,30 @@ cors:
   methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
   headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
   max_age: 864000
+
+database:
+  min_connections: 2
+  max_connections: 10
+  max_connection_lifetime: 1h
+  max_health_check_period: 30s
+  ping_sleep_time: 2s
+  time_out: 5s
+  max_retries: 5
+
+redis:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
+
+database_rate_limiters:
+  database_actions:
+    login:
+      limit: 5
+      action: "login"
+      window: 1m
+    register:
+      limit: 5
+      action: "register"
+      window: 1h

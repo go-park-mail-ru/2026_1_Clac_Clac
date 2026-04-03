@@ -33,7 +33,7 @@ func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger
 	poolConfig.HealthCheckPeriod = dbConnection.MaxHealthCheckPeriod
 
 	for i := 1; i <= dbConnection.MaxRetries; i++ {
-		contextWithTimeOut, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		contextWithTimeOut, cancel := context.WithTimeout(context.Background(), dbConnection.TimeOut)
 
 		if pool, err := pgxpool.NewWithConfig(contextWithTimeOut, poolConfig); err == nil {
 			pingErr := pool.Ping(contextWithTimeOut)

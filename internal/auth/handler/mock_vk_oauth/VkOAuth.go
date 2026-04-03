@@ -4,6 +4,7 @@ package mocks
 
 import (
 	context "context"
+
 	http "net/http"
 
 	mock "github.com/stretchr/testify/mock"
