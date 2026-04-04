@@ -46,12 +46,12 @@ type VkOAuth interface {
 }
 
 type AuthHandler struct {
-	Srv AuthService
+	srv AuthService
 }
 
 func NewHandler(srv AuthService) *AuthHandler {
 	return &AuthHandler{
-		Srv: srv,
+		srv: srv,
 	}
 }
 
@@ -134,7 +134,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceUser, sessionID, err := a.Srv.LogIn(r.Context(), serviceDto.LogInUser{
+	serviceUser, sessionID, err := a.srv.LogIn(r.Context(), serviceDto.LogInUser{
 		Email:    request.Email,
 		Password: request.Password,
 	})
@@ -190,13 +190,13 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceUser, sessionID, err := a.Srv.Register(r.Context(), serviceDto.RegistrationUser{
+	serviceUser, sessionID, err := a.srv.Register(r.Context(), serviceDto.RegistrationUser{
 		DisplayName: request.DisplayName,
 		Email:       request.Email,
 		Password:    request.Password,
 	})
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.Register: %w", err))
+		logger.Err(fmt.Errorf("Srv.Register: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
@@ -228,7 +228,7 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie(service.SessiondIdKey)
 	if err == nil && cookie != nil {
-		errLogOut := a.Srv.LogOut(r.Context(), cookie.Value)
+		errLogOut := a.srv.LogOut(r.Context(), cookie.Value)
 		if errLogOut != nil {
 			logger.Err(fmt.Errorf("Srv.LogOut: %w", errLogOut))
 		}
@@ -314,7 +314,7 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = a.Srv.CheckRecoveryCode(r.Context(), request.Code)
+	err = a.srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.CheckRecoveryCode: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
@@ -352,7 +352,7 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = a.Srv.ResetPassword(r.Context(), request.TokenID, request.Password)
+	err = a.srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.ResetPassword: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotResetPassword.Error())
@@ -444,7 +444,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			DisplayName: userData.FirstName,
 			Email:       userEmail,
 		}
-		user, err := a.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
+		user, err := a.srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
@@ -458,14 +458,14 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 			Avatar:      user.Avatar,
 		}
 
-		err = a.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
+		err = a.srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
 		if err != nil {
 			logger.Err(ErrOAuthCannotSaveRefreshToken).Msg("authService.SaveRefreshToken")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
-		sessionID, err := a.Srv.CreateSessionForUser(r.Context(), user.Link)
+		sessionID, err := a.srv.CreateSessionForUser(r.Context(), user.Link)
 		if err != nil {
 			logger.Err(err).Msg("authService.CreateSessionForUser")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
@@ -495,7 +495,7 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	token, err := a.Srv.GenerateRandomCSRFToken(r.Context())
+	token, err := a.srv.GenerateRandomCSRFToken(r.Context())
 	if err != nil {
 		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())

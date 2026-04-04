@@ -42,6 +42,7 @@ database_rate_limiters:
       window: 1h
 s3_avatars:
   valid_extensions:
-    png:
-    jpg:
-    webp:
+    image/png:
+    image/jpg:
+    image/jpeg:
+    image/webp:

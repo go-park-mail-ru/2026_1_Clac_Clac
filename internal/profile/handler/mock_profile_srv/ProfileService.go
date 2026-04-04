@@ -7,8 +7,6 @@ import (
 
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 
-	io "io"
-
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
@@ -65,9 +63,9 @@ func (_m *ProfileService) GetProfileUser(ctx context.Context, userLink uuid.UUID
 	return r0, r1
 }
 
-// UpdateAvatar provides a mock function with given fields: ctx, userLink, file, mimeType
-func (_m *ProfileService) UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.Reader, mimeType string) (string, error) {
-	ret := _m.Called(ctx, userLink, file, mimeType)
+// UpdateAvatar provides a mock function with given fields: ctx, avatar
+func (_m *ProfileService) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (string, error) {
+	ret := _m.Called(ctx, avatar)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateAvatar")
@@ -75,22 +73,40 @@ func (_m *ProfileService) UpdateAvatar(ctx context.Context, userLink uuid.UUID, 
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, io.Reader, string) (string, error)); ok {
-		return rf(ctx, userLink, file, mimeType)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatedAvatar) (string, error)); ok {
+		return rf(ctx, avatar)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, io.Reader, string) string); ok {
-		r0 = rf(ctx, userLink, file, mimeType)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatedAvatar) string); ok {
+		r0 = rf(ctx, avatar)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, io.Reader, string) error); ok {
-		r1 = rf(ctx, userLink, file, mimeType)
+	if rf, ok := ret.Get(1).(func(context.Context, dto.UpdatedAvatar) error); ok {
+		r1 = rf(ctx, avatar)
 	} else {
 		r1 = ret.Error(1)
 	}
 
 	return r0, r1
+}
+
+// UpdateProfile provides a mock function with given fields: ctx, updatedInfo
+func (_m *ProfileService) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedUserInfo) error {
+	ret := _m.Called(ctx, updatedInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateProfile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatedUserInfo) error); ok {
+		r0 = rf(ctx, updatedInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // NewProfileService creates a new instance of ProfileService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

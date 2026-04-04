@@ -15,6 +15,7 @@ import (
 // mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
 type ProfileRepository interface {
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
+	UpdateProfile(ctx context.Context, updatedInfo repositoryDto.UpdatedInfo) error
 	GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error)
 	UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
 	UploadURLAvatar(ctx context.Context, userLink uuid.UUID, objectKey string) error
@@ -51,21 +52,36 @@ func (s *Service) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.U
 	}
 
 	user := dto.UserInfo{
-		Link:            repositoryUser.Link,
-		DisplayName:     repositoryUser.DisplayName,
-		DescriptionUser: repositoryUser.DescriptionUser,
-		Email:           repositoryUser.Email,
-		AvatarURL:       avatarUrl,
+		Link:        repositoryUser.Link,
+		DisplayName: repositoryUser.DisplayName,
+		Description: repositoryUser.DescriptionUser,
+		Email:       repositoryUser.Email,
+		AvatarURL:   avatarUrl,
 	}
 
 	return user, nil
 }
 
-func (s *Service) UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.Reader, mimeType string) (string, error) {
+func (s *Service) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedUserInfo) error {
+	err := s.rep.UpdateProfile(ctx, repositoryDto.UpdatedInfo{
+		Link:            updatedInfo.Link,
+		NameUser:        updatedInfo.DisplayName,
+		DescriptionUser: updatedInfo.Description,
+	})
+	if err != nil {
+		return fmt.Errorf("rep.UpdateProfile: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (string, error) {
 	var format string
-	switch mimeType {
-	case "image/jpeg":
+	switch avatar.MimeType {
+	case "image/jpg":
 		format = ".jpg"
+	case "image/jpeg":
+		format = ".jpeg"
 	case "image/png":
 		format = ".png"
 	case "image/webp":
@@ -77,14 +93,14 @@ func (s *Service) UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.
 		return "", fmt.Errorf("cannot generate key: %w", err)
 	}
 
-	pathFile := fmt.Sprintf("%s/%s%s", userLink.String(), key, format)
+	pathFile := fmt.Sprintf("%s/%s%s", avatar.UserLink.String(), key, format)
 
-	objectKey, err := s.rep.UploadAvatarS3(ctx, file, pathFile, mimeType)
+	objectKey, err := s.rep.UploadAvatarS3(ctx, avatar.File, pathFile, avatar.MimeType)
 	if err != nil {
 		return "", fmt.Errorf("UploadAvatar: %w", err)
 	}
 
-	errUploadDB := s.rep.UploadURLAvatar(ctx, userLink, objectKey)
+	errUploadDB := s.rep.UploadURLAvatar(ctx, avatar.UserLink, objectKey)
 	if errUploadDB != nil {
 		resultError := fmt.Errorf("rep.UploadAvatarURL: %w", errUploadDB)
 

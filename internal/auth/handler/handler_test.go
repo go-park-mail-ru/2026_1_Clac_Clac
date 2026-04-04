@@ -1103,7 +1103,7 @@ func TestVkOAuthCallback(t *testing.T) {
 				test.AuthServiceMockBehavior(mockAuthService)
 			}
 
-			handler := &AuthHandler{Srv: mockAuthService}
+			handler := &AuthHandler{srv: mockAuthService}
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/callback?code=%s", test.OAuthCode), nil)
 			res := httptest.NewRecorder()
@@ -1183,7 +1183,7 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 				test.MockBehavior(mockAuthService)
 			}
 
-			handler := &AuthHandler{Srv: mockAuthService}
+			handler := &AuthHandler{srv: mockAuthService}
 
 			res := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)

@@ -64,6 +64,26 @@ func (r *Repository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.Us
 	return userInfo, nil
 }
 
+func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
+	query := `
+	UPDATE "user"
+	SET 
+		display_name = $1, 
+		description_user = $2,
+		updated_at = NOW()
+	WHERE link = $3 AND (
+		display_name IS DISTINCT FROM $1 OR
+      	description_user IS DISTINCT FROM $2
+	)`
+
+	_, err := r.pool.Exec(ctx, query, updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	return nil
+}
+
 func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error) {
 	query := `
 	SELECT avatar_key

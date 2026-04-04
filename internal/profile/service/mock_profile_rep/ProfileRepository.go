@@ -110,6 +110,24 @@ func (_m *ProfileRepository) GetProfile(ctx context.Context, userLink uuid.UUID)
 	return r0, r1
 }
 
+// UpdateProfile provides a mock function with given fields: ctx, updatedInfo
+func (_m *ProfileRepository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
+	ret := _m.Called(ctx, updatedInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateProfile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatedInfo) error); ok {
+		r0 = rf(ctx, updatedInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UploadAvatarS3 provides a mock function with given fields: ctx, file, pathFile, contentType
 func (_m *ProfileRepository) UploadAvatarS3(ctx context.Context, file io.Reader, pathFile string, contentType string) (string, error) {
 	ret := _m.Called(ctx, file, pathFile, contentType)

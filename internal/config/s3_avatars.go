@@ -10,6 +10,7 @@ const (
 
 var defaultVaildExtensions = map[string]struct{}{
 	"image/jpg":  {},
+	"image/jpeg": {},
 	"image/png":  {},
 	"image/webp": {},
 }

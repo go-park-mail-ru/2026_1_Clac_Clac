@@ -11,8 +11,8 @@ type UserInfoResponse struct {
 }
 
 type UpdatedInfo struct {
-	DisplayName string `json:"display_name"         example:"Ivan Ivanov"`
-	Avatar      string `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
+	DisplayName     string `json:"display_name"         example:"Ivan Ivanov"`
+	DescriptionUser string `json:"description_user"     example:"Hello! I am SEO"`
 }
 
 type AvatarResponse struct {

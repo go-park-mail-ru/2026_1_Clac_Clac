@@ -132,6 +132,7 @@ func setupRouter(manager *Manager, appConf *config.Application, vkOAuthConf *con
 
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	protected.HandleFunc("/update-profile", profileHandler.UpdateProfile).Methods(http.MethodPost)
 
 	return router
 }

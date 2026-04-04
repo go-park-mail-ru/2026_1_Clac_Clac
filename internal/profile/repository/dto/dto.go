@@ -9,3 +9,9 @@ type UserInfoEntity struct {
 	Email           string
 	AvatarKey       string
 }
+
+type UpdatedInfo struct {
+	Link            uuid.UUID
+	NameUser        string
+	DescriptionUser string
+}

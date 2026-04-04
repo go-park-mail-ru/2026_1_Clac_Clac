@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -23,15 +25,20 @@ const (
 	failReadFile        = "can not read file"
 	incorrectTypeAvatar = "avatar can be only jpeg/png"
 	fileProcessingError = "can not process file"
-	failAvatarUrl       = "can not create coorect avatar URL"
+	failAvatarUrl       = "can not create correct avatar URL"
 	failDeleteFile      = "can not delete avatar"
 	incorrectContext    = "context has not correct element"
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
+	incorrectUserInfo   = "get incorrect user info"
+	failUpdateUserInfo  = "can not update name or description"
 
 	maxReadBytes        = 5 << 20
 	siganatureTypeBytes = 512
 	nameAvatarBlock     = "avatar"
+
+	maxLenNameUser        = 128
+	maxLenDescriptionUser = 500
 )
 
 var (
@@ -41,7 +48,8 @@ var (
 // mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
 type ProfileService interface {
 	GetProfileUser(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
-	UpdateAvatar(ctx context.Context, userLink uuid.UUID, file io.Reader, mimeType string) (string, error)
+	UpdateProfile(ctx context.Context, updatedInfo serviceDto.UpdatedUserInfo) error
+	UpdateAvatar(ctx context.Context, avatar serviceDto.UpdatedAvatar) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
@@ -85,6 +93,51 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.HandleError(api.RespondOk(w, user))
+}
+
+func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+	userLink, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+		return
+	}
+
+	var updatedInfo dto.UpdatedInfo
+	err := json.NewDecoder(r.Body).Decode(&updatedInfo)
+	if err != nil {
+		api.HandleError(api.RespondError(w, http.StatusBadRequest, incorrectUserInfo))
+		return
+	}
+
+	err = ValidateInfo(updatedInfo.DisplayName, maxLenNameUser)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
+		return
+	}
+
+	err = ValidateInfo(updatedInfo.DescriptionUser, maxLenDescriptionUser)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		return
+	}
+
+	userInfo := serviceDto.UpdatedUserInfo{
+		Link:        userLink,
+		DisplayName: updatedInfo.DisplayName,
+		Description: updatedInfo.DescriptionUser,
+	}
+
+	err = ps.srv.UpdateProfile(r.Context(), userInfo)
+	if err != nil {
+		logger.Err(fmt.Errorf("srv.UpdateProfile: %w", err))
+		api.RespondError(w, http.StatusInternalServerError, failUpdateUserInfo)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +194,11 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarUrl, err := ps.srv.UpdateAvatar(r.Context(), userLink, file, mimeType)
+	avatarUrl, err := ps.srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
+		UserLink: userLink,
+		File:     file,
+		MimeType: mimeType,
+	})
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failDeleteFile)
