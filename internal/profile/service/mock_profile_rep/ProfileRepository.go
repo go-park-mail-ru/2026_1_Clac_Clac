@@ -110,7 +110,6 @@ func (_m *ProfileRepository) GetProfile(ctx context.Context, userLink uuid.UUID)
 	return r0, r1
 }
 
-<<<<<<< HEAD
 // UpdateProfile provides a mock function with given fields: ctx, updatedInfo
 func (_m *ProfileRepository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
 	ret := _m.Called(ctx, updatedInfo)
@@ -129,8 +128,6 @@ func (_m *ProfileRepository) UpdateProfile(ctx context.Context, updatedInfo dto.
 	return r0
 }
 
-=======
->>>>>>> 76adcbd (refactor:auth/repository, profile)
 // UploadAvatarS3 provides a mock function with given fields: ctx, file, pathFile, contentType
 func (_m *ProfileRepository) UploadAvatarS3(ctx context.Context, file io.Reader, pathFile string, contentType string) (string, error) {
 	ret := _m.Called(ctx, file, pathFile, contentType)

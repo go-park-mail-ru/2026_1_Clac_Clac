@@ -79,8 +79,8 @@ func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) 
 	return nil
 }
 
-func (r *Repository) ExtendSession(ctx context.Context, sessionKey string, sessionLifetime time.Duration) error {
-	err := r.redisClient.Expire(ctx, sessionKey, sessionLifetime).Err()
+func (r *Repository) ExtendSession(ctx context.Context, session dto.ExtendedSession) error {
+	err := r.redisClient.Expire(ctx, session.Key, session.Expiration).Err()
 	if err != nil {
 		return fmt.Errorf("redisClient.Expire: %w", err)
 	}

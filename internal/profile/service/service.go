@@ -95,20 +95,12 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 
 	pathFile := fmt.Sprintf("%s/%s%s", avatar.UserLink.String(), key, format)
 
-<<<<<<< HEAD
 	objectKey, err := s.rep.UploadAvatarS3(ctx, avatar.File, pathFile, avatar.MimeType)
-=======
-	objectKey, err := s.rep.UploadAvatarS3(ctx, file, pathFile, mimeType)
->>>>>>> 76adcbd (refactor:auth/repository, profile)
 	if err != nil {
 		return "", fmt.Errorf("UploadAvatar: %w", err)
 	}
 
-<<<<<<< HEAD
 	errUploadDB := s.rep.UploadURLAvatar(ctx, avatar.UserLink, objectKey)
-=======
-	errUploadDB := s.rep.UploadURLAvatar(ctx, userLink, objectKey)
->>>>>>> 76adcbd (refactor:auth/repository, profile)
 	if errUploadDB != nil {
 		resultError := fmt.Errorf("rep.UploadAvatarURL: %w", errUploadDB)
 

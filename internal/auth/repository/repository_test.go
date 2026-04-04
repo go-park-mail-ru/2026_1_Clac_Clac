@@ -188,7 +188,10 @@ func TestExtendSession(t *testing.T) {
 			}
 
 			repoUsers := NewRepository(nil, redisMock)
-			err := repoUsers.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
+			err := repoUsers.ExtendSession(context.Background(), dto.ExtendedSession{
+				Key:        fmt.Sprintf("session:%s", test.sessionID),
+				Expiration: test.timeExpires,
+			})
 
 			assert.NoError(t, err, "not wait error")
 
@@ -227,8 +230,10 @@ func TestExtendSessionError(t *testing.T) {
 			}
 
 			rep := NewRepository(nil, redisMock)
-			err := rep.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
-
+			err := rep.ExtendSession(context.Background(), dto.ExtendedSession{
+				Key:        fmt.Sprintf("session:%s", test.sessionID),
+				Expiration: test.timeExpires,
+			})
 			assert.Error(t, err, "wait error")
 
 			redisMock.AssertExpectations(t)

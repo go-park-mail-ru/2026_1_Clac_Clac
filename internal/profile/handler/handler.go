@@ -30,27 +30,15 @@ const (
 	incorrectContext    = "context has not correct element"
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
-<<<<<<< HEAD
-<<<<<<< HEAD
 	incorrectUserInfo   = "get incorrect user info"
 	failUpdateUserInfo  = "can not update name or description"
-=======
->>>>>>> 76adcbd (refactor:auth/repository, profile)
-=======
->>>>>>> 76adcbd (refactor:auth/repository, profile)
 
 	maxReadBytes        = 5 << 20
 	siganatureTypeBytes = 512
 	nameAvatarBlock     = "avatar"
-<<<<<<< HEAD
-<<<<<<< HEAD
 
 	maxLenNameUser        = 128
 	maxLenDescriptionUser = 500
-=======
->>>>>>> 76adcbd (refactor:auth/repository, profile)
-=======
->>>>>>> 76adcbd (refactor:auth/repository, profile)
 )
 
 var (

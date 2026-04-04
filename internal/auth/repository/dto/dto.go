@@ -43,3 +43,8 @@ type CoolDownConfig struct {
 	Key        string
 	Expiration time.Duration
 }
+
+type ExtendedSession struct {
+	Key        string
+	Expiration time.Duration
+}

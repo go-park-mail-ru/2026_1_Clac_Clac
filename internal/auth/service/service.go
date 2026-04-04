@@ -35,7 +35,7 @@ type SenderLetters interface {
 type AuthRepository interface {
 	AddUser(ctx context.Context, user repositoryDto.UserInitialize) error
 	AddSession(ctx context.Context, session repositoryDto.SessionEntity) error
-	ExtendSession(ctx context.Context, sessionKey string, sessionLifetime time.Duration) error
+	ExtendSession(ctx context.Context, session repositoryDto.ExtendedSession) error
 	DeleteSession(ctx context.Context, sessionKey string) error
 	GetUser(ctx context.Context, email string) (repositoryDto.UserEntity, error)
 	CheckLimit(ctx context.Context, configLimiter repositoryDto.RateLimiterConfig) (int64, error)
@@ -131,9 +131,10 @@ func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 }
 
 func (s *Service) RefreshSession(ctx context.Context, sessionID string) error {
-	key := s.createrSessionKey(sessionID)
-
-	err := s.rep.ExtendSession(ctx, key, SessionLifetime)
+	err := s.rep.ExtendSession(ctx, repositoryDto.ExtendedSession{
+		Key:        s.createrSessionKey(sessionID),
+		Expiration: SessionLifetime,
+	})
 	if err != nil {
 		return fmt.Errorf("rep.UpdateExpirationSession: %w", err)
 	}
