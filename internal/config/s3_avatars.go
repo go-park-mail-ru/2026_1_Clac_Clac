@@ -51,7 +51,7 @@ func SetupEnvS3Avatars(v *viper.Viper) {
 	v.SetDefault("s3_avatars.access_key", defaultS3AvatarsValue)
 	v.SetDefault("s3_avatars.secret_key", defaultS3AvatarsValue)
 
-	v.SetDefault("s3_avatars.connect_timeout", "s3_avatars_connect_timeout")
+	v.RegisterAlias("s3_avatars.connect_timeout", "s3_avatars_connect_timeout")
 	v.RegisterAlias("s3_avatars.bucket", "s3_avatars_bucket")
 	v.RegisterAlias("s3_avatars.prefix", "s3_avatars_prefix")
 	v.RegisterAlias("s3_avatars.region", "s3_avatars_region")

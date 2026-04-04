@@ -9,15 +9,15 @@ import (
 )
 
 type Config struct {
-	App             Application        `mapstructure:"app"`
-	Engine          Engine             `mapstructure:"engine"`
-	MailSender      MailSender         `mapstructure:"mail_sender"`
-	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
-	DBConnection    DatabaseConnection `mapstructure:"database"`
-	RedisConnection RedisConnection    `mapstructure:"redis"`
-	S3Avatars       S3Avatars          `mapstructure:"s3_avatars"`
-	CORS            CORS               `mapstructure:"cors"`
-  DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
+	App             Application          `mapstructure:"app"`
+	Engine          Engine               `mapstructure:"engine"`
+	MailSender      MailSender           `mapstructure:"mail_sender"`
+	VkOAuth         VkOAuth              `mapstructure:"vk_oauth"`
+	DBConnection    DatabaseConnection   `mapstructure:"database"`
+	RedisConnection RedisConnection      `mapstructure:"redis"`
+	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
+	CORS            CORS                 `mapstructure:"cors"`
+	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
 }
 
 func DefaultConfig() Config {

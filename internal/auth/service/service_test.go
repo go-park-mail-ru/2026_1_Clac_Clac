@@ -417,7 +417,7 @@ func TestRefreshSession(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(nil)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil)
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, nil, nil)
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -477,7 +477,7 @@ func TestUpdateCountRequests(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 
 			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -523,7 +523,7 @@ func TestUpdateCountRequestsError(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 
 			_, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -581,7 +581,7 @@ func TestCheckCoolDown(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -631,7 +631,7 @@ func TestCheckCoolDownError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, nil, nil)
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -649,7 +649,7 @@ func TestRefreshSessionError(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(newErr)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil)
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, nil, nil)
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 

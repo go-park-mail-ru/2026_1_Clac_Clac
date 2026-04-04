@@ -257,9 +257,9 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 		return fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	resetCode, err := s.generateResetCode()
+	resetCode, err := s.generatorResetCode()
 	if err != nil {
-		return fmt.Errorf("generateResetCode: %w", err)
+		return fmt.Errorf("generatorResetCode: %w", err)
 	}
 
 	resetToken := repositoryDto.ResetTokenEntity{
