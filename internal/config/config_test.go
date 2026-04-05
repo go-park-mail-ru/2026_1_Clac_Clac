@@ -61,6 +61,14 @@ func TestConfigReading(t *testing.T) {
 				},
 			},
 		},
+		S3Avatars: config.S3Avatars{
+			ValidExtensions: map[string]struct{}{
+				"image/jpg":  {},
+				"image/jpeg": {},
+				"image/png":  {},
+				"image/webp": {},
+			},
+		},
 	}
 
 	var yamlTest = []byte(`

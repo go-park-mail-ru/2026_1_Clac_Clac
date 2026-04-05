@@ -49,7 +49,7 @@ func NewApp(conf *config.Config) *App {
 
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, conf, logger)
+	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -77,7 +77,7 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
@@ -123,11 +123,14 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
 
 	boardHandler := board.NewHandler(manager.Board)
-	profileHandler := profile.NewHandler(manager.Profile)
+	profileHandler := profile.NewHandler(manager.Profile, s3Conf.ValidExtensions)
 
-	csrfProtected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	csrfProtected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
-	csrfProtected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+
+	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	protected.HandleFunc("/update-profile", profileHandler.UpdateProfile).Methods(http.MethodPost)
 
 	return router
 }

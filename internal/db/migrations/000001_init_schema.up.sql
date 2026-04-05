@@ -13,8 +13,9 @@ CREATE TABLE "user" (
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    description_user TEXT DEFAULT '' NOT NULL
     email TEXT NOT NULL UNIQUE,
-    avatar TEXT DEFAULT '',
+    avatar_key TEXT DEFAULT '',
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL

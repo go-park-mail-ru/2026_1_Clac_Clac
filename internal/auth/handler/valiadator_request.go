@@ -3,6 +3,8 @@ package handler
 import (
 	"errors"
 	"net/mail"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 )
 
 var (
@@ -21,7 +23,7 @@ func ValidatorWithCheckPassword(email, password, repeatedPassword string) error 
 }
 
 func ValidatorRequestAuth(email, password string) error {
-	correctSymbols := checkAsciiSymbol(email, password)
+	correctSymbols := common.CheckAsciiSymbol(email, password)
 	if !correctSymbols {
 		return ErrorIncorrectSymbol
 	}
@@ -43,7 +45,7 @@ func ValidatorRequestNewPassword(password, repeatedPassword string) error {
 		return ErrorDifferencePasswords
 	}
 
-	correctSymbols := checkAsciiSymbol(password)
+	correctSymbols := common.CheckAsciiSymbol(password)
 	if !correctSymbols {
 		return ErrorIncorrectSymbol
 	}
@@ -53,18 +55,6 @@ func ValidatorRequestNewPassword(password, repeatedPassword string) error {
 	}
 
 	return nil
-}
-
-func checkAsciiSymbol(strings ...string) bool {
-	for _, str := range strings {
-		for _, symbol := range str {
-			if symbol > 127 {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 func ValidateEmail(email string) bool {

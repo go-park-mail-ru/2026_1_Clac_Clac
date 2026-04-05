@@ -100,9 +100,9 @@ func (_m *AuthRepository) CheckLimit(ctx context.Context, configLimiter dto.Rate
 	return r0, r1
 }
 
-// DeleteResetToken provides a mock function with given fields: ctx, tokenID
-func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) error {
-	ret := _m.Called(ctx, tokenID)
+// DeleteResetToken provides a mock function with given fields: ctx, tokenKey
+func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenKey string) error {
+	ret := _m.Called(ctx, tokenKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteResetToken")
@@ -110,7 +110,7 @@ func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) 
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, tokenID)
+		r0 = rf(ctx, tokenKey)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -118,9 +118,9 @@ func (_m *AuthRepository) DeleteResetToken(ctx context.Context, tokenID string) 
 	return r0
 }
 
-// DeleteSession provides a mock function with given fields: ctx, sessionID
-func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) error {
-	ret := _m.Called(ctx, sessionID)
+// DeleteSession provides a mock function with given fields: ctx, sessionKey
+func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionKey string) error {
+	ret := _m.Called(ctx, sessionKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteSession")
@@ -128,7 +128,7 @@ func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, sessionID)
+		r0 = rf(ctx, sessionKey)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -136,17 +136,17 @@ func (_m *AuthRepository) DeleteSession(ctx context.Context, sessionID string) e
 	return r0
 }
 
-// ExtendSession provides a mock function with given fields: ctx, sessionID, sessionLifetime
-func (_m *AuthRepository) ExtendSession(ctx context.Context, sessionID string, sessionLifetime time.Duration) error {
-	ret := _m.Called(ctx, sessionID, sessionLifetime)
+// ExtendSession provides a mock function with given fields: ctx, session
+func (_m *AuthRepository) ExtendSession(ctx context.Context, session dto.ExtendedSession) error {
+	ret := _m.Called(ctx, session)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExtendSession")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, time.Duration) error); ok {
-		r0 = rf(ctx, sessionID, sessionLifetime)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.ExtendedSession) error); ok {
+		r0 = rf(ctx, session)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -182,9 +182,9 @@ func (_m *AuthRepository) GetUser(ctx context.Context, email string) (dto.UserEn
 	return r0, r1
 }
 
-// GetUserIDBySession provides a mock function with given fields: ctx, sessionID
-func (_m *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID string) (string, error) {
-	ret := _m.Called(ctx, sessionID)
+// GetUserIDBySession provides a mock function with given fields: ctx, sessionKey
+func (_m *AuthRepository) GetUserIDBySession(ctx context.Context, sessionKey string) (string, error) {
+	ret := _m.Called(ctx, sessionKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserIDBySession")
@@ -193,16 +193,16 @@ func (_m *AuthRepository) GetUserIDBySession(ctx context.Context, sessionID stri
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, sessionID)
+		return rf(ctx, sessionKey)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, sessionID)
+		r0 = rf(ctx, sessionKey)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, sessionID)
+		r1 = rf(ctx, sessionKey)
 	} else {
 		r1 = ret.Error(1)
 	}

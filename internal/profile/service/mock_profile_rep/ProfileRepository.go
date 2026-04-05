@@ -4,8 +4,10 @@ package mockProfileRep
 
 import (
 	context "context"
+	io "io"
 
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
+
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
@@ -16,9 +18,73 @@ type ProfileRepository struct {
 	mock.Mock
 }
 
-// GetProfile provides a mock function with given fields: ctx, link
-func (_m *ProfileRepository) GetProfile(ctx context.Context, link uuid.UUID) (dto.UserInfoEntity, error) {
-	ret := _m.Called(ctx, link)
+// DeleteAvatarS3 provides a mock function with given fields: ctx, key
+func (_m *ProfileRepository) DeleteAvatarS3(ctx context.Context, key string) error {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAvatarS3")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteURLAvatar provides a mock function with given fields: ctx, userLink
+func (_m *ProfileRepository) DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteURLAvatar")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetAvatarKey provides a mock function with given fields: ctx, userLink
+func (_m *ProfileRepository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error) {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvatarKey")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (string, error)); ok {
+		return rf(ctx, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) string); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetProfile provides a mock function with given fields: ctx, userLink
+func (_m *ProfileRepository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.UserInfoEntity, error) {
+	ret := _m.Called(ctx, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetProfile")
@@ -27,21 +93,85 @@ func (_m *ProfileRepository) GetProfile(ctx context.Context, link uuid.UUID) (dt
 	var r0 dto.UserInfoEntity
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.UserInfoEntity, error)); ok {
-		return rf(ctx, link)
+		return rf(ctx, userLink)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.UserInfoEntity); ok {
-		r0 = rf(ctx, link)
+		r0 = rf(ctx, userLink)
 	} else {
 		r0 = ret.Get(0).(dto.UserInfoEntity)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, link)
+		r1 = rf(ctx, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
 
 	return r0, r1
+}
+
+// UpdateProfile provides a mock function with given fields: ctx, updatedInfo
+func (_m *ProfileRepository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
+	ret := _m.Called(ctx, updatedInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateProfile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatedInfo) error); ok {
+		r0 = rf(ctx, updatedInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UploadAvatarS3 provides a mock function with given fields: ctx, file, pathFile, contentType
+func (_m *ProfileRepository) UploadAvatarS3(ctx context.Context, file io.Reader, pathFile string, contentType string) (string, error) {
+	ret := _m.Called(ctx, file, pathFile, contentType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UploadAvatarS3")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, io.Reader, string, string) (string, error)); ok {
+		return rf(ctx, file, pathFile, contentType)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, io.Reader, string, string) string); ok {
+		r0 = rf(ctx, file, pathFile, contentType)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, io.Reader, string, string) error); ok {
+		r1 = rf(ctx, file, pathFile, contentType)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UploadURLAvatar provides a mock function with given fields: ctx, userLink, objectKey
+func (_m *ProfileRepository) UploadURLAvatar(ctx context.Context, userLink uuid.UUID, objectKey string) error {
+	ret := _m.Called(ctx, userLink, objectKey)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UploadURLAvatar")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) error); ok {
+		r0 = rf(ctx, userLink, objectKey)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // NewProfileRepository creates a new instance of ProfileRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

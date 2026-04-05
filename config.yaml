@@ -40,3 +40,9 @@ database_rate_limiters:
       limit: 5
       action: "register"
       window: 1h
+s3_avatars:
+  valid_extensions:
+    image/png:
+    image/jpg:
+    image/jpeg:
+    image/webp:

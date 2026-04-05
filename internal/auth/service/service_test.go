@@ -68,7 +68,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -148,7 +148,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			_, _, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -214,7 +214,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -298,7 +298,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			_, _, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -327,9 +327,9 @@ func TestCreateSessionForUser(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				expectedSession := repositoryDto.SessionEntity{
-					SessionID: "sessionCLAC",
-					UserLink:  userUUID,
-					LifeTime:  SessionLifetime,
+					SessionKey: "session:sessionCLAC",
+					UserLink:   userUUID,
+					LifeTime:   SessionLifetime,
 				}
 
 				m.On("AddSession", ctx, expectedSession).Return(nil)
@@ -347,7 +347,7 @@ func TestCreateSessionForUser(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "")
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -386,9 +386,9 @@ func TestCreateSessionForUserError(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 				expectedSession := repositoryDto.SessionEntity{
-					SessionID: "sessionCLAC",
-					UserLink:  userUUID,
-					LifeTime:  SessionLifetime,
+					SessionKey: "session:sessionCLAC",
+					UserLink:   userUUID,
+					LifeTime:   SessionLifetime,
 				}
 
 				m.On("AddSession", ctx, expectedSession).
@@ -407,7 +407,7 @@ func TestCreateSessionForUserError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "")
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -417,12 +417,12 @@ func TestCreateSessionForUserError(t *testing.T) {
 	}
 }
 
-func TestRefreshSession(t *testing.T) {
+func TestRefreshSessidon(t *testing.T) {
 	t.Run("Success refresh session", func(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
-		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(nil)
+		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(nil)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "", nil, CreaterSessionKey)
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -482,7 +482,7 @@ func TestUpdateCountRequests(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
 
 			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -528,7 +528,7 @@ func TestUpdateCountRequestsError(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
 
 			_, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -545,8 +545,7 @@ func TestCheckCoolDown(t *testing.T) {
 	}
 
 	expectedRepoConfig := repositoryDto.CoolDownConfig{
-		Name:       defaultConfig.Name,
-		Email:      defaultConfig.Email,
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: defaultConfig.Expiration,
 	}
 
@@ -586,7 +585,7 @@ func TestCheckCoolDown(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -605,8 +604,7 @@ func TestCheckCoolDownError(t *testing.T) {
 	}
 
 	expectedRepoConfig := repositoryDto.CoolDownConfig{
-		Name:       defaultConfig.Name,
-		Email:      defaultConfig.Email,
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: defaultConfig.Expiration,
 	}
 
@@ -636,7 +634,7 @@ func TestCheckCoolDownError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -652,9 +650,9 @@ func TestRefreshSessionError(t *testing.T) {
 		newErr := errors.New("error refresh")
 
 		mockRep := mockAuthRep.NewAuthRepository(t)
-		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(newErr)
+		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(newErr)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "", nil, CreaterSessionKey)
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -681,7 +679,7 @@ func TestLogOut(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("DeleteSession", ctx, common.FixedSessionID).Return(nil)
+				m.On("DeleteSession", ctx, mock.Anything).Return(nil)
 			},
 		},
 	}
@@ -695,7 +693,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -723,7 +721,7 @@ func TestLogOutError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("DeleteSession", ctx, common.FixedSessionID).Return(common.ErrorNotExistingSession)
+				m.On("DeleteSession", ctx, mock.Anything).Return(common.ErrorNotExistingSession)
 			},
 			expectedError: common.ErrorNotExistingSession,
 		},
@@ -735,7 +733,7 @@ func TestLogOutError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("DeleteSession", ctx, common.FixedSessionID).Return(errInternalDB)
+				m.On("DeleteSession", ctx, mock.Anything).Return(errInternalDB)
 			},
 			expectedError: errInternalDB,
 		},
@@ -750,7 +748,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 
@@ -782,7 +780,7 @@ func TestGetUserLink(t *testing.T) {
 			expectedID: expectedUUID,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserIDBySession", ctx, common.FixedSessionID).Return(expectedUUID.String(), nil)
+				m.On("GetUserIDBySession", ctx, mock.Anything).Return(expectedUUID.String(), nil)
 			},
 		},
 	}
@@ -796,7 +794,7 @@ func TestGetUserLink(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -824,7 +822,7 @@ func TestGetUserLinkError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserIDBySession", ctx, common.FixedSessionID).Return("", common.ErrorNotExistingSession)
+				m.On("GetUserIDBySession", ctx, mock.Anything).Return("", common.ErrorNotExistingSession)
 			},
 			expectedError: common.ErrorNotExistingSession,
 		},
@@ -836,7 +834,7 @@ func TestGetUserLinkError(t *testing.T) {
 			generator: spyGenerator,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserIDBySession", ctx, common.FixedSessionID).Return("not valid uuid", nil)
+				m.On("GetUserIDBySession", ctx, mock.Anything).Return("not valid uuid", nil)
 			},
 			errorContains: "uuid.Parse",
 		},
@@ -851,7 +849,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 
@@ -907,7 +905,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", nil, nil)
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.NoError(t, err, "not expected error")
@@ -952,7 +950,7 @@ func TestGetUserByEmailError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.Error(t, err, "expected error")
@@ -979,7 +977,7 @@ func TestSendRecoveryCode(t *testing.T) {
 			generator: func() (string, error) { return "123456", nil },
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				m.On("GetUserLink", mock.Anything, targetEmail).Return(common.FixedUserUuiD, nil)
-				m.On("AddResetToken", mock.Anything, mock.AnythingOfType("dto.ResetTokenEntity")).Return(nil)
+				m.On("AddResetToken", mock.Anything, mock.Anything).Return(nil)
 			},
 			senderMock: func(m *mockSender.SenderLetters) {
 				m.On("SendLetter", targetEmail, "Code to create a new password", mock.AnythingOfType("string")).Return(nil)
@@ -1010,7 +1008,7 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator, "")
+			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator, "", CreaterResetKey, CreaterSessionKey)
 
 			err := service.SendRecoveryCode(context.Background(), test.email)
 
@@ -1039,7 +1037,7 @@ func TestCheckCode(t *testing.T) {
 			tokenID:  validToken,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 
-				m.On("GetUserLinkByResetToken", mock.Anything, validToken).Return(common.FixedUserUuiD.String(), nil)
+				m.On("GetUserLinkByResetToken", mock.Anything, mock.Anything).Return(common.FixedUserUuiD.String(), nil)
 			},
 			expectedError: nil,
 		},
@@ -1052,7 +1050,7 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := NewService(mockRepo, nil, nil, nil, nil, nil, "")
+			service := NewService(mockRepo, nil, nil, nil, nil, nil, "", CreaterResetKey, nil)
 			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {
@@ -1080,7 +1078,7 @@ func TestResetPassword(t *testing.T) {
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
 
-				m.On("GetUserLinkByResetToken", ctx, common.FixedResetTokenID).
+				m.On("GetUserLinkByResetToken", ctx, mock.Anything).
 					Return(common.FixedUserUuiD.String(), nil)
 
 				m.On("UpdatePassword", ctx, common.FixedUserUuiD, "hash_new_password").
@@ -1098,7 +1096,7 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "")
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "", CreaterResetKey, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1127,7 +1125,7 @@ func TestResetPasswordError(t *testing.T) {
 			hasher:      spyHasher,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserLinkByResetToken", ctx, common.FixedResetTokenID).
+				m.On("GetUserLinkByResetToken", ctx, mock.Anything).
 					Return("", common.ErrorResetTokenExpired)
 			},
 			expectedError: fmt.Errorf("rep.GetResetToken: %w", common.ErrorResetTokenExpired),
@@ -1139,7 +1137,7 @@ func TestResetPasswordError(t *testing.T) {
 			hasher:      spyHasher,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserLinkByResetToken", ctx, common.FixedResetTokenID).
+				m.On("GetUserLinkByResetToken", ctx, mock.Anything).
 					Return("invalid-uuid-string", nil)
 			},
 			expectedError: fmt.Errorf("uuid.Parse: %w", invalidUUIDErr),
@@ -1151,7 +1149,7 @@ func TestResetPasswordError(t *testing.T) {
 			hasher:      spyHasherError,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserLinkByResetToken", ctx, common.FixedResetTokenID).
+				m.On("GetUserLinkByResetToken", ctx, mock.Anything).
 					Return(targetUserID.String(), nil)
 			},
 			expectedError: fmt.Errorf("hasher: %w", errors.New("failed to create hash: \"error bcrypt\"")),
@@ -1163,7 +1161,7 @@ func TestResetPasswordError(t *testing.T) {
 			hasher:      spyHasher,
 			mockBehavior: func(m *mockAuthRep.AuthRepository) {
 				ctx := context.Background()
-				m.On("GetUserLinkByResetToken", ctx, common.FixedResetTokenID).
+				m.On("GetUserLinkByResetToken", ctx, mock.Anything).
 					Return(targetUserID.String(), nil)
 
 				m.On("UpdatePassword", ctx, targetUserID, "hash_new_password").
@@ -1182,7 +1180,7 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "")
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "", CreaterResetKey, nil)
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1251,7 +1249,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 				test.MockBehavior(authRepo)
 			}
 
-			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil, "")
+			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil, "", CreaterResetKey, CreaterSessionKey)
 			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
 			if test.ExpectError {
 				require.Error(t, err, "must return error")

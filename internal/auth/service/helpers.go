@@ -53,3 +53,11 @@ func GeneratorCode() (string, error) {
 
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
+
+func CreaterResetKey(tokenID string) string {
+	return fmt.Sprintf("reset_token:%s", tokenID)
+}
+
+func CreaterSessionKey(sessionID string) string {
+	return fmt.Sprintf("session:%s", sessionID)
+}

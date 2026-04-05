@@ -131,13 +131,12 @@ func TestAddSession(t *testing.T) {
 		{
 			nameTest: "Success add session",
 			session: dto.SessionEntity{
-				SessionID: common.FixedSessionID,
-				UserLink:  common.FixedUserUuiD,
-				LifeTime:  24 * time.Hour,
+				SessionKey: common.FixedSessionID,
+				UserLink:   common.FixedUserUuiD,
+				LifeTime:   24 * time.Hour,
 			},
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, session dto.SessionEntity) {
-				key := fmt.Sprintf("session:%s", session.SessionID)
-				m.On("Set", mock.Anything, key, session.UserLink.String(), session.LifeTime).Return(redis.NewStatusResult("OK", nil))
+				m.On("Set", mock.Anything, session.SessionKey, session.UserLink.String(), session.LifeTime).Return(redis.NewStatusResult("OK", nil))
 			},
 		},
 	}
@@ -189,7 +188,10 @@ func TestExtendSession(t *testing.T) {
 			}
 
 			repoUsers := NewRepository(nil, redisMock)
-			err := repoUsers.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
+			err := repoUsers.ExtendSession(context.Background(), dto.ExtendedSession{
+				Key:        fmt.Sprintf("session:%s", test.sessionID),
+				Expiration: test.timeExpires,
+			})
 
 			assert.NoError(t, err, "not wait error")
 
@@ -228,8 +230,10 @@ func TestExtendSessionError(t *testing.T) {
 			}
 
 			rep := NewRepository(nil, redisMock)
-			err := rep.ExtendSession(context.Background(), test.sessionID, test.timeExpires)
-
+			err := rep.ExtendSession(context.Background(), dto.ExtendedSession{
+				Key:        fmt.Sprintf("session:%s", test.sessionID),
+				Expiration: test.timeExpires,
+			})
 			assert.Error(t, err, "wait error")
 
 			redisMock.AssertExpectations(t)
@@ -239,8 +243,7 @@ func TestExtendSessionError(t *testing.T) {
 
 func TestSetCooldown(t *testing.T) {
 	defaultConfig := dto.CoolDownConfig{
-		Name:       "recovery_email",
-		Email:      "test@mail.ru",
+		Key:        "cd:recovery_email:test@mail.ru",
 		Expiration: 1 * time.Minute,
 	}
 
@@ -259,9 +262,8 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
 			},
 			expectedAllowed: true,
 			expectedTTL:     0,
@@ -272,10 +274,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(30*time.Second, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(30*time.Second, nil))
 			},
 			expectedAllowed: false,
 			expectedTTL:     30 * time.Second,
@@ -286,10 +287,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(-2*time.Second, nil))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(-2*time.Second, nil))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
@@ -300,9 +300,8 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
@@ -313,10 +312,9 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-				fullKey := fmt.Sprintf("cd:%s:%s", defaultConfig.Name, defaultConfig.Email)
 
-				m.On("SetNX", ctx, fullKey, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
-				m.On("TTL", ctx, fullKey).Return(redis.NewDurationResult(0, errRedis))
+				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
+				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(0, errRedis))
 			},
 			expectedAllowed: false,
 			expectedTTL:     0,
@@ -400,8 +398,7 @@ func TestDeleteSession(t *testing.T) {
 			nameTest:  "Success delete session",
 			sessionID: common.FixedSessionID,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string) {
-				key := fmt.Sprintf("session:%s", sessionID)
-				m.On("Del", mock.Anything, key).Return(redis.NewIntResult(1, nil))
+				m.On("Del", mock.Anything, sessionID).Return(redis.NewIntResult(1, nil))
 			},
 		},
 	}
@@ -436,8 +433,7 @@ func TestGetUserIDBySession(t *testing.T) {
 			sessionID:      common.FixedSessionID,
 			expectedUserID: common.FixedUserUuiD.String(),
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, expectedUserID string) {
-				key := fmt.Sprintf("session:%s", sessionID)
-				m.On("Get", mock.Anything, key).Return(redis.NewStringResult(expectedUserID, nil))
+				m.On("Get", mock.Anything, sessionID).Return(redis.NewStringResult(expectedUserID, nil))
 			},
 		},
 	}
@@ -473,8 +469,7 @@ func TestGetUserIDBySessionError(t *testing.T) {
 			sessionID:     common.FixedSessionID,
 			expectedError: common.ErrorNotExistingSession,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string) {
-				key := fmt.Sprintf("session:%s", sessionID)
-				m.On("Get", mock.Anything, key).Return(redis.NewStringResult("", redis.Nil))
+				m.On("Get", mock.Anything, sessionID).Return(redis.NewStringResult("", redis.Nil))
 			},
 		},
 	}
@@ -506,13 +501,12 @@ func TestAddResetToken(t *testing.T) {
 		{
 			nameTest: "Success add reset token",
 			token: dto.ResetTokenEntity{
-				ResetTokenID: "token-123",
-				UserLink:     uuid.New(),
-				LifeTime:     15 * time.Minute,
+				ResetTokenKey: "token-123",
+				UserLink:      uuid.New(),
+				LifeTime:      15 * time.Minute,
 			},
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, token dto.ResetTokenEntity) {
-				key := fmt.Sprintf("reset_token:%s", token.ResetTokenID)
-				m.On("Set", mock.Anything, key, token.UserLink.String(), token.LifeTime).Return(redis.NewStatusResult("OK", nil))
+				m.On("Set", mock.Anything, token.ResetTokenKey, token.UserLink.String(), token.LifeTime).Return(redis.NewStatusResult("OK", nil))
 			},
 		},
 	}
@@ -549,8 +543,7 @@ func TestGetUserLinkByResetToken(t *testing.T) {
 			tokenID:        common.FixedResetTokenID,
 			expectedUserID: targetUserID.String(),
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string, userID string) {
-				key := fmt.Sprintf("reset_token:%s", tokenID)
-				m.On("Get", mock.Anything, key).Return(redis.NewStringResult(userID, nil))
+				m.On("Get", mock.Anything, tokenID).Return(redis.NewStringResult(userID, nil))
 			},
 		},
 	}
@@ -587,8 +580,7 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 			tokenID:       "unknown-token",
 			expectedError: common.ErrorNotExistingResetToken,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string) {
-				key := fmt.Sprintf("reset_token:%s", tokenID)
-				m.On("Get", mock.Anything, key).Return(redis.NewStringResult("", redis.Nil))
+				m.On("Get", mock.Anything, tokenID).Return(redis.NewStringResult("", redis.Nil))
 			},
 		},
 	}
@@ -622,8 +614,7 @@ func TestDeleteResetToken(t *testing.T) {
 			nameTest: "Success delete token",
 			tokenID:  common.FixedResetTokenID,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, tokenID string) {
-				key := fmt.Sprintf("reset_token:%s", tokenID)
-				m.On("Del", mock.Anything, key).Return(redis.NewIntResult(1, nil))
+				m.On("Del", mock.Anything, tokenID).Return(redis.NewIntResult(1, nil))
 			},
 		},
 	}
@@ -845,7 +836,7 @@ func TestUpdatePassword(t *testing.T) {
 			userID:          targetUserID,
 			newPasswordHash: newHash,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).
@@ -891,7 +882,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 
 				mock.ExpectExec(query).
 					WithArgs(hash, userID).
