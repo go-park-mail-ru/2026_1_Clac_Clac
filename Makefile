@@ -45,7 +45,7 @@ help:
 	@echo "  create-config  - Создать шаблон конфига"
 	@echo ""
 
-build: docs
+build:
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 
 run: build

@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/joho/godotenv v1.5.1
+	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/pashagolub/pgxmock/v4 v4.9.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rs/zerolog v1.34.0
@@ -22,6 +23,12 @@ require (
 	golang.org/x/crypto v0.48.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.19.0
+)
+
+require (
+	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
+	golang.org/x/net v0.49.0 // indirect
 )
 
 require (

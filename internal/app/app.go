@@ -11,7 +11,6 @@ import (
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -46,8 +45,6 @@ func NewApp(conf *config.Config) *App {
 	}
 
 	manager := setupManager(store, &conf.MailSender)
-
-	createDemoUser(manager, logger)
 
 	router := setupRouter(manager, conf, logger)
 
@@ -120,12 +117,18 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	// Добавление мидлваре для авторизации
 	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
 	// Руты, на которые пользователь объязательно должен быть авторизован
-	boardHandler := board.NewHandler(manager.Board)
 	profileHandler := profile.NewHandler(manager.Profile)
 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+
+	boardHandler := board.NewHandler(manager.Board)
+	protected.HandleFunc("/boards", boardHandler.GetBoards).Methods(http.MethodGet)
+	protected.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	protected.HandleFunc("/board/create", boardHandler.CreateBoard).Methods(http.MethodPost)
+	protected.HandleFunc("/board/delete", boardHandler.DeleteBoard).Methods(http.MethodPost)
+	protected.HandleFunc("/board/update", boardHandler.UpdateBoard).Methods(http.MethodPost)
+	protected.HandleFunc("/board/update-background/{link}", boardHandler.UploadBackground).Methods(http.MethodPost)
 
 	return router
 }
@@ -165,10 +168,12 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 		return nil, fmt.Errorf("db.NewPool: %w", err)
 	}
 
-	err = db.RunMigrations(dsn, logger)
-	if err != nil {
-		return nil, fmt.Errorf("db.RunMigrations: %w", err)
-	}
+	// migrate -path ./internal/db/migrations -database [DSN] up
+	//
+	// err = db.RunMigrations(dsn, logger)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("db.RunMigrations: %w", err)
+	// }
 
 	return pool, nil
 }
@@ -221,7 +226,7 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, conf.S3Avatars), nil
+	return NewStore(pool, redisClient, s3Client, conf.S3Avatars, conf.S3Boards), nil
 }
 
 // Настройка менеджера сервисов
@@ -231,24 +236,4 @@ func setupManager(s *Store, mailSenderConf *config.MailSender) *Manager {
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 	return NewVKOAuth(conf)
-}
-
-func createDemoUser(m *Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), serviceDto.RegistrationUser{
-		DisplayName: "Demo",
-		Password:    "12345678",
-		Email:       "demo@demo.ru",
-	})
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo user")
-	} else {
-		logger.Info().Msg("demo user created")
-	}
-
-	err = m.Board.CreateEmptyBoard(context.Background(), user.Link)
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo board")
-	} else {
-		logger.Info().Msg("demo board created")
-	}
 }

@@ -20,6 +20,38 @@ INSERT INTO board_version (board_id, board_name, description_board, url_path_bac
 (2, 'Маркетинг 2026', 'Продвижение и реклама', 'https://s3.nexus.com/bg/market.png', now(), NULL),
 (3, 'UI/UX Design', 'Кнопки, цвета, шрифты', '#ffcc00', now(), NULL);
 
+INSERT INTO member_board (board_link, user_link, level_member, is_like) VALUES
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'NeXus Core' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'artem@nexus.com'),
+    'creator', true
+),
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'NeXus Core' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'ivan@nexus.com'),
+    'admin', false
+),
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'NeXus Core' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'qa@nexus.com'),
+    'viewer', false
+),
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'Маркетинг 2026' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'elena@nexus.com'),
+    'creator', true
+),
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'UI/UX Design' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'anna@nexus.com'),
+    'creator', true
+),
+(
+    (SELECT b.link FROM board b JOIN board_version v ON b.board_id = v.board_id WHERE v.board_name = 'UI/UX Design' LIMIT 1),
+    (SELECT link FROM "user" WHERE email = 'artem@nexus.com'),
+    'admin', false
+);
+
 INSERT INTO section (board_id) VALUES (1), (1), (1), (1);
 INSERT INTO section (board_id) VALUES (2), (2);
 INSERT INTO section (board_id) VALUES (3), (3);
