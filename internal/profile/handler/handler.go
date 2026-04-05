@@ -158,8 +158,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() {
-		err := file.Close()
-		if err != nil {
+		if err := file.Close(); err != nil {
 			logger.Err(err).Msg(incorrectCloseFile)
 		}
 	}()
