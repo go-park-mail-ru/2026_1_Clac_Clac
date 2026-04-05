@@ -17,6 +17,7 @@ type Config struct {
 	RedisConnection RedisConnection      `mapstructure:"redis"`
 	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
 	CORS            CORS                 `mapstructure:"cors"`
+	Auth            Auth                 `mapstructure:"auth"`
 	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
 }
 
@@ -28,6 +29,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
+		Auth:            DefaultAuthConfig(),
 		DBRateLimiters:  DefaultActionsRateLimiters(),
 		S3Avatars:       DefaultS3AvatarsConfig(),
 	}

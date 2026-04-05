@@ -17,7 +17,7 @@ func NewSessionCookie(key string, value string, expires time.Time) *http.Cookie 
 	}
 }
 
-func NewCSRFCookie(name string, value string) *http.Cookie {
+func NewCSRFCookie(name string, value string, expireTime time.Time) *http.Cookie {
 	return &http.Cookie{
 		Name:     name,
 		Value:    value,
@@ -25,6 +25,7 @@ func NewCSRFCookie(name string, value string) *http.Cookie {
 		HttpOnly: false,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
+		Expires:  expireTime,
 	}
 }
 

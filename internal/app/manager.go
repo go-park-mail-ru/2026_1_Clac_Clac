@@ -16,12 +16,12 @@ type Manager struct {
 	MailSender *mail.MailSender
 }
 
-func NewManager(s *Store, mailSenderConf *config.MailSender, S3conf *config.S3Avatars) *Manager {
-	mailSender := mail.NewMailSender(mailSenderConf)
-	baseURLAvatar := s3.GenerateBaseURL(S3conf.Bucket, S3conf.Endpoint)
+func NewManager(s *Store, conf config.Config) *Manager {
+	mailSender := mail.NewMailSender(&conf.MailSender)
+	baseURLAvatar := s3.GenerateBaseURL(conf.S3Avatars.Bucket, conf.S3Avatars.Endpoint)
 
 	return &Manager{
-		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, auth.CreaterResetKey, auth.CreaterSessionKey),
+		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, conf.Auth.CSRFSecret, auth.CreaterResetKey, auth.CreaterSessionKey),
 		Board:      board.NewService(s.Boards),
 		Profile:    profile.NewService(s.Profiles, profile.GenerateAvatarKey, baseURLAvatar),
 		MailSender: &mailSender,
