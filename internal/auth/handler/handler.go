@@ -20,7 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// mockery --name=AuthService --output=mock_auth_srv --outpkg=mockAuthSrv
+//go:generate mockery --name=AuthService --output mock_auth_srv
 type AuthService interface {
 	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
 	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
@@ -36,7 +36,9 @@ type AuthService interface {
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 	EnsureUserByEmail(ctx context.Context, info serviceDto.RegistrationUser) (serviceDto.UserInfo, error)
 	SaveRefreshTokenFroUser(ctx context.Context, info serviceDto.UserInfo, token string) error
-	GenerateRandomCSRFToken(ctx context.Context) (string, error)
+	GetCSRFTokenExpireTime(ctx context.Context) (time.Time, error)
+	GenerateCSRFToken(ctx context.Context, sessionId string, expireTime int64) (string, error)
+	CheckCSRFToken(ctx context.Context, sessionId string, token string) error
 }
 
 // mockery --name=VkOAuth --output mock_vk_oauth
@@ -84,7 +86,8 @@ var (
 	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
 	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
 
-	ErrCannotCreateCSRFToken = errors.New("cannot create csrf token")
+	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
+	ErrCannotGetCSRFTokenExpireTime = errors.New("cannot get csrf token expire time")
 )
 
 // MeHandler проверяет текущую сессию пользователя.
@@ -495,14 +498,28 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	token, err := a.Srv.GenerateRandomCSRFToken(r.Context())
+	cookie, err := r.Cookie(service.SessiondIdKey)
 	if err != nil {
-		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate token")
+		api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
+		return
+	}
+	sessionId := cookie.Value
+
+	expireTime, err := a.Srv.GetCSRFTokenExpireTime(r.Context())
+	if err != nil {
+		logger.Error().Err(ErrCannotGetCSRFTokenExpireTime).Msg("get csrf token expire time")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
 		return
 	}
 
-	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token))
+	token, err := a.Srv.GenerateCSRFToken(r.Context(), sessionId, expireTime.Unix())
+	if err != nil {
+		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate csrf token")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
+		return
+	}
+
+	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token, expireTime))
 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

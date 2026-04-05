@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,7 +68,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -143,7 +148,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			_, _, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -209,7 +214,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -293,7 +298,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			_, _, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -342,7 +347,7 @@ func TestCreateSessionForUser(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil)
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "")
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -402,7 +407,7 @@ func TestCreateSessionForUserError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil)
+			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "")
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -417,7 +422,7 @@ func TestRefreshSession(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(nil)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil)
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -477,7 +482,7 @@ func TestUpdateCountRequests(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
 
 			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -523,7 +528,7 @@ func TestUpdateCountRequestsError(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
 
 			_, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -581,7 +586,7 @@ func TestCheckCoolDown(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -631,7 +636,7 @@ func TestCheckCoolDownError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil)
+			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "")
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -649,7 +654,7 @@ func TestRefreshSessionError(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, common.FixedSessionID, time.Hour*24).Return(newErr)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil)
+		srv := NewService(mockRep, nil, nil, nil, nil, nil, "")
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -690,7 +695,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -745,7 +750,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 
@@ -791,7 +796,7 @@ func TestGetUserLink(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -846,7 +851,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 
@@ -902,7 +907,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.NoError(t, err, "not expected error")
@@ -947,7 +952,7 @@ func TestGetUserByEmailError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil)
+			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "")
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.Error(t, err, "expected error")
@@ -1005,7 +1010,7 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator)
+			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator, "")
 
 			err := service.SendRecoveryCode(context.Background(), test.email)
 
@@ -1047,7 +1052,7 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := NewService(mockRepo, nil, nil, nil, nil, nil)
+			service := NewService(mockRepo, nil, nil, nil, nil, nil, "")
 			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {
@@ -1093,7 +1098,7 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "")
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1177,7 +1182,7 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil)
+			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "")
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1246,7 +1251,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 				test.MockBehavior(authRepo)
 			}
 
-			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil)
+			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil, "")
 			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
 			if test.ExpectError {
 				require.Error(t, err, "must return error")
@@ -1256,6 +1261,120 @@ func TestEnsureUserByEmail(t *testing.T) {
 			assert.Equal(t, testUserInfo.Email, user.Email, "users must be equal")
 
 			authRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGenerateCSRFToken(t *testing.T) {
+	ctx := context.Background()
+
+	secret := "super-secret"
+	svc := &Service{csrfSecret: secret}
+
+	t.Run("success generation", func(t *testing.T) {
+		sessionID := "user-123"
+		expire := time.Now().Add(time.Hour).Unix()
+
+		token, err := svc.GenerateCSRFToken(ctx, sessionID, expire)
+		require.NoError(t, err, "must not return error")
+
+		parts := strings.Split(token, ":")
+		assert.Equal(t, 2, len(parts), "expected 2 parts in token")
+		assert.Equal(t, strconv.FormatInt(expire, 10), parts[1], "expires must be equal")
+	})
+
+	t.Run("deterministic", func(t *testing.T) {
+		t1, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
+		t2, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
+		require.Equal(t, t1, t2, "tokens should be identical for same input")
+	})
+
+	t.Run("secret sensitivity", func(t *testing.T) {
+		svc1 := &Service{csrfSecret: "secret1"}
+		svc2 := &Service{csrfSecret: "secret2"}
+
+		t1, _ := svc1.GenerateCSRFToken(ctx, "sid", 123)
+		t2, _ := svc2.GenerateCSRFToken(ctx, "sid", 123)
+		require.NotEqual(t, t1, t2, "tokens must differ if secrets are different")
+	})
+}
+
+func TestCheckCSRFToken(t *testing.T) {
+	secret := "test-secret-key"
+	svc := &Service{csrfSecret: secret}
+	ctx := context.Background()
+
+	validSessionID := "user-session-123"
+	futureTime := time.Now().Add(time.Hour).Unix()
+	pastTime := time.Now().Add(-time.Hour).Unix()
+
+	generateTestToken := func(sid string, exp int64, key string) string {
+		h := hmac.New(sha256.New, []byte(key))
+		data := fmt.Sprintf("%s:%d", sid, exp)
+		h.Write([]byte(data))
+		return fmt.Sprintf("%s:%d", hex.EncodeToString(h.Sum(nil)), exp)
+	}
+
+	tests := []struct {
+		Name          string
+		SessionId     string
+		Token         string
+		ExpectedError error
+	}{
+		{
+			Name:          "valid token",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, futureTime, secret),
+			ExpectedError: nil,
+		},
+		{
+			Name:          "invalid format (no colon)",
+			SessionId:     validSessionID,
+			Token:         "sometokenwithoutcolon",
+			ExpectedError: ErrInvalidCSRFToken,
+		},
+		{
+			Name:          "invalid expire time format",
+			SessionId:     validSessionID,
+			Token:         "hash:notanumber",
+			ExpectedError: ErrCannotParseExpireTimeCSRFToken,
+		},
+		{
+			Name:          "token expired",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, pastTime, secret),
+			ExpectedError: ErrCSRFTokenExpired,
+		},
+		{
+			Name:          "invalid hex decoding",
+			SessionId:     validSessionID,
+			Token:         "not-hex-chars-!!:" + strconv.FormatInt(futureTime, 10),
+			ExpectedError: ErrCannotDecodeRecievedCSRFToken,
+		},
+		{
+			Name:          "tampered SessionID",
+			SessionId:     "another-session",
+			Token:         generateTestToken(validSessionID, futureTime, secret),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+		{
+			Name:          "tampered Secret Key",
+			SessionId:     validSessionID,
+			Token:         generateTestToken(validSessionID, futureTime, "wrong-secret"),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+		{
+			Name:          "tampered Hash (valid hex but wrong data)",
+			SessionId:     validSessionID,
+			Token:         hex.EncodeToString([]byte("wrong-hash")) + ":" + strconv.FormatInt(futureTime, 10),
+			ExpectedError: ErrCSRFTokensDoNotEqual,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := svc.CheckCSRFToken(ctx, test.SessionId, test.Token)
+			require.ErrorIs(t, err, test.ExpectedError)
 		})
 	}
 }

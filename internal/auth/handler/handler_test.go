@@ -1141,37 +1141,50 @@ func TestVkOAuthCallback(t *testing.T) {
 func TestSetCSRFCookieHandler(t *testing.T) {
 	const csrfCookieKey = "csrf_token"
 
-	newCSRFCookie := func(value string) *http.Cookie {
-		return &http.Cookie{
-			Name:     csrfCookieKey,
-			Value:    value,
-			Path:     "/",
-			Secure:   true,
-			HttpOnly: false,
-			SameSite: http.SameSiteLaxMode,
-		}
-	}
+	fixedTime := time.Now().Add(time.Hour).Truncate(time.Second)
+	validSessionID := "session-123"
 
 	tests := []struct {
-		Name           string
-		ExpectedCode   int
-		ExpectedCookie *http.Cookie
-		MockBehavior   func(*mockAuthSrv.AuthService)
+		Name          string
+		SessionCookie *http.Cookie
+		ExpectedCode  int
+		ExpectedToken string
+		MockBehavior  func(*mockAuthSrv.AuthService)
 	}{
 		{
-			Name:           "set cookie",
-			ExpectedCode:   http.StatusOK,
-			ExpectedCookie: newCSRFCookie("123"),
+			Name:          "success set cookie",
+			SessionCookie: &http.Cookie{Name: service.SessiondIdKey, Value: validSessionID},
+			ExpectedCode:  http.StatusOK,
+			ExpectedToken: "signed-hmac-token",
 			MockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("GenerateRandomCSRFToken", mock.Anything).Return("123", nil)
+				a.On("GetCSRFTokenExpireTime", mock.Anything).Return(fixedTime, nil)
+				a.On("GenerateCSRFToken", mock.Anything, validSessionID, fixedTime.Unix()).
+					Return("signed-hmac-token", nil)
 			},
 		},
 		{
-			Name:           "get token generator error",
-			ExpectedCode:   http.StatusInternalServerError,
-			ExpectedCookie: nil,
+			Name:          "no session cookie - Unauthorized",
+			SessionCookie: nil,
+			ExpectedCode:  http.StatusUnauthorized,
+			MockBehavior:  nil,
+		},
+		{
+			Name:          "error getting expire time",
+			SessionCookie: &http.Cookie{Name: service.SessiondIdKey, Value: validSessionID},
+			ExpectedCode:  http.StatusInternalServerError,
 			MockBehavior: func(a *mockAuthSrv.AuthService) {
-				a.On("GenerateRandomCSRFToken", mock.Anything).Return("", errors.New("cannot generate token"))
+				a.On("GetCSRFTokenExpireTime", mock.Anything).
+					Return(time.Time{}, errors.New("db error"))
+			},
+		},
+		{
+			Name:          "error generating token",
+			SessionCookie: &http.Cookie{Name: service.SessiondIdKey, Value: validSessionID},
+			ExpectedCode:  http.StatusInternalServerError,
+			MockBehavior: func(a *mockAuthSrv.AuthService) {
+				a.On("GetCSRFTokenExpireTime", mock.Anything).Return(fixedTime, nil)
+				a.On("GenerateCSRFToken", mock.Anything, validSessionID, fixedTime.Unix()).
+					Return("", errors.New("crypto error"))
 			},
 		},
 	}
@@ -1188,35 +1201,36 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 			res := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
 
+			if test.SessionCookie != nil {
+				req.AddCookie(test.SessionCookie)
+			}
+
 			handler.SetCSRFCookieHandler(res, req)
 
-			r := res.Result()
-			assert.Equal(t, test.ExpectedCode, r.StatusCode, "http codes must be equal")
+			assert.Equal(t, test.ExpectedCode, res.Code)
 
-			cookies := r.Cookies()
-
+			cookies := res.Result().Cookies()
 			var csrfCookie *http.Cookie
-			var exists bool
-
 			for _, c := range cookies {
 				if c.Name == csrfCookieKey {
 					csrfCookie = c
-					exists = true
 					break
 				}
 			}
 
-			if test.ExpectedCookie != nil {
-				require.True(t, exists, "cookie must be setted")
-
-				assert.Equal(t, test.ExpectedCookie.Value, csrfCookie.Value, "tokens must be equal")
-				assert.Equal(t, test.ExpectedCookie.HttpOnly, csrfCookie.HttpOnly, "httpOnly must be equal")
-				assert.Equal(t, test.ExpectedCookie.Path, csrfCookie.Path, "path must be equal")
-				assert.Equal(t, test.ExpectedCookie.Secure, csrfCookie.Secure, "secure must be equal")
-				assert.Equal(t, test.ExpectedCookie.SameSite, csrfCookie.SameSite, "sameSite must be equal")
+			if test.ExpectedCode == http.StatusOK {
+				require.NotNil(t, csrfCookie, "CSRF cookie must be present")
+				assert.Equal(t, test.ExpectedToken, csrfCookie.Value)
+				assert.True(t, csrfCookie.Secure)
+				assert.False(t, csrfCookie.HttpOnly)
+				assert.Equal(t, "/", csrfCookie.Path)
+				assert.Equal(t, http.SameSiteLaxMode, csrfCookie.SameSite)
+				assert.Equal(t, fixedTime.Unix(), csrfCookie.Expires.Unix())
 			} else {
-				require.False(t, exists, "cookie must not be setted")
+				assert.Nil(t, csrfCookie, "CSRF cookie should not be set on error")
 			}
+
+			mockAuthService.AssertExpectations(t)
 		})
 	}
 }
