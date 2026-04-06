@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"testing"
@@ -7,6 +7,9 @@ import (
 )
 
 func TestValidateInfo(t *testing.T) {
+	maxLenNameUser := 128
+	maxLenDescriptionUser := 500
+
 	tests := []struct {
 		nameTest      string
 		info          string
@@ -29,7 +32,7 @@ func TestValidateInfo(t *testing.T) {
 			nameTest:      "Error validate name",
 			info:          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			maxLen:        maxLenNameUser,
-			expectedError: ErrorIncorrectLength,
+			expectedError: ErrorIncorrectLengthName,
 		},
 		{
 			nameTest: "Error validate description",
@@ -40,15 +43,22 @@ func TestValidateInfo(t *testing.T) {
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 			maxLen:        maxLenDescriptionUser,
-			expectedError: ErrorIncorrectLength,
+			expectedError: ErrorIncorrectLengthName,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			err := ValidateInfo(test.info, test.maxLen)
+			err := ValidateTextInfo(test.info, test.maxLen)
 
 			if test.expectedError != nil {
 				assert.Equal(t, test.expectedError, err)

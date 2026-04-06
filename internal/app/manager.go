@@ -7,12 +7,14 @@ import (
 	mail "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/mail_sender/service"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
+	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service"
 )
 
 type Manager struct {
 	Auth       *auth.Service
 	Board      *board.Service
 	Profile    *profile.Service
+	Section    *section.Service
 	MailSender *mail.MailSender
 }
 
@@ -24,6 +26,7 @@ func NewManager(s *Store, conf config.Config) *Manager {
 		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, conf.Auth.CSRFSecret, auth.CreaterResetKey, auth.CreaterSessionKey),
 		Board:      board.NewService(s.Boards),
 		Profile:    profile.NewService(s.Profiles, profile.GenerateAvatarKey, baseURLAvatar),
+		Section:    section.NewService(s.Section),
 		MailSender: &mailSender,
 	}
 }

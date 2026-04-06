@@ -94,7 +94,11 @@ func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (stri
 	var avatarKeyPtr *string
 	err := r.pool.QueryRow(ctx, query, userLink).Scan(&avatarKeyPtr)
 	if err != nil {
-		return "", common.ErrorNonexistentUser
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", common.ErrorNonexistentUser
+		}
+
+		return "", fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
 	if avatarKeyPtr == nil {

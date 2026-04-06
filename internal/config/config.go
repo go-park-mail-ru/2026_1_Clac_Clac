@@ -32,6 +32,7 @@ func DefaultConfig() Config {
 		Auth:            DefaultAuthConfig(),
 		DBRateLimiters:  DefaultActionsRateLimiters(),
 		S3Avatars:       DefaultS3AvatarsConfig(),
+		CORS:            DefaultCORSConfig(),
 	}
 }
 

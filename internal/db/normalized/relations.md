@@ -182,7 +182,7 @@ erDiagram
 
     Section {
         int ID PK
-        int BoardID FK
+        int BoardLink FK
         uuid Link
         timestamp CreatedAt
     }
@@ -193,6 +193,7 @@ erDiagram
         string SectionName
         int Position
         boolean IsMandatory
+        string Color
         int MaxTasks
         timestamp ValidFrom
         timestamp ValidTo

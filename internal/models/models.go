@@ -17,14 +17,14 @@ type SectionTemplate struct {
 }
 
 type Section struct {
-	ID      uuid.UUID `json:"id"`
-	BoardID uuid.UUID `json:"board_id"`
-	Link    uuid.UUID `json:"link_id"`
+	ID        uuid.UUID `json:"id"`
+	Link      uuid.UUID `json:"link_id"`
+	BoardLink uuid.UUID `json:"board_id"`
 }
 
 type SectionVersion struct {
-	ID        uuid.UUID `json:"id"`
-	SectionID uuid.UUID `json:"section_id"`
+	ID          uuid.UUID `json:"id"`
+	SectionLink uuid.UUID `json:"section_id"`
 
 	SectionName string `json:"section_name"`
 	Position    int    `json:"position"`

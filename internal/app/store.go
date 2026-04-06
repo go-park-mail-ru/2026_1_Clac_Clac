@@ -8,6 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
+	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -17,6 +18,7 @@ type Store struct {
 	Auth     *auth.Repository
 	Boards   *board.Repository
 	Profiles *profile.Repository
+	Section  *section.Repository
 
 	s3Client     s3.S3Client
 	postgresPool *pgxpool.Pool
@@ -39,6 +41,7 @@ func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Clien
 		Auth:         auth.NewRepository(pool, redisClient),
 		Boards:       board.NewRepository(pool),
 		Profiles:     profile.NewRepository(pool, s3Client, &s3AvatarsConf),
+		Section:      section.NewRepository(pool),
 		s3Client:     s3Client,
 		postgresPool: pool,
 		redisClient:  redisClient,

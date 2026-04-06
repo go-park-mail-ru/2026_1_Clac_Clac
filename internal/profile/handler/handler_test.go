@@ -178,7 +178,7 @@ func TestUpdateProfile(t *testing.T) {
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", ErrorIncorrectLength)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", common.ErrorIncorrectLengthName)),
 		},
 		{
 			nameTest: "Invaild len in description",
@@ -192,11 +192,19 @@ func TestUpdateProfile(t *testing.T) {
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", ErrorIncorrectLength)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", common.ErrorIncorrectLengthName)),
 		},
 		{
 			nameTest: "Error update profile",

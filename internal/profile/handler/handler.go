@@ -23,14 +23,13 @@ const (
 	tooLargeAvatar      = "size avatar too large"
 	invalidFile         = "file is invalid"
 	failReadFile        = "can not read file"
-	incorrectTypeAvatar = "avatar can be only jpeg/png"
+	incorrectTypeAvatar = "avatar can be only jpeg/png/jpg/webp"
 	fileProcessingError = "can not process file"
 	failAvatarUrl       = "can not create correct avatar URL"
 	failDeleteFile      = "can not delete avatar"
 	incorrectContext    = "context has not correct element"
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
-	incorrectUserInfo   = "get incorrect user info"
 	failUpdateUserInfo  = "can not update name or description"
 
 	maxReadBytes        = 5 << 20
@@ -108,17 +107,17 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 	var updatedInfo dto.UpdatedInfo
 	err := json.NewDecoder(r.Body).Decode(&updatedInfo)
 	if err != nil {
-		api.HandleError(api.RespondError(w, http.StatusBadRequest, incorrectUserInfo))
+		api.HandleError(api.RespondError(w, http.StatusBadRequest, common.IncorrectFormatRequest))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DisplayName, maxLenNameUser)
+	err = common.ValidateTextInfo(updatedInfo.DisplayName, maxLenNameUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DescriptionUser, maxLenDescriptionUser)
+	err = common.ValidateTextInfo(updatedInfo.DescriptionUser, maxLenDescriptionUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
@@ -142,8 +141,6 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 
 func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxReadBytes)
 
 	if err := r.ParseMultipartForm(maxReadBytes); err != nil {
 		logger.Error().Err(err).Msg(tooLargeAvatar)

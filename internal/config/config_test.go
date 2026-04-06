@@ -69,6 +69,13 @@ func TestConfigReading(t *testing.T) {
 				"image/webp": {},
 			},
 		},
+		CORS: config.CORS{
+			Credentials: "false",
+			Origin:      "localhost",
+			Methods:     "GET,POST,OPTIONS",
+			Headers:     "",
+			MaxAge:      "60",
+		},
 	}
 
 	var yamlTest = []byte(`

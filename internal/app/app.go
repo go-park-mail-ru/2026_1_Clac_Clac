@@ -20,6 +20,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
+	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/handler"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -129,8 +130,18 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
-	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	protected.HandleFunc("/update-profile", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	protected.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
+
+	sectionHandler := section.NewHandler(manager.Section)
+
+	protected.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
+	protected.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	protected.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
+	protected.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPost)
+	protected.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
+	protected.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
 
 	return router
 }

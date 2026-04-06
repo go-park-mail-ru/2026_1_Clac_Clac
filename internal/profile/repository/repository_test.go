@@ -261,7 +261,7 @@ func TestGetAvatarKey(t *testing.T) {
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnError(errors.New("db error"))
 			},
 			expectedKey:   "",
-			expectedError: common.ErrorNonexistentUser,
+			expectedError: fmt.Errorf("pool.QueryRow: db error"),
 		},
 	}
 
