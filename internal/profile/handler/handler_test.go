@@ -116,7 +116,10 @@ func TestGetUserProfile(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(Deps{
+				Srv:             mockProfileService,
+				ValidExtensions: vaildExtensions,
+			})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.ctxValue != nil {
@@ -146,6 +149,9 @@ func TestUpdateProfile(t *testing.T) {
 		"image/png":  {},
 		"image/webp": {},
 	}
+
+	ErrorIncorrectLengthName := errors.New("must contain maximum 128 symbols")
+	ErrorIncorrectLengthDescription := errors.New("must contain maximum 500 symbols")
 
 	targetUserLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	tests := []struct {
@@ -178,7 +184,7 @@ func TestUpdateProfile(t *testing.T) {
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", common.ErrorIncorrectLengthName)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", ErrorIncorrectLengthName)),
 		},
 		{
 			nameTest: "Invaild len in description",
@@ -204,7 +210,7 @@ func TestUpdateProfile(t *testing.T) {
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", common.ErrorIncorrectLengthName)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", ErrorIncorrectLengthDescription)),
 		},
 		{
 			nameTest: "Error update profile",
@@ -235,7 +241,12 @@ func TestUpdateProfile(t *testing.T) {
 			}
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(Deps{
+				Srv:                   mockProfileService,
+				ValidExtensions:       vaildExtensions,
+				MaxLenNameUser:        128,
+				MaxLenDescriptionUser: 500,
+			})
 			handler.UpdateProfile(response, request)
 
 			assert.Equal(t, test.expectedStatusCode, response.Code)
@@ -357,7 +368,12 @@ func TestUpdateAvatar(t *testing.T) {
 
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(Deps{
+				Srv:                 mockProfileService,
+				ValidExtensions:     vaildExtensions,
+				MaxReadBytes:        5 * 1024 * 1024,
+				SiganatureTypeBytes: 512,
+			})
 
 			handler.UpdateAvatar(response, request)
 
@@ -426,7 +442,9 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(mockProfileService, nil)
+			handler := NewHandler(Deps{
+				Srv: mockProfileService,
+			})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 
 			if test.ctxValue != nil {

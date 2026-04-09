@@ -18,17 +18,17 @@ type BoardService interface {
 	GetBoards(ctx context.Context, userID uuid.UUID) ([]models.Board, error)
 }
 
-func NewHandler(srv BoardService) *BoardHandler {
-	return &BoardHandler{
+func NewHandler(srv BoardService) *Handler {
+	return &Handler{
 		srv: srv,
 	}
 }
 
-type BoardHandler struct {
+type Handler struct {
 	srv BoardService
 }
 
-func (bh *BoardHandler) GetUserBoards(w http.ResponseWriter, r *http.Request) {
+func (bh *Handler) GetUserBoards(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 
 	link, ok := value.(uuid.UUID)

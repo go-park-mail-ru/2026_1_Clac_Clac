@@ -110,7 +110,7 @@ func TestGetSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{Srv: mockService})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -132,7 +132,7 @@ func TestCreateSection(t *testing.T) {
 	boardLink := common.FixedBoardUuiD
 	sectionLink := common.FixedSectionUuiD
 	validMaxTasks := 50
-	invalidMaxTasks := maxQuantityTasks + 1
+	invalidMaxTasks := 101
 
 	validRequest := dto.CreatingSection{
 		BoardLink:   boardLink,
@@ -222,7 +222,11 @@ func TestCreateSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{
+				Srv:              mockService,
+				MaxQuantityTasks: 100,
+				MinQuantityTasks: 0,
+			})
 
 			var bodyBytes []byte
 			if strBody, ok := test.requestBody.(string); ok {
@@ -263,7 +267,7 @@ func TestDeleteSection(t *testing.T) {
 				m.On("DeleteSection", mock.Anything, targetSectionLink).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedResponse:   nil,
+			expectedResponse:   newOkResponse(api.StatusOK, api.StatusOK),
 		},
 		{
 			nameTest:           "Error invalid path format",
@@ -308,7 +312,7 @@ func TestDeleteSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{Srv: mockService})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -351,7 +355,7 @@ func TestReorderSection(t *testing.T) {
 				m.On("ReorderSection", mock.Anything, boardLink, validRequest.List).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedResponse:   nil,
+			expectedResponse:   newOkResponse(api.StatusOK, api.StatusOK),
 		},
 		{
 			nameTest:           "Error invalid board link",
@@ -388,7 +392,7 @@ func TestReorderSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{Srv: mockService})
 
 			var bodyBytes []byte
 			if strBody, ok := test.requestBody.(string); ok {
@@ -436,7 +440,7 @@ func TestUpdateSection(t *testing.T) {
 	}
 
 	invalidNameRequest := dto.FullSectionInfo{
-		SectionName: string(make([]byte, maxLenNameSection+1)),
+		SectionName: string(make([]byte, 129)),
 		Color:       "red",
 	}
 
@@ -461,7 +465,7 @@ func TestUpdateSection(t *testing.T) {
 				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
-			expectedResponse:   nil,
+			expectedResponse:   newOkResponse(api.StatusOK, api.StatusOK),
 		},
 		{
 			nameTest:           "Error invalid section link",
@@ -526,7 +530,12 @@ func TestUpdateSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{
+				Srv:               mockService,
+				MaxLenNameSection: 128,
+				MaxQuantityTasks:  100,
+				MinQuantityTasks:  0,
+			})
 
 			var bodyBytes []byte
 			if strBody, ok := test.requestBody.(string); ok {
@@ -622,7 +631,7 @@ func TestGetAllSections(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(mockService)
+			handler := NewHandler(Deps{Srv: mockService})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 

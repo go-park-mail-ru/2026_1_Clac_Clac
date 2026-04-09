@@ -148,7 +148,7 @@ func TestLogInUserWithSchema(t *testing.T) {
 				test.MockBehavior(mockLogInService)
 			}
 
-			handler := NewHandler(mockLogInService)
+			handler := NewHandler(Deps{Srv: mockLogInService, MaxLenPassword: 128, MinLenPassword: 8})
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -196,7 +196,7 @@ func TestLogInUserWithRawJSON(t *testing.T) {
 		require.NoError(t, err, "response marshal should not return error")
 
 		mockLogInService := mockAuthSrv.NewAuthService(t)
-		handler := NewHandler(mockLogInService)
+		handler := NewHandler(Deps{Srv: mockLogInService, MaxLenPassword: 128, MinLenPassword: 8})
 
 		req := httptest.NewRequest(http.MethodPost, "/", requestBody)
 		res := httptest.NewRecorder()
@@ -380,7 +380,7 @@ func TestRegisterUserWithSchema(t *testing.T) {
 				test.MockBehavior(mockRegisterService)
 			}
 
-			handler := NewHandler(mockRegisterService)
+			handler := NewHandler(Deps{Srv: mockRegisterService, MaxLenPassword: 128, MinLenPassword: 6})
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -428,7 +428,7 @@ func TestRegisterUserWithRawJSON(t *testing.T) {
 		require.NoError(t, err, "response marshal should not return error")
 
 		mockRegisterService := mockAuthSrv.NewAuthService(t)
-		handler := NewHandler(mockRegisterService)
+		handler := NewHandler(Deps{Srv: mockRegisterService, MaxLenPassword: 128, MinLenPassword: 8})
 
 		req := httptest.NewRequest(http.MethodPost, "/register", requestBody)
 		res := httptest.NewRecorder()
@@ -482,7 +482,7 @@ func TestLogOutUser(t *testing.T) {
 				test.MockBehavior(mockAuthService)
 			}
 
-			handler := NewHandler(mockAuthService)
+			handler := NewHandler(Deps{Srv: mockAuthService})
 
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			if test.AddCookie {
@@ -521,7 +521,7 @@ func TestLogOutUser(t *testing.T) {
 }
 
 func TestMeHandler(t *testing.T) {
-	handler := &AuthHandler{}
+	handler := NewHandler(Deps{})
 
 	tests := []struct {
 		Name           string
@@ -610,7 +610,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 				test.MockBehavior(mockSrv)
 			}
 
-			handler := NewHandler(mockSrv)
+			handler := NewHandler(Deps{Srv: mockSrv})
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -640,7 +640,7 @@ func TestSendRecoveryEmailWithRawJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		mockSrv := mockAuthSrv.NewAuthService(t)
-		handler := NewHandler(mockSrv)
+		handler := NewHandler(Deps{Srv: mockSrv})
 
 		req := httptest.NewRequest(http.MethodPost, "/forgot-password", requestBody)
 		res := httptest.NewRecorder()
@@ -702,7 +702,7 @@ func TestResetUserPassword(t *testing.T) {
 				test.MockBehavior(mockSrv)
 			}
 
-			handler := NewHandler(mockSrv)
+			handler := NewHandler(Deps{Srv: mockSrv, MaxLenPassword: 128, MinLenPassword: 8})
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -732,7 +732,7 @@ func TestResetUserPasswordWithRawJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		mockSrv := mockAuthSrv.NewAuthService(t)
-		handler := NewHandler(mockSrv)
+		handler := NewHandler(Deps{Srv: mockSrv, MaxLenPassword: 128, MinLenPassword: 8})
 
 		req := httptest.NewRequest(http.MethodPost, "/reset-password", requestBody)
 		res := httptest.NewRecorder()
@@ -779,7 +779,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 				test.MockBehavior(mockSrv)
 			}
 
-			handler := NewHandler(mockSrv)
+			handler := NewHandler(Deps{Srv: mockSrv})
 
 			requestJson, err := json.Marshal(test.Request)
 			require.NoError(t, err, "request marshal should not return error")
@@ -809,7 +809,7 @@ func TestCheckRecoveryCodeWithRawJSON(t *testing.T) {
 		require.NoError(t, err)
 
 		mockSrv := mockAuthSrv.NewAuthService(t)
-		handler := NewHandler(mockSrv)
+		handler := NewHandler(Deps{Srv: mockSrv})
 
 		req := httptest.NewRequest(http.MethodPost, "/verify-code", requestBody)
 		res := httptest.NewRecorder()
@@ -1103,7 +1103,7 @@ func TestVkOAuthCallback(t *testing.T) {
 				test.AuthServiceMockBehavior(mockAuthService)
 			}
 
-			handler := &AuthHandler{srv: mockAuthService}
+			handler := NewHandler(Deps{Srv: mockAuthService})
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/callback?code=%s", test.OAuthCode), nil)
 			res := httptest.NewRecorder()
@@ -1196,7 +1196,7 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 				test.MockBehavior(mockAuthService)
 			}
 
-			handler := &AuthHandler{srv: mockAuthService}
+			handler := NewHandler(Deps{Srv: mockAuthService})
 
 			res := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, "/", nil)

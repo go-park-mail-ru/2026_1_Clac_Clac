@@ -46,3 +46,24 @@ s3_avatars:
     image/jpg:
     image/jpeg:
     image/webp:
+
+auth:
+  service:
+    session_life_time: 24h
+    count_retries: 3
+  handler:
+    session_life_time: 24h
+    max_len_password: 128
+    min_len_password: 8
+
+profile:
+  handler:
+    siganature_type_bytes: 512
+    max_read_bytes: 5242880
+    max_len_name_user: 128
+    max_len_description_user: 500
+section:
+  handler:
+    max_quantity_tasks: 1000
+    min_quantity_tasks: 0
+    max_len_name_section: 128

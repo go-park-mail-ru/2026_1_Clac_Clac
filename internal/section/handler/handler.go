@@ -31,11 +31,6 @@ const (
 	incorrectLenNameSection = "max len name is 128"
 	incorrectTypeColor      = "color can be white, grey, red, orange, blue, green, purple, pink"
 
-	maxQuantityTasks = 100
-	minQuantityTasks = 00
-
-	maxLenNameSection = 128
-
 	sectionLinkKey = "link"
 	boardLinkKey   = "board_link"
 )
@@ -50,13 +45,20 @@ type SectionService interface {
 	UpdateSection(ctx context.Context, updatingSection serviceDto.FullSectionInfo) error
 }
 
-type Handler struct {
-	srv SectionService
+type Deps struct {
+	Srv               SectionService
+	MaxQuantityTasks  int
+	MinQuantityTasks  int
+	MaxLenNameSection int
 }
 
-func NewHandler(srv SectionService) *Handler {
+type Handler struct {
+	deps Deps
+}
+
+func NewHandler(deps Deps) *Handler {
 	return &Handler{
-		srv: srv,
+		deps: deps,
 	}
 }
 
@@ -70,7 +72,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.srv.GetSectionInfo(r.Context(), linkSection)
+	result, err := h.deps.Srv.GetSectionInfo(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusBadRequest, failFindSection)
@@ -101,12 +103,13 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newSection.MaxTasks != nil && *newSection.MaxTasks > maxQuantityTasks {
+	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.deps.MaxQuantityTasks ||
+		*newSection.MaxTasks < h.deps.MinQuantityTasks) {
 		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
 		return
 	}
 
-	result, err := h.srv.CreateSection(r.Context(), serviceDto.CreatingSection{
+	result, err := h.deps.Srv.CreateSection(r.Context(), serviceDto.CreatingSection{
 		BoardLink:   newSection.BoardLink,
 		SectionName: newSection.SectionName,
 		IsMandatory: newSection.IsMandatory,
@@ -138,7 +141,7 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.DeleteSection(r.Context(), linkSection)
+	err = h.deps.Srv.DeleteSection(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -176,7 +179,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.ReorderSection(r.Context(), linkBoard, listSectionLinks.List)
+	err = h.deps.Srv.ReorderSection(r.Context(), linkBoard, listSectionLinks.List)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotFindAllLinks) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -208,7 +211,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = common.ValidateTextInfo(sectionInfo.SectionName, maxLenNameSection)
+	err = common.ValidateTextInfo(sectionInfo.SectionName, h.deps.MaxLenNameSection)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, incorrectLenNameSection)
 		return
@@ -221,13 +224,13 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if sectionInfo.MaxTasks != nil {
-		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, maxQuantityTasks, minQuantityTasks); err != nil {
+		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, h.deps.MaxQuantityTasks, h.deps.MinQuantityTasks); err != nil {
 			api.RespondError(w, http.StatusBadRequest, incorrectQuantityTasks)
 			return
 		}
 	}
 
-	err = h.srv.UpdateSection(r.Context(), serviceDto.FullSectionInfo{
+	err = h.deps.Srv.UpdateSection(r.Context(), serviceDto.FullSectionInfo{
 		SectionLink: sectionLink,
 		SectionName: sectionInfo.SectionName,
 		Position:    sectionInfo.Position,
@@ -264,7 +267,7 @@ func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sections, err := h.srv.GetAllSections(r.Context(), boarderLink)
+	sections, err := h.deps.Srv.GetAllSections(r.Context(), boarderLink)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, failGetAllSections)
 		return

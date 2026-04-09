@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	authSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -21,7 +22,7 @@ func TestAuthMiddleware(t *testing.T) {
 		mockAuth.On("GetUserLink", mock.Anything, mock.AnythingOfType("string")).Return(common.FixedUserUuiD, nil)
 		mockAuth.On("RefreshSession", mock.Anything, mock.AnythingOfType("string")).Return(nil)
 
-		protectedAuth := AuthMiddleware(mockAuth, zerolog.DefaultContextLogger)
+		protectedAuth := AuthMiddleware(mockAuth, zerolog.DefaultContextLogger, 1*time.Minute)
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			val := r.Context().Value(UserContextLink{})
@@ -52,7 +53,7 @@ func TestAuthMiddlewareError(t *testing.T) {
 		mockAuth := mockSessionChecker.NewSessionCheker(t)
 		mockAuth.On("GetUserLink", mock.Anything, mock.AnythingOfType("string")).Return(uuid.Nil, errors.New("session not found"))
 
-		protectedAuth := AuthMiddleware(mockAuth, zerolog.DefaultContextLogger)
+		protectedAuth := AuthMiddleware(mockAuth, zerolog.DefaultContextLogger, 1*time.Millisecond)
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			val := r.Context().Value(UserContextLink{})

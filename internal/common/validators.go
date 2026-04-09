@@ -1,12 +1,7 @@
 package common
 
-import "errors"
-
-var (
-	ErrorIncorrectSymbol          = errors.New("allowed only a-z, A-Z, 0-9, and /?!@")
-	ErrorIncorrectLengthName      = errors.New("name must contain maximum 128 symbols")
-	ErrorIncorrectValueCountTasks = errors.New("number task must be bettwen 0 and 100")
-	ErrorIncorrectColor           = errors.New("color is incoorect, can be white, grey, red, orange, blue, green, purple, pink")
+import (
+	"fmt"
 )
 
 var (
@@ -38,14 +33,14 @@ func CheckAsciiSymbol(strings ...string) bool {
 
 func ValidateTextInfo(info string, maxLen int) error {
 	if len(info) > maxLen {
-		return ErrorIncorrectLengthName
+		return fmt.Errorf("must contain maximum %d symbols", maxLen)
 	}
 	return nil
 }
 
 func ValidateNumberInfo(info int, maxValue int, minValue int) error {
 	if info > maxValue || info < minValue {
-		return ErrorIncorrectValueCountTasks
+		return fmt.Errorf("number task must be bettwin %d and %d", minValue, maxValue)
 	}
 
 	return nil

@@ -113,7 +113,7 @@ func TestGetProfile(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := &Repository{pool: mockPool}
+			repoProfile := NewRepository(Deps{Pool: mockPool})
 			user, err := repoProfile.GetProfile(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
@@ -194,7 +194,7 @@ func TestUpdateProfile(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := &Repository{pool: mockPool}
+			repoProfile := NewRepository(Deps{Pool: mockPool})
 			err = repoProfile.UpdateProfile(context.Background(), test.info)
 
 			if test.expectedError != nil {
@@ -273,7 +273,7 @@ func TestGetAvatarKey(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := &Repository{pool: mockPool}
+			repoProfile := NewRepository(Deps{Pool: mockPool})
 			key, err := repoProfile.GetAvatarKey(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
@@ -325,7 +325,7 @@ func TestUploadAvatarS3(t *testing.T) {
 				test.mockBehavior(mockBucket)
 			}
 
-			repoProfile := &Repository{avatars: mockBucket}
+			repoProfile := NewRepository(Deps{Avatars: mockBucket})
 			key, err := repoProfile.UploadAvatarS3(context.Background(), file, pathFile, contentType)
 
 			if test.expectedError != nil {
@@ -402,7 +402,7 @@ func TestUploadURLAvatar(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := &Repository{pool: mockPool}
+			repoProfile := NewRepository(Deps{Pool: mockPool})
 			err = repoProfile.UploadURLAvatar(context.Background(), targetLink, objectKey)
 
 			if test.expectedError != nil {
@@ -447,7 +447,7 @@ func TestDeleteAvatarS3(t *testing.T) {
 				test.mockBehavior(mockBucket)
 			}
 
-			repoProfile := &Repository{avatars: mockBucket}
+			repoProfile := NewRepository(Deps{Avatars: mockBucket})
 			err := repoProfile.DeleteAvatarS3(context.Background(), deleteKey)
 
 			if test.expectedError != nil {
@@ -522,7 +522,7 @@ func TestDeleteURLAvatar(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := &Repository{pool: mockPool}
+			repoProfile := NewRepository(Deps{Pool: mockPool})
 			err = repoProfile.DeleteURLAvatar(context.Background(), targetLink)
 
 			if test.expectedError != nil {

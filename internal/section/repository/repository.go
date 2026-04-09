@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
@@ -17,15 +16,20 @@ type DBEngine interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
+type Deps struct {
+	Pool DBEngine
 }
 
 type Repository struct {
-	pool DBEngine
+	deps Deps
 }
 
-func NewRepository(pool DBEngine) *Repository {
+func NewRepository(deps Deps) *Repository {
 	return &Repository{
-		pool: pool,
+		deps: deps,
 	}
 }
 
@@ -42,7 +46,7 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 	`
 
 	var infoSection dto.FullSectionInfo
-	err := r.pool.QueryRow(ctx, query, link).Scan(
+	err := r.deps.Pool.QueryRow(ctx, query, link).Scan(
 		&infoSection.SectionName,
 		&infoSection.Position,
 		&infoSection.IsMandatory,
@@ -61,127 +65,236 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 }
 
 func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.FullSectionInfo, error) {
-	query := `
-	INSERT INTO section_actual 
-	(
-		section_link, 
-		board_link, 
-		section_name, 
-		is_mandatory, 
-		color, 
-		max_tasks
-	)
-	VALUES ($1, $2, $3, $4, $5, $6)
-	RETURNING section_name, position, is_mandatory, color, max_tasks;
-	`
-	var infoSection dto.FullSectionInfo
-
-	err := r.pool.QueryRow(ctx, query, newSection.SectionLink, newSection.BoardLink, newSection.SectionName,
-		newSection.IsMandatory, newSection.Color, newSection.MaxTasks).Scan(
-		&infoSection.SectionName,
-		&infoSection.Position,
-		&infoSection.IsMandatory,
-		&infoSection.Color,
-		&infoSection.MaxTasks,
-	)
-
+	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
-		return dto.FullSectionInfo{}, fmt.Errorf("QueryRow: %w", err)
+		return dto.FullSectionInfo{}, fmt.Errorf("pool.Begin: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	querySection := `
+		INSERT INTO section (section_link, board_link) 
+		VALUES ($1, $2);
+	`
+	_, err = tx.Exec(ctx, querySection, newSection.SectionLink, newSection.BoardLink)
+	if err != nil {
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	var position int
+	queryPos := `
+		SELECT COALESCE(MAX(v.position), 0) + 1 
+		FROM section_version v
+		JOIN section s ON s.section_link = v.section_link
+		WHERE s.board_link = $1 AND v.valid_to IS NULL;
+	`
+	err = tx.QueryRow(ctx, queryPos, newSection.BoardLink).Scan(&position)
+	if err != nil {
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	queryVersion := `
+		INSERT INTO section_version (
+			section_link, section_name, position, is_mandatory, color, max_tasks
+		) 
+		VALUES ($1, $2, $3, $4, $5, $6);
+	`
+	_, err = tx.Exec(ctx, queryVersion,
+		newSection.SectionLink,
+		newSection.SectionName,
+		position,
+		newSection.IsMandatory,
+		newSection.Color,
+		newSection.MaxTasks,
+	)
+	if err != nil {
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.Commit: %w", err)
+	}
+
+	infoSection := dto.FullSectionInfo{
+		SectionLink: newSection.SectionLink,
+		SectionName: newSection.SectionName,
+		Position:    position,
+		IsMandatory: newSection.IsMandatory,
+		Color:       newSection.Color,
+		MaxTasks:    newSection.MaxTasks,
 	}
 
 	return infoSection, nil
 }
 
 func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) error {
-	query := `
-		WITH target_info AS (
-			SELECT board_link FROM section WHERE section_link = $1
-		),
-		backlog_info AS (
-			SELECT s.section_link 
-			FROM section s
-			JOIN section_version v ON s.section_link = v.section_link
-			WHERE s.board_link = (SELECT board_link FROM target_info)
-			  AND v.position = 1
-			  AND v.valid_to IS NULL
-			  AND s.deleted_at IS NULL
-		),
-		move_tasks AS (
-            UPDATE task_actual 
-            SET section_link = (SELECT section_link FROM backlog_info)
-            WHERE section_link = $1
-              AND (SELECT section_link FROM backlog_info) IS NOT NULL
-        )
-		UPDATE section 
-		SET deleted_at = NOW() 
-		WHERE section_link = $1 
-		  AND deleted_at IS NULL
-	`
-
-	commandTag, err := r.pool.Exec(ctx, query, linksSection)
+	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("pool.Exec: %w", err)
+		return fmt.Errorf("pool.Begin: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var boardLink uuid.UUID
+	var position int
+	queryCheck := `
+		SELECT s.board_link, v.position
+		FROM section s
+		JOIN section_version v ON s.section_link = v.section_link
+		WHERE s.section_link = $1 AND s.deleted_at IS NULL AND v.valid_to IS NULL;
+	`
+	err = tx.QueryRow(ctx, queryCheck, linksSection).Scan(&boardLink, &position)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return common.ErrorNotExistingSection
+		}
+		return fmt.Errorf("tx.QueryRow check target section: %w", err)
 	}
 
-	if commandTag.RowsAffected() == 0 {
-		return common.ErrorNotExistingSection
+	if position == 1 {
+		return common.ErrorDeleteBacklog
 	}
+
+	var backlogLink uuid.UUID
+	queryBacklog := `
+		SELECT s.section_link
+		FROM section s
+		JOIN section_version v ON s.section_link = v.section_link
+		WHERE s.board_link = $1 AND v.position = 1 
+		  AND s.deleted_at IS NULL AND v.valid_to IS NULL;
+	`
+	err = tx.QueryRow(ctx, queryBacklog, boardLink).Scan(&backlogLink)
+	if err != nil {
+		return fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	queryDelete := `UPDATE section SET deleted_at = NOW() WHERE section_link = $1;`
+	_, err = tx.Exec(ctx, queryDelete, linksSection)
+	if err != nil {
+		return fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	queryMoveTasks := `
+		WITH closed_tasks AS (
+			UPDATE task_version
+			SET valid_to = NOW()
+			WHERE section_link = $1 AND valid_to IS NULL
+			RETURNING task_link, executer_link, title, description, due_date
+		),
+		backlog_max AS (
+			SELECT COALESCE(MAX(position), 0) AS max_pos
+			FROM task_version
+			WHERE section_link = $2 AND valid_to IS NULL
+		)
+		INSERT INTO task_version (
+			task_link, section_link, executer_link, title, description, position, due_date
+		)
+		SELECT
+			ct.task_link,
+			$2,
+			ct.executer_link,
+			ct.title,
+			ct.description,
+			bm.max_pos + ROW_NUMBER() OVER (),
+			ct.due_date
+		FROM closed_tasks ct CROSS JOIN backlog_max bm;
+	`
+	_, err = tx.Exec(ctx, queryMoveTasks, linksSection, backlogLink)
+	if err != nil {
+		return fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx.Commit: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, linksSection []uuid.UUID) error {
-	var values []string
-	var args []any
-	argID := 1
-
-	for i, link := range linksSection {
-		values = append(values, fmt.Sprintf("($%d::uuid, $%d::int)", argID, argID+1))
-		args = append(args, link, i+1)
-		argID += 2
-	}
-
-	valuesString := strings.Join(values, ", ")
-
-	query := fmt.Sprintf(`
-		UPDATE section_actual sa
-		SET position = data.new_pos
-		FROM (VALUES %s) AS data(section_link, new_pos)
-		WHERE sa.section_link = data.section_link
-		  AND sa.board_link = $%d;
-	`, valuesString, argID)
-
-	args = append(args, linkBoard)
-
-	commandTag, err := r.pool.Exec(ctx, query, args...)
+	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("pool.Exec: %w", err)
+		return fmt.Errorf("pool.Begin: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	query := `
+		WITH new_positions AS (
+			SELECT link::uuid AS section_link, ord::int AS new_pos
+			FROM UNNEST($1::uuid[]) WITH ORDINALITY AS t(link, ord)
+		),
+		closed_versions AS (
+			UPDATE section_version sv
+			SET valid_to = NOW()
+			FROM new_positions np
+			JOIN section s ON s.section_link = np.section_link
+			WHERE sv.section_link = np.section_link
+			  AND sv.valid_to IS NULL
+			  AND s.board_link = $2
+			RETURNING sv.section_link, sv.section_name, sv.is_mandatory, sv.color, sv.max_tasks, np.new_pos
+		)
+		INSERT INTO section_version (section_link, section_name, position, is_mandatory, color, max_tasks)
+		SELECT section_link, section_name, new_pos, is_mandatory, color, max_tasks
+		FROM closed_versions;
+	`
+
+	commandTag, err := tx.Exec(ctx, query, linksSection, linkBoard)
+	if err != nil {
+		return fmt.Errorf("tx.Exec: %w", err)
 	}
 
 	if commandTag.RowsAffected() != int64(len(linksSection)) {
 		return common.ErrorNotFindAllLinks
 	}
 
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx.Commit: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.FullSectionInfo) error {
-	query := `
-	UPDATE section_actual 
-	SET section_name = $1, 
-		is_mandatory = $2, 
-		color = $3, 
-		max_tasks = $4
-	WHERE section_link = $5
+	tx, err := r.deps.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("pool.Begin: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	queryClose := `
+		UPDATE section_version
+		SET valid_to = NOW()
+		WHERE section_link = $1 AND valid_to IS NULL
+		RETURNING position;
 	`
 
-	commandTag, err := r.pool.Exec(ctx, query, updatingSection.SectionName, updatingSection.IsMandatory,
-		updatingSection.Color, updatingSection.MaxTasks, updatingSection.SectionLink)
+	var position int
+	err = tx.QueryRow(ctx, queryClose, updatingSection.SectionLink).Scan(&position)
 	if err != nil {
-		return fmt.Errorf("pool.Exec: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return common.ErrorNotExistingSection
+		}
+		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
 
-	if commandTag.RowsAffected() == 0 {
-		return common.ErrorNotExistingSection
+	queryInsert := `
+		INSERT INTO section_version (section_link, section_name, position, is_mandatory, color, max_tasks)
+		VALUES ($1, $2, $3, $4, $5, $6);
+	`
+
+	_, err = tx.Exec(ctx, queryInsert,
+		updatingSection.SectionLink,
+		updatingSection.SectionName,
+		position,
+		updatingSection.IsMandatory,
+		updatingSection.Color,
+		updatingSection.MaxTasks,
+	)
+	if err != nil {
+		return fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return nil
@@ -201,14 +314,13 @@ func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) 
 		ORDER BY position ASC;
 	`
 
-	rows, err := r.pool.Query(ctx, query, boarderLink)
+	rows, err := r.deps.Pool.Query(ctx, query, boarderLink)
 	if err != nil {
-		return []dto.FullSectionInfo{}, fmt.Errorf("pool.Query: %w", err)
+		return nil, fmt.Errorf("pool.Query: %w", err)
 	}
-
 	defer rows.Close()
 
-	sections := []dto.FullSectionInfo{}
+	var sections []dto.FullSectionInfo
 
 	for rows.Next() {
 		var section dto.FullSectionInfo
@@ -222,7 +334,7 @@ func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) 
 			&section.MaxTasks,
 		)
 		if err != nil {
-			return []dto.FullSectionInfo{}, fmt.Errorf("rows.Scan: %w", err)
+			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
 
 		sections = append(sections, section)

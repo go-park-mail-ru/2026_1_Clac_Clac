@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
@@ -20,15 +19,18 @@ type DBEngine interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-type Repository struct {
-	pool    DBEngine
-	avatars s3.S3Bucket
+type Deps struct {
+	Pool    DBEngine
+	Avatars s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Avatars) *Repository {
+type Repository struct {
+	deps Deps
+}
+
+func NewRepository(deps Deps) *Repository {
 	return &Repository{
-		pool:    pool,
-		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
+		deps: deps,
 	}
 }
 
@@ -41,7 +43,7 @@ func (r *Repository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.Us
 	var avatarKeyPtr *string
 
 	var userInfo dto.UserInfoEntity
-	err := r.pool.QueryRow(ctx, getProfileQuery, userLink).Scan(
+	err := r.deps.Pool.QueryRow(ctx, getProfileQuery, userLink).Scan(
 		&userInfo.Link,
 		&userInfo.DisplayName,
 		&userInfo.DescriptionUser,
@@ -76,7 +78,7 @@ func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedI
       	description_user IS DISTINCT FROM $2
 	)`
 
-	_, err := r.pool.Exec(ctx, query, updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link)
+	_, err := r.deps.Pool.Exec(ctx, query, updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
@@ -92,7 +94,7 @@ func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (stri
 	`
 
 	var avatarKeyPtr *string
-	err := r.pool.QueryRow(ctx, query, userLink).Scan(&avatarKeyPtr)
+	err := r.deps.Pool.QueryRow(ctx, query, userLink).Scan(&avatarKeyPtr)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", common.ErrorNonexistentUser
@@ -109,7 +111,7 @@ func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (stri
 }
 
 func (r *Repository) UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error) {
-	key, err := r.avatars.Put(ctx, file, pathFile, contentType)
+	key, err := r.deps.Avatars.Put(ctx, file, pathFile, contentType)
 	if err != nil {
 		return "", fmt.Errorf("avatars.Put: %w", err)
 	}
@@ -125,7 +127,7 @@ func (r *Repository) UploadURLAvatar(ctx context.Context, userLink uuid.UUID, ob
 	WHERE link = $2
 	`
 
-	countModifies, err := r.pool.Exec(ctx, updateAvatar, objectKey, userLink)
+	countModifies, err := r.deps.Pool.Exec(ctx, updateAvatar, objectKey, userLink)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
@@ -138,7 +140,7 @@ func (r *Repository) UploadURLAvatar(ctx context.Context, userLink uuid.UUID, ob
 }
 
 func (r *Repository) DeleteAvatarS3(ctx context.Context, key string) error {
-	err := r.avatars.Delete(ctx, key)
+	err := r.deps.Avatars.Delete(ctx, key)
 	if err != nil {
 		return fmt.Errorf("avatars.Delete: %w", err)
 	}
@@ -154,7 +156,7 @@ func (r *Repository) DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) er
 	WHERE link = $2
 	`
 
-	countModifies, err := r.pool.Exec(ctx, query, nil, userLink)
+	countModifies, err := r.deps.Pool.Exec(ctx, query, nil, userLink)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestValidateInfo(t *testing.T) {
 			nameTest:      "Error validate name",
 			info:          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			maxLen:        maxLenNameUser,
-			expectedError: ErrorIncorrectLengthName,
+			expectedError: errors.New("must contain maximum 128 symbols"),
 		},
 		{
 			nameTest: "Error validate description",
@@ -52,7 +53,7 @@ func TestValidateInfo(t *testing.T) {
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 			maxLen:        maxLenDescriptionUser,
-			expectedError: ErrorIncorrectLengthName,
+			expectedError: errors.New("must contain maximum 500 symbols"),
 		},
 	}
 

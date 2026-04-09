@@ -1,10 +1,9 @@
-package config_test
+package config
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,21 +11,30 @@ import (
 
 func TestAuthConfig(t *testing.T) {
 	t.Run("test reading from env", func(t *testing.T) {
-		want := config.Auth{
-			CSRFSecret: "lsjdfklsdjf",
+		want := Auth{
+			Handler: AuthHandler{
+				MaxLenPassword:  0,
+				MinLenPassword:  0,
+				SessionLifetime: 0,
+			},
+			Service: AuthService{
+				CSRFSecret:      "lsjdfklsdjf",
+				SessionLifetime: 0,
+				CountRetries:    0,
+			},
 		}
 
-		t.Setenv("AUTH_CSRF_SECRET", want.CSRFSecret)
+		t.Setenv("AUTH_SERVICE_CSRF_SECRET", want.Service.CSRFSecret)
 
 		v := viper.New()
 
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
 
-		config.SetupEnvAuthConfig(v)
+		SetupEnvAuthConfig(v)
 
 		var conf struct {
-			Auth config.Auth `mapstructure:"auth"`
+			Auth Auth `mapstructure:"auth"`
 		}
 
 		err := v.Unmarshal(&conf)

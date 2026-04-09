@@ -30,4 +30,7 @@ var (
 	ErrorDeleteBacklog      = errors.New("can not delete backlog section")
 	ErrorUpdateBacklog      = errors.New("can not update backlog section")
 	ErrorNotFindAllLinks    = errors.New("not all sections have found")
+
+	ErrorIncorrectSymbol = errors.New("allowed only a-z, A-Z, 0-9, and /?!@")
+	ErrorIncorrectColor  = errors.New("color is incorrect, can be white, grey, red, orange, blue, green, purple, pink")
 )

@@ -67,7 +67,7 @@ func TestServiceGetSectionInfo(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			result, err := service.GetSectionInfo(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -138,7 +138,7 @@ func TestServiceCreateSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			result, err := service.CreateSection(ctx, inputDto)
 
 			if test.expectedError != nil {
@@ -200,7 +200,7 @@ func TestServiceDeleteSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			err := service.DeleteSection(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -261,7 +261,7 @@ func TestServiceReorderSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			err := service.ReorderSection(ctx, boardLink, test.sectionLinks)
 
 			if test.expectedError != nil {
@@ -334,7 +334,7 @@ func TestServiceUpdateSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			err := service.UpdateSection(ctx, updateDto)
 
 			if test.expectedError != nil {
@@ -419,7 +419,7 @@ func TestServiceGetAllSections(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(mockRepository)
+			service := NewService(Deps{Rep: mockRepository})
 			result, err := service.GetAllSections(ctx, boardLink)
 
 			if test.expectedError != nil {

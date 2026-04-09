@@ -38,7 +38,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 				rows := pgxmock.NewRows([]string{"section_name", "position", "is_mandatory", "color", "max_tasks"}).
 					AddRow(expectedInfo.SectionName, expectedInfo.Position, expectedInfo.IsMandatory, expectedInfo.Color, expectedInfo.MaxTasks)
 
-				m.ExpectQuery(`(?is)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
+				m.ExpectQuery(`(?s)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
 					WithArgs(targetLink).
 					WillReturnRows(rows)
 			},
@@ -48,7 +48,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 		{
 			nameTest: "Error not found pgx.ErrNoRows",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?is)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
+				m.ExpectQuery(`(?s)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
 					WithArgs(targetLink).
 					WillReturnError(pgx.ErrNoRows)
 			},
@@ -58,7 +58,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 		{
 			nameTest: "Error query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?is)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
+				m.ExpectQuery(`(?s)SELECT.*section_name.*FROM section_actual.*WHERE section_link = \$1`).
 					WithArgs(targetLink).
 					WillReturnError(errors.New("db disconnect"))
 			},
@@ -79,7 +79,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			result, err := repo.GetSectionInfo(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -117,6 +117,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 	}
 
 	expectedResult := dto.FullSectionInfo{
+		SectionLink: sectionLink,
 		SectionName: "In Progress",
 		Position:    2,
 		IsMandatory: false,
@@ -133,19 +134,28 @@ func TestRepositoryCreateSection(t *testing.T) {
 		{
 			nameTest: "Success create section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"section_name", "position", "is_mandatory", "color", "max_tasks"}).
-					AddRow(expectedResult.SectionName, expectedResult.Position, expectedResult.IsMandatory, expectedResult.Color, expectedResult.MaxTasks)
+				m.ExpectBegin()
 
-				m.ExpectQuery(`(?is)INSERT INTO section_actual.*VALUES.*RETURNING.*`).
+				m.ExpectExec(`(?s)INSERT INTO section \(section_link, board_link\).*`).
+					WithArgs(creatingSection.SectionLink, creatingSection.BoardLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				m.ExpectQuery(`(?s)SELECT COALESCE\(MAX.*`).
+					WithArgs(creatingSection.BoardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(2))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version.*`).
 					WithArgs(
 						creatingSection.SectionLink,
-						creatingSection.BoardLink,
 						creatingSection.SectionName,
+						2,
 						creatingSection.IsMandatory,
 						creatingSection.Color,
 						creatingSection.MaxTasks,
 					).
-					WillReturnRows(rows)
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 			expectedData:  expectedResult,
@@ -153,18 +163,13 @@ func TestRepositoryCreateSection(t *testing.T) {
 		{
 			nameTest: "Error execution fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?is)INSERT INTO section_actual.*VALUES.*RETURNING.*`).
-					WithArgs(
-						creatingSection.SectionLink,
-						creatingSection.BoardLink,
-						creatingSection.SectionName,
-						creatingSection.IsMandatory,
-						creatingSection.Color,
-						creatingSection.MaxTasks,
-					).
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)INSERT INTO section \(section_link, board_link\).*`).
+					WithArgs(creatingSection.SectionLink, creatingSection.BoardLink).
 					WillReturnError(errors.New("insert conflict"))
+				m.ExpectRollback()
 			},
-			expectedError: errors.New("QueryRow: insert conflict"),
+			expectedError: errors.New("tx.Exec: insert conflict"),
 			expectedData:  dto.FullSectionInfo{},
 		},
 	}
@@ -181,7 +186,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			result, err := repo.CreateSection(ctx, creatingSection)
 
 			if test.expectedError != nil {
@@ -202,6 +207,8 @@ func TestRepositoryCreateSection(t *testing.T) {
 func TestRepositoryDeleteSection(t *testing.T) {
 	ctx := context.Background()
 	targetLink := common.FixedSectionUuiD
+	boardLink := uuid.New()
+	backlogLink := uuid.New()
 
 	tests := []struct {
 		nameTest      string
@@ -211,29 +218,49 @@ func TestRepositoryDeleteSection(t *testing.T) {
 		{
 			nameTest: "Success delete section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)WITH target_info AS.*UPDATE section.*SET deleted_at.*WHERE section_link = \$1`).
+				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
+					WithArgs(targetLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 2))
+
+				m.ExpectQuery(`(?s)SELECT s.section_link FROM section s.*`).
+					WithArgs(boardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link"}).AddRow(backlogLink))
+
+				m.ExpectExec(`(?s)UPDATE section SET deleted_at = NOW\(\).*`).
 					WithArgs(targetLink).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+				m.ExpectExec(`(?s)WITH closed_tasks AS \(.*`).
+					WithArgs(targetLink, backlogLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 3))
+
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
-			nameTest: "Error zero rows affected",
+			nameTest: "Error section not found",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)WITH target_info AS.*UPDATE section.*SET deleted_at.*WHERE section_link = \$1`).
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
 					WithArgs(targetLink).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+					WillReturnError(pgx.ErrNoRows)
+				m.ExpectRollback()
 			},
 			expectedError: common.ErrorNotExistingSection,
 		},
 		{
-			nameTest: "Error connection fail",
+			nameTest: "Error try delete backlog",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)WITH target_info AS.*UPDATE section.*SET deleted_at.*WHERE section_link = \$1`).
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
 					WithArgs(targetLink).
-					WillReturnError(errors.New("db down"))
+					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 1))
+				m.ExpectRollback()
 			},
-			expectedError: errors.New("pool.Exec: db down"),
+			expectedError: common.ErrorDeleteBacklog,
 		},
 	}
 
@@ -249,7 +276,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			err = repo.DeleteSection(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -272,8 +299,8 @@ func TestRepositoryDeleteSection(t *testing.T) {
 func TestRepositoryReorderSection(t *testing.T) {
 	ctx := context.Background()
 	boardLink := common.FixedSectionUuiD
-	section1 := common.FixedSectionUuiD
-	section2 := common.FixedSectionUuiD
+	section1 := uuid.New()
+	section2 := uuid.New()
 	linksSection := []uuid.UUID{section1, section2}
 
 	tests := []struct {
@@ -284,29 +311,35 @@ func TestRepositoryReorderSection(t *testing.T) {
 		{
 			nameTest: "Success reorder sections",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)UPDATE section_actual sa.*SET position = data\.new_pos.*`).
-					WithArgs(section1, 1, section2, 2, boardLink).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 2))
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 2))
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
 			nameTest: "Error not all links updated",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)UPDATE section_actual sa.*SET position = data\.new_pos.*`).
-					WithArgs(section1, 1, section2, 2, boardLink).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectRollback()
 			},
 			expectedError: common.ErrorNotFindAllLinks,
 		},
 		{
 			nameTest: "Error query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)UPDATE section_actual sa.*SET position = data\.new_pos.*`).
-					WithArgs(section1, 1, section2, 2, boardLink).
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
 					WillReturnError(errors.New("db error"))
+				m.ExpectRollback()
 			},
-			expectedError: errors.New("pool.Exec: db error"),
+			expectedError: errors.New("tx.Exec: db error"),
 		},
 	}
 
@@ -322,7 +355,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			err = repo.ReorderSection(ctx, boardLink, linksSection)
 
 			if test.expectedError != nil {
@@ -364,30 +397,34 @@ func TestRepositoryUpdateSection(t *testing.T) {
 		{
 			nameTest: "Success update section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)UPDATE section_actual.*SET section_name = \$1.*WHERE section_link = \$5`).
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(3))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version \(section_link, section_name.*`).
 					WithArgs(
+						updateData.SectionLink,
 						updateData.SectionName,
+						3,
 						updateData.IsMandatory,
 						updateData.Color,
 						updateData.MaxTasks,
-						updateData.SectionLink,
 					).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
 			nameTest: "Error zero rows affected",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectExec(`(?is)UPDATE section_actual.*SET section_name = \$1.*WHERE section_link = \$5`).
-					WithArgs(
-						updateData.SectionName,
-						updateData.IsMandatory,
-						updateData.Color,
-						updateData.MaxTasks,
-						updateData.SectionLink,
-					).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnError(pgx.ErrNoRows)
+				m.ExpectRollback()
 			},
 			expectedError: common.ErrorNotExistingSection,
 		},
@@ -405,7 +442,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			err = repo.UpdateSection(ctx, updateData)
 
 			if test.expectedError != nil {
@@ -461,7 +498,7 @@ func TestRepositoryGetAllSections(t *testing.T) {
 						expectedSections[0].MaxTasks,
 					)
 
-				m.ExpectQuery(`(?is)SELECT.*FROM section_actual.*WHERE board_link = \$1.*ORDER BY position ASC`).
+				m.ExpectQuery(`(?s)SELECT.*FROM section_actual.*WHERE board_link = \$1.*ORDER BY position ASC`).
 					WithArgs(boardLink).
 					WillReturnRows(rows)
 			},
@@ -482,7 +519,7 @@ func TestRepositoryGetAllSections(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(Deps{Pool: mockDB})
 			result, err := repo.GetAllSections(ctx, boardLink)
 
 			if test.expectedError != nil {

@@ -23,6 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	SessionLifetime = 24 * time.Hour
+	CountRetries    = 3
+)
+
 func TestRegister(t *testing.T) {
 	tests := []struct {
 		nameTest          string
@@ -68,7 +73,14 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceRegistration := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			user, sessionID, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -148,7 +160,14 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceRegistration := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			_, _, err := serviceRegistration.Register(ctx, dto.RegistrationUser{
 				DisplayName: test.displayName,
@@ -214,7 +233,15 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceLogin := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+				SessionLifetime:   SessionLifetime,
+			})
 
 			user, sessionID, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -298,7 +325,15 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceLogin := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+				SessionLifetime:   SessionLifetime,
+			})
 
 			_, _, err := serviceLogin.LogIn(ctx, dto.LogInUser{
 				Email:    test.email,
@@ -347,7 +382,13 @@ func TestCreateSessionForUser(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceAuth := NewService(Deps{
+				Rep:               mockRepo,
+				GeneratorID:       test.generatorID,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+				SessionLifetime:   SessionLifetime,
+			})
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -407,7 +448,13 @@ func TestCreateSessionForUserError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, nil, nil, test.generatorID, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceAuth := NewService(Deps{
+				Rep:               mockRepo,
+				GeneratorID:       test.generatorID,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+				SessionLifetime:   SessionLifetime,
+			})
 
 			sessionID, err := serviceAuth.CreateSessionForUser(ctx, test.userLink)
 
@@ -422,7 +469,11 @@ func TestRefreshSessidon(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(nil)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil, "", nil, CreaterSessionKey)
+		srv := NewService(Deps{
+			Rep:               mockRep,
+			CreaterSessionKey: CreaterSessionKey,
+			SessionLifetime:   SessionLifetime,
+		})
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -482,7 +533,7 @@ func TestUpdateCountRequests(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
+			srv := NewService(Deps{Rep: mockRepo})
 
 			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -528,7 +579,7 @@ func TestUpdateCountRequestsError(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
+			srv := NewService(Deps{Rep: mockRepo})
 
 			_, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -585,7 +636,7 @@ func TestCheckCoolDown(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
+			srv := NewService(Deps{Rep: mockRepo})
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -634,7 +685,7 @@ func TestCheckCoolDownError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(mockRepo, nil, nil, nil, nil, nil, "", nil, nil)
+			srv := NewService(Deps{Rep: mockRepo})
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -652,7 +703,11 @@ func TestRefreshSessionError(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(newErr)
 
-		srv := NewService(mockRep, nil, nil, nil, nil, nil, "", nil, CreaterSessionKey)
+		srv := NewService(Deps{
+			Rep:               mockRep,
+			CreaterSessionKey: CreaterSessionKey,
+			SessionLifetime:   SessionLifetime,
+		})
 
 		err := srv.RefreshSession(context.Background(), common.FixedSessionID)
 
@@ -693,7 +748,14 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceLogOut := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -748,7 +810,14 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			serviceLogOut := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 
@@ -794,7 +863,14 @@ func TestGetUserLink(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			service := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 			assert.NoError(t, err, "not expected error")
@@ -849,7 +925,14 @@ func TestGetUserLinkError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			service := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 
@@ -905,7 +988,12 @@ func TestGetUserByEmail(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", nil, nil)
+			service := NewService(Deps{
+				Rep:         mockRepo,
+				Hasher:      test.hasher,
+				Checker:     test.checker,
+				GeneratorID: test.generator,
+			})
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.NoError(t, err, "not expected error")
@@ -950,7 +1038,14 @@ func TestGetUserByEmailError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(mockRepo, nil, test.hasher, test.checker, test.generator, nil, "", CreaterResetKey, CreaterSessionKey)
+			service := NewService(Deps{
+				Rep:               mockRepo,
+				Hasher:            test.hasher,
+				Checker:           test.checker,
+				GeneratorID:       test.generator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+			})
 
 			user, err := service.GetUserByEmail(ctx, test.email)
 			assert.Error(t, err, "expected error")
@@ -1008,7 +1103,15 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := NewService(mockRepo, mockMail, nil, nil, test.generator, test.generator, "", CreaterResetKey, CreaterSessionKey)
+			service := NewService(Deps{
+				Rep:                mockRepo,
+				Sender:             mockMail,
+				GeneratorID:        test.generator,
+				GeneratorResetCode: test.generator,
+				CreaterResetKey:    CreaterResetKey,
+				CreaterSessionKey:  CreaterSessionKey,
+				CountRetries:       CountRetries,
+			})
 
 			err := service.SendRecoveryCode(context.Background(), test.email)
 
@@ -1050,7 +1153,10 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := NewService(mockRepo, nil, nil, nil, nil, nil, "", CreaterResetKey, nil)
+			service := NewService(Deps{
+				Rep:             mockRepo,
+				CreaterResetKey: CreaterResetKey,
+			})
 			err := service.CheckRecoveryCode(context.Background(), test.tokenID)
 
 			if test.expectedError != nil {
@@ -1096,7 +1202,11 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "", CreaterResetKey, nil)
+			serviceAuth := NewService(Deps{
+				Rep:             mockRepo,
+				Hasher:          test.hasher,
+				CreaterResetKey: CreaterResetKey,
+			})
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1180,7 +1290,11 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(mockRepo, nil, test.hasher, nil, nil, nil, "", CreaterResetKey, nil)
+			serviceAuth := NewService(Deps{
+				Rep:             mockRepo,
+				Hasher:          test.hasher,
+				CreaterResetKey: CreaterResetKey,
+			})
 
 			err := serviceAuth.ResetPassword(ctx, test.tokenID, test.newPassword)
 
@@ -1249,7 +1363,14 @@ func TestEnsureUserByEmail(t *testing.T) {
 				test.MockBehavior(authRepo)
 			}
 
-			service := NewService(authRepo, nil, spyHasher, nil, spyGenerator, nil, "", CreaterResetKey, CreaterSessionKey)
+			service := NewService(Deps{
+				Rep:               authRepo,
+				Hasher:            spyHasher,
+				GeneratorID:       spyGenerator,
+				CreaterResetKey:   CreaterResetKey,
+				CreaterSessionKey: CreaterSessionKey,
+				SessionLifetime:   SessionLifetime,
+			})
 			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
 			if test.ExpectError {
 				require.Error(t, err, "must return error")
@@ -1267,7 +1388,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 	ctx := context.Background()
 
 	secret := "super-secret"
-	svc := &Service{csrfSecret: secret}
+	svc := &Service{deps: Deps{CsrfSecret: secret}}
 
 	t.Run("success generation", func(t *testing.T) {
 		sessionID := "user-123"
@@ -1288,8 +1409,8 @@ func TestGenerateCSRFToken(t *testing.T) {
 	})
 
 	t.Run("secret sensitivity", func(t *testing.T) {
-		svc1 := &Service{csrfSecret: "secret1"}
-		svc2 := &Service{csrfSecret: "secret2"}
+		svc1 := &Service{deps: Deps{CsrfSecret: "secret1"}}
+		svc2 := &Service{deps: Deps{CsrfSecret: "secret2"}}
 
 		t1, _ := svc1.GenerateCSRFToken(ctx, "sid", 123)
 		t2, _ := svc2.GenerateCSRFToken(ctx, "sid", 123)
@@ -1299,7 +1420,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 
 func TestCheckCSRFToken(t *testing.T) {
 	secret := "test-secret-key"
-	svc := &Service{csrfSecret: secret}
+	svc := &Service{deps: Deps{CsrfSecret: secret}}
 	ctx := context.Background()
 
 	validSessionID := "user-session-123"

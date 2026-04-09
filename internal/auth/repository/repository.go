@@ -31,15 +31,18 @@ type RedisEngine interface {
 	TTL(ctx context.Context, key string) *redis.DurationCmd
 }
 
-type Repository struct {
-	pool        DBEngine
-	redisClient RedisEngine
+type Deps struct {
+	Pool        DBEngine
+	RedisClient RedisEngine
 }
 
-func NewRepository(pool DBEngine, redisClient RedisEngine) *Repository {
+type Repository struct {
+	deps Deps
+}
+
+func NewRepository(deps Deps) *Repository {
 	return &Repository{
-		pool:        pool,
-		redisClient: redisClient,
+		deps: deps,
 	}
 }
 
@@ -49,7 +52,7 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 		VALUES ($1, $2, $3, $4) 
 	`
 
-	_, err := r.pool.Exec(ctx, addUserQuery,
+	_, err := r.deps.Pool.Exec(ctx, addUserQuery,
 		user.Link,
 		user.DisplayName,
 		user.PasswordHash,
@@ -71,7 +74,7 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 }
 
 func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) error {
-	err := r.redisClient.Set(ctx, session.SessionKey, session.UserLink.String(), session.LifeTime).Err()
+	err := r.deps.RedisClient.Set(ctx, session.SessionKey, session.UserLink.String(), session.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -80,7 +83,7 @@ func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) 
 }
 
 func (r *Repository) ExtendSession(ctx context.Context, session dto.ExtendedSession) error {
-	err := r.redisClient.Expire(ctx, session.Key, session.Expiration).Err()
+	err := r.deps.RedisClient.Expire(ctx, session.Key, session.Expiration).Err()
 	if err != nil {
 		return fmt.Errorf("redisClient.Expire: %w", err)
 	}
@@ -89,7 +92,7 @@ func (r *Repository) ExtendSession(ctx context.Context, session dto.ExtendedSess
 }
 
 func (r *Repository) SetCooldown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
-	isSet, err := r.redisClient.SetNX(ctx, config.Key, "", config.Expiration).Result()
+	isSet, err := r.deps.RedisClient.SetNX(ctx, config.Key, "", config.Expiration).Result()
 	if err != nil {
 		return false, 0, fmt.Errorf("redisClient.SetNX: %w", err)
 	}
@@ -98,7 +101,7 @@ func (r *Repository) SetCooldown(ctx context.Context, config dto.CoolDownConfig)
 		return true, 0, nil
 	}
 
-	ttl, err := r.redisClient.TTL(ctx, config.Key).Result()
+	ttl, err := r.deps.RedisClient.TTL(ctx, config.Key).Result()
 	if err != nil {
 		return false, 0, fmt.Errorf("redisClient.TTL: %w", err)
 	}
@@ -115,7 +118,7 @@ func (r *Repository) CheckLimit(ctx context.Context, configLimiter dto.RateLimit
 	bucket := now / configLimiter.Window.Nanoseconds()
 	fullKey := fmt.Sprintf("rl:%s:%s:%d", configLimiter.Action, configLimiter.UserIP, bucket)
 
-	pipe := r.redisClient.Pipeline()
+	pipe := r.deps.RedisClient.Pipeline()
 	size := pipe.Incr(ctx, fullKey)
 	pipe.Expire(ctx, fullKey, configLimiter.Window)
 
@@ -128,7 +131,7 @@ func (r *Repository) CheckLimit(ctx context.Context, configLimiter dto.RateLimit
 }
 
 func (r *Repository) GetUserIDBySession(ctx context.Context, sessionKey string) (string, error) {
-	userLink, err := r.redisClient.Get(ctx, sessionKey).Result()
+	userLink, err := r.deps.RedisClient.Get(ctx, sessionKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingSession
@@ -141,7 +144,7 @@ func (r *Repository) GetUserIDBySession(ctx context.Context, sessionKey string) 
 }
 
 func (r *Repository) DeleteSession(ctx context.Context, sessionKey string) error {
-	err := r.redisClient.Del(ctx, sessionKey).Err()
+	err := r.deps.RedisClient.Del(ctx, sessionKey).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}
@@ -156,7 +159,7 @@ func (r *Repository) GetUser(ctx context.Context, email string) (dto.UserEntity,
 		WHERE email = $1
 	`
 	var user dto.UserEntity
-	err := r.pool.QueryRow(ctx, getUserQuery, email).Scan(
+	err := r.deps.Pool.QueryRow(ctx, getUserQuery, email).Scan(
 		&user.Link,
 		&user.DisplayName,
 		&user.PasswordHash,
@@ -182,7 +185,7 @@ func (r *Repository) GetUserLink(ctx context.Context, email string) (uuid.UUID, 
 
 	var link uuid.UUID
 
-	err := r.pool.QueryRow(ctx, query, email).Scan(&link)
+	err := r.deps.Pool.QueryRow(ctx, query, email).Scan(&link)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return uuid.Nil, common.ErrorNonexistentEmail
@@ -194,7 +197,7 @@ func (r *Repository) GetUserLink(ctx context.Context, email string) (uuid.UUID, 
 }
 
 func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetTokenEntity) error {
-	err := r.redisClient.Set(ctx, token.ResetTokenKey, token.UserLink.String(), token.LifeTime).Err()
+	err := r.deps.RedisClient.Set(ctx, token.ResetTokenKey, token.UserLink.String(), token.LifeTime).Err()
 	if err != nil {
 		return fmt.Errorf("client.Set: %w", err)
 	}
@@ -203,7 +206,7 @@ func (r *Repository) AddResetToken(ctx context.Context, token dto.ResetTokenEnti
 }
 
 func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenKey string) (string, error) {
-	userLink, err := r.redisClient.Get(ctx, tokenKey).Result()
+	userLink, err := r.deps.RedisClient.Get(ctx, tokenKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", common.ErrorNotExistingResetToken
@@ -216,7 +219,7 @@ func (r *Repository) GetUserLinkByResetToken(ctx context.Context, tokenKey strin
 }
 
 func (r *Repository) DeleteResetToken(ctx context.Context, tokenKey string) error {
-	err := r.redisClient.Del(ctx, tokenKey).Err()
+	err := r.deps.RedisClient.Del(ctx, tokenKey).Err()
 	if err != nil {
 		return fmt.Errorf("client.Del: %w", err)
 	}
@@ -232,7 +235,7 @@ func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPass
 	WHERE link = $2
 	`
 
-	countModifies, err := r.pool.Exec(ctx, updatePasswordQuery, newPasswordHash, link)
+	countModifies, err := r.deps.Pool.Exec(ctx, updatePasswordQuery, newPasswordHash, link)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}

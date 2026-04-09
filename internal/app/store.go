@@ -15,10 +15,10 @@ import (
 
 // Для хранения всех репозиториев и их удобной инициализации
 type Store struct {
-	Auth     *auth.Repository
-	Boards   *board.Repository
-	Profiles *profile.Repository
-	Section  *section.Repository
+	Auth    *auth.Repository
+	Board   *board.Repository
+	Profile *profile.Repository
+	Section *section.Repository
 
 	s3Client     s3.S3Client
 	postgresPool *pgxpool.Pool
@@ -37,11 +37,25 @@ func (s *Store) Close() error {
 }
 
 func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Client, s3AvatarsConf config.S3Avatars) *Store {
+	depsAuth := auth.Deps{
+		Pool:        pool,
+		RedisClient: redisClient,
+	}
+
+	depsProfile := profile.Deps{
+		Pool:    pool,
+		Avatars: s3Client.NewBucket(s3AvatarsConf.Bucket, s3AvatarsConf.Prefix, s3.ACL.PublicRead),
+	}
+
+	depsSection := section.Deps{
+		Pool: pool,
+	}
+
 	return &Store{
-		Auth:         auth.NewRepository(pool, redisClient),
-		Boards:       board.NewRepository(pool),
-		Profiles:     profile.NewRepository(pool, s3Client, &s3AvatarsConf),
-		Section:      section.NewRepository(pool),
+		Auth:         auth.NewRepository(depsAuth),
+		Board:        board.NewRepository(pool),
+		Profile:      profile.NewRepository(depsProfile),
+		Section:      section.NewRepository(depsSection),
 		s3Client:     s3Client,
 		postgresPool: pool,
 		redisClient:  redisClient,

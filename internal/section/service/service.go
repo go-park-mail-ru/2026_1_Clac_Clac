@@ -20,18 +20,22 @@ type SectionRepository interface {
 	UpdateSection(ctx context.Context, updatingSection repositoryDto.FullSectionInfo) error
 }
 
-type Service struct {
-	rep SectionRepository
+type Deps struct {
+	Rep SectionRepository
 }
 
-func NewService(rep SectionRepository) *Service {
+type Service struct {
+	deps Deps
+}
+
+func NewService(deps Deps) *Service {
 	return &Service{
-		rep: rep,
+		deps: deps,
 	}
 }
 
 func (s *Service) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.FullSectionInfo, error) {
-	result, err := s.rep.GetSectionInfo(ctx, link)
+	result, err := s.deps.Rep.GetSectionInfo(ctx, link)
 	if err != nil {
 		return dto.FullSectionInfo{}, fmt.Errorf("rep.GetSectionInfo: %w", err)
 	}
@@ -50,7 +54,7 @@ func (s *Service) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.FullS
 func (s *Service) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.EntitySection, error) {
 	sectionLink := uuid.New()
 
-	result, err := s.rep.CreateSection(ctx, repositoryDto.CreatingSection{
+	result, err := s.deps.Rep.CreateSection(ctx, repositoryDto.CreatingSection{
 		SectionLink: sectionLink,
 		BoardLink:   newSection.BoardLink,
 		SectionName: newSection.SectionName,
@@ -75,7 +79,7 @@ func (s *Service) CreateSection(ctx context.Context, newSection dto.CreatingSect
 }
 
 func (s *Service) DeleteSection(ctx context.Context, linksSection uuid.UUID) error {
-	info, err := s.rep.GetSectionInfo(ctx, linksSection)
+	info, err := s.deps.Rep.GetSectionInfo(ctx, linksSection)
 	if err != nil {
 		return fmt.Errorf("rep.GetSectionInfo: %w", err)
 	}
@@ -84,7 +88,7 @@ func (s *Service) DeleteSection(ctx context.Context, linksSection uuid.UUID) err
 		return common.ErrorDeleteBacklog
 	}
 
-	err = s.rep.DeleteSection(ctx, linksSection)
+	err = s.deps.Rep.DeleteSection(ctx, linksSection)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteSection: %w", err)
 	}
@@ -97,7 +101,7 @@ func (s *Service) ReorderSection(ctx context.Context, linkBoard uuid.UUID, secti
 		return nil
 	}
 
-	err := s.rep.ReorderSection(ctx, linkBoard, sectionLinks)
+	err := s.deps.Rep.ReorderSection(ctx, linkBoard, sectionLinks)
 	if err != nil {
 		return fmt.Errorf("rep.ReorderSection: %w", err)
 	}
@@ -106,7 +110,7 @@ func (s *Service) ReorderSection(ctx context.Context, linkBoard uuid.UUID, secti
 }
 
 func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSectionInfo) error {
-	info, err := s.rep.GetSectionInfo(ctx, updatingSection.SectionLink)
+	info, err := s.deps.Rep.GetSectionInfo(ctx, updatingSection.SectionLink)
 	if err != nil {
 		return fmt.Errorf("rep.GetSectionInfo: %w", err)
 	}
@@ -115,7 +119,7 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 		return common.ErrorUpdateBacklog
 	}
 
-	err = s.rep.UpdateSection(ctx, repositoryDto.FullSectionInfo{
+	err = s.deps.Rep.UpdateSection(ctx, repositoryDto.FullSectionInfo{
 		SectionLink: updatingSection.SectionLink,
 		SectionName: updatingSection.SectionName,
 		Position:    updatingSection.Position,
@@ -131,7 +135,7 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 }
 
 func (s *Service) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
-	sections, err := s.rep.GetAllSections(ctx, boarderLink)
+	sections, err := s.deps.Rep.GetAllSections(ctx, boarderLink)
 	if err != nil {
 		return []dto.FullSectionInfo{}, fmt.Errorf("rep.GetAllSections: %w", err)
 	}

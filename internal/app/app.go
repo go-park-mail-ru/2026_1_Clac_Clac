@@ -9,18 +9,14 @@ import (
 	"strconv"
 	"time"
 
-	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
-	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
-	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/handler"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -48,9 +44,11 @@ func NewApp(conf *config.Config) *App {
 
 	manager := setupManager(store, conf)
 
+	dilivery := setupDilivery(manager, conf)
+
 	createDemoUser(manager, logger)
 
-	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
+	router := setupRouter(dilivery, manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -78,7 +76,12 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+	authHandler := dilivery.Auth
+	profileHandler := dilivery.Profile
+	boardHandler := dilivery.Board
+	sectionHandler := dilivery.Section
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
@@ -94,9 +97,8 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 	// Добавление рутов, зависящих от сервисов
-	authHandler := auth.NewHandler(manager.Auth)
 
-	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
+	public.HandleFunc("/register", dilivery.Auth.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 
 	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
@@ -116,15 +118,12 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := router.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger, conf.Auth.Handler.SessionLifetime))
 
 	protected.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
 
 	csrfProtected := protected.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
-
-	boardHandler := board.NewHandler(manager.Board)
-	profileHandler := profile.NewHandler(manager.Profile, s3Conf.ValidExtensions)
 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
@@ -133,8 +132,6 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 	protected.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
 	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
 	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
-
-	sectionHandler := section.NewHandler(manager.Section)
 
 	protected.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
 	protected.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
@@ -243,6 +240,10 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 // Настройка менеджера сервисов
 func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
+}
+
+func setupDilivery(m *Manager, conf *config.Config) *Dilivery {
+	return NewDilivery(m, conf)
 }
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
