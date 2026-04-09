@@ -45,8 +45,9 @@ help:
 	@echo "  create-config  - Создать шаблон конфига"
 	@echo ""
 
-build: docs
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
+# Вернуть генерацию доки
+build:
+	go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 
 run: build
 	@./$(BUILD_DIR)/$(BINARY_NAME)

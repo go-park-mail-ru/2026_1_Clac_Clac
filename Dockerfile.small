@@ -1,0 +1,33 @@
+FROM golang:1.26-alpine AS builder
+
+# Флаг CGO_ENABLED говорит компилятору сделать
+# один бинарник, без всяких СИшных библиотек
+ENV GOOS=linux CGO_ENABLED=0
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+RUN go install github.com/swaggo/swag/cmd/swag@latest \
+    && apk add --no-cache make ca-certificates tzdata upx
+
+COPY . .
+
+# Бинарник будет в /bin
+RUN make build \
+    && upx --best --lzma bin/main
+
+
+FROM scratch
+
+WORKDIR /app
+
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder --chmod=644 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /app/bin/main .
+
+ENV ZONEINFO=/usr/share/zoneinfo
+
+EXPOSE 8080
+ENTRYPOINT ["./main"]
