@@ -22,10 +22,10 @@ type Repository struct {
 	avatars s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Avatars) *Repository {
+func NewRepository(pool DBEngine, s3Client s3.S3Client, conf config.S3) *Repository {
 	return &Repository{
 		pool:    pool,
-		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
+		avatars: s3Client.NewBucket(conf.AvatarsBucket, conf.AvatarsPrefix, s3.ACL.PublicRead),
 	}
 }
 

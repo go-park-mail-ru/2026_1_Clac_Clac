@@ -17,7 +17,7 @@ import (
 )
 
 func TestGetProfile(t *testing.T) {
-	s3AvatarsConf := config.DefaultS3AvatarsConfig()
+	s3AvatarsConf := config.DefaultS3Config()
 	targetID := common.FixedUserUuiD
 
 	expectedDTO := dto.UserInfoEntity{
@@ -61,7 +61,7 @@ func TestGetProfile(t *testing.T) {
 
 			test.mockSetup(mock, test.targetID)
 
-			repoProfile := NewRepository(mock, &s3.AWSClient{}, &s3AvatarsConf)
+			repoProfile := NewRepository(mock, &s3.AWSClient{}, s3AvatarsConf)
 			ctx := context.Background()
 
 			user, err := repoProfile.GetProfile(ctx, test.targetID)
@@ -76,7 +76,7 @@ func TestGetProfile(t *testing.T) {
 }
 
 func TestGetProfileError(t *testing.T) {
-	s3AvatarsConf := config.DefaultS3AvatarsConfig()
+	s3AvatarsConf := config.DefaultS3Config()
 	targetID := uuid.New()
 
 	tests := []struct {
@@ -111,7 +111,7 @@ func TestGetProfileError(t *testing.T) {
 
 			test.mockSetup(mock, test.targetID)
 
-			repoProfile := NewRepository(mock, &s3.AWSClient{}, &s3AvatarsConf)
+			repoProfile := NewRepository(mock, &s3.AWSClient{}, s3AvatarsConf)
 			ctx := context.Background()
 
 			user, err := repoProfile.GetProfile(ctx, test.targetID)

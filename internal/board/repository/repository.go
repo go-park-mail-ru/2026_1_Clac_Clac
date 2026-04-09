@@ -13,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/rs/zerolog"
 
 	"github.com/google/uuid"
 )
@@ -29,10 +30,10 @@ type Repository struct {
 	backgrounds s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Boards) *Repository {
+func NewRepository(pool DBEngine, s3Client s3.S3Client, conf config.S3) *Repository {
 	return &Repository{
 		pool:        pool,
-		backgrounds: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
+		backgrounds: s3Client.NewBucket(conf.BoardsBackgroundsBucket, conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead),
 	}
 }
 
@@ -89,11 +90,21 @@ func (r *Repository) GetBoard(ctx context.Context, boardLink uuid.UUID) (dto.Boa
 }
 
 func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo, authorLink uuid.UUID) (dto.BoardEntry, error) {
+	logger := zerolog.Ctx(ctx)
+
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return dto.BoardEntry{}, fmt.Errorf("pool.BeginTx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			rollbackErr := tx.Rollback(ctx)
+
+			if !errors.Is(rollbackErr, pgx.ErrTxClosed) {
+				logger.Error().Err(rollbackErr).Msg("BoardRepository transaction rollback")
+			}
+		}
+	}()
 
 	var boardId int
 	var boardLink uuid.UUID

@@ -123,12 +123,12 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
 	boardHandler := board.NewHandler(manager.Board)
-	protected.HandleFunc("/boards", boardHandler.GetBoards).Methods(http.MethodGet)
+	protected.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
-	protected.HandleFunc("/board/create", boardHandler.CreateBoard).Methods(http.MethodPost)
-	protected.HandleFunc("/board/delete", boardHandler.DeleteBoard).Methods(http.MethodPost)
-	protected.HandleFunc("/board/update", boardHandler.UpdateBoard).Methods(http.MethodPost)
-	protected.HandleFunc("/board/update-background/{link}", boardHandler.UploadBackground).Methods(http.MethodPost)
+	protected.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
+	protected.HandleFunc("/board", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	protected.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	protected.HandleFunc("/board/update-background/{link}", boardHandler.UploadBackground).Methods(http.MethodPut)
 
 	return router
 }
@@ -168,13 +168,6 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 		return nil, fmt.Errorf("db.NewPool: %w", err)
 	}
 
-	// migrate -path ./internal/db/migrations -database [DSN] up
-	//
-	// err = db.RunMigrations(dsn, logger)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("db.RunMigrations: %w", err)
-	// }
-
 	return pool, nil
 }
 
@@ -210,23 +203,23 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 
 	const intConvertationBase = 10
 	const intConvertationSize = 64
-	s3ConnectTimeout, err := strconv.ParseInt(conf.S3Avatars.ConnectTimeout, intConvertationBase, intConvertationSize)
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3.ConnectTimeout, intConvertationBase, intConvertationSize)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
 	defer cancel()
 
 	s3Client, err := s3.NewAWSClient(
 		ctx,
-		conf.S3Avatars.Region,
-		conf.S3Avatars.Endpoint,
-		conf.S3Avatars.AccessKey,
-		conf.S3Avatars.SecretKey,
+		conf.S3.Region,
+		conf.S3.Endpoint,
+		conf.S3.AccessKey,
+		conf.S3.SecretKey,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, conf.S3Avatars, conf.S3Boards), nil
+	return NewStore(pool, redisClient, s3Client, conf.S3), nil
 }
 
 // Настройка менеджера сервисов

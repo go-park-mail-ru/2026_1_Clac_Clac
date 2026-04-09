@@ -70,8 +70,8 @@ func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 	boards, err := h.srv.GetBoards(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(ErrCannotGetBoards).Msg("board service GetBoards")
-		api.RespondError(w, http.StatusUnauthorized, ErrCannotGetBoards.Error())
+		logger.Error().Err(err).Msg("board service GetBoards")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
 
@@ -120,8 +120,8 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Error().Err(ErrCannotGetBoards).Msg("board service GetBoard")
-		api.RespondError(w, http.StatusUnauthorized, ErrCannotGetBoards.Error())
+		logger.Error().Err(err).Msg("board service GetBoard")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
 
@@ -211,6 +211,7 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
 		return
 	}
+	updateRequest.Sanitize()
 
 	err := h.srv.UpdateBoard(r.Context(), dto.ToUpdateBoardInfo(updateRequest), userLink)
 	if err != nil {
@@ -233,7 +234,8 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 var buffersPool = sync.Pool{
 	New: func() any {
-		return make([]byte, 0)
+		const sizeForDetectContentType = 512
+		return make([]byte, sizeForDetectContentType)
 	},
 }
 
@@ -277,11 +279,15 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 		api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Error().Err(err).Msg("BoardsHandler.UploadBackground close user sended file")
+		}
+	}()
 
 	buf := buffersPool.Get().([]byte)
 	defer func() {
-		buf = buf[:0]
+		clear(buf)
 		buffersPool.Put(buf)
 	}()
 

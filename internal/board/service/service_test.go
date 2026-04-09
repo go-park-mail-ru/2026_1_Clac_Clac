@@ -1,12 +1,14 @@
 package service_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository/dto"
@@ -300,6 +302,174 @@ func TestCheckPermission(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestGetBoard(t *testing.T) {
+	ctx := context.Background()
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	repoEntry := repositoryDto.BoardEntry{
+		Link: boardLink,
+		Name: "Test Board",
+	}
+	expectedBoard := dto.BoardInfoFromEntry(repoEntry)
+
+	tests := []struct {
+		Name          string
+		MockSetup     func(mockRepo *mocks.BoardRepository)
+		ExpectedBoard dto.BoardInfo
+		ExpectError   bool
+		ErrorIs       error
+	}{
+		{
+			Name: "success get board",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Viewer, nil).Once()
+				mockRepo.On("GetBoard", ctx, boardLink).Return(repoEntry, nil).Once()
+			},
+			ExpectedBoard: expectedBoard,
+			ExpectError:   false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Role("none"), nil).Once()
+			},
+			ExpectedBoard: dto.BoardInfo{},
+			ExpectError:   true,
+			ErrorIs:       common.ErrActionDenied,
+		},
+		{
+			Name: "board not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Viewer, nil).Once()
+				mockRepo.On("GetBoard", ctx, boardLink).Return(repositoryDto.BoardEntry{}, common.ErrBoardNotFound).Once()
+			},
+			ExpectedBoard: dto.BoardInfo{},
+			ExpectError:   true,
+			ErrorIs:       common.ErrBoardNotFound,
+		},
+		{
+			Name: "repo get board error",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Viewer, nil).Once()
+				mockRepo.On("GetBoard", ctx, boardLink).Return(repositoryDto.BoardEntry{}, fmt.Errorf("db error")).Once()
+			},
+			ExpectedBoard: dto.BoardInfo{},
+			ExpectError:   true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			test.MockSetup(mockRepo)
+
+			svc := service.NewService(mockRepo)
+			board, err := svc.GetBoard(ctx, boardLink, userLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.ExpectedBoard, board)
+			}
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateBackground(t *testing.T) {
+	ctx := context.Background()
+	userLink := uuid.New()
+	boardLink := uuid.New()
+	file := bytes.NewReader([]byte("dummy image content"))
+	contentType := "image/png"
+	extension := ".png"
+	expectedKey := "s3/background/path.png"
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository)
+		ExpectedKey string
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success update background",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Editor, nil).Once()
+				mockRepo.On("UploadBackground", ctx, file, mock.AnythingOfType("string"), contentType).Return(expectedKey, nil).Once()
+				mockRepo.On("UpdateBackground", ctx, expectedKey, boardLink).Return(nil).Once()
+			},
+			ExpectedKey: expectedKey,
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Viewer, nil).Once()
+			},
+			ExpectedKey: "",
+			ExpectError: true,
+			ErrorIs:     common.ErrActionDenied,
+		},
+		{
+			Name: "upload failed",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Editor, nil).Once()
+				mockRepo.On("UploadBackground", ctx, file, mock.AnythingOfType("string"), contentType).Return("", fmt.Errorf("s3 timeout")).Once()
+			},
+			ExpectedKey: "",
+			ExpectError: true,
+		},
+		{
+			Name: "update board background db error (not found)",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Editor, nil).Once()
+				mockRepo.On("UploadBackground", ctx, file, mock.AnythingOfType("string"), contentType).Return(expectedKey, nil).Once()
+				mockRepo.On("UpdateBackground", ctx, expectedKey, boardLink).Return(common.ErrBoardNotFound).Once()
+			},
+			ExpectedKey: "",
+			ExpectError: true,
+			ErrorIs:     common.ErrBoardNotFound,
+		},
+		{
+			Name: "update board background db error (generic)",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUserRoleOnBoard", ctx, userLink, boardLink).Return(common.Roles.Editor, nil).Once()
+				mockRepo.On("UploadBackground", ctx, file, mock.AnythingOfType("string"), contentType).Return(expectedKey, nil).Once()
+				mockRepo.On("UpdateBackground", ctx, expectedKey, boardLink).Return(fmt.Errorf("db crash")).Once()
+			},
+			ExpectedKey: "",
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			test.MockSetup(mockRepo)
+
+			svc := service.NewService(mockRepo)
+			key, err := svc.UpdateBackground(ctx, file, contentType, extension, boardLink, userLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.ExpectedKey, key)
+			}
+			mockRepo.AssertExpectations(t)
 		})
 	}
 }

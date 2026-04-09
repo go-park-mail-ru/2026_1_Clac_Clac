@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -27,7 +29,7 @@ func reqWithUser(req *http.Request, userLink uuid.UUID) *http.Request {
 	return req.WithContext(ctx)
 }
 
-func TestBoardHandler_GetBoards(t *testing.T) {
+func TestBoardHandlerGetBoards(t *testing.T) {
 	userLink := uuid.New()
 	boardsInfo := []serviceDto.BoardInfo{
 		{Link: uuid.New(), Name: "Board 1", CreatedAt: time.Now()},
@@ -68,7 +70,7 @@ func TestBoardHandler_GetBoards(t *testing.T) {
 			setupMock: func(m *mocks.BoardService) {
 				m.On("GetBoards", mock.Anything, userLink).Return(nil, errors.New("db error")).Once()
 			},
-			expectedStatus: http.StatusUnauthorized,
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
@@ -89,7 +91,7 @@ func TestBoardHandler_GetBoards(t *testing.T) {
 	}
 }
 
-func TestBoardHandler_CreateBoard(t *testing.T) {
+func TestBoardHandlerCreateBoard(t *testing.T) {
 	userLink := uuid.New()
 	createReq := dto.CreateBoardRequest{Name: "New Board", Description: "Desc"}
 	boardInfo := serviceDto.BoardInfo{Link: uuid.New(), Name: "New Board"}
@@ -163,7 +165,7 @@ func TestBoardHandler_CreateBoard(t *testing.T) {
 	}
 }
 
-func TestBoardHandler_DeleteBoard(t *testing.T) {
+func TestBoardHandlerDeleteBoard(t *testing.T) {
 	userLink := uuid.New()
 	deleteReq := dto.DeleteBoardRequest{Link: uuid.New()}
 
@@ -240,7 +242,7 @@ func TestBoardHandler_DeleteBoard(t *testing.T) {
 	}
 }
 
-func TestBoardHandler_UpdateBoard(t *testing.T) {
+func TestBoardHandlerUpdateBoard(t *testing.T) {
 	userLink := uuid.New()
 	updateReq := dto.UpdateBoardRequest{Link: uuid.New(), Name: "Updated Name"}
 
@@ -307,6 +309,237 @@ func TestBoardHandler_UpdateBoard(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			h.UpdateBoard(w, req)
+
+			assert.Equal(t, test.expectedStatus, w.Code)
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestBoardHandlerGetBoard(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+	boardInfo := serviceDto.BoardInfo{Link: boardLink, Name: "Target Board", CreatedAt: time.Now()}
+
+	tests := []struct {
+		name           string
+		setupRequest   func() *http.Request
+		setupMock      func(m *mocks.BoardService)
+		expectedStatus int
+	}{
+		{
+			name: "success get board",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(boardInfo, nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "unauthorized",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+				return req
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "missing board link var",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/", nil)
+				// Не устанавливаем mux.Vars
+				return reqWithUser(req, userLink)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid board link format",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/invalid-uuid", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": "invalid-uuid"})
+				return reqWithUser(req, userLink)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "forbidden (action denied)",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(serviceDto.BoardInfo{}, common.ErrActionDenied).Once()
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name: "not found",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(serviceDto.BoardInfo{}, common.ErrBoardNotFound).Once()
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "internal server error",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(serviceDto.BoardInfo{}, errors.New("db error")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv)
+			req := test.setupRequest()
+			w := httptest.NewRecorder()
+
+			h.GetBoard(w, req)
+
+			assert.Equal(t, test.expectedStatus, w.Code)
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestBoardHandlerUploadBackground(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+	backgroundURL := "https://s3.example.com/bg.png"
+
+	createMultipartRequest := func(fileKey, fileName string, fileContent []byte, setupVars bool) *http.Request {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+
+		if fileKey != "" {
+			part, _ := writer.CreateFormFile(fileKey, fileName)
+			part.Write(fileContent)
+		}
+		writer.Close()
+
+		req := httptest.NewRequest(http.MethodPost, "/boards/{link}/background", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		if setupVars {
+			req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+		}
+
+		return reqWithUser(req, userLink)
+	}
+
+	tests := []struct {
+		name           string
+		setupRequest   func() *http.Request
+		setupMock      func(m *mocks.BoardService)
+		expectedStatus int
+	}{
+		{
+			name: "success upload background",
+			setupRequest: func() *http.Request {
+				pngContent := append([]byte("\x89PNG\r\n\x1a\n"), []byte("dummy image content")...)
+				return createMultipartRequest("background", "bg.png", pngContent, true)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
+					Return(backgroundURL, nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "unauthorized",
+			setupRequest: func() *http.Request {
+				req := createMultipartRequest("background", "bg.png", []byte("\x89PNG\r\n\x1a\n"), true)
+				// Удаляем контекст пользователя
+				return httptest.NewRequest(req.Method, req.URL.String(), req.Body)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "invalid board link",
+			setupRequest: func() *http.Request {
+				req := createMultipartRequest("background", "bg.png", []byte("\x89PNG\r\n\x1a\n"), false)
+				req = mux.SetURLVars(req, map[string]string{"link": "not-a-uuid"})
+				return req
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "missing background key",
+			setupRequest: func() *http.Request {
+				return createMultipartRequest("wrong_key", "bg.png", []byte("\x89PNG\r\n\x1a\n"), true)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid content type (not image)",
+			setupRequest: func() *http.Request {
+				textContent := []byte("just a regular text string")
+				return createMultipartRequest("background", "text.txt", textContent, true)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "board not found",
+			setupRequest: func() *http.Request {
+				pngContent := append([]byte("\x89PNG\r\n\x1a\n"), []byte("content")...)
+				return createMultipartRequest("background", "bg.png", pngContent, true)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
+					Return("", common.ErrBoardNotFound).Once()
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "internal service error",
+			setupRequest: func() *http.Request {
+				pngContent := append([]byte("\x89PNG\r\n\x1a\n"), []byte("content")...)
+				return createMultipartRequest("background", "bg.png", pngContent, true)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
+					Return("", errors.New("s3 upload failed")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv)
+			req := test.setupRequest()
+			w := httptest.NewRecorder()
+
+			h.UploadBackground(w, req)
 
 			assert.Equal(t, test.expectedStatus, w.Code)
 			mockSrv.AssertExpectations(t)

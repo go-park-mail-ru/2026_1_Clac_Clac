@@ -48,14 +48,14 @@ func (m *MockS3Client) NewBucket(bucket string, prefix string, action s3.Action)
 
 func setupRepo(dbMock pgxmock.PgxPoolIface, s3BucketMock s3.S3Bucket) *repository.Repository {
 	s3ClientMock := new(MockS3Client)
-	conf := &config.S3Boards{
-		Bucket: "test-bucket",
-		Prefix: "test-prefix",
+	conf := &config.S3{
+		BoardsBackgroundsBucket: "test-bucket",
+		BoardsBackgroundsPrefix: "test-prefix",
 	}
 
-	s3ClientMock.On("NewBucket", conf.Bucket, conf.Prefix, s3.ACL.PublicRead).Return(s3BucketMock)
+	s3ClientMock.On("NewBucket", conf.BoardsBackgroundsBucket, conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead).Return(s3BucketMock)
 
-	return repository.NewRepository(dbMock, s3ClientMock, conf)
+	return repository.NewRepository(dbMock, s3ClientMock, *conf)
 }
 
 func TestGetBoards(t *testing.T) {

@@ -6,10 +6,12 @@ var Actions = struct {
 	View   Action
 	Edit   Action
 	Delete Action
+	Invite Action
 }{
 	View:   "view",
 	Edit:   "edit",
 	Delete: "delete",
+	Invite: "invite",
 }
 
 type Role string
@@ -38,13 +40,15 @@ var rbacPolicy = map[Role]map[Action]bool{
 		Actions.Edit: true,
 	},
 	Roles.Admin: {
-		Actions.View: true,
-		Actions.Edit: true,
+		Actions.View:   true,
+		Actions.Edit:   true,
+		Actions.Invite: true,
 	},
 	Roles.Creator: {
 		Actions.View:   true,
 		Actions.Edit:   true,
 		Actions.Delete: true,
+		Actions.Invite: true,
 	},
 }
 
