@@ -20,10 +20,15 @@ type DBEngine interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+// mockery --name=RedisEngine --output=mock_redis_engine --outpkg=mockRedisEngine
 type RedisEngine interface {
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
+	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
+	Pipeline() redis.Pipeliner
+	SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd
+	TTL(ctx context.Context, key string) *redis.DurationCmd
 }
 
 type Repository struct {
@@ -74,6 +79,58 @@ func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) 
 	}
 
 	return nil
+}
+
+func (r *Repository) ExtendSession(ctx context.Context, sessionID string, sessionLifetime time.Duration) error {
+	key := fmt.Sprintf("session:%s", sessionID)
+
+	err := r.redisClient.Expire(ctx, key, sessionLifetime).Err()
+	if err != nil {
+		return fmt.Errorf("redisClient.Expire: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) SetCooldown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
+	fullKey := fmt.Sprintf("cd:%s:%s", config.Name, config.Email)
+
+	isSet, err := r.redisClient.SetNX(ctx, fullKey, "", config.Expiration).Result()
+	if err != nil {
+		return false, 0, fmt.Errorf("redisClient.SetNX: %w", err)
+	}
+
+	if isSet {
+		return true, 0, nil
+	}
+
+	ttl, err := r.redisClient.TTL(ctx, fullKey).Result()
+	if err != nil {
+		return false, 0, fmt.Errorf("redisClient.TTL: %w", err)
+	}
+
+	if ttl < 0 {
+		ttl = 0
+	}
+
+	return false, ttl, nil
+}
+
+func (r *Repository) CheckLimit(ctx context.Context, configLimiter dto.RateLimiterConfig) (int64, error) {
+	now := time.Now().UnixNano()
+	bucket := now / configLimiter.Window.Nanoseconds()
+	fullKey := fmt.Sprintf("rl:%s:%s:%d", configLimiter.Action, configLimiter.UserIP, bucket)
+
+	pipe := r.redisClient.Pipeline()
+	size := pipe.Incr(ctx, fullKey)
+	pipe.Expire(ctx, fullKey, configLimiter.Window)
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("pipe.Exec: %w", err)
+	}
+
+	return size.Val(), nil
 }
 
 func (r *Repository) GetUserIDBySession(ctx context.Context, sessionID string) (string, error) {

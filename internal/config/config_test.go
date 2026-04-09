@@ -37,6 +37,7 @@ func TestConfigReading(t *testing.T) {
 			MaxConnectionLifetime: 1 * time.Hour,
 			MaxHealthCheckPeriod:  30 * time.Second,
 			PingSleepTime:         2 * time.Second,
+			TimeOut:               5 * time.Second,
 			MaxRetries:            5,
 		},
 		RedisConnection: config.RedisConnection{
@@ -45,6 +46,20 @@ func TestConfigReading(t *testing.T) {
 			MinConnections: 20,
 			PingSleepTime:  2 * time.Second,
 			MaxRetries:     5,
+		},
+		DBRateLimiters: config.DataBaseRateLimiters{
+			DBActions: map[string]config.ActionRateLimiters{
+				"login": {
+					Limit:  5,
+					Action: "login",
+					Window: 1 * time.Minute,
+				},
+				"register": {
+					Limit:  5,
+					Action: "register",
+					Window: 1 * time.Hour,
+				},
+			},
 		},
 	}
 

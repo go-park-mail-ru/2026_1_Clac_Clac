@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
@@ -567,29 +568,37 @@ func TestMeHandler(t *testing.T) {
 }
 
 func TestSendRecoveryEmail(t *testing.T) {
+	defaultConf := serviceDto.CoolDownConfig{
+		Name:       nameCoolDown,
+		Email:      "bobr@mail.ru",
+		Expiration: 1 * time.Minute,
+	}
+
 	tests := []TestCase{
 		{
 			Name: "Success send email",
 			Request: dto.PasswordRecoveryRequest{
-				Email: "test@mail.ru",
+				Email: "bobr@mail.ru",
 			},
 			ExpectedResponse:   newResponse(api.StatusOK),
 			ExpectedStatusCode: http.StatusOK,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("SendRecoveryCode", ctx, "test@mail.ru").Return(nil)
+				m.On("SendRecoveryCode", ctx, "bobr@mail.ru").Return(nil)
+				m.On("CheckCoolDown", ctx, defaultConf).Return(true, time.Duration(0), nil)
 			},
 		},
 		{
 			Name: "Service error",
 			Request: dto.PasswordRecoveryRequest{
-				Email: "notfound@mail.ru",
+				Email: "bobr@mail.ru",
 			},
 			ExpectedResponse:   newErrorResponse(http.StatusInternalServerError, ErrCannotSendRecoveryCode.Error()),
 			ExpectedStatusCode: http.StatusInternalServerError,
 			MockBehavior: func(m *mockAuthSrv.AuthService) {
 				ctx := context.Background()
-				m.On("SendRecoveryCode", ctx, "notfound@mail.ru").Return(errors.New("some internal error"))
+				m.On("SendRecoveryCode", ctx, "bobr@mail.ru").Return(errors.New("some internal error"))
+				m.On("CheckCoolDown", ctx, defaultConf).Return(true, time.Duration(0), nil)
 			},
 		},
 	}

@@ -7,4 +7,5 @@ var (
 	FixedBoardUuiD    = uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	FixedResetTokenID = "1234567"
 	FixedSessionID    = "12345667"
+	FixedUserIP       = "192.168.1.5:54321"
 )
