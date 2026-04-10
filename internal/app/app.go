@@ -170,11 +170,6 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 		return nil, fmt.Errorf("db.NewPool: %w", err)
 	}
 
-	err = db.RunMigrations(dsn, logger)
-	if err != nil {
-		return nil, fmt.Errorf("db.RunMigrations: %w", err)
-	}
-
 	return pool, nil
 }
 
