@@ -11,7 +11,6 @@ import (
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
@@ -46,8 +45,6 @@ func NewApp(conf *config.Config) *App {
 	}
 
 	manager := setupManager(store, conf)
-
-	createDemoUser(manager, logger)
 
 	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
 
@@ -231,24 +228,4 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 	return NewVKOAuth(conf)
-}
-
-func createDemoUser(m *Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), serviceDto.RegistrationUser{
-		DisplayName: "Demo",
-		Password:    "12345678",
-		Email:       "demo@demo.ru",
-	})
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo user")
-	} else {
-		logger.Info().Msg("demo user created")
-	}
-
-	err = m.Board.CreateEmptyBoard(context.Background(), user.Link)
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo board")
-	} else {
-		logger.Info().Msg("demo board created")
-	}
 }
