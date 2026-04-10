@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
@@ -25,11 +26,7 @@ const (
 	failReorderSections = "can not reorder sections"
 	failUpdateSection   = "can not update section"
 
-	incorrectRequest        = "get incorrect format of request"
-	incorrectPath           = "get incorrect format of path"
-	incorrectQuantityTasks  = "max quantity tasks is 100"
-	incorrectLenNameSection = "max len name is 128"
-	incorrectTypeColor      = "color can be white, grey, red, orange, blue, green, purple, pink"
+	incorrectTypeColor = "color can be white, grey, red, orange, blue, green, purple, pink"
 
 	sectionLinkKey = "link"
 	boardLinkKey   = "board_link"
@@ -68,7 +65,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 
 	linkSection, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -99,13 +96,13 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&newSection)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
 	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.deps.MaxQuantityTasks ||
 		*newSection.MaxTasks < h.deps.MinQuantityTasks) {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectRequest)
 		return
 	}
 
@@ -137,7 +134,7 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 
 	linkSection, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -162,12 +159,11 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
 	boardParam := vars[boardLinkKey]
 
 	linkBoard, err := uuid.Parse(boardParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -175,7 +171,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&listSectionLinks)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectRequest)
 		return
 	}
 
@@ -199,7 +195,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	sectionLink, err := uuid.Parse(sectionParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -207,13 +203,13 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&sectionInfo)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
 	err = common.ValidateTextInfo(sectionInfo.SectionName, h.deps.MaxLenNameSection)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectLenNameSection)
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len name is %d", h.deps.MaxLenNameSection))
 		return
 	}
 
@@ -225,7 +221,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	if sectionInfo.MaxTasks != nil {
 		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, h.deps.MaxQuantityTasks, h.deps.MinQuantityTasks); err != nil {
-			api.RespondError(w, http.StatusBadRequest, incorrectQuantityTasks)
+			api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max quantity tasks is %d", h.deps.MaxQuantityTasks))
 			return
 		}
 	}
@@ -263,7 +259,7 @@ func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
 
 	boarderLink, err := uuid.Parse(boarderParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 

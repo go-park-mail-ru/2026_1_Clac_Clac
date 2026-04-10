@@ -149,8 +149,7 @@ CREATE TABLE task_version (
     CONSTRAINT check_length_title CHECK (char_length(title) <= 128),
     CONSTRAINT check_length_description CHECK (char_length(description) <= 1000),
     CONSTRAINT check_task_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
-    CONSTRAINT fk_version_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE,
-    CONSTRAINT fk_version_section FOREIGN KEY (section_link) REFERENCES section(section_link) ON DELETE CASCADE
+    CONSTRAINT fk_version_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE
 );
 
 CREATE OR REPLACE VIEW task_actual AS

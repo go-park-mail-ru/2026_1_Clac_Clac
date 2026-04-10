@@ -81,7 +81,7 @@ func TestGetSection(t *testing.T) {
 			pathVars:           map[string]string{"link": "invalid-uuid"},
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectRequest),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest: "Error section not found",
@@ -195,14 +195,14 @@ func TestCreateSection(t *testing.T) {
 			requestBody:        "invalid json",
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectPath),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest:           "Error validation max tasks exceeded",
 			requestBody:        invalidMaxTasksRequest,
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectRequest),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectRequest),
 		},
 		{
 			nameTest:    "Error internal server",
@@ -274,7 +274,7 @@ func TestDeleteSection(t *testing.T) {
 			pathVars:           map[string]string{sectionLinkKey: "invalid"},
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectPath),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest: "Error section not found",
@@ -363,7 +363,7 @@ func TestReorderSection(t *testing.T) {
 			requestBody:        validRequest,
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectPath),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest:           "Error decode request body",
@@ -371,7 +371,7 @@ func TestReorderSection(t *testing.T) {
 			requestBody:        "{ bad json }",
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectRequest),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectRequest),
 		},
 		{
 			nameTest:    "Error not find all links",
@@ -473,7 +473,7 @@ func TestUpdateSection(t *testing.T) {
 			requestBody:        validRequest,
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectPath),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest:           "Error invalid section name length",
@@ -481,7 +481,7 @@ func TestUpdateSection(t *testing.T) {
 			requestBody:        invalidNameRequest,
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectLenNameSection),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, "max len name is 128"),
 		},
 		{
 			nameTest:           "Error invalid color",
@@ -611,7 +611,7 @@ func TestGetAllSections(t *testing.T) {
 			pathVars:           map[string]string{boardLinkKey: "invalid-uuid"},
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectPath),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
 			nameTest: "Error internal server",

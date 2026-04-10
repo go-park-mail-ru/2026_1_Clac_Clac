@@ -81,6 +81,7 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	profileHandler := dilivery.Profile
 	boardHandler := dilivery.Board
 	sectionHandler := dilivery.Section
+	cardHandler := dilivery.Card
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
@@ -125,21 +126,26 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	csrfProtected := protected.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
 
-	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
 
-	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
-	protected.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
-	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	protected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
+	csrfProtected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	csrfProtected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	csrfProtected.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
 
-	protected.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
-	protected.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
-	protected.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
-	protected.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPost)
-	protected.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
-	protected.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
+	csrfProtected.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
+	csrfProtected.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
+	csrfProtected.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
+	csrfProtected.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPut)
 
+	csrfProtected.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
+	csrfProtected.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
+	csrfProtected.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
+	csrfProtected.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPut)
+	csrfProtected.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 	return router
 }
 
