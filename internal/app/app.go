@@ -81,8 +81,10 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.CORSMiddleware(&conf.CORS))
-	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
+
+	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
+	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
 	authHandler := auth.NewHandler(manager.Auth)
 	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
@@ -92,6 +94,8 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 
 	// Ручки, которым не нужна авторизация
 	public := csrfProtected.PathPrefix("/").Subrouter()
+	public.Use(textSizeLimitter)
+
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
@@ -114,22 +118,27 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := csrfProtected.PathPrefix("/").Subrouter()
-	// Добавление мидлваре для авторизации
 	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
-	// Руты, на которые пользователь объязательно должен быть авторизован
-	profileHandler := profile.NewHandler(manager.Profile)
 
-	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	withTextLimit := protected.PathPrefix("/").Subrouter()
+	withTextLimit.Use(textSizeLimitter)
+
+	withImageLimit := protected.PathPrefix("/").Subrouter()
+	withImageLimit.Use(uploadImageSizeLimitter)
+
+	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+
+	profileHandler := profile.NewHandler(manager.Profile)
+	withTextLimit.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
 	boardHandler := board.NewHandler(manager.Board, conf.Board.Handler)
-	protected.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
-	protected.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
-	protected.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
-	protected.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
-	protected.HandleFunc("/board", boardHandler.DeleteBoard).Methods(http.MethodDelete)
-	protected.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
-	protected.HandleFunc("/board/update-background/{link}", boardHandler.UploadBackground).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/board/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
 
 	return router
 }

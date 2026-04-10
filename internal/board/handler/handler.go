@@ -66,6 +66,14 @@ type BoardHandler struct {
 	conf config.BoardHandler
 }
 
+// @Summary		Получить список досок пользователя
+// @Description	Возвращает все доски, к которым у авторизованного пользователя есть доступ
+// @Tags			boards
+// @Produce		json
+// @Success		200	{object}	api.OkResponse[[]dto.BoardInfoResponse]
+// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500	{object}	api.ErrorResponse	"cannot get boards"
+// @Router			/board [get]
 func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -92,6 +100,18 @@ func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, boardsResponse))
 }
 
+// @Summary		Получить информацию о доске
+// @Description	Возвращает информацию о доске по её UUID ссылке
+// @Tags			boards
+// @Produce		json
+// @Param			link	path		string	true	"UUID доски"	Format(uuid)
+// @Success		200		{object}	api.OkResponse[dto.BoardInfoResponse]
+// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		403		{object}	api.ErrorResponse	"action denied"
+// @Failure		404		{object}	api.ErrorResponse	"board not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get boards"
+// @Router			/board/{link} [get]
 func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -135,6 +155,17 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, dto.BoardInfoResponseFromInfo(board)))
 }
 
+// @Summary		Создать новую доску
+// @Description	Создает новую доску на основе переданных данных
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			request	body		dto.CreateBoardRequest	true	"DTO для создания доски"
+// @Success		201		{object}	api.OkResponse[dto.BoardInfoResponse]
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500		{object}	api.ErrorResponse	"cannot create board"
+// @Router			/board [post]
 func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -164,6 +195,18 @@ func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondCreated(w, dto.BoardInfoResponseFromInfo(board)))
 }
 
+// @Summary		Удалить доску
+// @Description	Удаляет доску по её UUID ссылке
+// @Tags			boards
+// @Produce		json
+// @Param			link	path		string				true	"UUID доски для удаления"	Format(uuid)
+// @Success		200		{object}	api.Response		"status ok"
+// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		403		{object}	api.ErrorResponse	"action denied"
+// @Failure		404		{object}	api.ErrorResponse	"board not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot delete board"
+// @Router			/board/{link} [delete]
 func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -175,14 +218,20 @@ func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var deleteRequest dto.DeleteBoardRequest
-	if err := json.NewDecoder(r.Body).Decode(&deleteRequest); err != nil {
-		logger.Error().Err(ErrInvalidRequestSchema).Msg("decode delete board request")
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
+	vars := mux.Vars(r)
+
+	rawBoardLink, ok := vars[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
-	err := h.srv.DeleteBoard(r.Context(), deleteRequest.Link, userLink)
+	err = h.srv.DeleteBoard(r.Context(), boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrActionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrActionDenied.Error())
@@ -201,6 +250,20 @@ func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
+// @Summary		Обновить информацию о доске
+// @Description	Обновляет метаданные доски (имя, описание, фон)
+// @Tags			boards
+// @Accept			json
+// @Produce		json
+// @Param			link	path		string					true	"UUID доски"	Format(uuid)
+// @Param			request	body		dto.UpdateBoardRequest	true	"DTO с новыми данными для обновления"
+// @Success		200		{object}	api.Response			"status ok"
+// @Failure		400		{object}	api.ErrorResponse		"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse		"unauthorized"
+// @Failure		403		{object}	api.ErrorResponse		"action denied"
+// @Failure		404		{object}	api.ErrorResponse		"board not found"
+// @Failure		500		{object}	api.ErrorResponse		"cannot update board"
+// @Router			/board/{link} [put]
 func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -245,6 +308,19 @@ var detectContentTypeBufferPool = sync.Pool{
 	},
 }
 
+// @Summary		Загрузить фон для доски
+// @Description	Загружает изображение (multipart/form-data) и устанавливает его как фон доски
+// @Tags			boards
+// @Accept			multipart/form-data
+// @Produce		json
+// @Param			link		path		string	true	"UUID доски"	Format(uuid)
+// @Param			background	formData	file	true	"Файл изображения (например, PNG/JPEG)"
+// @Success		200			{object}	api.OkResponse[dto.BackgroundUpdateResponse]
+// @Failure		400			{object}	api.ErrorResponse	"invalid board link / invalid content type / cannot find background key"
+// @Failure		401			{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404			{object}	api.ErrorResponse	"board not found"
+// @Failure		500			{object}	api.ErrorResponse	"cannot update background / cannot read file"
+// @Router			/board/{link}/background [put]
 func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -330,6 +406,16 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// @Summary		Получить пользователей доски
+// @Description	Возвращает массив UUID всех пользователей, имеющих доступ к доске
+// @Tags			boards
+// @Produce		json
+// @Param			link	path		string						true	"UUID доски"	Format(uuid)
+// @Success		200		{object}	api.OkResponse[[]string]	"Список UUID пользователей"
+// @Failure		400		{object}	api.ErrorResponse			"invalid board link / board link missing"
+// @Failure		404		{object}	api.ErrorResponse			"board not found"
+// @Failure		500		{object}	api.ErrorResponse			"cannot get users of board"
+// @Router			/board/{link}/users [get]
 func (h *BoardHandler) GetUsersOfBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

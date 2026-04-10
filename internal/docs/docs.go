@@ -15,93 +15,39 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/auth/login": {
-            "post": {
-                "description": "Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.",
-                "consumes": [
-                    "application/json"
-                ],
+        "/board": {
+            "get": {
+                "description": "Возвращает все доски, к которым у авторизованного пользователя есть доступ",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "boards"
                 ],
-                "summary": "Вход в систему",
-                "parameters": [
-                    {
-                        "description": "Учетные данные пользователя",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.LogInRequest"
-                        }
-                    }
-                ],
+                "summary": "Получить список досок пользователя",
                 "responses": {
                     "200": {
-                        "description": "Успешная аутентификация",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный запрос (невалидные данные)",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.OkResponse-array_dto_BoardInfoResponse"
                         }
                     },
                     "401": {
-                        "description": "Неверный email или пароль",
+                        "description": "unauthorized",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "cannot get boards",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
-            }
-        },
-        "/auth/logout": {
+            },
             "post": {
-                "description": "Удаляет сессию пользователя из хранилища и очищает cookie.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Выход из системы",
-                "responses": {
-                    "200": {
-                        "description": "Успешный выход",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/password/reset": {
-            "post": {
-                "description": "Устанавливает новый пароль пользователя с помощью проверенного токена.",
+                "description": "Создает новую доску на основе переданных данных",
                 "consumes": [
                     "application/json"
                 ],
@@ -109,52 +55,349 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "boards"
                 ],
-                "summary": "Сброс пароля",
+                "summary": "Создать новую доску",
                 "parameters": [
                     {
-                        "description": "Новый пароль и токен",
+                        "description": "DTO для создания доски",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.NewPasswordRequest"
+                            "$ref": "#/definitions/dto.CreateBoardRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Пароль успешно изменен",
+                    "201": {
+                        "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.OkResponse-dto_BoardInfoResponse"
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "invalid request schema",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Ошибка обновления пароля",
+                        "description": "cannot create board",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/auth/recovery/check": {
+        "/board/{link}": {
+            "get": {
+                "description": "Возвращает информацию о доске по её UUID ссылке",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Получить информацию о доске",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-dto_BoardInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / board link missing",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot get boards",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновляет метаданные доски (имя, описание, фон)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Обновить информацию о доске",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "DTO с новыми данными для обновления",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateBoardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status ok",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request schema",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot update board",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет доску по её UUID ссылке",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Удалить доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски для удаления",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status ok",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / board link missing",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot delete board",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/board/{link}/background": {
+            "put": {
+                "description": "Загружает изображение (multipart/form-data) и устанавливает его как фон доски",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Загрузить фон для доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Файл изображения (например, PNG/JPEG)",
+                        "name": "background",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-dto_BackgroundUpdateResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / invalid content type / cannot find background key",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot update background / cannot read file",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/board/{link}/users": {
+            "get": {
+                "description": "Возвращает массив UUID всех пользователей, имеющих доступ к доске",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boards"
+                ],
+                "summary": "Получить пользователей доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список UUID пользователей",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-array_string"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / board link missing",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot get users of board",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/check-code": {
             "post": {
                 "description": "Проверяет корректность 6-значного кода, отправленного на почту.",
                 "consumes": [
@@ -174,7 +417,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.RecoveryCodeRequest"
+                            "$ref": "#/definitions/dto.RecoveryCodeRequest"
                         }
                     }
                 ],
@@ -182,36 +425,59 @@ const docTemplate = `{
                     "200": {
                         "description": "Код верен",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.Response"
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос",
+                        "description": "invalid schema",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Неверный код или ошибка сервера",
+                        "description": "internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/auth/recovery/send": {
+        "/csrf": {
+            "get": {
+                "description": "Генерирует новый CSRF токен и записывает его в Cookie.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "csrf"
+                ],
+                "summary": "Установка CSRF куки",
+                "responses": {
+                    "200": {
+                        "description": "Успешная установка куки (ok)",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        },
+                        "headers": {
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "csrf_token=...; Path=/; Secure; SameSite=Lax"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "cannot create csrf token",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/forgot-password": {
             "post": {
-                "description": "Генерирует код восстановления и отправляет его на указанный email.",
+                "description": "Генерирует код восстановления и отправляет его на указанный email. Поддерживает rate-limiting.",
                 "consumes": [
                     "application/json"
                 ],
@@ -229,7 +495,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.PasswordRecoveryRequest"
+                            "$ref": "#/definitions/dto.PasswordRecoveryRequest"
                         }
                     }
                 ],
@@ -237,36 +503,190 @@ const docTemplate = `{
                     "200": {
                         "description": "Код успешно отправлен",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.Response"
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос",
+                        "description": "invalid schema",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "user does not exists",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests. Wait X seconds",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "type": "string",
+                                "description": "Время до следующей попытки в секундах"
                             }
                         }
                     },
                     "500": {
-                        "description": "Ошибка отправки письма",
+                        "description": "cannot send recovery code / internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/auth/register": {
+        "/login": {
             "post": {
-                "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.",
+                "description": "Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Вход в систему",
+                "parameters": [
+                    {
+                        "description": "Учетные данные пользователя",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.LogInRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная аутентификация",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid schema / invalid email or password",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "wrong email or password",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "description": "Удаляет сессию пользователя из хранилища и очищает cookie.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Выход из системы",
+                "responses": {
+                    "200": {
+                        "description": "Успешный выход (ok)",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Проверяет валидность текущей сессии пользователя (извлекается через middleware).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Проверка авторизации",
+                "responses": {
+                    "200": {
+                        "description": "Успешная авторизация (ok)",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "user not authorized",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/oauth/vk": {
+            "get": {
+                "description": "Коллбэк для авторизации через ВК. Производит редирект на клиент с результатом и устанавливает cookie сессии.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "VK OAuth Callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Код авторизации, полученный от ВКонтакте",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Успешная авторизация. Устанавливается Cookie и происходит редирект",
+                        "headers": {
+                            "Location": {
+                                "type": "string",
+                                "description": "URL редиректа на клиент"
+                            },
+                            "Set-Cookie": {
+                                "type": "string",
+                                "description": "Сессионная кука"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Отсутствует код (ошибка: oauth_code_empty)"
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера"
+                    },
+                    "502": {
+                        "description": "Ошибка обмена токена, API ВКонтакте или отсутствие email"
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая сессионную cookie.",
                 "consumes": [
                     "application/json"
                 ],
@@ -284,7 +704,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.RegisterRequest"
+                            "$ref": "#/definitions/dto.RegisterRequest"
                         }
                     }
                 ],
@@ -292,36 +712,29 @@ const docTemplate = `{
                     "201": {
                         "description": "Пользователь успешно создан",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse"
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации данных",
+                        "description": "invalid schema / invalid email or password",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка сервера",
+                        "description": "internal server error",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/me": {
-            "get": {
-                "security": [
-                    {
-                        "CookieAuth": []
-                    }
+        "/reset-password": {
+            "post": {
+                "description": "Устанавливает новый пароль пользователя с помощью проверенного токена.",
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -329,21 +742,35 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Проверка авторизации",
+                "summary": "Сброс пароля",
+                "parameters": [
+                    {
+                        "description": "Новый пароль и токен",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.NewPasswordRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "ok",
+                        "description": "Пароль успешно изменен",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.Response"
                         }
                     },
-                    "401": {
-                        "description": "user not authorized",
+                    "400": {
+                        "description": "invalid schema / invalid email or password",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot reset password",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -351,7 +778,143 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.LogInRequest": {
+        "api.ErrorResponse": {
+            "description": "Структура сообщения об ошибке",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-array_dto_BoardInfoResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BoardInfoResponse"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-array_string": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-dto_BackgroundUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.BackgroundUpdateResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-dto_BoardInfoResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.BoardInfoResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.Response": {
+            "description": "Базовый ответ",
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BackgroundUpdateResponse": {
+            "type": "object",
+            "properties": {
+                "background_url": {
+                    "type": "string",
+                    "example": "/static/backgrounds/123e4567.png"
+                }
+            }
+        },
+        "dto.BoardInfoResponse": {
+            "type": "object",
+            "properties": {
+                "background": {
+                    "type": "string",
+                    "example": "#FFFFFF"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-04-11T12:10:06Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Основной рабочий процесс"
+                },
+                "link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Project Alpha"
+                }
+            }
+        },
+        "dto.CreateBoardRequest": {
+            "type": "object",
+            "properties": {
+                "background": {
+                    "type": "string",
+                    "example": "#FFFFFF"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Основной рабочий процесс"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Project Alpha"
+                }
+            }
+        },
+        "dto.LogInRequest": {
             "description": "Данные для входа в систему",
             "type": "object",
             "properties": {
@@ -365,7 +928,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.NewPasswordRequest": {
+        "dto.NewPasswordRequest": {
             "description": "Установка нового пароля после проверки токена",
             "type": "object",
             "properties": {
@@ -383,7 +946,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.PasswordRecoveryRequest": {
+        "dto.PasswordRecoveryRequest": {
             "description": "Запрос восстановления пароля через Email",
             "type": "object",
             "properties": {
@@ -393,7 +956,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.RecoveryCodeRequest": {
+        "dto.RecoveryCodeRequest": {
             "description": "Код подтверждения из письма",
             "type": "object",
             "properties": {
@@ -403,7 +966,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api.RegisterRequest": {
+        "dto.RegisterRequest": {
             "description": "Модель регистрации нового пользователя",
             "type": "object",
             "properties": {
@@ -425,30 +988,33 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Board": {
-            "description": "Краткая информация о доске",
+        "dto.UpdateBoardRequest": {
             "type": "object",
             "properties": {
-                "id": {
+                "background": {
+                    "type": "string",
+                    "example": "https://example.com/bg.png"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Обновленное описание"
+                },
+                "link": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Project Beta"
                 }
             }
         },
-        "models.User": {
-            "description": "Полная информация о пользователе",
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse": {
             "type": "object",
             "properties": {
                 "avatar": {
-                    "description": "Поле имеет тег 'avatar', так оно и будет отображаться в JSON",
                     "type": "string",
                     "example": "https://example.com/avatar.jpg"
-                },
-                "boards": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Board"
-                    }
                 },
                 "display_name": {
                     "type": "string",
@@ -458,9 +1024,8 @@ const docTemplate = `{
                     "type": "string",
                     "example": "ivan@mail.com"
                 },
-                "id": {
-                    "type": "string",
-                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                "link": {
+                    "type": "string"
                 }
             }
         }

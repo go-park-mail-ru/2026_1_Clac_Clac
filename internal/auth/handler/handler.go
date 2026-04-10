@@ -20,7 +20,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// mockery --name=AuthService --output=mock_auth_srv --outpkg=mockAuthSrv
+//go:generate mockery --name=AuthService --output=mock_auth_srv --outpkg=mockAuthSrv
 type AuthService interface {
 	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
 	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
@@ -39,7 +39,7 @@ type AuthService interface {
 	GenerateRandomCSRFToken(ctx context.Context) (string, error)
 }
 
-// mockery --name=VkOAuth --output mock_vk_oauth
+//go:generate mockery --name=VkOAuth --output mock_vk_oauth
 type VkOAuth interface {
 	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
 	Client(ctx context.Context, t *oauth2.Token) *http.Client
@@ -87,13 +87,12 @@ var (
 	ErrCannotCreateCSRFToken = errors.New("cannot create csrf token")
 )
 
-// MeHandler проверяет текущую сессию пользователя.
-//
 // @Summary      Проверка авторизации
+// @Description  Проверяет валидность текущей сессии пользователя (извлекается через middleware).
 // @Tags         auth
 // @Produce      json
-// @Success      200  {string}  string  "ok"
-// @Failure      401  {object}  map[string]string "user not authorized"
+// @Success      200 {object} api.Response "Успешная авторизация (ok)"
+// @Failure      401 {object} api.ErrorResponse "user not authorized"
 // @Security     CookieAuth
 // @Router       /me [get]
 func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
@@ -107,18 +106,17 @@ func (a *AuthHandler) MeHandler(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// LogInUser godoc
 // @Summary      Вход в систему
 // @Description  Аутентификация пользователя по email и паролю. Устанавливает HTTP-only cookie с сессией.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body api.LogInRequest true "Учетные данные пользователя"
-// @Success      200 {object} models.User "Успешная аутентификация"
-// @Failure      400 {object} map[string]string "Некорректный запрос (невалидные данные)"
-// @Failure      401 {object} map[string]string "Неверный email или пароль"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
-// @Router       /auth/login [post]
+// @Param        request body     dto.LogInRequest true "Учетные данные пользователя"
+// @Success      200     {object} api.OkResponse[dto.UserInfoResponse] "Успешная аутентификация"
+// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password"
+// @Failure      401     {object} api.ErrorResponse "wrong email or password"
+// @Failure      500     {object} api.ErrorResponse "internal server error"
+// @Router       /login [post]
 func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -164,17 +162,16 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, handlerUser))
 }
 
-// RegisterUser godoc
 // @Summary      Регистрация нового пользователя
-// @Description  Создает новый аккаунт и сразу авторизует пользователя, выдавая cookie.
+// @Description  Создает новый аккаунт и сразу авторизует пользователя, выдавая сессионную cookie.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body api.RegisterRequest true "Данные для регистрации"
-// @Success      201 {object} models.User "Пользователь успешно создан"
-// @Failure      400 {object} map[string]string "Ошибка валидации данных"
-// @Failure      500 {object} map[string]string "Внутренняя ошибка сервера"
-// @Router       /auth/register [post]
+// @Param        request body     dto.RegisterRequest true "Данные для регистрации"
+// @Success      201     {object} api.OkResponse[dto.UserInfoResponse] "Пользователь успешно создан"
+// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password"
+// @Failure      500     {object} api.ErrorResponse "internal server error"
+// @Router       /register [post]
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -216,13 +213,12 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondCreated(w, handlerUser))
 }
 
-// LogOutUser godoc
 // @Summary      Выход из системы
 // @Description  Удаляет сессию пользователя из хранилища и очищает cookie.
 // @Tags         auth
 // @Produce      json
-// @Success      200 {object} map[string]string "Успешный выход"
-// @Router       /auth/logout [post]
+// @Success      200 {object} api.Response "Успешный выход (ok)"
+// @Router       /logout [post]
 func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -238,17 +234,19 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// SendRecoveryEmail godoc
 // @Summary      Запрос восстановления пароля
-// @Description  Генерирует код восстановления и отправляет его на указанный email.
+// @Description  Генерирует код восстановления и отправляет его на указанный email. Поддерживает rate-limiting.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body api.PasswordRecoveryRequest true "Email пользователя"
-// @Success      200 {object} map[string]string "Код успешно отправлен"
-// @Failure      400 {object} map[string]string "Некорректный запрос"
-// @Failure      500 {object} map[string]string "Ошибка отправки письма"
-// @Router       /auth/recovery/send [post]
+// @Param        request body     dto.PasswordRecoveryRequest true "Email пользователя"
+// @Success      200     {object} api.Response "Код успешно отправлен"
+// @Failure      400     {object} api.ErrorResponse "invalid schema"
+// @Failure      404     {object} api.ErrorResponse "user does not exists"
+// @Failure      429     {object} api.ErrorResponse "Too many requests. Wait X seconds"
+// @Failure      500     {object} api.ErrorResponse "cannot send recovery code / internal server error"
+// @Header       429     {string} Retry-After "Время до следующей попытки в секундах"
+// @Router       /forgot-password [post]
 func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -293,17 +291,16 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// CheckRecoveryCode godoc
 // @Summary      Проверка кода восстановления
 // @Description  Проверяет корректность 6-значного кода, отправленного на почту.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        request body api.RecoveryCodeRequest true "Код из письма"
-// @Success      200 {object} map[string]string "Код верен"
-// @Failure      400 {object} map[string]string "Некорректный запрос"
-// @Failure      500 {object} map[string]string "Неверный код или ошибка сервера"
-// @Router       /auth/recovery/check [post]
+// @Param        request body     dto.RecoveryCodeRequest true "Код из письма"
+// @Success      200     {object} api.Response "Код верен"
+// @Failure      400     {object} api.ErrorResponse "invalid schema"
+// @Failure      500     {object} api.ErrorResponse "internal server error"
+// @Router       /check-code [post]
 func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -324,18 +321,16 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// ResetUserPassword godoc
-//
-//	@Summary		Сброс пароля
-//	@Description	Устанавливает новый пароль пользователя с помощью проверенного токена.
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		api.NewPasswordRequest	true	"Новый пароль и токен"
-//	@Success		200		{object}	map[string]string		"Пароль успешно изменен"
-//	@Failure		400		{object}	map[string]string		"Некорректные данные"
-//	@Failure		500		{object}	map[string]string		"Ошибка обновления пароля"
-//	@Router			/reset-password [post]
+// @Summary      Сброс пароля
+// @Description  Устанавливает новый пароль пользователя с помощью проверенного токена.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body     dto.NewPasswordRequest true "Новый пароль и токен"
+// @Success      200     {object} api.Response "Пароль успешно изменен"
+// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password"
+// @Failure      500     {object} api.ErrorResponse "cannot reset password"
+// @Router       /reset-password [post]
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -362,19 +357,17 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// VkOAuthCallback godoc
-//
-//	@Summary		VK OAuth Callback
-//	@Description	Делает redirect 302, передает code и message через query параметры.
-//	@Tags			auth
-//	@Param			code	query	string	true	"Код авторизации, полученный от ВКонтакте"
-//	@Success		302		"Успешная авторизация. Устанавливается Cookie и происходит редирект"
-//	@Header			302		{string}	Location	"URL редиректа на клиент (например, /?code=200&message=success)"
-//	@Header			302		{string}	Set-Cookie	"Сессионная кука"
-//	@Failure		400		"Отсутствует code, email или email некорректный"
-//	@Failure		500		"Внутренняя ошибка сервера"
-//	@Failure		502		"Ошибка при обращении к API ВКонтакте"
-//	@Router			/oauth/vk [get]
+// @Summary      VK OAuth Callback
+// @Description  Коллбэк для авторизации через ВК. Производит редирект на клиент с результатом и устанавливает cookie сессии.
+// @Tags         auth
+// @Param        code query string true "Код авторизации, полученный от ВКонтакте"
+// @Success      302 "Успешная авторизация. Устанавливается Cookie и происходит редирект"
+// @Header       302 {string} Location "URL редиректа на клиент"
+// @Header       302 {string} Set-Cookie "Сессионная кука"
+// @Failure      400 "Отсутствует код (ошибка: oauth_code_empty)"
+// @Failure      500 "Внутренняя ошибка сервера"
+// @Failure      502 "Ошибка обмена токена, API ВКонтакте или отсутствие email"
+// @Router       /oauth/vk [get]
 func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := zerolog.Ctx(r.Context())
@@ -481,17 +474,14 @@ func (a *AuthHandler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, v
 	}
 }
 
-// SetCSRFCookieHandler устанавливает CSRF куку
-//
-//	@Summary		Установка CSRF куки
-//	@Description	Генерирует новый CSRF токен и записывает его в Cookie.
-//	@Description	Вместе с кукой также надо отправлять X-CSRF-Token
-//	@Tags			csrf
-//	@Produce		json
-//	@Success		200	{object}	api.Response		"ok"	"Успешная установка куки"
-//	@Header			200	{string}	Set-Cookie			"csrf_token=...; Path=/; Secure; SameSite=Lax"
-//	@Failure		500	{object}	api.ErrorResponse	"internal server error - cannot create token"
-//	@Router			/csrf [get]
+// @Summary      Установка CSRF куки
+// @Description  Генерирует новый CSRF токен и записывает его в Cookie.
+// @Tags         csrf
+// @Produce      json
+// @Success      200 {object} api.Response "Успешная установка куки (ok)"
+// @Header       200 {string} Set-Cookie "csrf_token=...; Path=/; Secure; SameSite=Lax"
+// @Failure      500 {object} api.ErrorResponse "cannot create csrf token"
+// @Router       /csrf [get]
 func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

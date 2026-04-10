@@ -1,6 +1,97 @@
 basePath: /api
 definitions:
-  api.LogInRequest:
+  api.ErrorResponse:
+    description: Структура сообщения об ошибке
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  api.OkResponse-array_dto_BoardInfoResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.BoardInfoResponse'
+        type: array
+      status:
+        type: string
+    type: object
+  api.OkResponse-array_string:
+    properties:
+      data:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+    type: object
+  api.OkResponse-dto_BackgroundUpdateResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.BackgroundUpdateResponse'
+      status:
+        type: string
+    type: object
+  api.OkResponse-dto_BoardInfoResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.BoardInfoResponse'
+      status:
+        type: string
+    type: object
+  api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse:
+    properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse'
+      status:
+        type: string
+    type: object
+  api.Response:
+    description: Базовый ответ
+    properties:
+      status:
+        type: string
+    type: object
+  dto.BackgroundUpdateResponse:
+    properties:
+      background_url:
+        example: /static/backgrounds/123e4567.png
+        type: string
+    type: object
+  dto.BoardInfoResponse:
+    properties:
+      background:
+        example: '#FFFFFF'
+        type: string
+      created_at:
+        example: "2026-04-11T12:10:06Z"
+        type: string
+      description:
+        example: Основной рабочий процесс
+        type: string
+      link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: Project Alpha
+        type: string
+    type: object
+  dto.CreateBoardRequest:
+    properties:
+      background:
+        example: '#FFFFFF'
+        type: string
+      description:
+        example: Основной рабочий процесс
+        type: string
+      name:
+        example: Project Alpha
+        type: string
+    type: object
+  dto.LogInRequest:
     description: Данные для входа в систему
     properties:
       email:
@@ -10,7 +101,7 @@ definitions:
         example: p@ssword123
         type: string
     type: object
-  api.NewPasswordRequest:
+  dto.NewPasswordRequest:
     description: Установка нового пароля после проверки токена
     properties:
       password:
@@ -23,21 +114,21 @@ definitions:
         example: uuid-token-string
         type: string
     type: object
-  api.PasswordRecoveryRequest:
+  dto.PasswordRecoveryRequest:
     description: Запрос восстановления пароля через Email
     properties:
       email:
         example: user@example.com
         type: string
     type: object
-  api.RecoveryCodeRequest:
+  dto.RecoveryCodeRequest:
     description: Код подтверждения из письма
     properties:
       code:
         example: "123456"
         type: string
     type: object
-  api.RegisterRequest:
+  dto.RegisterRequest:
     description: Модель регистрации нового пользователя
     properties:
       display_name:
@@ -53,32 +144,33 @@ definitions:
         example: securePassword
         type: string
     type: object
-  models.Board:
-    description: Краткая информация о доске
+  dto.UpdateBoardRequest:
     properties:
-      id:
+      background:
+        example: https://example.com/bg.png
+        type: string
+      description:
+        example: Обновленное описание
+        type: string
+      link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+      name:
+        example: Project Beta
+        type: string
     type: object
-  models.User:
-    description: Полная информация о пользователе
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse:
     properties:
       avatar:
-        description: Поле имеет тег 'avatar', так оно и будет отображаться в JSON
         example: https://example.com/avatar.jpg
         type: string
-      boards:
-        items:
-          $ref: '#/definitions/models.Board'
-        type: array
       display_name:
         example: Ivan Ivanov
         type: string
       email:
         example: ivan@mail.com
         type: string
-      id:
-        example: 123e4567-e89b-12d3-a456-426614174000
+      link:
         type: string
     type: object
 host: clac-clac.mooo.com
@@ -87,7 +179,359 @@ info:
   description: Наше API
   title: NeXus
 paths:
-  /auth/login:
+  /board:
+    get:
+      description: Возвращает все доски, к которым у авторизованного пользователя
+        есть доступ
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OkResponse-array_dto_BoardInfoResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot get boards
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Получить список досок пользователя
+      tags:
+      - boards
+    post:
+      consumes:
+      - application/json
+      description: Создает новую доску на основе переданных данных
+      parameters:
+      - description: DTO для создания доски
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.OkResponse-dto_BoardInfoResponse'
+        "400":
+          description: invalid request schema
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot create board
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Создать новую доску
+      tags:
+      - boards
+  /board/{link}:
+    delete:
+      description: Удаляет доску по её UUID ссылке
+      parameters:
+      - description: UUID доски для удаления
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status ok
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: invalid board link / board link missing
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot delete board
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Удалить доску
+      tags:
+      - boards
+    get:
+      description: Возвращает информацию о доске по её UUID ссылке
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OkResponse-dto_BoardInfoResponse'
+        "400":
+          description: invalid board link / board link missing
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot get boards
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Получить информацию о доске
+      tags:
+      - boards
+    put:
+      consumes:
+      - application/json
+      description: Обновляет метаданные доски (имя, описание, фон)
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: DTO с новыми данными для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBoardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status ok
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: invalid request schema
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot update board
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Обновить информацию о доске
+      tags:
+      - boards
+  /board/{link}/background:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Загружает изображение (multipart/form-data) и устанавливает его
+        как фон доски
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Файл изображения (например, PNG/JPEG)
+        in: formData
+        name: background
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.OkResponse-dto_BackgroundUpdateResponse'
+        "400":
+          description: invalid board link / invalid content type / cannot find background
+            key
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot update background / cannot read file
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Загрузить фон для доски
+      tags:
+      - boards
+  /board/{link}/users:
+    get:
+      description: Возвращает массив UUID всех пользователей, имеющих доступ к доске
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список UUID пользователей
+          schema:
+            $ref: '#/definitions/api.OkResponse-array_string'
+        "400":
+          description: invalid board link / board link missing
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot get users of board
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Получить пользователей доски
+      tags:
+      - boards
+  /check-code:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет корректность 6-значного кода, отправленного на почту.
+      parameters:
+      - description: Код из письма
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RecoveryCodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код верен
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: invalid schema
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Проверка кода восстановления
+      tags:
+      - auth
+  /csrf:
+    get:
+      description: Генерирует новый CSRF токен и записывает его в Cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная установка куки (ok)
+          headers:
+            Set-Cookie:
+              description: csrf_token=...; Path=/; Secure; SameSite=Lax
+              type: string
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: cannot create csrf token
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Установка CSRF куки
+      tags:
+      - csrf
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Генерирует код восстановления и отправляет его на указанный email.
+        Поддерживает rate-limiting.
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PasswordRecoveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Код успешно отправлен
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: invalid schema
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: user does not exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Too many requests. Wait X seconds
+          headers:
+            Retry-After:
+              description: Время до следующей попытки в секундах
+              type: string
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: cannot send recovery code / internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Запрос восстановления пароля
+      tags:
+      - auth
+  /login:
     post:
       consumes:
       - application/json
@@ -99,51 +543,123 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.LogInRequest'
+          $ref: '#/definitions/dto.LogInRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Успешная аутентификация
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse'
         "400":
-          description: Некорректный запрос (невалидные данные)
+          description: invalid schema / invalid email or password
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Неверный email или пароль
+          description: wrong email or password
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Внутренняя ошибка сервера
+          description: internal server error
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Вход в систему
       tags:
       - auth
-  /auth/logout:
+  /logout:
     post:
       description: Удаляет сессию пользователя из хранилища и очищает cookie.
       produces:
       - application/json
       responses:
         "200":
-          description: Успешный выход
+          description: Успешный выход (ok)
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.Response'
       summary: Выход из системы
       tags:
       - auth
-  /auth/password/reset:
+  /me:
+    get:
+      description: Проверяет валидность текущей сессии пользователя (извлекается через
+        middleware).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная авторизация (ok)
+          schema:
+            $ref: '#/definitions/api.Response'
+        "401":
+          description: user not authorized
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Проверка авторизации
+      tags:
+      - auth
+  /oauth/vk:
+    get:
+      description: Коллбэк для авторизации через ВК. Производит редирект на клиент
+        с результатом и устанавливает cookie сессии.
+      parameters:
+      - description: Код авторизации, полученный от ВКонтакте
+        in: query
+        name: code
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Успешная авторизация. Устанавливается Cookie и происходит редирект
+          headers:
+            Location:
+              description: URL редиректа на клиент
+              type: string
+            Set-Cookie:
+              description: Сессионная кука
+              type: string
+        "400":
+          description: 'Отсутствует код (ошибка: oauth_code_empty)'
+        "500":
+          description: Внутренняя ошибка сервера
+        "502":
+          description: Ошибка обмена токена, API ВКонтакте или отсутствие email
+      summary: VK OAuth Callback
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый аккаунт и сразу авторизует пользователя, выдавая
+        сессионную cookie.
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно создан
+          schema:
+            $ref: '#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse'
+        "400":
+          description: invalid schema / invalid email or password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /reset-password:
     post:
       consumes:
       - application/json
@@ -155,156 +671,23 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.NewPasswordRequest'
+          $ref: '#/definitions/dto.NewPasswordRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Пароль успешно изменен
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.Response'
         "400":
-          description: Некорректные данные
+          description: invalid schema / invalid email or password
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Ошибка обновления пароля
+          description: cannot reset password
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Сброс пароля
-      tags:
-      - auth
-  /auth/recovery/check:
-    post:
-      consumes:
-      - application/json
-      description: Проверяет корректность 6-значного кода, отправленного на почту.
-      parameters:
-      - description: Код из письма
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.RecoveryCodeRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Код верен
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Некорректный запрос
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Неверный код или ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Проверка кода восстановления
-      tags:
-      - auth
-  /auth/recovery/send:
-    post:
-      consumes:
-      - application/json
-      description: Генерирует код восстановления и отправляет его на указанный email.
-      parameters:
-      - description: Email пользователя
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.PasswordRecoveryRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Код успешно отправлен
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Некорректный запрос
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Ошибка отправки письма
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Запрос восстановления пароля
-      tags:
-      - auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Создает новый аккаунт и сразу авторизует пользователя, выдавая
-        cookie.
-      parameters:
-      - description: Данные для регистрации
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/api.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Пользователь успешно создан
-          schema:
-            $ref: '#/definitions/models.User'
-        "400":
-          description: Ошибка валидации данных
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Регистрация нового пользователя
-      tags:
-      - auth
-  /me:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: ok
-          schema:
-            type: string
-        "401":
-          description: user not authorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - CookieAuth: []
-      summary: Проверка авторизации
       tags:
       - auth
 swagger: "2.0"
