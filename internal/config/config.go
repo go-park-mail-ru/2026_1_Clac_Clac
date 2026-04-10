@@ -18,6 +18,7 @@ type Config struct {
 	S3              S3                   `mapstructure:"s3"`
 	CORS            CORS                 `mapstructure:"cors"`
 	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
+	Board           Board                `mapstructure:"board"`
 }
 
 func DefaultConfig() Config {
@@ -30,6 +31,7 @@ func DefaultConfig() Config {
 		RedisConnection: DefaultRedisConnection(),
 		DBRateLimiters:  DefaultActionsRateLimiters(),
 		S3:              DefaultS3Config(),
+		Board:           DefaultBoardConfig(),
 	}
 }
 

@@ -21,6 +21,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/dto"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/mock_board_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 )
 
@@ -79,7 +80,7 @@ func TestBoardHandlerGetBoards(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 
@@ -153,7 +154,7 @@ func TestBoardHandlerCreateBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 
@@ -230,7 +231,7 @@ func TestBoardHandlerDeleteBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 
@@ -304,7 +305,7 @@ func TestBoardHandlerUpdateBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 
@@ -412,7 +413,7 @@ func TestBoardHandlerGetBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 
@@ -535,7 +536,7 @@ func TestBoardHandlerUploadBackground(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv)
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
 			req := test.setupRequest()
 			w := httptest.NewRecorder()
 

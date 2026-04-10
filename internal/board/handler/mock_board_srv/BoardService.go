@@ -123,6 +123,36 @@ func (_m *BoardService) GetBoards(ctx context.Context, userLink uuid.UUID) ([]dt
 	return r0, r1
 }
 
+// GetUsersOfBoard provides a mock function with given fields: ctx, boardLink
+func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
+	ret := _m.Called(ctx, boardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUsersOfBoard")
+	}
+
+	var r0 []uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]uuid.UUID, error)); ok {
+		return rf(ctx, boardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []uuid.UUID); ok {
+		r0 = rf(ctx, boardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpdateBackground provides a mock function with given fields: ctx, file, contentType, extension, boardLink, userLink
 func (_m *BoardService) UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error) {
 	ret := _m.Called(ctx, file, contentType, extension, boardLink, userLink)

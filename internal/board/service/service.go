@@ -23,6 +23,7 @@ type BoardRepository interface {
 	GetUserRoleOnBoard(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) (common.Role, error)
 	UploadBackground(ctx context.Context, source io.Reader, filename string, contentType string) (string, error)
 	UpdateBackground(ctx context.Context, background string, boardLink uuid.UUID) error
+	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
 }
 
 type Service struct {
@@ -165,3 +166,14 @@ func (s *Service) UpdateBackground(ctx context.Context, file io.Reader, contentT
 
 	return key, nil
 }
+
+func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
+	usersLinks, err := s.rep.GetUsersOfBoard(ctx, boardLink)
+	if err != nil {
+		return []uuid.UUID{}, fmt.Errorf("BoardRepository.GetUsersOfBoard: %w", err)
+	}
+
+	return usersLinks, nil
+}
+
+// Сделать КОНФИГ!!!!!!

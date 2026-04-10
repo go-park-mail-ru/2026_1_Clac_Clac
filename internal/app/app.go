@@ -122,9 +122,10 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
-	boardHandler := board.NewHandler(manager.Board)
+	boardHandler := board.NewHandler(manager.Board, conf.Board.Handler)
 	protected.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
 	protected.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	protected.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
 	protected.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
 	protected.HandleFunc("/board", boardHandler.DeleteBoard).Methods(http.MethodDelete)
 	protected.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
@@ -219,7 +220,7 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, conf.S3), nil
+	return NewStore(pool, redisClient, s3Client, *conf), nil
 }
 
 // Настройка менеджера сервисов

@@ -40,3 +40,10 @@ database_rate_limiters:
       limit: 5
       action: "register"
       window: 1h
+
+boards:
+  handler:
+    multipart_background_file_key: "background"
+    max_background_size: 10485760 # 10 МБайтах
+  repository:
+    create_board_default_user_role: "creator"

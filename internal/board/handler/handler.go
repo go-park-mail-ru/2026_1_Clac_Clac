@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -35,6 +36,11 @@ var (
 	ErrInvalidContentType     = errors.New("invalid content type")
 	ErrCannotOperateWithFile  = errors.New("cannot operate with file")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
+	ErrCannotGetUsersOfBoard  = errors.New("cannot get users of board")
+)
+
+const (
+	boardLinkKey = "link"
 )
 
 //go:generate mockery --name=BoardService --output mock_board_srv
@@ -45,16 +51,19 @@ type BoardService interface {
 	DeleteBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 	UpdateBoard(ctx context.Context, boardInfo serviceDto.UpdateBoardInfo, userLink uuid.UUID) error
 	UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error)
+	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
 }
 
-func NewHandler(srv BoardService) *BoardHandler {
+func NewHandler(srv BoardService, conf config.BoardHandler) *BoardHandler {
 	return &BoardHandler{
-		srv: srv,
+		srv:  srv,
+		conf: conf,
 	}
 }
 
 type BoardHandler struct {
-	srv BoardService
+	srv  BoardService
+	conf config.BoardHandler
 }
 
 func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +93,6 @@ func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
-	const boardLinkKey = "link"
-
 	logger := zerolog.Ctx(r.Context())
 
 	rawUserLink := r.Context().Value(middleware.UserContextLink{})
@@ -232,18 +239,13 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-var buffersPool = sync.Pool{
+var detectContentTypeBufferPool = sync.Pool{
 	New: func() any {
-		const sizeForDetectContentType = 512
-		return make([]byte, sizeForDetectContentType)
+		return make([]byte, 512)
 	},
 }
 
 func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) {
-	const boardLinkKey = "link"
-	const backgroundFileKey = "background"
-	const maxUploadSize = 2 << 26 // 8 МБ
-
 	logger := zerolog.Ctx(r.Context())
 
 	rawUserLink := r.Context().Value(middleware.UserContextLink{})
@@ -267,13 +269,13 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+	if err := r.ParseMultipartForm(h.conf.MaxBackgroundSize); err != nil {
 		logger.Error().Err(err).Msg("parse multipart form")
 		api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
 		return
 	}
 
-	file, header, err := r.FormFile(backgroundFileKey)
+	file, header, err := r.FormFile(h.conf.MultipartBackgroundFileKey)
 	if err != nil {
 		logger.Error().Err(err).Msg("cannot find 'background' key")
 		api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
@@ -285,10 +287,10 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 		}
 	}()
 
-	buf := buffersPool.Get().([]byte)
+	buf := detectContentTypeBufferPool.Get().([]byte)
 	defer func() {
 		clear(buf)
-		buffersPool.Put(buf)
+		detectContentTypeBufferPool.Put(buf)
 	}()
 
 	_, err = file.Read(buf)
@@ -326,4 +328,35 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 		BackgroundURL: backgroundURL,
 	}))
 
+}
+
+func (h *BoardHandler) GetUsersOfBoard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	vars := mux.Vars(r)
+
+	rawBoardLink, ok := vars[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	usersLinks, err := h.srv.GetUsersOfBoard(r.Context(), boardLink)
+	if err != nil {
+		if errors.Is(err, common.ErrBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrBoardNotFound.Error())
+			return
+		}
+
+		logger.Error().Err(err).Msg("BoardService.GetUsersOfBoard")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetUsersOfBoard.Error())
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, usersLinks))
 }

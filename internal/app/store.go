@@ -34,11 +34,11 @@ func (s *Store) Close() error {
 	return nil
 }
 
-func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Client, s3Conf config.S3) *Store {
+func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Client, conf config.Config) *Store {
 	return &Store{
 		Auth:         auth.NewRepository(pool, redisClient),
-		Boards:       board.NewRepository(pool, s3Client, s3Conf),
-		Profiles:     profile.NewRepository(pool, s3Client, s3Conf),
+		Boards:       board.NewRepository(pool, s3Client, conf.S3, conf.Board.Repository),
+		Profiles:     profile.NewRepository(pool, s3Client, conf.S3),
 		postgresPool: pool,
 		redisClient:  redisClient,
 	}

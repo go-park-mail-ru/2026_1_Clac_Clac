@@ -55,7 +55,7 @@ func setupRepo(dbMock pgxmock.PgxPoolIface, s3BucketMock s3.S3Bucket) *repositor
 
 	s3ClientMock.On("NewBucket", conf.BoardsBackgroundsBucket, conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead).Return(s3BucketMock)
 
-	return repository.NewRepository(dbMock, s3ClientMock, *conf)
+	return repository.NewRepository(dbMock, s3ClientMock, *conf, config.DefaultBoardConfig().Repository)
 }
 
 func TestGetBoards(t *testing.T) {

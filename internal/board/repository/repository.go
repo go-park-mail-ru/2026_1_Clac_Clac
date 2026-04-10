@@ -26,14 +26,16 @@ type DBEngine interface {
 }
 
 type Repository struct {
+	conf        config.BoardRepository
 	pool        DBEngine
 	backgrounds s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, conf config.S3) *Repository {
+func NewRepository(pool DBEngine, s3Client s3.S3Client, s3Conf config.S3, conf config.BoardRepository) *Repository {
 	return &Repository{
+		conf:        conf,
 		pool:        pool,
-		backgrounds: s3Client.NewBucket(conf.BoardsBackgroundsBucket, conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead),
+		backgrounds: s3Client.NewBucket(s3Conf.BoardsBackgroundsBucket, s3Conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead),
 	}
 }
 
@@ -125,13 +127,11 @@ func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo
 		return dto.BoardEntry{}, fmt.Errorf("create board version: %w", err)
 	}
 
-	const defaultUserLevel = "creator"
-
 	createBoardMemberQuery := `
 		INSERT INTO member_board (board_link, user_link, level_member)
         VALUES ($1, $2, $3::user_level)
     `
-	_, err = tx.Exec(ctx, createBoardMemberQuery, boardLink, authorLink, defaultUserLevel)
+	_, err = tx.Exec(ctx, createBoardMemberQuery, boardLink, authorLink, r.conf.CreateBoardDefaultUserRole)
 	if err != nil {
 		return dto.BoardEntry{}, fmt.Errorf("create board member: %w", err)
 	}
@@ -231,4 +231,35 @@ func (r *Repository) UpdateBackground(ctx context.Context, background string, bo
 	}
 
 	return nil
+}
+
+func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
+	getUsersOfBoardQuery := `SELECT user_link FROM member_board WHERE board_link = $1;`
+
+	rows, err := r.pool.Query(ctx, getUsersOfBoardQuery, boardLink)
+	if err != nil {
+		return []uuid.UUID{}, fmt.Errorf("pool.Query: %w", err)
+	}
+
+	usersLinks := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var link uuid.UUID
+
+		err := rows.Scan(&link)
+		if err != nil {
+			return []uuid.UUID{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		usersLinks = append(usersLinks, link)
+	}
+	defer rows.Close()
+
+	// Чтобы не делать доп запрос, будем считать,
+	// что если запрос вернул НОЛЬ, значит доски не существует
+	// при создании доски у нее всегда есть пользователь - создатель
+	if len(usersLinks) == 0 {
+		return []uuid.UUID{}, common.ErrBoardNotFound
+	}
+
+	return usersLinks, nil
 }
