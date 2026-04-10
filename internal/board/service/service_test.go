@@ -473,3 +473,64 @@ func TestUpdateBackground(t *testing.T) {
 		})
 	}
 }
+
+func TestGetUsersOfBoard(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	expectedUsers := []uuid.UUID{uuid.New(), uuid.New()}
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository)
+		Expected    []uuid.UUID
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success get users",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return(expectedUsers, nil).Once()
+			},
+			Expected:    expectedUsers,
+			ExpectError: false,
+		},
+		{
+			Name: "repo error",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, fmt.Errorf("db error")).Once()
+			},
+			Expected:    []uuid.UUID{},
+			ExpectError: true,
+		},
+		{
+			Name: "board not found error",
+			MockSetup: func(mockRepo *mocks.BoardRepository) {
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, common.ErrBoardNotFound).Once()
+			},
+			Expected:    []uuid.UUID{},
+			ExpectError: true,
+			ErrorIs:     common.ErrBoardNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			test.MockSetup(mockRepo)
+
+			svc := service.NewService(mockRepo)
+			users, err := svc.GetUsersOfBoard(ctx, boardLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.Expected, users)
+			}
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}

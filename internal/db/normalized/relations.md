@@ -1,8 +1,3 @@
-# CHANGES:
-- BoardTemplate add link UUID
-- Add view board_actual
-
-
 # Архитектура и нормализация базы данных (NeXus)
 
 Данный документ описывает структуру реляционной базы данных для проекта NeXus, функциональные зависимости отношений и доказательство соответствия схемы Нормальной форме Бойса-Кодда (НФБК).
@@ -142,6 +137,7 @@ erDiagram
     BoardTemplate {
         int ID PK
         int AuthorID FK
+        uuid Link
         string TemplateName
         timestamp CreatedAt
         timestamp UpdatedAt

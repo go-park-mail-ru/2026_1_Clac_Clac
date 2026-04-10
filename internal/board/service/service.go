@@ -175,5 +175,3 @@ func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]u
 
 	return usersLinks, nil
 }
-
-// Сделать КОНФИГ!!!!!!

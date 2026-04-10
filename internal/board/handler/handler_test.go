@@ -168,7 +168,7 @@ func TestBoardHandlerCreateBoard(t *testing.T) {
 
 func TestBoardHandlerDeleteBoard(t *testing.T) {
 	userLink := uuid.New()
-	deleteReq := dto.DeleteBoardRequest{Link: uuid.New()}
+	boardLink := uuid.New()
 
 	tests := []struct {
 		name           string
@@ -179,48 +179,76 @@ func TestBoardHandlerDeleteBoard(t *testing.T) {
 		{
 			name: "success delete board",
 			setupRequest: func() *http.Request {
-				body, _ := json.Marshal(deleteReq)
-				req := httptest.NewRequest(http.MethodDelete, "/boards", bytes.NewBuffer(body))
+				req := httptest.NewRequest(http.MethodDelete, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
 				return reqWithUser(req, userLink)
 			},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("DeleteBoard", mock.Anything, deleteReq.Link, userLink).Return(nil).Once()
+				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(nil).Once()
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
+			name: "unauthorized",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodDelete, "/boards/{link}", nil)
+				return mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "missing board link var",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodDelete, "/boards/", nil)
+				return reqWithUser(req, userLink)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid board link format",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodDelete, "/boards/invalid-uuid", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": "invalid-uuid"})
+				return reqWithUser(req, userLink)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
 			name: "forbidden (action denied)",
 			setupRequest: func() *http.Request {
-				body, _ := json.Marshal(deleteReq)
-				req := httptest.NewRequest(http.MethodDelete, "/boards", bytes.NewBuffer(body))
+				req := httptest.NewRequest(http.MethodDelete, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
 				return reqWithUser(req, userLink)
 			},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("DeleteBoard", mock.Anything, deleteReq.Link, userLink).Return(common.ErrActionDenied).Once()
+				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(common.ErrActionDenied).Once()
 			},
 			expectedStatus: http.StatusForbidden,
 		},
 		{
 			name: "not found",
 			setupRequest: func() *http.Request {
-				body, _ := json.Marshal(deleteReq)
-				req := httptest.NewRequest(http.MethodDelete, "/boards", bytes.NewBuffer(body))
+				req := httptest.NewRequest(http.MethodDelete, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
 				return reqWithUser(req, userLink)
 			},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("DeleteBoard", mock.Anything, deleteReq.Link, userLink).Return(common.ErrBoardNotFound).Once()
+				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(common.ErrBoardNotFound).Once()
 			},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name: "internal server error",
 			setupRequest: func() *http.Request {
-				body, _ := json.Marshal(deleteReq)
-				req := httptest.NewRequest(http.MethodDelete, "/boards", bytes.NewBuffer(body))
+				req := httptest.NewRequest(http.MethodDelete, "/boards/{link}", nil)
+				req = mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
 				return reqWithUser(req, userLink)
 			},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("DeleteBoard", mock.Anything, deleteReq.Link, userLink).Return(errors.New("db crash")).Once()
+				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(errors.New("db crash")).Once()
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -354,7 +382,6 @@ func TestBoardHandlerGetBoard(t *testing.T) {
 			name: "missing board link var",
 			setupRequest: func() *http.Request {
 				req := httptest.NewRequest(http.MethodGet, "/boards/", nil)
-				// Не устанавливаем mux.Vars
 				return reqWithUser(req, userLink)
 			},
 			setupMock:      func(m *mocks.BoardService) {},
@@ -472,7 +499,6 @@ func TestBoardHandlerUploadBackground(t *testing.T) {
 			name: "unauthorized",
 			setupRequest: func() *http.Request {
 				req := createMultipartRequest("background", "bg.png", []byte("\x89PNG\r\n\x1a\n"), true)
-				// Удаляем контекст пользователя
 				return httptest.NewRequest(req.Method, req.URL.String(), req.Body)
 			},
 			setupMock:      func(m *mocks.BoardService) {},
@@ -541,6 +567,85 @@ func TestBoardHandlerUploadBackground(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			h.UploadBackground(w, req)
+
+			assert.Equal(t, test.expectedStatus, w.Code)
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestBoardHandlerGetUsersOfBoard(t *testing.T) {
+	boardLink := uuid.New()
+	usersLinks := []uuid.UUID{uuid.New(), uuid.New()}
+
+	tests := []struct {
+		name           string
+		setupRequest   func() *http.Request
+		setupMock      func(m *mocks.BoardService)
+		expectedStatus int
+	}{
+		{
+			name: "success get users",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}/users", nil)
+				return mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(usersLinks, nil).Once()
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "missing board link var",
+			setupRequest: func() *http.Request {
+				return httptest.NewRequest(http.MethodGet, "/boards//users", nil)
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid board link format",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/invalid-uuid/users", nil)
+				return mux.SetURLVars(req, map[string]string{"link": "invalid-uuid"})
+			},
+			setupMock:      func(m *mocks.BoardService) {},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "board not found",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}/users", nil)
+				return mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(nil, common.ErrBoardNotFound).Once()
+			},
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "internal server error",
+			setupRequest: func() *http.Request {
+				req := httptest.NewRequest(http.MethodGet, "/boards/{link}/users", nil)
+				return mux.SetURLVars(req, map[string]string{"link": boardLink.String()})
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(nil, errors.New("db error")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, config.DefaultBoardConfig().Handler)
+			req := test.setupRequest()
+			w := httptest.NewRecorder()
+
+			h.GetUsersOfBoard(w, req)
 
 			assert.Equal(t, test.expectedStatus, w.Code)
 			mockSrv.AssertExpectations(t)
