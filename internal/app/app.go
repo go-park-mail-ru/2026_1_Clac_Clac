@@ -92,11 +92,8 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler).Methods(http.MethodGet)
 	router.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 
-	csrfProtected := router.PathPrefix("/").Subrouter()
-	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
-
 	// Ручки, которым не нужна авторизация
-	public := csrfProtected.PathPrefix("/").Subrouter()
+	public := router.PathPrefix("/").Subrouter()
 	public.Use(textSizeLimitter)
 
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
@@ -116,12 +113,18 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	vkOAuth := setupVKOAuth(&conf.VkOAuth)
 	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(&conf.VkOAuth, "/", vkOAuth))
 
-	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
-	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
-	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
+	csrfProtected := router.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
+
+	publicWithCSRFProtection := csrfProtected.PathPrefix("/").Subrouter()
+	publicWithCSRFProtection.Use(textSizeLimitter)
+
+	publicWithCSRFProtection.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
+	publicWithCSRFProtection.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
+	publicWithCSRFProtection.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := router.PathPrefix("/").Subrouter()
+	protected := csrfProtected.PathPrefix("/").Subrouter()
 	protected.Use(middleware.AuthMiddleware(manager.Auth, logger, conf.Auth.Handler.SessionLifetime))
 
 	withTextLimit := protected.PathPrefix("/").Subrouter()
