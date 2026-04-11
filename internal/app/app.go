@@ -89,7 +89,8 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
-	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler).Methods(http.MethodGet)
+	router.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 
 	csrfProtected := router.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
@@ -98,7 +99,6 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	public := csrfProtected.PathPrefix("/").Subrouter()
 	public.Use(textSizeLimitter)
 
-	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 
