@@ -23,29 +23,23 @@ const (
 	tooLargeAvatar      = "size avatar too large"
 	invalidFile         = "file is invalid"
 	failReadFile        = "can not read file"
-	incorrectTypeAvatar = "avatar can be only jpeg/png"
+	incorrectTypeAvatar = "avatar can be only jpeg/png/jpg/webp"
 	fileProcessingError = "can not process file"
 	failAvatarUrl       = "can not create correct avatar URL"
 	failDeleteFile      = "can not delete avatar"
 	incorrectContext    = "context has not correct element"
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
-	incorrectUserInfo   = "get incorrect user info"
 	failUpdateUserInfo  = "can not update name or description"
 
-	maxReadBytes        = 5 << 20
-	siganatureTypeBytes = 512
-	nameAvatarBlock     = "avatar"
-
-	maxLenNameUser        = 128
-	maxLenDescriptionUser = 500
+	nameAvatarBlock = "avatar"
 )
 
 var (
 	ErrInvalidRequestSchema = errors.New("invalid schema")
 )
 
-// mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
+//go:generate mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
 type ProfileService interface {
 	GetProfileUser(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
 	UpdateProfile(ctx context.Context, updatedInfo serviceDto.UpdatedUserInfo) error
@@ -53,19 +47,26 @@ type ProfileService interface {
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-func NewHandler(srv ProfileService, validExtensions map[string]struct{}) *ProfileHandler {
-	return &ProfileHandler{
-		srv:             srv,
-		validExtensions: validExtensions,
+type Deps struct {
+	Srv                   ProfileService
+	ValidExtensions       map[string]struct{}
+	SiganatureTypeBytes   int
+	MaxLenNameUser        int
+	MaxLenDescriptionUser int
+	MaxReadBytes          int64
+}
+
+func NewHandler(deps Deps) *Handler {
+	return &Handler{
+		deps: deps,
 	}
 }
 
-type ProfileHandler struct {
-	srv             ProfileService
-	validExtensions map[string]struct{}
+type Handler struct {
+	deps Deps
 }
 
-func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 
 	userLink, ok := value.(uuid.UUID)
@@ -74,7 +75,7 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceUser, err := ps.srv.GetProfileUser(r.Context(), userLink)
+	serviceUser, err := h.deps.Srv.GetProfileUser(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)
@@ -95,7 +96,7 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, user))
 }
 
-func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	value := r.Context().Value(middleware.UserContextLink{})
@@ -108,17 +109,17 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 	var updatedInfo dto.UpdatedInfo
 	err := json.NewDecoder(r.Body).Decode(&updatedInfo)
 	if err != nil {
-		api.HandleError(api.RespondError(w, http.StatusBadRequest, incorrectUserInfo))
+		api.HandleError(api.RespondError(w, http.StatusBadRequest, common.IncorrectFormatRequest))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DisplayName, maxLenNameUser)
+	err = common.ValidateTextInfo(updatedInfo.DisplayName, h.deps.MaxLenNameUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DescriptionUser, maxLenDescriptionUser)
+	err = common.ValidateTextInfo(updatedInfo.DescriptionUser, h.deps.MaxLenDescriptionUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
@@ -130,7 +131,7 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 		Description: updatedInfo.DescriptionUser,
 	}
 
-	err = ps.srv.UpdateProfile(r.Context(), userInfo)
+	err = h.deps.Srv.UpdateProfile(r.Context(), userInfo)
 	if err != nil {
 		logger.Err(fmt.Errorf("srv.UpdateProfile: %w", err))
 		api.RespondError(w, http.StatusInternalServerError, failUpdateUserInfo)
@@ -140,12 +141,10 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
-func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxReadBytes)
-
-	if err := r.ParseMultipartForm(maxReadBytes); err != nil {
+	if err := r.ParseMultipartForm(h.deps.MaxReadBytes); err != nil {
 		logger.Error().Err(err).Msg(tooLargeAvatar)
 		api.RespondError(w, http.StatusBadRequest, tooLargeAvatar)
 		return
@@ -163,7 +162,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	signatureFile := make([]byte, siganatureTypeBytes)
+	signatureFile := make([]byte, h.deps.SiganatureTypeBytes)
 	countSignificantBytes, err := file.Read(signatureFile)
 	if err != nil && err != io.EOF {
 		logger.Error().Err(err).Msg(failReadFile)
@@ -172,7 +171,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mimeType := http.DetectContentType(signatureFile[:countSignificantBytes])
-	if _, ok := ps.validExtensions[mimeType]; !ok {
+	if _, ok := h.deps.ValidExtensions[mimeType]; !ok {
 		logger.Error().Err(err).Msg(incorrectTypeAvatar)
 		api.RespondError(w, http.StatusBadRequest, incorrectTypeAvatar)
 		return
@@ -193,7 +192,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarUrl, err := ps.srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
+	avatarUrl, err := h.deps.Srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
 		UserLink: userLink,
 		File:     file,
 		MimeType: mimeType,
@@ -216,7 +215,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, avatarResponse))
 }
 
-func (ps *ProfileHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	value := r.Context().Value(middleware.UserContextLink{})
@@ -228,7 +227,7 @@ func (ps *ProfileHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ps.srv.DeleteAvatar(r.Context(), userLink)
+	err := h.deps.Srv.DeleteAvatar(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)

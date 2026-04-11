@@ -17,9 +17,11 @@ type Config struct {
 	S3              S3                   `mapstructure:"s3"`
 	CORS            CORS                 `mapstructure:"cors"`
 	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
-	Board           Board                `mapstructure:"board"`
-	Auth            Auth                 `mapstructure:"auth"`
 	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
+	Auth            Auth                 `mapstructure:"auth"`
+	Board           Board                `mapstructure:"board"`
+	Section         Section              `mapstructure:"section"`
+	Profile         Profile              `mapstructure:"profile"`
 }
 
 func DefaultConfig() Config {
@@ -30,11 +32,14 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
-		Auth:            DefaultAuthConfig(),
-		DBRateLimiters:  DefaultActionsRateLimiters(),
 		S3Avatars:       DefaultS3AvatarsConfig(),
 		S3:              DefaultS3Config(),
 		Board:           DefaultBoardConfig(),
+		CORS:            DefaultCORSConfig(),
+		DBRateLimiters:  DefaultActionsRateLimiters(),
+		Auth:            DefaultAuthConfig(),
+		Profile:         DefaultProfileConfig(),
+		Section:         DefaultSectionConfig(),
 	}
 }
 

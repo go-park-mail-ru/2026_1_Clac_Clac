@@ -9,15 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,8 +42,8 @@ func NewApp(conf *config.Config) *App {
 	}
 
 	manager := setupManager(store, conf)
-
-	router := setupRouter(manager, conf, logger)
+	dilivery := setupDilivery(manager, conf)
+	router := setupRouter(dilivery, manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -74,7 +71,12 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+	authHandler := dilivery.Auth
+	profileHandler := dilivery.Profile
+	boardHandler := dilivery.Board
+	sectionHandler := dilivery.Section
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
@@ -86,7 +88,6 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
-	authHandler := auth.NewHandler(manager.Auth)
 	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
 
 	csrfProtected := router.PathPrefix("/").Subrouter()
@@ -100,7 +101,7 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
 
-	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
+	public.HandleFunc("/register", dilivery.Auth.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 
 	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
@@ -119,8 +120,8 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := csrfProtected.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
+	protected := router.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger, conf.Auth.Handler.SessionLifetime))
 
 	withTextLimit := protected.PathPrefix("/").Subrouter()
 	withTextLimit.Use(textSizeLimitter)
@@ -130,10 +131,18 @@ func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) 
 
 	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 
-	profileHandler := profile.NewHandler(manager.Profile, conf.S3Avatars.ValidExtensions)
 	withTextLimit.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	withImageLimit.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
 
-	boardHandler := board.NewHandler(manager.Board, conf.Board.Handler)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
+
 	withTextLimit.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
@@ -237,6 +246,10 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 // Настройка менеджера сервисов
 func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
+}
+
+func setupDilivery(m *Manager, conf *config.Config) *Dilivery {
+	return NewDilivery(m, conf)
 }
 
 func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {

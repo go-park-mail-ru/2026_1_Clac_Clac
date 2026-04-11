@@ -59,7 +59,7 @@ func TestAddUser(t *testing.T) {
 				test.mockSetup(mockPool, test.user)
 			}
 
-			repoUsers := NewRepository(mockPool, nil)
+			repoUsers := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			err = repoUsers.AddUser(ctx, test.user)
@@ -109,7 +109,7 @@ func TestAddUserError(t *testing.T) {
 				test.mockSetup(mockPool, test.user)
 			}
 
-			repoUsers := NewRepository(mockPool, nil)
+			repoUsers := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			err = repoUsers.AddUser(ctx, test.user)
@@ -148,7 +148,7 @@ func TestAddSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.session)
 			}
 
-			repoUsers := NewRepository(nil, redisMock)
+			repoUsers := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			err := repoUsers.AddSession(ctx, test.session)
@@ -187,7 +187,7 @@ func TestExtendSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
 			}
 
-			repoUsers := NewRepository(nil, redisMock)
+			repoUsers := NewRepository(Deps{RedisClient: redisMock})
 			err := repoUsers.ExtendSession(context.Background(), dto.ExtendedSession{
 				Key:        fmt.Sprintf("session:%s", test.sessionID),
 				Expiration: test.timeExpires,
@@ -229,7 +229,7 @@ func TestExtendSessionError(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
 			}
 
-			rep := NewRepository(nil, redisMock)
+			rep := NewRepository(Deps{RedisClient: redisMock})
 			err := rep.ExtendSession(context.Background(), dto.ExtendedSession{
 				Key:        fmt.Sprintf("session:%s", test.sessionID),
 				Expiration: test.timeExpires,
@@ -329,7 +329,7 @@ func TestSetCooldown(t *testing.T) {
 				test.mockBehavior(mockRedis)
 			}
 
-			rep := NewRepository(nil, mockRedis)
+			rep := NewRepository(Deps{RedisClient: mockRedis})
 
 			isAllowed, ttl, err := rep.SetCooldown(context.Background(), test.config)
 
@@ -376,7 +376,7 @@ func TestCheckLimit(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			rep := NewRepository(nil, client)
+			rep := NewRepository(Deps{RedisClient: client})
 
 			val, err := rep.CheckLimit(context.Background(), test.configLimiter)
 
@@ -410,7 +410,7 @@ func TestDeleteSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID)
 			}
 
-			repoUsers := NewRepository(nil, redisMock)
+			repoUsers := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			err := repoUsers.DeleteSession(ctx, test.sessionID)
@@ -445,7 +445,7 @@ func TestGetUserIDBySession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.expectedUserID)
 			}
 
-			repoUsers := NewRepository(nil, redisMock)
+			repoUsers := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			userID, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
@@ -481,7 +481,7 @@ func TestGetUserIDBySessionError(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID)
 			}
 
-			repoUsers := NewRepository(nil, redisMock)
+			repoUsers := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
@@ -518,7 +518,7 @@ func TestAddResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.token)
 			}
 
-			repoAuth := NewRepository(nil, redisMock)
+			repoAuth := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			err := repoAuth.AddResetToken(ctx, test.token)
@@ -555,7 +555,7 @@ func TestGetUserLinkByResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID, test.expectedUserID)
 			}
 
-			repoAuth := NewRepository(nil, redisMock)
+			repoAuth := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			token, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
@@ -592,7 +592,7 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID)
 			}
 
-			repoAuth := NewRepository(nil, redisMock)
+			repoAuth := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			_, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
@@ -626,7 +626,7 @@ func TestDeleteResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID)
 			}
 
-			repoAuth := NewRepository(nil, redisMock)
+			repoAuth := NewRepository(Deps{RedisClient: redisMock})
 			ctx := context.Background()
 
 			err := repoAuth.DeleteResetToken(ctx, test.tokenID)
@@ -677,7 +677,7 @@ func TestGetUser(t *testing.T) {
 				test.mockSetup(mockPool)
 			}
 
-			repoUsers := NewRepository(mockPool, nil)
+			repoUsers := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			user, err := repoUsers.GetUser(ctx, test.email)
@@ -722,7 +722,7 @@ func TestGetUserError(t *testing.T) {
 				test.mockSetup(mockPool)
 			}
 
-			repoUsers := NewRepository(mockPool, nil)
+			repoUsers := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			_, err = repoUsers.GetUser(ctx, test.email)
@@ -765,7 +765,7 @@ func TestGetUserLink(t *testing.T) {
 				test.mockSetUp(mockPool)
 			}
 
-			rep := NewRepository(mockPool, nil)
+			rep := NewRepository(Deps{Pool: mockPool})
 
 			ctx := context.Background()
 			userLink, err := rep.GetUserLink(ctx, test.email)
@@ -808,7 +808,7 @@ func TestGetUserLinkError(t *testing.T) {
 				test.mockSetUp(mockPool)
 			}
 
-			rep := NewRepository(mockPool, nil)
+			rep := NewRepository(Deps{Pool: mockPool})
 
 			ctx := context.Background()
 			_, err = rep.GetUserLink(ctx, test.email)
@@ -855,7 +855,7 @@ func TestUpdatePassword(t *testing.T) {
 				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
 			}
 
-			repoAuth := NewRepository(mockPool, nil)
+			repoAuth := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
@@ -901,7 +901,7 @@ func TestUpdatePasswordError(t *testing.T) {
 				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
 			}
 
-			repoAuth := NewRepository(mockPool, nil)
+			repoAuth := NewRepository(Deps{Pool: mockPool})
 			ctx := context.Background()
 
 			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)

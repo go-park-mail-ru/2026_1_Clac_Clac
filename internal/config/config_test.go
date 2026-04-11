@@ -58,9 +58,52 @@ func TestConfigReading(t *testing.T) {
 				},
 			},
 		},
-		S3:        config.DefaultS3Config(),
-		Board:     config.DefaultBoardConfig(),
-		S3Avatars: config.DefaultS3AvatarsConfig(),
+		S3:    config.DefaultS3Config(),
+		Board: config.DefaultBoardConfig(),
+		S3Avatars: config.S3Avatars{
+			ValidExtensions: map[string]struct{}{
+				"image/jpg":  {},
+				"image/jpeg": {},
+				"image/png":  {},
+				"image/webp": {},
+			},
+		},
+		CORS: config.CORS{
+			Credentials: "false",
+			Origin:      "localhost",
+			Methods:     "GET,POST,OPTIONS",
+			Headers:     "",
+			MaxAge:      "60",
+		},
+
+		Auth: config.Auth{
+			Handler: config.AuthHandler{
+				MaxLenPassword:  128,
+				MinLenPassword:  8,
+				SessionLifetime: 24 * time.Hour,
+			},
+			Service: config.AuthService{
+				SessionLifetime: 24 * time.Hour,
+				CountRetries:    3,
+			},
+		},
+
+		Profile: config.Profile{
+			Handler: config.ProfileHandler{
+				SiganatureTypeBytes:   512,
+				MaxReadBytes:          5 << 20,
+				MaxLenNameUser:        128,
+				MaxLenDescriptionUser: 500,
+			},
+		},
+
+		Section: config.Section{
+			Handler: config.SectionHandler{
+				MaxQuantityTasks:  100,
+				MinQuantityTasks:  0,
+				MaxLenNameSection: 128,
+			},
+		},
 	}
 
 	var yamlTest = []byte(`

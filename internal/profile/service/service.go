@@ -23,29 +23,31 @@ type ProfileRepository interface {
 	DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-type Service struct {
-	rep               ProfileRepository
-	generateAvatarKey func() (string, error)
-	baseURLAvatar     string
+type Deps struct {
+	Rep               ProfileRepository
+	GenerateAvatarKey func() (string, error)
+	BaseURLAvatar     string
 }
 
-func NewService(rep ProfileRepository, generateAvatarKey func() (string, error), baseURLAvatar string) *Service {
+type Service struct {
+	deps Deps
+}
+
+func NewService(deps Deps) *Service {
 	return &Service{
-		rep:               rep,
-		generateAvatarKey: generateAvatarKey,
-		baseURLAvatar:     baseURLAvatar,
+		deps: deps,
 	}
 }
 
 func (s *Service) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
-	repositoryUser, err := s.rep.GetProfile(ctx, userLink)
+	repositoryUser, err := s.deps.Rep.GetProfile(ctx, userLink)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.GetProfile: %w", err)
 	}
 
 	var avatarUrl string
 	if repositoryUser.AvatarKey != "" {
-		avatarUrl, err = url.JoinPath(s.baseURLAvatar, repositoryUser.AvatarKey)
+		avatarUrl, err = url.JoinPath(s.deps.BaseURLAvatar, repositoryUser.AvatarKey)
 		if err != nil {
 			return dto.UserInfo{}, fmt.Errorf("url.JoinPath: %w", err)
 		}
@@ -63,7 +65,7 @@ func (s *Service) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.U
 }
 
 func (s *Service) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedUserInfo) error {
-	err := s.rep.UpdateProfile(ctx, repositoryDto.UpdatedInfo{
+	err := s.deps.Rep.UpdateProfile(ctx, repositoryDto.UpdatedInfo{
 		Link:            updatedInfo.Link,
 		NameUser:        updatedInfo.DisplayName,
 		DescriptionUser: updatedInfo.Description,
@@ -88,23 +90,23 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 		format = ".webp"
 	}
 
-	key, err := s.generateAvatarKey()
+	key, err := s.deps.GenerateAvatarKey()
 	if err != nil {
 		return "", fmt.Errorf("cannot generate key: %w", err)
 	}
 
 	pathFile := fmt.Sprintf("%s/%s%s", avatar.UserLink.String(), key, format)
 
-	objectKey, err := s.rep.UploadAvatarS3(ctx, avatar.File, pathFile, avatar.MimeType)
+	objectKey, err := s.deps.Rep.UploadAvatarS3(ctx, avatar.File, pathFile, avatar.MimeType)
 	if err != nil {
 		return "", fmt.Errorf("UploadAvatar: %w", err)
 	}
 
-	errUploadDB := s.rep.UploadURLAvatar(ctx, avatar.UserLink, objectKey)
+	errUploadDB := s.deps.Rep.UploadURLAvatar(ctx, avatar.UserLink, objectKey)
 	if errUploadDB != nil {
 		resultError := fmt.Errorf("rep.UploadAvatarURL: %w", errUploadDB)
 
-		errDelete := s.rep.DeleteAvatarS3(ctx, objectKey)
+		errDelete := s.deps.Rep.DeleteAvatarS3(ctx, objectKey)
 		if errDelete != nil {
 			resultError = errors.Join(resultError, errDelete)
 		}
@@ -112,7 +114,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 		return "", resultError
 	}
 
-	fullKey, err := url.JoinPath(s.baseURLAvatar, objectKey)
+	fullKey, err := url.JoinPath(s.deps.BaseURLAvatar, objectKey)
 	if err != nil {
 		return "", fmt.Errorf("url.JoinPath: %w", err)
 	}
@@ -121,7 +123,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 }
 
 func (s *Service) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
-	avatarKey, err := s.rep.GetAvatarKey(ctx, userLink)
+	avatarKey, err := s.deps.Rep.GetAvatarKey(ctx, userLink)
 	if err != nil {
 		return fmt.Errorf("rep.GetAvatarKey: %w", err)
 	}
@@ -130,12 +132,12 @@ func (s *Service) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
 		return nil
 	}
 
-	err = s.rep.DeleteAvatarS3(ctx, avatarKey)
+	err = s.deps.Rep.DeleteAvatarS3(ctx, avatarKey)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteAvatar: %w", err)
 	}
 
-	err = s.rep.DeleteURLAvatar(ctx, userLink)
+	err = s.deps.Rep.DeleteURLAvatar(ctx, userLink)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteAvatarURL: %w", err)
 	}

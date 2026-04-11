@@ -67,7 +67,9 @@ func TestGetProfileUser(t *testing.T) {
 				test.mockBehavior(mockProfileRepo)
 			}
 
-			profileService := NewService(mockProfileRepo, nil, "")
+			profileService := NewService(Deps{
+				Rep: mockProfileRepo,
+			})
 			ctx := context.Background()
 
 			user, err := profileService.GetProfileUser(ctx, test.userID)
@@ -125,16 +127,20 @@ func TestUpdateProfile(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		mockRep := mockProfileRep.NewProfileRepository(t)
-		if test.mockBehavior != nil {
-			test.mockBehavior(mockRep)
-		}
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockProfileRep.NewProfileRepository(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRep)
+			}
 
-		srv := NewService(mockRep, nil, "")
+			srv := NewService(Deps{
+				Rep: mockRep,
+			})
 
-		err := srv.UpdateProfile(context.Background(), test.info)
+			err := srv.UpdateProfile(context.Background(), test.info)
 
-		assert.Equal(t, test.expectedError, err)
+			assert.Equal(t, test.expectedError, err)
+		})
 	}
 }
 
@@ -160,6 +166,10 @@ func TestUpdateAvatar(t *testing.T) {
 
 	dbErr := errors.New("fail db upload")
 	deleteErr := errors.New("fail delete s3")
+
+	generateAvatarKey := func() (string, error) {
+		return "123-12/23", nil
+	}
 
 	tests := []struct {
 		nameTest      string
@@ -228,7 +238,11 @@ func TestUpdateAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(mockRep, GenerateAvatarKey, baseUrl)
+			srv := NewService(Deps{
+				Rep:               mockRep,
+				GenerateAvatarKey: generateAvatarKey,
+				BaseURLAvatar:     baseUrl,
+			})
 
 			fullKey, err := srv.UpdateAvatar(context.Background(), dto.UpdatedAvatar{
 				UserLink: test.userLink,
@@ -309,7 +323,9 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(mockRep, nil, "")
+			srv := NewService(Deps{
+				Rep: mockRep,
+			})
 			err := srv.DeleteAvatar(context.Background(), test.userLink)
 
 			if test.expectedError != nil {
