@@ -135,10 +135,10 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 
 	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 
-	withTextLimit.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
-	withTextLimit.HandleFunc("/profile/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
-	withTextLimit.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	withImageLimit.HandleFunc("/profile/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/profiles", profileHandler.GetProfile).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	withImageLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
@@ -147,13 +147,13 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
 
-	withTextLimit.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
-	withTextLimit.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
-	withTextLimit.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
-	withTextLimit.HandleFunc("/board/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
-	withTextLimit.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
-	withImageLimit.HandleFunc("/board/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards", boardHandler.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards", boardHandler.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/boards/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
 
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)

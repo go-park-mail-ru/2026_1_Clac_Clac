@@ -73,7 +73,7 @@ type BoardHandler struct {
 // @Success		200	{object}	api.OkResponse[[]dto.BoardInfoResponse]
 // @Failure		401	{object}	api.ErrorResponse	"unauthorized"
 // @Failure		500	{object}	api.ErrorResponse	"cannot get boards"
-// @Router			/board [get]
+// @Router			/boards [get]
 func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -111,7 +111,7 @@ func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 // @Failure		403		{object}	api.ErrorResponse	"action denied"
 // @Failure		404		{object}	api.ErrorResponse	"board not found"
 // @Failure		500		{object}	api.ErrorResponse	"cannot get boards"
-// @Router			/board/{link} [get]
+// @Router			/boards/{link} [get]
 func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -165,7 +165,7 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 // @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
 // @Failure		401		{object}	api.ErrorResponse	"unauthorized"
 // @Failure		500		{object}	api.ErrorResponse	"cannot create board"
-// @Router			/board [post]
+// @Router			/boards [post]
 func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -206,7 +206,7 @@ func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 // @Failure		403		{object}	api.ErrorResponse	"action denied"
 // @Failure		404		{object}	api.ErrorResponse	"board not found"
 // @Failure		500		{object}	api.ErrorResponse	"cannot delete board"
-// @Router			/board/{link} [delete]
+// @Router			/boards/{link} [delete]
 func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -263,7 +263,7 @@ func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 // @Failure		403		{object}	api.ErrorResponse		"action denied"
 // @Failure		404		{object}	api.ErrorResponse		"board not found"
 // @Failure		500		{object}	api.ErrorResponse		"cannot update board"
-// @Router			/board/{link} [put]
+// @Router			/boards/{link} [put]
 func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -320,7 +320,7 @@ var detectContentTypeBufferPool = sync.Pool{
 // @Failure		401			{object}	api.ErrorResponse	"unauthorized"
 // @Failure		404			{object}	api.ErrorResponse	"board not found"
 // @Failure		500			{object}	api.ErrorResponse	"cannot update background / cannot read file"
-// @Router			/board/{link}/background [put]
+// @Router			/boards/{link}/background [put]
 func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -415,7 +415,7 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 // @Failure		400		{object}	api.ErrorResponse			"invalid board link / board link missing"
 // @Failure		404		{object}	api.ErrorResponse			"board not found"
 // @Failure		500		{object}	api.ErrorResponse			"cannot get users of board"
-// @Router			/board/{link}/users [get]
+// @Router			/boards/{link}/users [get]
 func (h *BoardHandler) GetUsersOfBoard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

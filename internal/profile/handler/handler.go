@@ -76,7 +76,7 @@ type Handler struct {
 // @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
-// @Router       /profile [get]
+// @Router       /profiles [get]
 func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 
@@ -119,7 +119,7 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
-// @Router       /profile [put]
+// @Router       /profiles [put]
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -179,7 +179,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 // @Failure      422 {object} api.ErrorResponse "Ошибка при обработке файла (Seek error)"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
-// @Router       /profile/avatar [put]
+// @Router       /profiles/avatar [put]
 func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -264,7 +264,7 @@ func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 // @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
-// @Router       /profile/avatar [delete]
+// @Router       /profiles/avatar [delete]
 func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
