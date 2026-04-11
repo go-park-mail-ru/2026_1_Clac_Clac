@@ -55,6 +55,13 @@ definitions:
       status:
         type: string
     type: object
+  dto.AvatarResponse:
+    description: Ответ с новой ссылкой на загруженный аватар после успешного обновления
+    properties:
+      avatar_url:
+        example: https://example.com/images/avatars/user123.jpg
+        type: string
+    type: object
   dto.BackgroundUpdateResponse:
     properties:
       background_url:
@@ -91,6 +98,77 @@ definitions:
         example: Project Alpha
         type: string
     type: object
+  dto.CreatingSection:
+    description: Данные для создания новой секции
+    properties:
+      board_link:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      color:
+        example: red
+        type: string
+      is_mandatory:
+        example: false
+        type: boolean
+      max_tasks:
+        example: 10
+        type: integer
+      section_name:
+        example: To Do
+        type: string
+    type: object
+  dto.FullSectionInfo:
+    description: Полные данные секции
+    properties:
+      color:
+        example: red
+        type: string
+      is_mandatory:
+        example: true
+        type: boolean
+      max_tasks:
+        example: 10
+        type: integer
+      position:
+        example: 1
+        type: integer
+      section_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      section_name:
+        example: To Do
+        type: string
+    type: object
+  dto.InfoCard:
+    description: Полная информация о карточке задачи
+    properties:
+      data_dead_line:
+        example: "2026-04-15T15:04:05Z"
+        type: string
+      description:
+        example: Собрать метрики за Q3 и подготовить презентацию
+        type: string
+      link_card:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name_executer:
+        example: Иван Иванов
+        type: string
+      title:
+        example: Написать отчет
+        type: string
+    type: object
+  dto.ListSectionLink:
+    description: Массив UUID секций в нужном порядке
+    properties:
+      list_links:
+        example:
+        - 123e4567-e89b-12d3-a456-426614174001
+        - 123e4567-e89b-12d3-a456-426614174002
+        items:
+          type: string
+        type: array
+    type: object
   dto.LogInRequest:
     description: Данные для входа в систему
     properties:
@@ -99,6 +177,28 @@ definitions:
         type: string
       password:
         example: p@ssword123
+        type: string
+    type: object
+  dto.NewCard:
+    description: Данные для создания новой карточки
+    properties:
+      data_dead_line:
+        example: "2026-05-01T12:00:00Z"
+        type: string
+      description:
+        example: Описание для новой задачи
+        type: string
+      link_author:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      link_executer:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      link_section:
+        example: 987e6543-e21b-12d3-a456-426614174111
+        type: string
+      title:
+        example: Новая задача
         type: string
     type: object
   dto.NewPasswordRequest:
@@ -120,6 +220,19 @@ definitions:
       email:
         example: user@example.com
         type: string
+    type: object
+  dto.PlaceCard:
+    description: Данные о новом местоположении карточки (секция и позиция)
+    properties:
+      link_card:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      link_section:
+        example: 987e6543-e21b-12d3-a456-426614174111
+        type: string
+      position:
+        example: 2
+        type: integer
     type: object
   dto.RecoveryCodeRequest:
     description: Код подтверждения из письма
@@ -144,6 +257,14 @@ definitions:
         example: securePassword
         type: string
     type: object
+  dto.SectionsResponse:
+    description: Ответ, содержащий массив всех секций доски
+    properties:
+      sections:
+        items:
+          $ref: '#/definitions/dto.FullSectionInfo'
+        type: array
+    type: object
   dto.UpdateBoardRequest:
     properties:
       background:
@@ -159,6 +280,35 @@ definitions:
         example: Project Beta
         type: string
     type: object
+  dto.UpdatedInfo:
+    description: Данные для изменения имени и описания пользователя
+    properties:
+      description_user:
+        example: Hello! I am SEO
+        type: string
+      display_name:
+        example: Ivan Ivanov
+        type: string
+    type: object
+  dto.UpdatingCardDetails:
+    description: Данные для изменения свойств карточки
+    properties:
+      data_dead_line:
+        example: "2026-06-01T18:30:00Z"
+        type: string
+      description:
+        example: Дополненное описание задачи
+        type: string
+      link_card:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      link_executer:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      title:
+        example: Обновленный заголовок
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse:
     properties:
       avatar:
@@ -171,6 +321,25 @@ definitions:
         example: ivan@mail.com
         type: string
       link:
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse:
+    description: Полные данные профиля пользователя, возвращаемые клиенту
+    properties:
+      avatar_url:
+        example: https://example.com/avatar.jpg
+        type: string
+      description_user:
+        example: Hello! I am SEO
+        type: string
+      display_name:
+        example: Ivan Ivanov
+        type: string
+      email:
+        example: ivan@mail.com
+        type: string
+      link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
     type: object
 host: clac-clac.mooo.com
@@ -437,6 +606,268 @@ paths:
       summary: Получить пользователей доски
       tags:
       - boards
+  /boards/{board_link}/sections:
+    get:
+      description: Возвращает массив всех секций, привязанных к конкретной доске.
+      parameters:
+      - description: UUID доски
+        in: path
+        name: board_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение списка секций
+          schema:
+            $ref: '#/definitions/dto.SectionsResponse'
+        "400":
+          description: Некорректный UUID доски
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Получить все секции доски
+      tags:
+      - sections
+  /boards/{board_link}/sections/reorder:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет порядок секций на доске. Передается упорядоченный массив
+        UUID секций.
+      parameters:
+      - description: UUID доски
+        in: path
+        name: board_link
+        required: true
+        type: string
+      - description: Новый порядок секций (массив UUID)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ListSectionLink'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Порядок секций успешно обновлен
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Некорректный запрос или UUID доски
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Не все переданные секции найдены
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Перемещение секций
+      tags:
+      - sections
+  /cards:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую карточку в указанную секцию от лица текущего авторизованного
+        пользователя.
+      parameters:
+      - description: Данные для создания карточки
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.NewCard'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Карточка создана, возвращает информацию о ее расположении
+          schema:
+            $ref: '#/definitions/dto.PlaceCard'
+        "400":
+          description: Некорректный запрос или превышена максимальная длина текста
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Указанная секция не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Создание новой карточки
+      tags:
+      - cards
+  /cards/{link}:
+    delete:
+      description: Удаляет карточку по ее уникальной ссылке (UUID).
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Карточка успешно удалена
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Некорректный UUID в пути
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Удаление карточки
+      tags:
+      - cards
+    get:
+      description: Возвращает детали карточки (название, описание, дедлайн, исполнитель)
+        по ее уникальной ссылке (UUID).
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение информации о карточке
+          schema:
+            $ref: '#/definitions/dto.InfoCard'
+        "400":
+          description: Некорректный UUID в пути
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Получение информации о карточке
+      tags:
+      - cards
+    put:
+      consumes:
+      - application/json
+      description: Изменяет детали существующей карточки (название, описание, дедлайн,
+        исполнитель).
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Новые данные карточки
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatingCardDetails'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Карточка успешно обновлена
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Некорректный запрос или превышена максимальная длина текста
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Обновление данных карточки
+      tags:
+      - cards
+  /cards/{link}/reorder:
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет порядок карточки в текущей секции или переносит ее в новую
+        секцию на определенную позицию.
+      parameters:
+      - description: UUID перемещаемой карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Новая секция и позиция для карточки
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PlaceCard'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Карточка успешно перемещена
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Некорректный запрос или нарушение логики (пропуск обязательной
+            секции)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Перемещение карточки
+      tags:
+      - cards
   /check-code:
     post:
       consumes:
@@ -628,6 +1059,140 @@ paths:
       summary: VK OAuth Callback
       tags:
       - auth
+  /profile:
+    get:
+      description: Возвращает информацию о текущем авторизованном пользователе (ID,
+        имя, email, URL аватара).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение профиля
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Получение профиля пользователя
+      tags:
+      - profile
+    put:
+      consumes:
+      - application/json
+      description: Изменяет отображаемое имя (DisplayName) и описание профиля пользователя.
+      parameters:
+      - description: Новые данные профиля
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatedInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль успешно обновлен
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Некорректный формат запроса или ошибка валидации длины текста
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Обновление данных профиля
+      tags:
+      - profile
+  /profile/avatar:
+    delete:
+      description: Удаляет текущий аватар пользователя (возвращает к дефолтному состоянию
+        или удаляет файл).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Аватар успешно удален
+          schema:
+            $ref: '#/definitions/api.Response'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Удаление аватара профиля
+      tags:
+      - profile
+    put:
+      consumes:
+      - multipart/form-data
+      description: 'Загружает новый аватар для пользователя. Ожидается multipart/form-data
+        с полем ''avatar''. Поддерживаемые форматы: jpeg, png, jpg, webp.'
+      parameters:
+      - description: Файл изображения аватара
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Аватар успешно загружен, возвращает новый URL
+          schema:
+            $ref: '#/definitions/dto.AvatarResponse'
+        "400":
+          description: Файл слишком большой, отсутствует или имеет неверный формат
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "422":
+          description: Ошибка при обработке файла (Seek error)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Обновление аватара профиля
+      tags:
+      - profile
   /register:
     post:
       consumes:
@@ -690,4 +1255,139 @@ paths:
       summary: Сброс пароля
       tags:
       - auth
+  /sections:
+    post:
+      consumes:
+      - application/json
+      description: Создает новую секцию (колонку) на доске.
+      parameters:
+      - description: Данные для создания секции
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatingSection'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Секция успешно создана
+          schema:
+            $ref: '#/definitions/dto.FullSectionInfo'
+        "400":
+          description: Некорректный запрос или превышены лимиты задач
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Создание секции
+      tags:
+      - sections
+  /sections/{link}:
+    delete:
+      description: Удаляет секцию (колонку) по её UUID. Нельзя удалять системную секцию
+        Backlog.
+      parameters:
+      - description: UUID секции
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Секция успешно удалена
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Попытка удалить Backlog или некорректный путь
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Секция не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Удаление секции
+      tags:
+      - sections
+    get:
+      description: Возвращает информацию о конкретной секции (колонке) по её UUID.
+      parameters:
+      - description: UUID секции
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное получение данных секции
+          schema:
+            $ref: '#/definitions/dto.FullSectionInfo'
+        "400":
+          description: Некорректный UUID или секция не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Получение секции
+      tags:
+      - sections
+    put:
+      consumes:
+      - application/json
+      description: Изменяет данные существующей секции (название, цвет, макс. кол-во
+        задач). Попытка обновить параметры системного Backlog вызовет ошибку.
+      parameters:
+      - description: UUID секции
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Новые данные секции
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.FullSectionInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Секция успешно обновлена
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Ошибка валидации, попытка изменить Backlog или неверный цвет
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Секция не найдена
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - CookieAuth: []
+      summary: Обновление секции
+      tags:
+      - sections
 swagger: "2.0"

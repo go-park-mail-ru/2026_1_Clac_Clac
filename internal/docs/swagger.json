@@ -390,6 +390,407 @@
                 }
             }
         },
+        "/boards/{board_link}/sections": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает массив всех секций, привязанных к конкретной доске.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Получить все секции доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение списка секций",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SectionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID доски",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{board_link}/sections/reorder": {
+            "patch": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Обновляет порядок секций на доске. Передается упорядоченный массив UUID секций.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Перемещение секций",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый порядок секций (массив UUID)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListSectionLink"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Порядок секций успешно обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или UUID доски",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Не все переданные секции найдены",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards": {
+            "post": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Добавляет новую карточку в указанную секцию от лица текущего авторизованного пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Создание новой карточки",
+                "parameters": [
+                    {
+                        "description": "Данные для создания карточки",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.NewCard"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Карточка создана, возвращает информацию о ее расположении",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PlaceCard"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или превышена максимальная длина текста",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Указанная секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards/{link}": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает детали карточки (название, описание, дедлайн, исполнитель) по ее уникальной ссылке (UUID).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Получение информации о карточке",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение информации о карточке",
+                        "schema": {
+                            "$ref": "#/definitions/dto.InfoCard"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID в пути",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Изменяет детали существующей карточки (название, описание, дедлайн, исполнитель).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Обновление данных карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные карточки",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatingCardDetails"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Карточка успешно обновлена",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или превышена максимальная длина текста",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Удаляет карточку по ее уникальной ссылке (UUID).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Удаление карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Карточка успешно удалена",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID в пути",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards/{link}/reorder": {
+            "patch": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Изменяет порядок карточки в текущей секции или переносит ее в новую секцию на определенную позицию.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Перемещение карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID перемещаемой карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новая секция и позиция для карточки",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PlaceCard"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Карточка успешно перемещена",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или нарушение логики (пропуск обязательной секции)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/check-code": {
             "post": {
                 "description": "Проверяет корректность 6-значного кода, отправленного на почту.",
@@ -677,6 +1078,212 @@
                 }
             }
         },
+        "/profile": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает информацию о текущем авторизованном пользователе (ID, имя, email, URL аватара).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Получение профиля пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение профиля",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Изменяет отображаемое имя (DisplayName) и описание профиля пользователя.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Обновление данных профиля",
+                "parameters": [
+                    {
+                        "description": "Новые данные профиля",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatedInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Профиль успешно обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат запроса или ошибка валидации длины текста",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/avatar": {
+            "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Загружает новый аватар для пользователя. Ожидается multipart/form-data с полем 'avatar'. Поддерживаемые форматы: jpeg, png, jpg, webp.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Обновление аватара профиля",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл изображения аватара",
+                        "name": "avatar",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Аватар успешно загружен, возвращает новый URL",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AvatarResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Файл слишком большой, отсутствует или имеет неверный формат",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка при обработке файла (Seek error)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Удаляет текущий аватар пользователя (возвращает к дефолтному состоянию или удаляет файл).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Удаление аватара профиля",
+                "responses": {
+                    "200": {
+                        "description": "Аватар успешно удален",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
                 "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая сессионную cookie.",
@@ -762,6 +1369,215 @@
                     },
                     "500": {
                         "description": "cannot reset password",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sections": {
+            "post": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Создает новую секцию (колонку) на доске.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Создание секции",
+                "parameters": [
+                    {
+                        "description": "Данные для создания секции",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatingSection"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Секция успешно создана",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FullSectionInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос или превышены лимиты задач",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sections/{link}": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает информацию о конкретной секции (колонке) по её UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Получение секции",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID секции",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение данных секции",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FullSectionInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID или секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Изменяет данные существующей секции (название, цвет, макс. кол-во задач). Попытка обновить параметры системного Backlog вызовет ошибку.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Обновление секции",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID секции",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные секции",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.FullSectionInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Секция успешно обновлена",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации, попытка изменить Backlog или неверный цвет",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Удаляет секцию (колонку) по её UUID. Нельзя удалять системную секцию Backlog.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Удаление секции",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID секции",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Секция успешно удалена",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Попытка удалить Backlog или некорректный путь",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -856,6 +1672,16 @@
                 }
             }
         },
+        "dto.AvatarResponse": {
+            "description": "Ответ с новой ссылкой на загруженный аватар после успешного обновления",
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com/images/avatars/user123.jpg"
+                }
+            }
+        },
         "dto.BackgroundUpdateResponse": {
             "type": "object",
             "properties": {
@@ -907,6 +1733,104 @@
                 }
             }
         },
+        "dto.CreatingSection": {
+            "description": "Данные для создания новой секции",
+            "type": "object",
+            "properties": {
+                "board_link": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "color": {
+                    "type": "string",
+                    "example": "red"
+                },
+                "is_mandatory": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "max_tasks": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "section_name": {
+                    "type": "string",
+                    "example": "To Do"
+                }
+            }
+        },
+        "dto.FullSectionInfo": {
+            "description": "Полные данные секции",
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string",
+                    "example": "red"
+                },
+                "is_mandatory": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_tasks": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "position": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "section_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "section_name": {
+                    "type": "string",
+                    "example": "To Do"
+                }
+            }
+        },
+        "dto.InfoCard": {
+            "description": "Полная информация о карточке задачи",
+            "type": "object",
+            "properties": {
+                "data_dead_line": {
+                    "type": "string",
+                    "example": "2026-04-15T15:04:05Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Собрать метрики за Q3 и подготовить презентацию"
+                },
+                "link_card": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "name_executer": {
+                    "type": "string",
+                    "example": "Иван Иванов"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Написать отчет"
+                }
+            }
+        },
+        "dto.ListSectionLink": {
+            "description": "Массив UUID секций в нужном порядке",
+            "type": "object",
+            "properties": {
+                "list_links": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "123e4567-e89b-12d3-a456-426614174001",
+                        "123e4567-e89b-12d3-a456-426614174002"
+                    ]
+                }
+            }
+        },
         "dto.LogInRequest": {
             "description": "Данные для входа в систему",
             "type": "object",
@@ -918,6 +1842,36 @@
                 "password": {
                     "type": "string",
                     "example": "p@ssword123"
+                }
+            }
+        },
+        "dto.NewCard": {
+            "description": "Данные для создания новой карточки",
+            "type": "object",
+            "properties": {
+                "data_dead_line": {
+                    "type": "string",
+                    "example": "2026-05-01T12:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Описание для новой задачи"
+                },
+                "link_author": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "link_executer": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "link_section": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174111"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Новая задача"
                 }
             }
         },
@@ -946,6 +1900,24 @@
                 "email": {
                     "type": "string",
                     "example": "user@example.com"
+                }
+            }
+        },
+        "dto.PlaceCard": {
+            "description": "Данные о новом местоположении карточки (секция и позиция)",
+            "type": "object",
+            "properties": {
+                "link_card": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "link_section": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174111"
+                },
+                "position": {
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },
@@ -981,6 +1953,18 @@
                 }
             }
         },
+        "dto.SectionsResponse": {
+            "description": "Ответ, содержащий массив всех секций доски",
+            "type": "object",
+            "properties": {
+                "sections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FullSectionInfo"
+                    }
+                }
+            }
+        },
         "dto.UpdateBoardRequest": {
             "type": "object",
             "properties": {
@@ -1002,6 +1986,46 @@
                 }
             }
         },
+        "dto.UpdatedInfo": {
+            "description": "Данные для изменения имени и описания пользователя",
+            "type": "object",
+            "properties": {
+                "description_user": {
+                    "type": "string",
+                    "example": "Hello! I am SEO"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "Ivan Ivanov"
+                }
+            }
+        },
+        "dto.UpdatingCardDetails": {
+            "description": "Данные для изменения свойств карточки",
+            "type": "object",
+            "properties": {
+                "data_dead_line": {
+                    "type": "string",
+                    "example": "2026-06-01T18:30:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Дополненное описание задачи"
+                },
+                "link_card": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "link_executer": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Обновленный заголовок"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse": {
             "type": "object",
             "properties": {
@@ -1019,6 +2043,32 @@
                 },
                 "link": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse": {
+            "description": "Полные данные профиля пользователя, возвращаемые клиенту",
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com/avatar.jpg"
+                },
+                "description_user": {
+                    "type": "string",
+                    "example": "Hello! I am SEO"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "Ivan Ivanov"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "ivan@mail.com"
+                },
+                "link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         }

@@ -2,7 +2,7 @@ BINARY_NAME=main
 MAIN_PATH=./cmd/main.go
 BUILD_DIR=bin
 CONFIG_FILE=config.yaml
-DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./internal/board/handler,./internal/health/handler,./internal/profile/models,./internal/profile/handler
+DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./internal/board/handler/dto,./internal/board/handler,./internal/health/handler,./internal/profile/handler/dto,./internal/profile/handler,./internal/section/handler/dto,./internal/section/handler,./internal/card/handler/dto,./internal/card/handler
 
 .PHONY: help build run test create-config
 
