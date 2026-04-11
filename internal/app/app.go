@@ -76,6 +76,7 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	profileHandler := dilivery.Profile
 	boardHandler := dilivery.Board
 	sectionHandler := dilivery.Section
+	cardHandler := dilivery.Card
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
@@ -151,6 +152,11 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
 	withImageLimit.HandleFunc("/board/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
 
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 	return router
 }
 

@@ -40,7 +40,7 @@ func ValidateTextInfo(info string, maxLen int) error {
 
 func ValidateNumberInfo(info int, maxValue int, minValue int) error {
 	if info > maxValue || info < minValue {
-		return fmt.Errorf("number task must be bettwin %d and %d", minValue, maxValue)
+		return fmt.Errorf("number must be bettwin %d and %d", minValue, maxValue)
 	}
 
 	return nil

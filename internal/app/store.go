@@ -5,6 +5,7 @@ import (
 
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository"
+	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
@@ -19,6 +20,7 @@ type Store struct {
 	Board   *board.Repository
 	Profile *profile.Repository
 	Section *section.Repository
+	Card    *card.Repository
 
 	s3Client     s3.S3Client
 	postgresPool *pgxpool.Pool
@@ -51,11 +53,16 @@ func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Clien
 		Pool: pool,
 	}
 
+	depsCard := card.Deps{
+		Pool: pool,
+	}
+
 	return &Store{
 		Auth:         auth.NewRepository(depsAuth),
 		Board:        board.NewRepository(pool, s3Client, conf.S3, conf.Board.Repository),
 		Profile:      profile.NewRepository(depsProfile),
 		Section:      section.NewRepository(depsSection),
+		Card:         card.NewRepository(depsCard),
 		s3Client:     s3Client,
 		postgresPool: pool,
 		redisClient:  redisClient,

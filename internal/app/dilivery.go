@@ -3,6 +3,7 @@ package app
 import (
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
+	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/handler"
@@ -13,6 +14,7 @@ type Dilivery struct {
 	Profile *profile.Handler
 	Board   *board.BoardHandler
 	Section *section.Handler
+	Card    *card.Handler
 }
 
 func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
@@ -42,10 +44,15 @@ func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
 		MaxLenNameSection: conf.Section.Handler.MaxLenNameSection,
 	}
 
+	cardDeps := card.Deps{
+		Srv: m.Card,
+	}
+
 	return &Dilivery{
 		Auth:    auth.NewHandler(authDeps),
 		Profile: profile.NewHandler(profileDeps),
 		Board:   board.NewHandler(m.Board, conf.Board.Handler),
 		Section: section.NewHandler(sectionDeps),
+		Card:    card.NewHandler(cardDeps),
 	}
 }

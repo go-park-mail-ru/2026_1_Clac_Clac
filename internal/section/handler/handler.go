@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
@@ -25,11 +26,7 @@ const (
 	failReorderSections = "can not reorder sections"
 	failUpdateSection   = "can not update section"
 
-	incorrectRequest        = "get incorrect format of request"
-	incorrectPath           = "get incorrect format of path"
-	incorrectQuantityTasks  = "max quantity tasks is 100"
-	incorrectLenNameSection = "max len name is 128"
-	incorrectTypeColor      = "color can be white, grey, red, orange, blue, green, purple, pink"
+	incorrectTypeColor = "color can be white, grey, red, orange, blue, green, purple, pink"
 
 	sectionLinkKey = "link"
 	boardLinkKey   = "board_link"
@@ -62,13 +59,24 @@ func NewHandler(deps Deps) *Handler {
 	}
 }
 
+// GetSection godoc
+// @Summary      Получение секции
+// @Description  Возвращает информацию о конкретной секции (колонке) по её UUID.
+// @Tags         sections
+// @Produce      json
+// @Param        link path string true "UUID секции"
+// @Success      200 {object} dto.FullSectionInfo "Успешное получение данных секции"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID или секция не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /sections/{link} [get]
 func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkParam := vars["link"]
 
 	linkSection, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -94,18 +102,30 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, sectionInfo))
 }
 
+// CreateSection godoc
+// @Summary      Создание секции
+// @Description  Создает новую секцию (колонку) на доске.
+// @Tags         sections
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CreatingSection true "Данные для создания секции"
+// @Success      200 {object} dto.FullSectionInfo "Секция успешно создана"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или превышены лимиты задач"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /sections [post]
 func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 	var newSection dto.CreatingSection
 
 	err := json.NewDecoder(r.Body).Decode(&newSection)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
 	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.deps.MaxQuantityTasks ||
 		*newSection.MaxTasks < h.deps.MinQuantityTasks) {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectRequest)
 		return
 	}
 
@@ -131,13 +151,25 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// DeleteSection godoc
+// @Summary      Удаление секции
+// @Description  Удаляет секцию (колонку) по её UUID. Нельзя удалять системную секцию Backlog.
+// @Tags         sections
+// @Produce      json
+// @Param        link path string true "UUID секции"
+// @Success      200 {object} api.Response "Секция успешно удалена"
+// @Failure      400 {object} api.ErrorResponse "Попытка удалить Backlog или некорректный путь"
+// @Failure      404 {object} api.ErrorResponse "Секция не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /sections/{link} [delete]
 func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkParam := vars[sectionLinkKey]
 
 	linkSection, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -160,14 +192,27 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// ReorderSection godoc
+// @Summary      Перемещение секций
+// @Description  Обновляет порядок секций на доске. Передается упорядоченный массив UUID секций.
+// @Tags         sections
+// @Accept       json
+// @Produce      json
+// @Param        board_link path string true "UUID доски"
+// @Param        request body dto.ListSectionLink true "Новый порядок секций (массив UUID)"
+// @Success      200 {object} api.Response "Порядок секций успешно обновлен"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или UUID доски"
+// @Failure      404 {object} api.ErrorResponse "Не все переданные секции найдены"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /boards/{board_link}/sections/reorder [patch]
 func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
 	boardParam := vars[boardLinkKey]
 
 	linkBoard, err := uuid.Parse(boardParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -175,7 +220,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&listSectionLinks)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectRequest)
 		return
 	}
 
@@ -193,13 +238,27 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// UpdateSection godoc
+// @Summary      Обновление секции
+// @Description  Изменяет данные существующей секции (название, цвет, макс. кол-во задач). Попытка обновить параметры системного Backlog вызовет ошибку.
+// @Tags         sections
+// @Accept       json
+// @Produce      json
+// @Param        link path string true "UUID секции"
+// @Param        request body dto.FullSectionInfo true "Новые данные секции"
+// @Success      200 {object} api.Response "Секция успешно обновлена"
+// @Failure      400 {object} api.ErrorResponse "Ошибка валидации, попытка изменить Backlog или неверный цвет"
+// @Failure      404 {object} api.ErrorResponse "Секция не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /sections/{link} [put]
 func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sectionParam := vars[sectionLinkKey]
 
 	sectionLink, err := uuid.Parse(sectionParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
@@ -207,13 +266,13 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&sectionInfo)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectRequest)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 
 	err = common.ValidateTextInfo(sectionInfo.SectionName, h.deps.MaxLenNameSection)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectLenNameSection)
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len name is %d", h.deps.MaxLenNameSection))
 		return
 	}
 
@@ -225,7 +284,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	if sectionInfo.MaxTasks != nil {
 		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, h.deps.MaxQuantityTasks, h.deps.MinQuantityTasks); err != nil {
-			api.RespondError(w, http.StatusBadRequest, incorrectQuantityTasks)
+			api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max quantity tasks is %d", h.deps.MaxQuantityTasks))
 			return
 		}
 	}
@@ -257,13 +316,24 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// GetAllSections godoc
+// @Summary      Получить все секции доски
+// @Description  Возвращает массив всех секций, привязанных к конкретной доске.
+// @Tags         sections
+// @Produce      json
+// @Param        board_link path string true "UUID доски"
+// @Success      200 {object} dto.SectionsResponse "Успешное получение списка секций"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID доски"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /boards/{board_link}/sections [get]
 func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	boarderParam := vars[boardLinkKey]
 
 	boarderLink, err := uuid.Parse(boarderParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, incorrectPath)
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
 		return
 	}
 

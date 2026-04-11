@@ -66,6 +66,17 @@ type Handler struct {
 	deps Deps
 }
 
+// GetProfile godoc
+// @Summary      Получение профиля пользователя
+// @Description  Возвращает информацию о текущем авторизованном пользователе (ID, имя, email, URL аватара).
+// @Tags         profile
+// @Produce      json
+// @Success      200 {object} dto.UserInfoResponse "Успешное получение профиля"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profile [get]
 func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 
@@ -96,6 +107,19 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, user))
 }
 
+// UpdateProfile godoc
+// @Summary      Обновление данных профиля
+// @Description  Изменяет отображаемое имя (DisplayName) и описание профиля пользователя.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.UpdatedInfo true "Новые данные профиля"
+// @Success      200 {object} api.Response "Профиль успешно обновлен"
+// @Failure      400 {object} api.ErrorResponse "Некорректный формат запроса или ошибка валидации длины текста"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profile [put]
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -141,6 +165,21 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
+// UpdateAvatar godoc
+// @Summary      Обновление аватара профиля
+// @Description  Загружает новый аватар для пользователя. Ожидается multipart/form-data с полем 'avatar'. Поддерживаемые форматы: jpeg, png, jpg, webp.
+// @Tags         profile
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData file true "Файл изображения аватара"
+// @Success      200 {object} dto.AvatarResponse "Аватар успешно загружен, возвращает новый URL"
+// @Failure      400 {object} api.ErrorResponse "Файл слишком большой, отсутствует или имеет неверный формат"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      422 {object} api.ErrorResponse "Ошибка при обработке файла (Seek error)"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profile/avatar [put]
 func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -215,6 +254,17 @@ func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, avatarResponse))
 }
 
+// DeleteAvatar godoc
+// @Summary      Удаление аватара профиля
+// @Description  Удаляет текущий аватар пользователя (возвращает к дефолтному состоянию или удаляет файл).
+// @Tags         profile
+// @Produce      json
+// @Success      200 {object} api.Response "Аватар успешно удален"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profile/avatar [delete]
 func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
