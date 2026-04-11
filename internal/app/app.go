@@ -137,8 +137,8 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 
 	withTextLimit.HandleFunc("/profiles", profileHandler.GetProfile).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/profiles/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
-	withTextLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	withImageLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
+	withImageLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
