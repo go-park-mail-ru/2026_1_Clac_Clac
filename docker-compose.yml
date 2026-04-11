@@ -18,7 +18,11 @@ services:
       - REDIS_PORT=6379
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget", "-f", "http://localhost:8080/api/healthcheck"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://localhost:8080/api/healthcheck || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
