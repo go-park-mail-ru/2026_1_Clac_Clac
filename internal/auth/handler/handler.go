@@ -152,7 +152,7 @@ func (h *Handler) LogInUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Err(fmt.Errorf("auth.Login: %w", err))
+		logger.Err(fmt.Errorf("auth.Login: %w", err)).Msg("auth handler log in user")
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
