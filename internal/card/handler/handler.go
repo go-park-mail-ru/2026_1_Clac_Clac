@@ -55,6 +55,18 @@ func NewHandler(deps Deps) *Handler {
 	}
 }
 
+// GetCard godoc
+// @Summary      Получение информации о карточке
+// @Description  Возвращает детали карточки (название, описание, дедлайн, исполнитель) по ее уникальной ссылке (UUID).
+// @Tags         cards
+// @Produce      json
+// @Param        link path string true "UUID карточки"
+// @Success      200 {object} dto.InfoCard "Успешное получение информации о карточке"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID в пути"
+// @Failure      404 {object} api.ErrorResponse "Карточка не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /cards/{link} [get]
 func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
@@ -85,6 +97,18 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// DeleteCard godoc
+// @Summary      Удаление карточки
+// @Description  Удаляет карточку по ее уникальной ссылке (UUID).
+// @Tags         cards
+// @Produce      json
+// @Param        link path string true "UUID карточки"
+// @Success      200 {object} api.Response "Карточка успешно удалена"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID в пути"
+// @Failure      404 {object} api.ErrorResponse "Карточка не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /cards/{link} [delete]
 func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
@@ -109,6 +133,20 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// UpdateCardDetails godoc
+// @Summary      Обновление данных карточки
+// @Description  Изменяет детали существующей карточки (название, описание, дедлайн, исполнитель).
+// @Tags         cards
+// @Accept       json
+// @Produce      json
+// @Param        link    path string true "UUID карточки"
+// @Param        request body dto.UpdatingCardDetails true "Новые данные карточки"
+// @Success      200 {object} api.Response "Карточка успешно обновлена"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или превышена максимальная длина текста"
+// @Failure      404 {object} api.ErrorResponse "Карточка не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /cards/{link} [put]
 func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
@@ -159,6 +197,20 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// ReorderCard godoc
+// @Summary      Перемещение карточки
+// @Description  Изменяет порядок карточки в текущей секции или переносит ее в новую секцию на определенную позицию.
+// @Tags         cards
+// @Accept       json
+// @Produce      json
+// @Param        link    path string true "UUID перемещаемой карточки"
+// @Param        request body dto.PlaceCard true "Новая секция и позиция для карточки"
+// @Success      200 {object} api.Response "Карточка успешно перемещена"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или нарушение логики (пропуск обязательной секции)"
+// @Failure      404 {object} api.ErrorResponse "Карточка не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /cards/{link}/reorder [patch]
 func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
@@ -200,6 +252,20 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// CreateCard godoc
+// @Summary      Создание новой карточки
+// @Description  Добавляет новую карточку в указанную секцию от лица текущего авторизованного пользователя.
+// @Tags         cards
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.NewCard true "Данные для создания карточки"
+// @Success      200 {object} dto.PlaceCard "Карточка создана, возвращает информацию о ее расположении"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или превышена максимальная длина текста"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Указанная секция не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /cards [post]
 func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 	var newCard dto.NewCard
 	err := json.NewDecoder(r.Body).Decode(&newCard)
