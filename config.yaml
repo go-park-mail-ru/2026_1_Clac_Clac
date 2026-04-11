@@ -40,9 +40,10 @@ database_rate_limiters:
       limit: 5
       action: "register"
       window: 1h
-s3_avatars:
-  valid_extensions:
-    image/png:
-    image/jpg:
-    image/jpeg:
-    image/webp:
+
+boards:
+  handler:
+    multipart_background_file_key: "background"
+    max_background_size: 10485760 # 10 МБайтах
+  repository:
+    create_board_default_user_role: "creator"

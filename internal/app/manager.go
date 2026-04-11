@@ -18,7 +18,7 @@ type Manager struct {
 
 func NewManager(s *Store, conf config.Config) *Manager {
 	mailSender := mail.NewMailSender(&conf.MailSender)
-	baseURLAvatar := s3.GenerateBaseURL(conf.S3Avatars.Bucket, conf.S3Avatars.Endpoint)
+	baseURLAvatar := s3.GenerateBaseURL(conf.S3.AvatarsBucket, conf.S3.Endpoint)
 
 	return &Manager{
 		Auth:       auth.NewService(s.Auth, &mailSender, auth.HashPassword, auth.CheckPassword, auth.GenerateSessionID, auth.GeneratorCode, conf.Auth.CSRFSecret, auth.CreaterResetKey, auth.CreaterSessionKey),

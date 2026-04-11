@@ -1,133 +1,666 @@
-package repository
+package repository_test
 
 import (
+	"bytes"
 	"context"
-	"regexp"
+	"fmt"
+	"io"
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 )
+
+type MockS3Bucket struct {
+	mock.Mock
+}
+
+func (m *MockS3Bucket) Put(ctx context.Context, data io.Reader, key string, contentType string) (string, error) {
+	args := m.Called(ctx, data, key, contentType)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockS3Bucket) Delete(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
+	return args.Error(0)
+}
+
+type MockS3Client struct {
+	mock.Mock
+}
+
+func (m *MockS3Client) NewBucket(bucket string, prefix string, action s3.Action) s3.S3Bucket {
+	args := m.Called(bucket, prefix, action)
+	return args.Get(0).(s3.S3Bucket)
+}
+
+func setupRepo(dbMock pgxmock.PgxPoolIface, s3BucketMock s3.S3Bucket) *repository.Repository {
+	s3ClientMock := new(MockS3Client)
+	conf := &config.S3{
+		BoardsBackgroundsBucket: "test-bucket",
+		BoardsBackgroundsPrefix: "test-prefix",
+	}
+
+	s3ClientMock.On("NewBucket", conf.BoardsBackgroundsBucket, conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead).Return(s3BucketMock)
+
+	return repository.NewRepository(dbMock, s3ClientMock, *conf, config.DefaultBoardConfig().Repository)
+}
 
 func TestGetBoards(t *testing.T) {
 	userID1 := uuid.New()
 
-	board1 := models.Board{Link: uuid.New(), Created_at: time.Now()}
-	board2 := models.Board{Link: uuid.New(), Created_at: time.Now()}
+	board1 := dto.BoardEntry{Link: uuid.New(), Name: "board 1", CreatedAt: time.Now()}
+	board2 := dto.BoardEntry{Link: uuid.New(), Name: "board 2", CreatedAt: time.Now()}
 
 	tests := []struct {
-		nameTest       string
-		targetID       uuid.UUID
-		mockSetup      func(mock pgxmock.PgxPoolIface, targetID uuid.UUID)
-		expectedBoards []models.Board
+		Name           string
+		TargetId       uuid.UUID
+		MockSetup      func(dbMock pgxmock.PgxPoolIface, targetID uuid.UUID)
+		ExpectedBoards []dto.BoardEntry
 	}{
 		{
-			nameTest: "Success get user boards",
-			targetID: userID1,
-			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
-				getBoardQuery := `SELECT b.link, b.created_at
-				FROM board b
-				JOIN member_board mb ON b.link = mb.board_link
-				WHERE mb.user_link = \$1`
-				rows := pgxmock.NewRows([]string{"link", "created_at"}).
-					AddRow(board1.Link, board1.Created_at).
-					AddRow(board2.Link, board2.Created_at)
+			Name:     "success get user boards",
+			TargetId: userID1,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface, targetID uuid.UUID) {
+				rows := pgxmock.NewRows([]string{"link", "name", "description", "background", "created_at"}).
+					AddRow(board1.Link, board1.Name, board1.Description, board1.Background, board1.CreatedAt).
+					AddRow(board2.Link, board2.Name, board2.Description, board2.Background, board2.CreatedAt)
 
-				mock.ExpectQuery(getBoardQuery).
+				dbMock.ExpectQuery("SELECT b.link, b.name, b.description, b.background, b.created_at FROM board_actual").
 					WithArgs(targetID).
 					WillReturnRows(rows)
 			},
-			expectedBoards: []models.Board{board1, board2},
+			ExpectedBoards: []dto.BoardEntry{board1, board2},
 		},
 		{
-			nameTest: "User has no boards",
-			targetID: userID1,
-			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID) {
-				getBoardQuery := `SELECT b\.link, b\.created_at FROM board b JOIN member_board mb ON b\.link = mb\.board_link WHERE mb\.user_link = \$1`
-				rows := pgxmock.NewRows([]string{"link", "created_at"})
+			Name:     "user has no boards",
+			TargetId: userID1,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface, targetID uuid.UUID) {
+				rows := pgxmock.NewRows([]string{"link", "name", "description", "background", "created_at"})
 
-				mock.ExpectQuery(getBoardQuery).
+				dbMock.ExpectQuery("SELECT b.link, b.name, b.description, b.background, b.created_at FROM board_actual").
 					WithArgs(targetID).
 					WillReturnRows(rows)
 			},
-			expectedBoards: []models.Board{},
+			ExpectedBoards: []dto.BoardEntry{},
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			mock, err := pgxmock.NewPool()
+		t.Run(test.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
 			require.NoError(t, err)
-			defer mock.Close()
+			defer dbMock.Close()
 
-			test.mockSetup(mock, test.targetID)
+			test.MockSetup(dbMock, test.TargetId)
 
-			repoBoards := NewRepository(mock)
+			repoBoards := setupRepo(dbMock, new(MockS3Bucket))
 			ctx := context.Background()
 
-			boards, err := repoBoards.GetBoards(ctx, test.targetID)
+			boards, err := repoBoards.GetBoards(ctx, test.TargetId)
 
 			assert.NoError(t, err)
-			assert.Equal(t, test.expectedBoards, boards)
+			assert.Equal(t, test.ExpectedBoards, boards)
 
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, dbMock.ExpectationsWereMet())
 		})
 	}
 }
 
-func TestCreateEmptyBoard(t *testing.T) {
+func TestGetBoard(t *testing.T) {
+	boardLink := uuid.New()
+	now := time.Now()
+
+	expectedBoard := dto.BoardEntry{
+		Link:        boardLink,
+		Name:        "Single Board",
+		Description: "Desc",
+		Background:  "#fff",
+		CreatedAt:   now,
+	}
+
 	tests := []struct {
-		nameTest      string
-		targetID      uuid.UUID
-		board         models.Board
-		mockSetup     func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board)
-		expectedError error
+		Name          string
+		BoardLink     uuid.UUID
+		MockSetup     func(dbMock pgxmock.PgxPoolIface)
+		ExpectedBoard dto.BoardEntry
+		ExpectedErr   error
 	}{
 		{
-			nameTest: "Success create empty board",
-			targetID: uuid.New(),
-			board:    models.Board{Link: uuid.New()},
-			mockSetup: func(mock pgxmock.PgxPoolIface, targetID uuid.UUID, board models.Board) {
+			Name:      "success get board",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"link", "name", "description", "background", "created_at"}).
+					AddRow(expectedBoard.Link, expectedBoard.Name, expectedBoard.Description, expectedBoard.Background, expectedBoard.CreatedAt)
 
-				addEmptyBoardQuery := `INSERT INTO board (link) VALUES ($1)`
-				mock.ExpectExec(regexp.QuoteMeta(addEmptyBoardQuery)).
-					WithArgs(board.Link).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-				addMemberBoardQuery := `INSERT INTO member_board (board_link, user_link) VALUES ($1, $2)`
-				mock.ExpectExec(regexp.QuoteMeta(addMemberBoardQuery)).
-					WithArgs(board.Link, targetID).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				dbMock.ExpectQuery("SELECT link, name, description, background, created_at FROM board_actual").
+					WithArgs(boardLink).
+					WillReturnRows(rows)
 			},
-			expectedError: nil,
+			ExpectedBoard: expectedBoard,
+			ExpectedErr:   nil,
+		},
+		{
+			Name:      "board not found",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery("SELECT link, name, description, background, created_at FROM board_actual").
+					WithArgs(boardLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			ExpectedBoard: dto.BoardEntry{},
+			ExpectedErr:   common.ErrBoardNotFound,
+		},
+		{
+			Name:      "db error",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery("SELECT link, name, description, background, created_at FROM board_actual").
+					WithArgs(boardLink).
+					WillReturnError(fmt.Errorf("db error"))
+			},
+			ExpectedBoard: dto.BoardEntry{},
+			ExpectedErr:   fmt.Errorf("pool.Query: db error"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			board, err := repo.GetBoard(context.Background(), tt.BoardLink)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+				if tt.ExpectedErr == common.ErrBoardNotFound {
+					assert.ErrorIs(t, err, common.ErrBoardNotFound)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.ExpectedBoard, board)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestCreateBoard(t *testing.T) {
+	authorID := uuid.New()
+	newBoardLink := uuid.New()
+	now := time.Now().Truncate(time.Second)
+
+	boardInfo := dto.NewBoardInfo{
+		Name:        "Nexus Core",
+		Description: "Main board",
+		Background:  "#1e1e2e",
+	}
+
+	expectedEntry := dto.BoardEntry{
+		Link:        newBoardLink,
+		Name:        boardInfo.Name,
+		Description: boardInfo.Description,
+		Background:  boardInfo.Background,
+		CreatedAt:   now,
+	}
+
+	tests := []struct {
+		Name          string
+		BoardInfo     dto.NewBoardInfo
+		AuthorLink    uuid.UUID
+		MockSetup     func(dbMock pgxmock.PgxPoolIface)
+		ExpectedEntry dto.BoardEntry
+		ExpectError   bool
+	}{
+		{
+			Name:       "success create board",
+			BoardInfo:  boardInfo,
+			AuthorLink: authorID,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectBegin()
+
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).
+					AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").
+					WillReturnRows(rows)
+
+				dbMock.ExpectExec("INSERT INTO board_version").
+					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				dbMock.ExpectExec("INSERT INTO member_board").
+					WithArgs(newBoardLink, authorID, config.DefaultBoardConfig().Repository.CreateBoardDefaultUserRole).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				dbMock.ExpectCommit()
+			},
+			ExpectedEntry: expectedEntry,
+			ExpectError:   false,
+		},
+		{
+			Name:       "error on create board version",
+			BoardInfo:  boardInfo,
+			AuthorLink: authorID,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectBegin()
+
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).
+					AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").
+					WillReturnRows(rows)
+
+				dbMock.ExpectExec("INSERT INTO board_version").
+					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
+					WillReturnError(fmt.Errorf("db error"))
+
+				dbMock.ExpectRollback()
+			},
+			ExpectedEntry: dto.BoardEntry{},
+			ExpectError:   true,
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.nameTest, func(t *testing.T) {
-			mock, err := pgxmock.NewPool()
+		t.Run(test.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
 			require.NoError(t, err)
-			defer mock.Close()
+			defer dbMock.Close()
 
-			test.mockSetup(mock, test.targetID, test.board)
+			test.MockSetup(dbMock)
 
-			repoBoards := NewRepository(mock)
+			repo := setupRepo(dbMock, new(MockS3Bucket))
 			ctx := context.Background()
 
-			err = repoBoards.AddEmptyBoard(ctx, test.board, test.targetID)
+			entry, err := repo.CreateBoard(ctx, test.BoardInfo, test.AuthorLink)
 
-			if test.expectedError == nil {
-				assert.NoError(t, err)
+			if test.ExpectError {
+				assert.Error(t, err)
+				assert.Equal(t, dto.BoardEntry{}, entry)
 			} else {
-				assert.Equal(t, test.expectedError, err)
+				assert.NoError(t, err)
+				assert.Equal(t, test.ExpectedEntry, entry)
 			}
 
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err, "not wait error")
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestDeleteBoard(t *testing.T) {
+	boardLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		BoardLink   uuid.UUID
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name:      "success delete board",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("DELETE FROM board").
+					WithArgs(boardLink).
+					WillReturnResult(pgxmock.NewResult("DELETE", 1))
+			},
+			ExpectedErr: nil,
+		},
+		{
+			Name:      "board not found (0 rows affected)",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("DELETE FROM board").
+					WithArgs(boardLink).
+					WillReturnResult(pgxmock.NewResult("DELETE", 0))
+			},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			test.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			err = repo.DeleteBoard(context.Background(), test.BoardLink)
+
+			if test.ExpectedErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestUpdateBoard(t *testing.T) {
+	boardLink := uuid.New()
+	boardInfo := dto.UpdateBoardInfo{
+		Link:        boardLink,
+		Name:        "Nexus Core Updated",
+		Description: "Updated main board",
+		Background:  "#2e2e3e",
+	}
+
+	tests := []struct {
+		Name        string
+		BoardInfo   dto.UpdateBoardInfo
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name:      "success update board",
+			BoardInfo: boardInfo,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(boardInfo.Name, boardInfo.Description, boardInfo.Background, boardInfo.Link).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			},
+			ExpectedErr: nil,
+		},
+		{
+			Name:      "board not found (0 rows affected)",
+			BoardInfo: boardInfo,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(boardInfo.Name, boardInfo.Description, boardInfo.Background, boardInfo.Link).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			test.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			err = repo.UpdateBoard(context.Background(), test.BoardInfo)
+
+			if test.ExpectedErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestGetUserRoleOnBoard(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	tests := []struct {
+		Name         string
+		MockSetup    func(dbMock pgxmock.PgxPoolIface)
+		ExpectedRole common.Role
+		ExpectError  bool
+	}{
+		{
+			Name: "success get role",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"level_member"}).AddRow(common.Role("creator"))
+				dbMock.ExpectQuery("SELECT level_member FROM member_board").
+					WithArgs(boardLink, userLink).
+					WillReturnRows(rows)
+			},
+			ExpectedRole: common.Role("creator"),
+			ExpectError:  false,
+		},
+		{
+			Name: "role not found (no rows)",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery("SELECT level_member FROM member_board").
+					WithArgs(boardLink, userLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			ExpectedRole: common.Roles.None,
+			ExpectError:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			test.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			role, err := repo.GetUserRoleOnBoard(context.Background(), userLink, boardLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.ExpectedRole, role)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestUploadBackground(t *testing.T) {
+	tests := []struct {
+		Name        string
+		Filename    string
+		ContentType string
+		SetupMock   func(s3Mock *MockS3Bucket, reader io.Reader)
+		ExpectedKey string
+		ExpectError bool
+	}{
+		{
+			Name:        "success upload",
+			Filename:    "bg.jpg",
+			ContentType: "image/jpeg",
+			SetupMock: func(s3Mock *MockS3Bucket, reader io.Reader) {
+				s3Mock.On("Put", mock.Anything, reader, "bg.jpg", "image/jpeg").
+					Return("https://s3.local/bg.jpg", nil)
+			},
+			ExpectedKey: "https://s3.local/bg.jpg",
+			ExpectError: false,
+		},
+		{
+			Name:        "s3 error",
+			Filename:    "fail.jpg",
+			ContentType: "image/jpeg",
+			SetupMock: func(s3Mock *MockS3Bucket, reader io.Reader) {
+				s3Mock.On("Put", mock.Anything, reader, "fail.jpg", "image/jpeg").
+					Return("", fmt.Errorf("s3 timeout"))
+			},
+			ExpectedKey: "",
+			ExpectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			s3Mock := new(MockS3Bucket)
+			repo := setupRepo(dbMock, s3Mock)
+
+			reader := bytes.NewReader([]byte("fake image data"))
+			tt.SetupMock(s3Mock, reader)
+
+			key, err := repo.UploadBackground(context.Background(), reader, tt.Filename, tt.ContentType)
+
+			if tt.ExpectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.ExpectedKey, key)
+			}
+
+			s3Mock.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateBackground(t *testing.T) {
+	boardLink := uuid.New()
+	newBackground := "https://s3.local/new_bg.jpg"
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name: "success update background",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(newBackground, boardLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			},
+			ExpectedErr: nil,
+		},
+		{
+			Name: "board not found (0 rows affected)",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(newBackground, boardLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+		{
+			Name: "db error",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(newBackground, boardLink).
+					WillReturnError(fmt.Errorf("db connection dropped"))
+			},
+			ExpectedErr: fmt.Errorf("update board: db connection dropped"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+
+			err = repo.UpdateBackground(context.Background(), newBackground, boardLink)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+				if tt.ExpectedErr == common.ErrBoardNotFound {
+					assert.ErrorIs(t, err, common.ErrBoardNotFound)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestGetUsersOfBoard(t *testing.T) {
+	boardLink := uuid.New()
+	user1 := uuid.New()
+	user2 := uuid.New()
+
+	tests := []struct {
+		Name        string
+		BoardLink   uuid.UUID
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		Expected    []uuid.UUID
+		ExpectedErr error
+	}{
+		{
+			Name:      "success get users of board",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"user_link"}).
+					AddRow(user1).
+					AddRow(user2)
+
+				dbMock.ExpectQuery("SELECT user_link FROM member_board").
+					WithArgs(boardLink).
+					WillReturnRows(rows)
+			},
+			Expected:    []uuid.UUID{user1, user2},
+			ExpectedErr: nil,
+		},
+		{
+			Name:      "board not found (empty list)",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"user_link"})
+
+				dbMock.ExpectQuery("SELECT user_link FROM member_board").
+					WithArgs(boardLink).
+					WillReturnRows(rows)
+			},
+			Expected:    []uuid.UUID{},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+		{
+			Name:      "db query error",
+			BoardLink: boardLink,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery("SELECT user_link FROM member_board").
+					WithArgs(boardLink).
+					WillReturnError(fmt.Errorf("db connection dropped"))
+			},
+			Expected:    []uuid.UUID{},
+			ExpectedErr: fmt.Errorf("pool.Query: db connection dropped"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			users, err := repo.GetUsersOfBoard(context.Background(), tt.BoardLink)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+				if tt.ExpectedErr == common.ErrBoardNotFound {
+					assert.ErrorIs(t, err, common.ErrBoardNotFound)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.Expected, users)
+			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
 		})
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/app"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 )
 
 // @title			NeXus

@@ -46,7 +46,7 @@ func NewApp(conf *config.Config) *App {
 
 	manager := setupManager(store, conf)
 
-	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
+	router := setupRouter(manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -74,23 +74,31 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+func setupRouter(manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.CORSMiddleware(&conf.CORS))
-	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
 
+	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
+	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
+
+	authHandler := auth.NewHandler(manager.Auth)
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
+
+	csrfProtected := router.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
+
 	// Ручки, которым не нужна авторизация
-	public := router.PathPrefix("/").Subrouter()
+	public := csrfProtected.PathPrefix("/").Subrouter()
+	public.Use(textSizeLimitter)
+
 	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
-	// Добавление рутов, зависящих от сервисов
-	authHandler := auth.NewHandler(manager.Auth)
 
 	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
@@ -111,23 +119,28 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
-	protected := router.PathPrefix("/").Subrouter()
+	protected := csrfProtected.PathPrefix("/").Subrouter()
 	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
 
-	protected.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
+	withTextLimit := protected.PathPrefix("/").Subrouter()
+	withTextLimit.Use(textSizeLimitter)
 
-	csrfProtected := protected.PathPrefix("/").Subrouter()
-	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
+	withImageLimit := protected.PathPrefix("/").Subrouter()
+	withImageLimit.Use(uploadImageSizeLimitter)
 
-	boardHandler := board.NewHandler(manager.Board)
-	profileHandler := profile.NewHandler(manager.Profile, s3Conf.ValidExtensions)
+	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
 
-	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+	profileHandler := profile.NewHandler(manager.Profile, conf.S3Avatars.ValidExtensions)
+	withTextLimit.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
 
-	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
-	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	protected.HandleFunc("/update-profile", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	boardHandler := board.NewHandler(manager.Board, conf.Board.Handler)
+	withTextLimit.HandleFunc("/board", boardHandler.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/board", boardHandler.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/board/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/board/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/board/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
 
 	return router
 }
@@ -202,23 +215,23 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 
 	const intConvertationBase = 10
 	const intConvertationSize = 64
-	s3ConnectTimeout, err := strconv.ParseInt(conf.S3Avatars.ConnectTimeout, intConvertationBase, intConvertationSize)
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3.ConnectTimeout, intConvertationBase, intConvertationSize)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
 	defer cancel()
 
 	s3Client, err := s3.NewAWSClient(
 		ctx,
-		conf.S3Avatars.Region,
-		conf.S3Avatars.Endpoint,
-		conf.S3Avatars.AccessKey,
-		conf.S3Avatars.SecretKey,
+		conf.S3.Region,
+		conf.S3.Endpoint,
+		conf.S3.AccessKey,
+		conf.S3.SecretKey,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, conf.S3Avatars), nil
+	return NewStore(pool, redisClient, s3Client, *conf), nil
 }
 
 // Настройка менеджера сервисов

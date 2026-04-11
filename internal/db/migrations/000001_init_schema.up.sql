@@ -50,6 +50,37 @@ CREATE TABLE board_version (
     CONSTRAINT fk_version_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
 );
 
+-- View для получения актуальных досок
+CREATE OR REPLACE View board_actual AS
+SELECT
+	b.link,
+	b.created_at,
+	v.board_name as name,
+	v.description_board as description,
+	v.url_path_background as background
+FROM board b
+JOIN board_version v ON v.board_id = b.board_id and v.valid_to IS NULL;
+
+-- Замещающий триггер на обновление версии доски
+CREATE OR REPLACE FUNCTION fn_update_board_actual()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE board_version
+	SET valid_to = NOW()
+	WHERE board_id = NEW.board_id AND valid_to IS NULL;
+
+	INSERT INTO board_version (board_id, board_name, description_board, url_path_background)
+	VALUES (NEW.board_id, NEW.name, NEW.description, NEW.background);
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_board
+INSTEAD OF UPDATE ON board_actual
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_board_actual();
+
 CREATE TYPE user_level AS ENUM ('viewer', 'editor', 'admin', 'creator');
 
 CREATE TABLE member_board (
@@ -211,6 +242,7 @@ EXECUTE FUNCTION update_updated_at_column();
 CREATE TABLE board_template(
     btemplate_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     author_id INT,
+    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
     template_name TEXT DEFAULT '' NOT NULL,
 

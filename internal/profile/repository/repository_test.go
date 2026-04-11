@@ -148,8 +148,8 @@ func TestUpdateProfile(t *testing.T) {
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
 				UPDATE "user"
-				SET 
-					display_name = $1, 
+				SET
+					display_name = $1,
 					description_user = $2,
 					updated_at = NOW()
 				WHERE link = $3 AND (
@@ -169,8 +169,8 @@ func TestUpdateProfile(t *testing.T) {
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
 				UPDATE "user"
-				SET 
-					display_name = $1, 
+				SET
+					display_name = $1,
 					description_user = $2,
 					updated_at = NOW()
 				WHERE link = $3 AND (

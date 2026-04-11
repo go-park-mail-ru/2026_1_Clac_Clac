@@ -138,6 +138,7 @@ erDiagram
     BoardTemplate {
         int ID PK
         int AuthorID FK
+        uuid Link
         string TemplateName
         timestamp CreatedAt
         timestamp UpdatedAt

@@ -20,10 +20,7 @@ const (
 
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
-		App: config.Application{
-			LogLevel:           DebugLevel,
-			MaxTextRequestSize: 10 * 1024, // 10 кБ
-		},
+		App: config.DefaultApplicationConfig(),
 		Engine: config.Engine{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
@@ -61,20 +58,17 @@ func TestConfigReading(t *testing.T) {
 				},
 			},
 		},
-		S3Avatars: config.S3Avatars{
-			ValidExtensions: map[string]struct{}{
-				"image/jpg":  {},
-				"image/jpeg": {},
-				"image/png":  {},
-				"image/webp": {},
-			},
-		},
+		S3:        config.DefaultS3Config(),
+		Board:     config.DefaultBoardConfig(),
+		S3Avatars: config.DefaultS3AvatarsConfig(),
 	}
 
 	var yamlTest = []byte(`
 app:
   log_level: debug
   max_text_request_size: 10240
+  max_upload_image_size: 10485760
+
 
 engine:
   addr: ":8080"
