@@ -169,7 +169,7 @@ func (a *AuthHandler) LogInUser(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        request body     dto.RegisterRequest true "Данные для регистрации"
 // @Success      201     {object} api.OkResponse[dto.UserInfoResponse] "Пользователь успешно создан"
-// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password"
+// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password / user exists / empty fields"
 // @Failure      500     {object} api.ErrorResponse "internal server error"
 // @Router       /register [post]
 func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -194,6 +194,16 @@ func (a *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		logger.Err(fmt.Errorf("auth.Register: %w", err))
+		if errors.Is(err, common.ErrorExistingUser) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorExistingUser.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorNotNullValue) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
@@ -231,7 +241,7 @@ func (a *AuthHandler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, api.NewExpiredCookie(service.SessiondIdKey))
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	api.RespondOk(w, api.StatusOK)
 }
 
 // @Summary      Запрос восстановления пароля
@@ -288,7 +298,7 @@ func (a *AuthHandler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	api.RespondOk(w, api.StatusOK)
 }
 
 // @Summary      Проверка кода восстановления
@@ -313,12 +323,12 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 
 	err = a.Srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.CheckRecoveryCode: %w", err))
+		logger.Error().Err(err).Msg("auth.CheckRecoveryCode failed")
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	api.RespondOk(w, api.StatusOK)
 }
 
 // @Summary      Сброс пароля
@@ -328,7 +338,8 @@ func (a *AuthHandler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 // @Produce      json
 // @Param        request body     dto.NewPasswordRequest true "Новый пароль и токен"
 // @Success      200     {object} api.Response "Пароль успешно изменен"
-// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password"
+// @Failure      400     {object} api.ErrorResponse "invalid schema / invalid email or password / missing field / token expired"
+// @Failure      404     {object} api.ErrorResponse "user not found"
 // @Failure      500     {object} api.ErrorResponse "cannot reset password"
 // @Router       /reset-password [post]
 func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
@@ -349,12 +360,28 @@ func (a *AuthHandler) ResetUserPassword(w http.ResponseWriter, r *http.Request) 
 
 	err = a.Srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.ResetPassword: %w", err))
+		logger.Error().Err(err).Msg("auth.ResetPassword failed")
+
+		if errors.Is(err, common.ErrorNotNullValue) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorNotExistingResetToken) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorNotExistingResetToken.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotResetPassword.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	api.RespondOk(w, api.StatusOK)
 }
 
 // @Summary      VK OAuth Callback
@@ -494,5 +521,5 @@ func (a *AuthHandler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Reques
 
 	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token))
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	api.RespondOk(w, api.StatusOK)
 }

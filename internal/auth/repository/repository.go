@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -59,12 +60,15 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == common.CodeUniqError {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
 				return common.ErrorExistingUser
+			case pgerrcode.NotNullViolation:
+				return common.ErrorNotNullValue
 			}
-
-			return fmt.Errorf("pool.Exec: %w", err)
 		}
+
+		return fmt.Errorf("pool.Exec: %w", err)
 	}
 
 	return nil
@@ -242,7 +246,7 @@ func (r *Repository) DeleteResetToken(ctx context.Context, tokenID string) error
 
 func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPasswordHash string) error {
 	updatePasswordQuery := `
-	UPDATE "users" 
+	UPDATE "user" 
 	SET password_hash = $1,
 	updated_at = NOW()
 	WHERE link = $2
@@ -250,6 +254,11 @@ func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPass
 
 	countModifies, err := r.pool.Exec(ctx, updatePasswordQuery, newPasswordHash, link)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NotNullViolation {
+			return common.ErrorNotNullValue
+		}
+
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
 

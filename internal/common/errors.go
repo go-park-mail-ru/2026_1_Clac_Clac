@@ -10,6 +10,7 @@ type ErrorResponse struct {
 
 var (
 	ErrorExistingUser     = errors.New("user with this email alreday exists")
+	ErrorNotNullValue     = errors.New("put null value in not null field")
 	ErrorNonexistentUser  = errors.New("user with this ID not exist")
 	ErrorNonexistentEmail = errors.New("user with this email not exist")
 

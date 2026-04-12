@@ -3,13 +3,16 @@ package repository_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -203,6 +206,7 @@ func TestGetBoard(t *testing.T) {
 func TestCreateBoard(t *testing.T) {
 	authorID := uuid.New()
 	newBoardLink := uuid.New()
+	mockDBErr := errors.New("db error")
 	now := time.Now().Truncate(time.Second)
 
 	boardInfo := dto.NewBoardInfo{
@@ -225,7 +229,7 @@ func TestCreateBoard(t *testing.T) {
 		AuthorLink    uuid.UUID
 		MockSetup     func(dbMock pgxmock.PgxPoolIface)
 		ExpectedEntry dto.BoardEntry
-		ExpectError   bool
+		ExpectedErr   error
 	}{
 		{
 			Name:       "success create board",
@@ -250,28 +254,87 @@ func TestCreateBoard(t *testing.T) {
 				dbMock.ExpectCommit()
 			},
 			ExpectedEntry: expectedEntry,
-			ExpectError:   false,
+			ExpectedErr:   nil,
 		},
 		{
-			Name:       "error on create board version",
+			Name:       "error on create board version (NotNullViolation)",
 			BoardInfo:  boardInfo,
 			AuthorLink: authorID,
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
 				dbMock.ExpectBegin()
 
-				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).
-					AddRow(1, newBoardLink, now)
-				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").
-					WillReturnRows(rows)
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").WillReturnRows(rows)
 
 				dbMock.ExpectExec("INSERT INTO board_version").
 					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
-					WillReturnError(fmt.Errorf("db error"))
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 
 				dbMock.ExpectRollback()
 			},
 			ExpectedEntry: dto.BoardEntry{},
-			ExpectError:   true,
+			ExpectedErr:   common.ErrorNotNullValue,
+		},
+		{
+			Name:       "error on create board version (CheckViolation)",
+			BoardInfo:  boardInfo,
+			AuthorLink: authorID,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectBegin()
+
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").WillReturnRows(rows)
+
+				dbMock.ExpectExec("INSERT INTO board_version").
+					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+
+				dbMock.ExpectRollback()
+			},
+			ExpectedEntry: dto.BoardEntry{},
+			ExpectedErr:   common.ErrorInvalidBoardData,
+		},
+		{
+			Name:       "error on create board member (UniqueViolation)",
+			BoardInfo:  boardInfo,
+			AuthorLink: authorID,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectBegin()
+
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").WillReturnRows(rows)
+
+				dbMock.ExpectExec("INSERT INTO board_version").
+					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				dbMock.ExpectExec("INSERT INTO member_board").
+					WithArgs(newBoardLink, authorID, config.DefaultBoardConfig().Repository.CreateBoardDefaultUserRole).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
+
+				dbMock.ExpectRollback()
+			},
+			ExpectedEntry: dto.BoardEntry{},
+			ExpectedErr:   common.ErrorUserAlreadyMember,
+		},
+		{
+			Name:       "error on create board version (Generic DB error)",
+			BoardInfo:  boardInfo,
+			AuthorLink: authorID,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectBegin()
+
+				rows := pgxmock.NewRows([]string{"board_id", "link", "created_at"}).AddRow(1, newBoardLink, now)
+				dbMock.ExpectQuery("INSERT INTO board DEFAULT VALUES").WillReturnRows(rows)
+
+				dbMock.ExpectExec("INSERT INTO board_version").
+					WithArgs(1, boardInfo.Name, boardInfo.Description, boardInfo.Background).
+					WillReturnError(mockDBErr)
+
+				dbMock.ExpectRollback()
+			},
+			ExpectedEntry: dto.BoardEntry{},
+			ExpectedErr:   mockDBErr,
 		},
 	}
 
@@ -288,8 +351,9 @@ func TestCreateBoard(t *testing.T) {
 
 			entry, err := repo.CreateBoard(ctx, test.BoardInfo, test.AuthorLink)
 
-			if test.ExpectError {
+			if test.ExpectedErr != nil {
 				assert.Error(t, err)
+				assert.ErrorIs(t, err, test.ExpectedErr)
 				assert.Equal(t, dto.BoardEntry{}, entry)
 			} else {
 				assert.NoError(t, err)
@@ -388,6 +452,26 @@ func TestUpdateBoard(t *testing.T) {
 			},
 			ExpectedErr: common.ErrBoardNotFound,
 		},
+		{
+			Name:      "error update board missing field (NotNullViolation)",
+			BoardInfo: boardInfo,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(boardInfo.Name, boardInfo.Description, boardInfo.Background, boardInfo.Link).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+			},
+			ExpectedErr: common.ErrorNotNullValue,
+		},
+		{
+			Name:      "error update board invalid data (CheckViolation)",
+			BoardInfo: boardInfo,
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec("UPDATE board_actual").
+					WithArgs(boardInfo.Name, boardInfo.Description, boardInfo.Background, boardInfo.Link).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+			},
+			ExpectedErr: common.ErrorInvalidBoardData,
+		},
 	}
 
 	for _, test := range tests {
@@ -403,6 +487,7 @@ func TestUpdateBoard(t *testing.T) {
 
 			if test.ExpectedErr != nil {
 				assert.Error(t, err)
+				assert.ErrorIs(t, err, test.ExpectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
