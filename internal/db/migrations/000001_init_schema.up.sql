@@ -53,6 +53,7 @@ CREATE TABLE board_version (
 -- View для получения актуальных досок
 CREATE OR REPLACE View board_actual AS
 SELECT
+    b.board_id,
 	b.link,
 	b.created_at,
 	v.board_name as name,
@@ -67,7 +68,7 @@ RETURNS TRIGGER AS $$
 BEGIN
 	UPDATE board_version
 	SET valid_to = NOW()
-	WHERE board_id = NEW.board_id AND valid_to IS NULL;
+	WHERE board_id = OLD.board_id AND valid_to IS NULL;
 
 	INSERT INTO board_version (board_id, board_name, description_board, url_path_background)
 	VALUES (NEW.board_id, NEW.name, NEW.description, NEW.background);
