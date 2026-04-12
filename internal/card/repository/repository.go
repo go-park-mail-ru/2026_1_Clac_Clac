@@ -39,9 +39,9 @@ func NewRepository(deps Deps) *Repository {
 
 func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
 	query := `
-	SELECT 
-		t.title, 
-		t.description, 
+	SELECT
+		t.title,
+		t.description,
 		t.due_date,
 		u.display_name
 	FROM task_actual AS t
@@ -121,7 +121,7 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	queryInsert := `
 		INSERT INTO task_version (
 			task_link, section_link, executer_link, title, description, position, due_date
-		) 
+		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7);
 	`
 
@@ -243,7 +243,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 	queryInsert := `
 		INSERT INTO task_version (
 			task_link, section_link, position, title, description, executer_link, due_date
-		) 
+		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7);
 	`
 
@@ -295,7 +295,7 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	}()
 
 	queryTask := `
-		INSERT INTO task (task_link, author_link) 
+		INSERT INTO task (task_link, author_link)
 		VALUES ($1, $2);
 	`
 	_, err = tx.Exec(ctx, queryTask, newCard.LinkCard, newCard.LinkAuthor)
@@ -313,9 +313,10 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	}
 
 	queryPos := `
-		SELECT COALESCE(MAX(position), 0) + 1 FOR NO KEY UPDATE
-		FROM task_version 
-		WHERE section_link = $1 AND valid_to IS NULL;
+		SELECT COALESCE(MAX(position), 0) + 1
+		FROM task_version
+		WHERE section_link = $1 AND valid_to IS NULL
+		FOR NO KEY UPDATE;
 	`
 	var position int
 	err = tx.QueryRow(ctx, queryPos, newCard.LinkSection).Scan(&position)
@@ -326,7 +327,7 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	queryVersion := `
 		INSERT INTO task_version (
 			task_link, section_link, executer_link, title, description, position, due_date
-		) 
+		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7);
 	`
 	_, err = tx.Exec(ctx, queryVersion,
