@@ -22,6 +22,7 @@ type Config struct {
 	Board           Board                `mapstructure:"board"`
 	Section         Section              `mapstructure:"section"`
 	Profile         Profile              `mapstructure:"profile"`
+	Card            Card                 `mapstructture:"card"`
 }
 
 func DefaultConfig() Config {
@@ -40,6 +41,7 @@ func DefaultConfig() Config {
 		Auth:            DefaultAuthConfig(),
 		Profile:         DefaultProfileConfig(),
 		Section:         DefaultSectionConfig(),
+		Card:            DefaultCardConfig(),
 	}
 }
 

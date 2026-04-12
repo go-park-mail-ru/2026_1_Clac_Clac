@@ -104,6 +104,13 @@ func TestConfigReading(t *testing.T) {
 				MaxLenNameSection: 128,
 			},
 		},
+
+		Card: config.Card{
+			Handler: config.CardHandler{
+				MaxLenTitle:       128,
+				MaxLenDescription: 500,
+			},
+		},
 	}
 
 	var yamlTest = []byte(`

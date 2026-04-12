@@ -45,7 +45,9 @@ func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
 	}
 
 	cardDeps := card.Deps{
-		Srv: m.Card,
+		Srv:               m.Card,
+		MaxLenTitle:       conf.Card.Handler.MaxLenTitle,
+		MaxLenDescription: conf.Card.Handler.MaxLenDescription,
 	}
 
 	return &Dilivery{
