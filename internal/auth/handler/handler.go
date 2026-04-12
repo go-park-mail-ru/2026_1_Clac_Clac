@@ -253,7 +253,7 @@ func (h *Handler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, api.NewExpiredCookie(service.SessiondIdKey))
-	api.RespondOk(w, api.StatusOK)
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // @Summary      Запрос восстановления пароля
@@ -310,7 +310,7 @@ func (h *Handler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.RespondOk(w, api.StatusOK)
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // @Summary      Проверка кода восстановления
@@ -340,7 +340,7 @@ func (h *Handler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.RespondOk(w, api.StatusOK)
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // @Summary      Сброс пароля
@@ -393,7 +393,7 @@ func (h *Handler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.RespondOk(w, api.StatusOK)
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // @Summary      VK OAuth Callback
@@ -548,5 +548,5 @@ func (h *Handler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token, expireTime))
 
-	api.RespondOk(w, api.StatusOK)
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }

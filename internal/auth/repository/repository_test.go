@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -684,7 +685,7 @@ func TestGetUser(t *testing.T) {
 			nameTest: "Success get user",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar_key\s+FROM "user"\s+WHERE email = \$1`
+				query := `SELECT link, display_name, password_hash, email, avatar_key FROM "user" WHERE email = \$1`
 
 				rows := pgxmock.NewRows([]string{"link", "display_name", "password_hash", "email", "avatar_key"}).
 					AddRow(common.FixedUserUuiD, "Bobr", "hash", "bobr@mail.ru", "avatar.jpg")
@@ -750,7 +751,7 @@ func TestGetUserError(t *testing.T) {
 			nameTest: "Generic DB Error",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar\s+FROM "user"\s+WHERE email = \$1`
+				query := `SELECT link, display_name, password_hash, email, avatar_key FROM "user" WHERE email = \$1`
 
 				mock.ExpectQuery(query).
 					WithArgs("bobr@mail.ru").
@@ -906,9 +907,9 @@ func TestUpdatePassword(t *testing.T) {
 			userID:          targetUserID,
 			newPasswordHash: newHash,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user" SET password_hash = $1, updated_at = NOW() WHERE link = $2`
 
-				mock.ExpectExec(query).
+				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 			},
@@ -952,9 +953,12 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "user"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"
+					SET password_hash = $1,
+					updated_at = NOW()
+					WHERE link = $2`
 
-				mock.ExpectExec(query).
+				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 			},
@@ -965,9 +969,12 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNotNullValue,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"
+					SET password_hash = $1,
+					updated_at = NOW()
+					WHERE link = $2`
 
-				mock.ExpectExec(query).
+				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 			},
@@ -978,9 +985,12 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   fmt.Errorf("pool.Exec: %w", errors.New("db error")),
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "users"\s+SET password_hash = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
+				query := `UPDATE "user"
+					SET password_hash = $1,
+					updated_at = NOW()
+					WHERE link = $2`
 
-				mock.ExpectExec(query).
+				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
 					WillReturnError(errors.New("db error"))
 			},
