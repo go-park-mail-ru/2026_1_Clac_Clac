@@ -13,6 +13,7 @@ import (
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/dto"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -79,6 +80,7 @@ func NewHandler(deps Deps) *Handler {
 // @Security     CookieAuth
 // @Router       /sections/{link} [get]
 func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[sectionLinkKey]
 
@@ -94,6 +96,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
 			return
 		}
+		logger.Error().Err(err).Msg("SectionService.GetSectionInfo")
 		api.RespondError(w, http.StatusInternalServerError, failGetSection)
 		return
 	}
@@ -123,6 +126,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /sections/{link}/cards [get]
 func (h *Handler) GetCards(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[sectionLinkKey]
 
@@ -139,6 +143,7 @@ func (h *Handler) GetCards(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("SectionService.GetCards")
 		api.RespondError(w, http.StatusInternalServerError, failGetCards)
 		return
 	}
@@ -171,6 +176,8 @@ func (h *Handler) GetCards(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /sections [post]
 func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	var newSection dto.CreatingSection
 
 	err := json.NewDecoder(r.Body).Decode(&newSection)
@@ -214,6 +221,7 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("SectionService.CreateSection")
 		api.RespondError(w, http.StatusInternalServerError, failCreateSection)
 		return
 	}
@@ -241,6 +249,7 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /sections/{link} [delete]
 func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[sectionLinkKey]
 
@@ -277,6 +286,7 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("SectionService.DeleteSection")
 		api.RespondError(w, http.StatusInternalServerError, failDeleteSection)
 		return
 	}
@@ -299,6 +309,7 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /boards/{board_link}/sections/reorder [patch]
 func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	boardParam := vars[boardLinkKey]
 
@@ -338,6 +349,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("SectionService.ReorderSection")
 		api.RespondError(w, http.StatusInternalServerError, failReorderSections)
 		return
 	}
@@ -360,6 +372,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /sections/{link} [put]
 func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	sectionParam := vars[sectionLinkKey]
 
@@ -431,6 +444,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("SectionService.UpdateSection")
 		api.RespondError(w, http.StatusInternalServerError, failUpdateSection)
 		return
 	}
@@ -450,6 +464,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /boards/{board_link}/sections [get]
 func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	boarderParam := vars[boardLinkKey]
 
@@ -461,6 +476,7 @@ func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
 
 	sections, err := h.deps.Srv.GetAllSections(r.Context(), boarderLink)
 	if err != nil {
+		logger.Error().Err(err).Msg("SectionService.GetAllSections")
 		api.RespondError(w, http.StatusInternalServerError, failGetAllSections)
 		return
 	}
