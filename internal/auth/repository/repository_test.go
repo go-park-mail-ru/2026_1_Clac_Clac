@@ -649,8 +649,9 @@ func TestGetUser(t *testing.T) {
 			nameTest: "Success get user",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar\s+FROM "user"\s+WHERE email = \$1`
-				rows := pgxmock.NewRows([]string{"link", "display_name", "password_hash", "email", "avatar"}).
+				query := `SELECT link, display_name, password_hash, email, avatar_key\s+FROM "user"\s+WHERE email = \$1`
+
+				rows := pgxmock.NewRows([]string{"link", "display_name", "password_hash", "email", "avatar_key"}).
 					AddRow(common.FixedUserUuiD, "Bobr", "hash", "bobr@mail.ru", "avatar.jpg")
 
 				mock.ExpectQuery(query).
@@ -702,7 +703,7 @@ func TestGetUserError(t *testing.T) {
 			nameTest: "Not existing user",
 			email:    "bobr@mail.ru",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
-				query := `SELECT link, display_name, password_hash, email, avatar\s+FROM "user"\s+WHERE email = \$1`
+				query := `SELECT link, display_name, password_hash, email, avatar_key\s+FROM "user"\s+WHERE email = \$1`
 
 				mock.ExpectQuery(query).
 					WithArgs("bobr@mail.ru").

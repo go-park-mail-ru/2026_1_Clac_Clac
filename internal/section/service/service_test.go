@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/dto"
 	mockRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/mock_section_rep"
+	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/mock_section_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -430,6 +432,71 @@ func TestServiceGetAllSections(t *testing.T) {
 				if assert.NoError(t, err) {
 					assert.Equal(t, test.expectedData, result)
 				}
+			}
+		})
+	}
+}
+
+func TestGetCards(t *testing.T) {
+	targetSectionLink := uuid.New()
+	targetExecuterName := "John Doe"
+	targetDeadLine := time.Now()
+
+	repCards := []repositoryDto.Card{
+		{
+			CardLink:     uuid.New(),
+			ExecuterName: &targetExecuterName,
+			Title:        "Task 1",
+			DeadLine:     &targetDeadLine,
+		},
+	}
+
+	expectedCards := []dto.Card{
+		{
+			CardLink:     repCards[0].CardLink,
+			ExecuterName: repCards[0].ExecuterName,
+			Title:        repCards[0].Title,
+			DeadLine:     repCards[0].DeadLine,
+		},
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *mockSectionRep.SectionRepository)
+		expectedError bool
+		expectedRes   []dto.Card
+	}{
+		{
+			nameTest: "Success get cards",
+			mockBehavior: func(m *mockSectionRep.SectionRepository) {
+				m.On("GetCards", mock.Anything, targetSectionLink).Return(repCards, nil)
+			},
+			expectedError: false,
+			expectedRes:   expectedCards,
+		},
+		{
+			nameTest: "Error from repository",
+			mockBehavior: func(m *mockSectionRep.SectionRepository) {
+				m.On("GetCards", mock.Anything, targetSectionLink).Return([]repositoryDto.Card{}, errors.New("db error"))
+			},
+			expectedError: true,
+			expectedRes:   nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockSectionRep.NewSectionRepository(t)
+			test.mockBehavior(mockRep)
+
+			service := NewService(Deps{Rep: mockRep})
+			res, err := service.GetCards(context.Background(), targetSectionLink)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedRes, res)
 			}
 		})
 	}

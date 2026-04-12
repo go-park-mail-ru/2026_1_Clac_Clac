@@ -25,6 +25,7 @@ const (
 	failDeleteSection   = "can not delete new"
 	failReorderSections = "can not reorder sections"
 	failUpdateSection   = "can not update section"
+	failGetCards        = "can not get cards in section"
 
 	incorrectTypeColor = "color can be white, grey, red, orange, blue, green, purple, pink"
 
@@ -36,6 +37,7 @@ const (
 type SectionService interface {
 	GetSectionInfo(ctx context.Context, linkSection uuid.UUID) (serviceDto.FullSectionInfo, error)
 	GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]serviceDto.FullSectionInfo, error)
+	GetCards(ctx context.Context, linkSection uuid.UUID) ([]serviceDto.Card, error)
 	CreateSection(ctx context.Context, newSection serviceDto.CreatingSection) (serviceDto.EntitySection, error)
 	DeleteSection(ctx context.Context, linkSection uuid.UUID) error
 	ReorderSection(ctx context.Context, linkBoard uuid.UUID, listLinkSection []uuid.UUID) error
@@ -72,7 +74,7 @@ func NewHandler(deps Deps) *Handler {
 // @Router       /sections/{link} [get]
 func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	linkParam := vars["link"]
+	linkParam := vars[sectionLinkKey]
 
 	linkSection, err := uuid.Parse(linkParam)
 	if err != nil {
@@ -100,6 +102,53 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.HandleError(api.RespondOk(w, sectionInfo))
+}
+
+// GetCards godoc
+// @Summary      Получение карточек секции
+// @Description  Возвращает список всех актуальных карточек, находящихся в указанной секции, отсортированных по позиции.
+// @Tags         cards
+// @Produce      json
+// @Param        link path string true "UUID секции"
+// @Success      200 {object} dto.CardsSection "Успешное получение списка карточек"
+// @Failure      400 {object} api.ErrorResponse "Некорректный формат UUID секции"
+// @Failure      404 {object} api.ErrorResponse "Секция не найдена"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /sections/{link}/cards [get]
+func (h *Handler) GetCards(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	linkParam := vars[sectionLinkKey]
+
+	linkSection, err := uuid.Parse(linkParam)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
+		return
+	}
+
+	cards, err := h.deps.Srv.GetCards(r.Context(), linkSection)
+	if err != nil {
+		if errors.Is(err, common.ErrorNotExistingSection) {
+			api.RespondError(w, http.StatusNotFound, failFindSection)
+			return
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, failGetCards)
+		return
+	}
+
+	cardsResponse := make([]dto.Card, 0, len(cards))
+
+	for _, card := range cards {
+		cardsResponse = append(cardsResponse, dto.Card{
+			CardLink:     card.CardLink,
+			ExecuterName: card.ExecuterName,
+			Title:        card.Title,
+			DeadLine:     card.DeadLine,
+		})
+	}
+
+	api.HandleError(api.RespondOk(w, dto.CardsSection{Cards: cardsResponse}))
 }
 
 // CreateSection godoc

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
@@ -525,6 +526,134 @@ func TestRepositoryGetAllSections(t *testing.T) {
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
 					assert.EqualError(t, err, test.expectedError.Error())
+				}
+			} else {
+				if assert.NoError(t, err) {
+					assert.Equal(t, test.expectedData, result)
+				}
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryGetCards(t *testing.T) {
+	ctx := context.Background()
+	targetSectionLink := uuid.New()
+	targetCardLink1 := uuid.New()
+	targetCardLink2 := uuid.New()
+	targetExecuter := "John Doe"
+	targetDeadLine := time.Now()
+
+	expectedCards := []dto.Card{
+		{
+			CardLink:     targetCardLink1,
+			ExecuterName: &targetExecuter,
+			Title:        "Task 1",
+			DeadLine:     &targetDeadLine,
+		},
+		{
+			CardLink:     targetCardLink2,
+			ExecuterName: nil,
+			Title:        "Task 2",
+			DeadLine:     nil,
+		},
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedError error
+		expectedData  []dto.Card
+	}{
+		{
+			nameTest: "Success get cards",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"}).
+					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecuterName, expectedCards[0].Title, expectedCards[0].DeadLine).
+					AddRow(expectedCards[1].CardLink, expectedCards[1].ExecuterName, expectedCards[1].Title, expectedCards[1].DeadLine)
+
+				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(rows)
+			},
+			expectedError: nil,
+			expectedData:  expectedCards,
+		},
+		{
+			nameTest: "Success get empty cards",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"})
+
+				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(rows)
+			},
+			expectedError: nil,
+			expectedData:  []dto.Card{},
+		},
+		{
+			nameTest: "Error pool query",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
+					WithArgs(targetSectionLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedError: errors.New("pool.Query: db disconnect"),
+			expectedData:  []dto.Card{},
+		},
+		{
+			nameTest: "Error rows scan type mismatch",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"}).
+					AddRow("invalid-uuid", "Name", "Title", time.Now())
+
+				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(rows)
+			},
+			expectedError: errors.New("rows.Scan:"),
+			expectedData:  []dto.Card{},
+		},
+		{
+			nameTest: "Error rows iteration",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"}).
+					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecuterName, expectedCards[0].Title, expectedCards[0].DeadLine).
+					RowError(0, errors.New("iteration error"))
+
+				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(rows)
+			},
+			expectedError: errors.New("rows.Scan: iteration error"),
+			expectedData:  []dto.Card{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockDB)
+			}
+
+			repo := NewRepository(Deps{Pool: mockDB})
+			result, err := repo.GetCards(ctx, targetSectionLink)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if test.nameTest == "Error rows scan type mismatch" {
+						assert.Contains(t, err.Error(), test.expectedError.Error())
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
 				}
 			} else {
 				if assert.NoError(t, err) {

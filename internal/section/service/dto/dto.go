@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type SectionRequest struct {
 	Link uuid.UUID
@@ -34,4 +38,11 @@ type EntitySection struct {
 
 type SectionsInfo struct {
 	Sections []FullSectionInfo
+}
+
+type Card struct {
+	CardLink     uuid.UUID
+	ExecuterName *string
+	Title        string
+	DeadLine     *time.Time
 }

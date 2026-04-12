@@ -20,7 +20,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -821,7 +820,7 @@ func TestLogOutError(t *testing.T) {
 
 			err := serviceLogOut.LogOut(ctx, test.sessionID)
 
-			require.Error(t, err, "expected error to be returned")
+			assert.Error(t, err, "expected error to be returned")
 
 			assert.ErrorIs(t, err, test.expectedError, "incorrect error returned")
 		})
@@ -936,7 +935,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 			userID, err := service.GetUserLink(ctx, test.sessionID)
 
-			require.Error(t, err, "expected error")
+			assert.Error(t, err, "expected error")
 			assert.Equal(t, uuid.Nil, userID, "expected nil uuid")
 
 			if test.expectedError != nil {
@@ -1326,7 +1325,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 			ExpectError: false,
 			MockBehavior: func(r *mockAuthRep.AuthRepository) {
 				r.On("GetUser", mock.Anything, testUserInfo.Email).
-					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentUser)
+					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentEmail)
 
 				r.On("AddUser", mock.Anything, mock.Anything).
 					Return(nil)
@@ -1348,7 +1347,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 			ExpectError: true,
 			MockBehavior: func(r *mockAuthRep.AuthRepository) {
 				r.On("GetUser", mock.Anything, testUserInfo.Email).
-					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentUser)
+					Return(repositoryDto.UserEntity{}, common.ErrorNonexistentEmail)
 
 				r.On("AddUser", mock.Anything, mock.Anything).
 					Return(errors.New("cannot register user"))
@@ -1371,11 +1370,15 @@ func TestEnsureUserByEmail(t *testing.T) {
 				CreaterSessionKey: CreaterSessionKey,
 				SessionLifetime:   SessionLifetime,
 			})
+
 			user, err := service.EnsureUserByEmail(context.Background(), testUserInfo)
+
 			if test.ExpectError {
-				require.Error(t, err, "must return error")
+				assert.Error(t, err, "must return error")
 				return
 			}
+
+			assert.NoError(t, err, "must not return error")
 
 			assert.Equal(t, testUserInfo.Email, user.Email, "users must be equal")
 
@@ -1395,7 +1398,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 		expire := time.Now().Add(time.Hour).Unix()
 
 		token, err := svc.GenerateCSRFToken(ctx, sessionID, expire)
-		require.NoError(t, err, "must not return error")
+		assert.NoError(t, err, "must not return error")
 
 		parts := strings.Split(token, ":")
 		assert.Equal(t, 2, len(parts), "expected 2 parts in token")
@@ -1405,7 +1408,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 	t.Run("deterministic", func(t *testing.T) {
 		t1, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
 		t2, _ := svc.GenerateCSRFToken(ctx, "sid", 123)
-		require.Equal(t, t1, t2, "tokens should be identical for same input")
+		assert.Equal(t, t1, t2, "tokens should be identical for same input")
 	})
 
 	t.Run("secret sensitivity", func(t *testing.T) {
@@ -1414,7 +1417,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 
 		t1, _ := svc1.GenerateCSRFToken(ctx, "sid", 123)
 		t2, _ := svc2.GenerateCSRFToken(ctx, "sid", 123)
-		require.NotEqual(t, t1, t2, "tokens must differ if secrets are different")
+		assert.NotEqual(t, t1, t2, "tokens must differ if secrets are different")
 	})
 }
 
@@ -1493,7 +1496,7 @@ func TestCheckCSRFToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			err := svc.CheckCSRFToken(ctx, test.SessionId, test.Token)
-			require.ErrorIs(t, err, test.ExpectedError)
+			assert.ErrorIs(t, err, test.ExpectedError)
 		})
 	}
 }

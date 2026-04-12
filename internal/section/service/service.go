@@ -14,6 +14,7 @@ import (
 type SectionRepository interface {
 	GetSectionInfo(ctx context.Context, link uuid.UUID) (repositoryDto.FullSectionInfo, error)
 	GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]repositoryDto.FullSectionInfo, error)
+	GetCards(ctx context.Context, linkSection uuid.UUID) ([]repositoryDto.Card, error)
 	CreateSection(ctx context.Context, newSection repositoryDto.CreatingSection) (repositoryDto.FullSectionInfo, error)
 	DeleteSection(ctx context.Context, linkSection uuid.UUID) error
 	ReorderSection(ctx context.Context, linkBoard uuid.UUID, sectionLinks []uuid.UUID) error
@@ -49,6 +50,46 @@ func (s *Service) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.FullS
 	}
 
 	return sectionInfo, nil
+}
+
+func (s *Service) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
+	sections, err := s.deps.Rep.GetAllSections(ctx, boarderLink)
+	if err != nil {
+		return []dto.FullSectionInfo{}, fmt.Errorf("rep.GetAllSections: %w", err)
+	}
+
+	var convertSections []dto.FullSectionInfo
+	for _, section := range sections {
+		convertSections = append(convertSections, dto.FullSectionInfo{
+			SectionLink: section.SectionLink,
+			SectionName: section.SectionName,
+			Position:    section.Position,
+			IsMandatory: section.IsMandatory,
+			Color:       section.Color,
+			MaxTasks:    section.MaxTasks,
+		})
+	}
+
+	return convertSections, nil
+}
+
+func (s *Service) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
+	cards, err := s.deps.Rep.GetCards(ctx, linkSection)
+	if err != nil {
+		return []dto.Card{}, fmt.Errorf("rep.GetCards: %w", err)
+	}
+
+	convertCards := make([]dto.Card, 0, len(cards))
+	for _, card := range cards {
+		convertCards = append(convertCards, dto.Card{
+			CardLink:     card.CardLink,
+			ExecuterName: card.ExecuterName,
+			Title:        card.Title,
+			DeadLine:     card.DeadLine,
+		})
+	}
+
+	return convertCards, nil
 }
 
 func (s *Service) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.EntitySection, error) {
@@ -132,25 +173,4 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 	}
 
 	return nil
-}
-
-func (s *Service) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
-	sections, err := s.deps.Rep.GetAllSections(ctx, boarderLink)
-	if err != nil {
-		return []dto.FullSectionInfo{}, fmt.Errorf("rep.GetAllSections: %w", err)
-	}
-
-	var convertSections []dto.FullSectionInfo
-	for _, section := range sections {
-		convertSections = append(convertSections, dto.FullSectionInfo{
-			SectionLink: section.SectionLink,
-			SectionName: section.SectionName,
-			Position:    section.Position,
-			IsMandatory: section.IsMandatory,
-			Color:       section.Color,
-			MaxTasks:    section.MaxTasks,
-		})
-	}
-
-	return convertSections, nil
 }

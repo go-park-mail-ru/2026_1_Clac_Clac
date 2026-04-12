@@ -93,6 +93,36 @@ func (_m *SectionService) GetAllSections(ctx context.Context, boarderLink uuid.U
 	return r0, r1
 }
 
+// GetCards provides a mock function with given fields: ctx, linkSection
+func (_m *SectionService) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
+	ret := _m.Called(ctx, linkSection)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCards")
+	}
+
+	var r0 []dto.Card
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.Card, error)); ok {
+		return rf(ctx, linkSection)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.Card); ok {
+		r0 = rf(ctx, linkSection)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.Card)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, linkSection)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSectionInfo provides a mock function with given fields: ctx, linkSection
 func (_m *SectionService) GetSectionInfo(ctx context.Context, linkSection uuid.UUID) (dto.FullSectionInfo, error) {
 	ret := _m.Called(ctx, linkSection)

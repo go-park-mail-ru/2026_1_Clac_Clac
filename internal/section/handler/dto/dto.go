@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // ListSectionLink используется для передачи нового порядка секций на доске.
 // @Description Массив UUID секций в нужном порядке
@@ -33,4 +37,19 @@ type CreatingSection struct {
 // @Description Ответ, содержащий массив всех секций доски
 type SectionsResponse struct {
 	Sections []FullSectionInfo `json:"sections"`
+}
+
+// Card используется для представления краткой информации о карточке в списке.
+// @Description Краткая информация о карточке задачи
+type Card struct {
+	CardLink     uuid.UUID  `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ExecuterName *string    `json:"executer_name" example:"Иван Иванов"`
+	Title        string     `json:"title" example:"Починить баг на фронтенде"`
+	DeadLine     *time.Time `json:"dead_line" example:"2026-04-12T14:35:00Z"`
+}
+
+// CardsSection используется для возврата списка всех карточек конкретной секции.
+// @Description Ответ, содержащий массив карточек секции
+type CardsSection struct {
+	Cards []Card `json:"cards"`
 }

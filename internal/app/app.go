@@ -142,6 +142,7 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections/{link}/cards", sectionHandler.GetCards).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)

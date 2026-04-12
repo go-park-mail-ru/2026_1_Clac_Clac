@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -637,6 +638,99 @@ func TestGetAllSections(t *testing.T) {
 
 			response := httptest.NewRecorder()
 			handler.GetAllSections(response, request)
+
+			assert.Equal(t, test.expectedStatusCode, response.Code, "incorrect status code")
+
+			if test.expectedResponse != nil {
+				responseJson, err := json.Marshal(test.expectedResponse)
+				assert.NoError(t, err, "response marshal should not return error")
+				assert.Equal(t, string(responseJson), response.Body.String(), "incorrect response body")
+			}
+		})
+	}
+}
+
+func TestGetCards(t *testing.T) {
+	targetSectionLink := uuid.New()
+	targetExecuterName := "John Doe"
+	targetDeadLine := time.Now().Add(24 * time.Hour)
+
+	serviceCards := []serviceDto.Card{
+		{
+			CardLink:     uuid.New(),
+			ExecuterName: &targetExecuterName,
+			Title:        "Task 1",
+			DeadLine:     &targetDeadLine,
+		},
+	}
+
+	expectedResponseInfo := dto.CardsSection{
+		Cards: []dto.Card{
+			{
+				CardLink:     serviceCards[0].CardLink,
+				ExecuterName: serviceCards[0].ExecuterName,
+				Title:        serviceCards[0].Title,
+				DeadLine:     serviceCards[0].DeadLine,
+			},
+		},
+	}
+
+	tests := []struct {
+		nameTest           string
+		pathVars           map[string]string
+		mockBehavior       func(m *mockSectionService.SectionService)
+		expectedStatusCode int
+		expectedResponse   any
+	}{
+		{
+			nameTest: "Success get cards",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, targetSectionLink).Return(serviceCards, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   newOkResponse(api.StatusOK, expectedResponseInfo),
+		},
+		{
+			nameTest:           "Error invalid uuid format",
+			pathVars:           map[string]string{sectionLinkKey: "invalid-uuid"},
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
+		},
+		{
+			nameTest: "Error section not found",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, targetSectionLink).Return([]serviceDto.Card{}, common.ErrorNotExistingSection)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failFindSection),
+		},
+		{
+			nameTest: "Error internal server",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, targetSectionLink).Return([]serviceDto.Card{}, errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetCards),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := mockSectionService.NewSectionService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(Deps{Srv: mockService})
+			request := httptest.NewRequest(http.MethodGet, "/", nil)
+			request = mux.SetURLVars(request, test.pathVars)
+
+			response := httptest.NewRecorder()
+			handler.GetCards(response, request)
 
 			assert.Equal(t, test.expectedStatusCode, response.Code, "incorrect status code")
 

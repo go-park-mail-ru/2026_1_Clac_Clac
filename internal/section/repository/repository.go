@@ -64,6 +64,51 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 	return infoSection, nil
 }
 
+func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
+	query := `
+	SELECT 
+		t.task_link, 
+		u.display_name AS name_executer,
+		t.title, 
+		t.due_date
+	FROM task_actual AS t
+	LEFT JOIN "user" u ON t.executer_link = u.link
+	WHERE t.section_link = $1 AND t.valid_to IS NULL
+	ORDER BY t.position ASC;
+	`
+
+	rows, err := r.deps.Pool.Query(ctx, query, linkSection)
+	if err != nil {
+		return []dto.Card{}, fmt.Errorf("pool.Query: %w", err)
+	}
+
+	defer rows.Close()
+
+	cards := make([]dto.Card, 0)
+
+	for rows.Next() {
+		var card dto.Card
+		err := rows.Scan(
+			&card.CardLink,
+			&card.ExecuterName,
+			&card.Title,
+			&card.DeadLine,
+		)
+
+		if err != nil {
+			return []dto.Card{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		cards = append(cards, card)
+	}
+
+	if rows.Err() != nil {
+		return []dto.Card{}, fmt.Errorf("rows iteration: %w", err)
+	}
+
+	return cards, nil
+}
+
 func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.FullSectionInfo, error) {
 	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
