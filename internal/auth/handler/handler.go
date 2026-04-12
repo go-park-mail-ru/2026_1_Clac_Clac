@@ -449,6 +449,7 @@ func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAu
 			DisplayName: userData.FirstName,
 			Email:       userEmail,
 		}
+
 		user, err := h.deps.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
