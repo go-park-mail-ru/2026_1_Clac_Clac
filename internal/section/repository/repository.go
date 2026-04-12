@@ -41,7 +41,7 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
         is_mandatory,
         color,
         max_tasks
-    FROM section_actual 
+    FROM section_actual
     WHERE section_link = $1
 	`
 
@@ -66,14 +66,14 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 
 func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
 	query := `
-	SELECT 
-		t.task_link, 
+	SELECT
+		t.task_link,
 		u.display_name AS name_executer,
-		t.title, 
+		t.title,
 		t.due_date
 	FROM task_actual AS t
 	LEFT JOIN "user" u ON t.executer_link = u.link
-	WHERE t.section_link = $1 AND t.valid_to IS NULL
+	WHERE t.section_link = $1
 	ORDER BY t.position ASC;
 	`
 
@@ -118,7 +118,7 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	defer tx.Rollback(ctx)
 
 	querySection := `
-		INSERT INTO section (section_link, board_link) 
+		INSERT INTO section (section_link, board_link)
 		VALUES ($1, $2);
 	`
 	_, err = tx.Exec(ctx, querySection, newSection.SectionLink, newSection.BoardLink)
@@ -128,7 +128,7 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 
 	var position int
 	queryPos := `
-		SELECT COALESCE(MAX(v.position), 0) + 1 
+		SELECT COALESCE(MAX(v.position), 0) + 1
 		FROM section_version v
 		JOIN section s ON s.section_link = v.section_link
 		WHERE s.board_link = $1 AND v.valid_to IS NULL;
@@ -141,7 +141,7 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	queryVersion := `
 		INSERT INTO section_version (
 			section_link, section_name, position, is_mandatory, color, max_tasks
-		) 
+		)
 		VALUES ($1, $2, $3, $4, $5, $6);
 	`
 	_, err = tx.Exec(ctx, queryVersion,
@@ -204,7 +204,7 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 		SELECT s.section_link
 		FROM section s
 		JOIN section_version v ON s.section_link = v.section_link
-		WHERE s.board_link = $1 AND v.position = 1 
+		WHERE s.board_link = $1 AND v.position = 1
 		  AND s.deleted_at IS NULL AND v.valid_to IS NULL;
 	`
 	err = tx.QueryRow(ctx, queryBacklog, boardLink).Scan(&backlogLink)
@@ -347,12 +347,12 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 
 func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
 	query := `
-		SELECT 
-			section_link, 
-			section_name, 
-			position, 
-			is_mandatory, 
-			color, 
+		SELECT
+			section_link,
+			section_name,
+			position,
+			is_mandatory,
+			color,
 			max_tasks
 		FROM section_actual
 		WHERE board_link = $1

@@ -69,6 +69,7 @@ profile:
     max_read_bytes: 5242880
     max_len_name_user: 128
     max_len_description_user: 500
+
 section:
   handler:
     max_quantity_tasks: 1000

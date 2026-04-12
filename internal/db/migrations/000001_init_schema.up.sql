@@ -190,7 +190,6 @@ SELECT
     t.task_link,
     t.author_link,
     t.created_at,
-
     v.section_link,
     v.executer_link,
     v.title,
