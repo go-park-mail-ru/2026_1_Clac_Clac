@@ -73,6 +73,7 @@ func NewHandler(deps Deps) *Handler {
 // @Security     CookieAuth
 // @Router       /cards/{link} [get]
 func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
 
@@ -89,6 +90,7 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.GetCard")
 		api.RespondError(w, http.StatusInternalServerError, failGetCard)
 		return
 	}
@@ -115,6 +117,7 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link} [delete]
 func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
 
@@ -131,6 +134,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.DeleteCard")
 		api.RespondError(w, http.StatusInternalServerError, failDeleteCard)
 		return
 	}
@@ -153,6 +157,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link} [put]
 func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
 
@@ -211,6 +216,7 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.UpdateCardDetails")
 		api.RespondError(w, http.StatusInternalServerError, failUpdateCard)
 		return
 	}
@@ -233,6 +239,7 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link}/reorder [patch]
 func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
 
@@ -282,6 +289,7 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.ReorderCard")
 		api.RespondError(w, http.StatusInternalServerError, failReorderCard)
 		return
 	}
