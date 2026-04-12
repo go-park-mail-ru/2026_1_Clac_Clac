@@ -345,7 +345,7 @@ func (s *Service) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUs
 
 	user, err := s.GetUserByEmail(ctx, info.Email)
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
+		if errors.Is(err, common.ErrorNonexistentEmail) {
 			b := make([]byte, randomPasswordLength)
 			if _, err := rand.Read(b); err != nil {
 				return dto.UserInfo{}, fmt.Errorf("generate random password: %w", err)
