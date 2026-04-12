@@ -140,6 +140,58 @@ func TestBoardHandlerCreateBoard(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
+			name: "error missing required field (NotNullViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(createReq)
+				req := httptest.NewRequest(http.MethodPost, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateBoard", mock.Anything, mock.AnythingOfType("dto.NewBoardInfo"), userLink).
+					Return(serviceDto.BoardInfo{}, common.ErrorNotNullValue).Once()
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "error invalid board data (CheckViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(createReq)
+				req := httptest.NewRequest(http.MethodPost, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateBoard", mock.Anything, mock.AnythingOfType("dto.NewBoardInfo"), userLink).
+					Return(serviceDto.BoardInfo{}, common.ErrorInvalidBoardData).Once()
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "error invalid board reference (ForeignKeyViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(createReq)
+				req := httptest.NewRequest(http.MethodPost, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateBoard", mock.Anything, mock.AnythingOfType("dto.NewBoardInfo"), userLink).
+					Return(serviceDto.BoardInfo{}, common.ErrorInvalidBoardReference).Once()
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "error user already member (UniqueViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(createReq)
+				req := httptest.NewRequest(http.MethodPost, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateBoard", mock.Anything, mock.AnythingOfType("dto.NewBoardInfo"), userLink).
+					Return(serviceDto.BoardInfo{}, common.ErrorUserAlreadyMember).Once()
+			},
+			expectedStatus: http.StatusConflict,
+		},
+		{
 			name: "service error",
 			setupRequest: func() *http.Request {
 				body, _ := json.Marshal(createReq)
@@ -335,6 +387,45 @@ func TestBoardHandlerUpdateBoard(t *testing.T) {
 				m.On("UpdateBoard", mock.Anything, mock.Anything, userLink).Return(common.ErrBoardNotFound).Once()
 			},
 			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "error missing required field (NotNullViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(updateReq)
+				req := httptest.NewRequest(http.MethodPut, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBoard", mock.Anything, mock.AnythingOfType("dto.UpdateBoardInfo"), userLink).
+					Return(common.ErrorNotNullValue).Once()
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "error invalid board data (CheckViolation)",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(updateReq)
+				req := httptest.NewRequest(http.MethodPut, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBoard", mock.Anything, mock.AnythingOfType("dto.UpdateBoardInfo"), userLink).
+					Return(common.ErrorInvalidBoardData).Once()
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "internal server error",
+			setupRequest: func() *http.Request {
+				body, _ := json.Marshal(updateReq)
+				req := httptest.NewRequest(http.MethodPut, "/boards", bytes.NewBuffer(body))
+				return reqWithUser(req, userLink)
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateBoard", mock.Anything, mock.AnythingOfType("dto.UpdateBoardInfo"), userLink).
+					Return(errors.New("some unexpected error")).Once()
+			},
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 

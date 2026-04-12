@@ -200,6 +200,23 @@ func (h *BoardHandler) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	board, err := h.srv.CreateBoard(r.Context(), dto.ToNewBoardInfo(createRequest), userLink)
 	if err != nil {
+		if errors.Is(err, common.ErrorNotNullValue) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorInvalidBoardData) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidBoardData.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorInvalidBoardReference) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidBoardReference.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorUserAlreadyMember) {
+			api.RespondError(w, http.StatusConflict, common.ErrorUserAlreadyMember.Error())
+			return
+		}
+
 		logger.Error().Err(ErrCannotCreateBoard).Msg("board service CreateBoard")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateBoard.Error())
 		return
@@ -321,6 +338,16 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(err, common.ErrBoardNotFound) {
 			api.RespondError(w, http.StatusNotFound, common.ErrBoardNotFound.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorNotNullValue) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidBoardData) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidBoardData.Error())
 			return
 		}
 

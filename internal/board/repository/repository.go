@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
@@ -124,6 +125,18 @@ func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo
     `
 	_, err = tx.Exec(ctx, createBoardVersionQuery, boardId, boardInfo.Name, boardInfo.Description, boardInfo.Background)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NotNullViolation:
+				return dto.BoardEntry{}, common.ErrorNotNullValue
+			case pgerrcode.CheckViolation:
+				return dto.BoardEntry{}, common.ErrorInvalidBoardData
+			case pgerrcode.ForeignKeyViolation:
+				return dto.BoardEntry{}, common.ErrorInvalidBoardReference
+			}
+		}
+
 		return dto.BoardEntry{}, fmt.Errorf("create board version: %w", err)
 	}
 
@@ -133,6 +146,18 @@ func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo
     `
 	_, err = tx.Exec(ctx, createBoardMemberQuery, boardLink, authorLink, r.conf.CreateBoardDefaultUserRole)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NotNullViolation:
+				return dto.BoardEntry{}, common.ErrorNotNullValue
+			case pgerrcode.ForeignKeyViolation:
+				return dto.BoardEntry{}, common.ErrorInvalidBoardReference
+			case pgerrcode.UniqueViolation:
+				return dto.BoardEntry{}, common.ErrorUserAlreadyMember
+			}
+		}
+
 		return dto.BoardEntry{}, fmt.Errorf("create board member: %w", err)
 	}
 
@@ -174,6 +199,15 @@ func (r *Repository) UpdateBoard(ctx context.Context, boardInfo dto.UpdateBoardI
 
 	tag, err := r.pool.Exec(ctx, updateBoardQuery, boardInfo.Name, boardInfo.Description, boardInfo.Background, boardInfo.Link)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NotNullViolation:
+				return common.ErrorNotNullValue
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidBoardData
+			}
+		}
 		return fmt.Errorf("update board: %w", err)
 	}
 
