@@ -134,6 +134,7 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	rawBoardLink, ok := vars[boardLinkKey]
 	if !ok {
 		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
@@ -146,6 +147,7 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, common.ErrActionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrActionDenied.Error())
+			return
 		}
 
 		if errors.Is(err, common.ErrBoardNotFound) {
@@ -234,6 +236,7 @@ func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	rawBoardLink, ok := vars[boardLinkKey]
 	if !ok {
 		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
@@ -246,6 +249,7 @@ func (h *BoardHandler) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, common.ErrActionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrActionDenied.Error())
+			return
 		}
 
 		if errors.Is(err, common.ErrBoardNotFound) {
@@ -291,6 +295,7 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	rawBoardLink, ok := vars[boardLinkKey]
 	if !ok {
 		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
@@ -311,6 +316,7 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, common.ErrActionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrActionDenied.Error())
+			return
 		}
 
 		if errors.Is(err, common.ErrBoardNotFound) {
@@ -361,6 +367,7 @@ func (h *BoardHandler) UploadBackground(w http.ResponseWriter, r *http.Request) 
 	rawBoardLink, ok := vars[boardLinkKey]
 	if !ok {
 		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
@@ -448,6 +455,7 @@ func (h *BoardHandler) GetUsersOfBoard(w http.ResponseWriter, r *http.Request) {
 	rawBoardLink, ok := vars[boardLinkKey]
 	if !ok {
 		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
