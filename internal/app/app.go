@@ -159,7 +159,7 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 	return router
 }
