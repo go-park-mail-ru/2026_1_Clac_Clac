@@ -15,6 +15,7 @@ import (
 //go:generate mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
 type ProfileRepository interface {
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
+	GetProfileByLink(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
 	UpdateProfile(ctx context.Context, updatedInfo repositoryDto.UpdatedInfo) error
 	GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error)
 	UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
@@ -41,6 +42,31 @@ func NewService(deps Deps) *Service {
 
 func (s *Service) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
 	repositoryUser, err := s.deps.Rep.GetProfile(ctx, userLink)
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("rep.GetProfile: %w", err)
+	}
+
+	var avatarUrl string
+	if repositoryUser.AvatarKey != "" {
+		avatarUrl, err = url.JoinPath(s.deps.BaseURLAvatar, repositoryUser.AvatarKey)
+		if err != nil {
+			return dto.UserInfo{}, fmt.Errorf("url.JoinPath: %w", err)
+		}
+	}
+
+	user := dto.UserInfo{
+		Link:        repositoryUser.Link,
+		DisplayName: repositoryUser.DisplayName,
+		Description: repositoryUser.DescriptionUser,
+		Email:       repositoryUser.Email,
+		AvatarURL:   avatarUrl,
+	}
+
+	return user, nil
+}
+
+func (s *Service) GetProfileByLink(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
+	repositoryUser, err := s.deps.Rep.GetProfileByLink(ctx, userLink)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.GetProfile: %w", err)
 	}

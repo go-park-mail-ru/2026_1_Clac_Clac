@@ -67,6 +67,10 @@ func (r *Repository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.Us
 	return userInfo, nil
 }
 
+func (r *Repository) GetProfileByLink(ctx context.Context, userLink uuid.UUID) (dto.UserInfoEntity, error) {
+	return r.GetProfile(ctx, userLink)
+}
+
 func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
 	query := `
 	UPDATE "user"
