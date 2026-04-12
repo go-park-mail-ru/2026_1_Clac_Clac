@@ -12,7 +12,9 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	mockS3 "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/mock_s3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -117,7 +119,13 @@ func TestGetProfile(t *testing.T) {
 			user, err := repoProfile.GetProfile(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrorNonexistentUser) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -164,6 +172,27 @@ func TestUpdateProfile(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			nameTest: "Error missing required field",
+			info:     updatedInfo,
+			mockSetup: func(mock pgxmock.PgxPoolIface) {
+				query := `
+				UPDATE "user"
+				SET 
+					display_name = $1, 
+					description_user = $2,
+					updated_at = NOW()
+				WHERE link = $3 AND (
+					display_name IS DISTINCT FROM $1 OR
+					description_user IS DISTINCT FROM $2
+				)`
+
+				mock.ExpectExec(regexp.QuoteMeta(query)).
+					WithArgs(updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+			},
+			expectedError: common.ErrorMissingRequiredField,
+		},
+		{
 			nameTest: "Error from DB",
 			info:     updatedInfo,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
@@ -198,7 +227,13 @@ func TestUpdateProfile(t *testing.T) {
 			err = repoProfile.UpdateProfile(context.Background(), test.info)
 
 			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrorMissingRequiredField) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -277,7 +312,13 @@ func TestGetAvatarKey(t *testing.T) {
 			key, err := repoProfile.GetAvatarKey(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrorNonexistentUser) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -406,7 +447,13 @@ func TestUploadURLAvatar(t *testing.T) {
 			err = repoProfile.UploadURLAvatar(context.Background(), targetLink, objectKey)
 
 			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrorNonexistentUser) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -526,7 +573,13 @@ func TestDeleteURLAvatar(t *testing.T) {
 			err = repoProfile.DeleteURLAvatar(context.Background(), targetLink)
 
 			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrorNonexistentUser) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
 			} else {
 				assert.NoError(t, err)
 			}

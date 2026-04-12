@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -89,8 +90,8 @@ func TestGetSection(t *testing.T) {
 			mockBehavior: func(m *mockSectionService.SectionService) {
 				m.On("GetSectionInfo", mock.Anything, targetSectionLink).Return(serviceDto.FullSectionInfo{}, common.ErrorNotExistingSection)
 			},
-			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, failFindSection),
+			expectedStatusCode: http.StatusNotFound, // Исправлено на 404
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failFindSection),
 		},
 		{
 			nameTest: "Error internal server",
@@ -205,6 +206,42 @@ func TestCreateSection(t *testing.T) {
 			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectRequest),
 		},
 		{
+			nameTest:    "Error section already exist",
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceCreatingSection).Return(serviceDto.EntitySection{}, common.ErrorSectionAlreadyExist)
+			},
+			expectedStatusCode: http.StatusConflict,
+			expectedResponse:   newErrorResponse(http.StatusConflict, incorrectUniqSection),
+		},
+		{
+			nameTest:    "Error invalid reference data",
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceCreatingSection).Return(serviceDto.EntitySection{}, common.ErrorInvalidReferenceSectionData) // Исправлено на SectionData
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error invalid section data",
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceCreatingSection).Return(serviceDto.EntitySection{}, common.ErrorInvalidSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidSectionData),
+		},
+		{
+			nameTest:    "Error missing required field",
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceCreatingSection).Return(serviceDto.EntitySection{}, common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
+		},
+		{
 			nameTest:    "Error internal server",
 			requestBody: validRequest,
 			mockBehavior: func(m *mockSectionService.SectionService) {
@@ -295,6 +332,33 @@ func TestDeleteSection(t *testing.T) {
 			expectedResponse:   newErrorResponse(http.StatusBadRequest, failDeleteBacklog),
 		},
 		{
+			nameTest: "Error invalid reference data",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, targetSectionLink).Return(common.ErrorInvalidReferenceSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest: "Error invalid card data",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, targetSectionLink).Return(common.ErrorInvalidCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidCardData),
+		},
+		{
+			nameTest: "Error missing required field",
+			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, targetSectionLink).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
+		},
+		{
 			nameTest: "Error internal server",
 			pathVars: map[string]string{sectionLinkKey: targetSectionLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
@@ -383,6 +447,46 @@ func TestReorderSection(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 			expectedResponse:   newErrorResponse(http.StatusNotFound, failFindSection),
 		},
+		{
+			nameTest:    "Error invalid section data",
+			pathVars:    map[string]string{boardLinkKey: boardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, validRequest.List).Return(common.ErrorInvalidSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidSectionData),
+		},
+		{
+			nameTest:    "Error invalid reference data",
+			pathVars:    map[string]string{boardLinkKey: boardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, validRequest.List).Return(common.ErrorInvalidReferenceSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error missing required field",
+			pathVars:    map[string]string{boardLinkKey: boardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, validRequest.List).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
+		},
+		{
+			nameTest:    "Error internal server",
+			pathVars:    map[string]string{boardLinkKey: boardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, validRequest.List).Return(errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   newErrorResponse(http.StatusInternalServerError, failReorderSections),
+		},
 	}
 
 	for _, test := range tests {
@@ -401,7 +505,7 @@ func TestReorderSection(t *testing.T) {
 				bodyBytes, _ = json.Marshal(test.requestBody)
 			}
 
-			request := httptest.NewRequest(http.MethodPut, "/", bytes.NewBuffer(bodyBytes))
+			request := httptest.NewRequest(http.MethodPatch, "/", bytes.NewBuffer(bodyBytes)) // Исправлено на PATCH
 			request = mux.SetURLVars(request, test.pathVars)
 
 			response := httptest.NewRecorder()
@@ -421,6 +525,7 @@ func TestReorderSection(t *testing.T) {
 func TestUpdateSection(t *testing.T) {
 	sectionLink := common.FixedBoardUuiD
 	maxTasks := 50
+	invalidMaxTasks := 101
 
 	validRequest := dto.FullSectionInfo{
 		SectionName: "Updated Name",
@@ -476,6 +581,14 @@ func TestUpdateSection(t *testing.T) {
 			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
 		},
 		{
+			nameTest:           "Error invalid json body",
+			pathVars:           map[string]string{sectionLinkKey: sectionLink.String()},
+			requestBody:        "invalid json",
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
+		},
+		{
 			nameTest:           "Error invalid section name length",
 			pathVars:           map[string]string{sectionLinkKey: sectionLink.String()},
 			requestBody:        invalidNameRequest,
@@ -490,6 +603,18 @@ func TestUpdateSection(t *testing.T) {
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectTypeColor),
+		},
+		{
+			nameTest: "Error invalid max tasks",
+			pathVars: map[string]string{sectionLinkKey: sectionLink.String()},
+			requestBody: dto.FullSectionInfo{
+				SectionName: "Updated Name",
+				Color:       "red",
+				MaxTasks:    &invalidMaxTasks,
+			},
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("max quantity tasks is %d", 100)),
 		},
 		{
 			nameTest:    "Error section not found",
@@ -510,6 +635,36 @@ func TestUpdateSection(t *testing.T) {
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponse:   newErrorResponse(http.StatusBadRequest, failUpdateBacklog),
+		},
+		{
+			nameTest:    "Error invalid reference data",
+			pathVars:    map[string]string{sectionLinkKey: sectionLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrorInvalidReferenceSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error invalid section data",
+			pathVars:    map[string]string{sectionLinkKey: sectionLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrorInvalidSectionData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidSectionData),
+		},
+		{
+			nameTest:    "Error missing required field",
+			pathVars:    map[string]string{sectionLinkKey: sectionLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
 		},
 		{
 			nameTest:    "Error internal server",

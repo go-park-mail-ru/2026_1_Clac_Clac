@@ -24,6 +24,8 @@ require (
 	golang.org/x/sync v0.19.0
 )
 
+require github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
+
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/alicebob/miniredis/v2 v2.37.0 // direct

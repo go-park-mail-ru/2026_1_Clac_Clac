@@ -10,8 +10,10 @@ import (
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/rs/zerolog"
 )
 
 type DBEngine interface {
@@ -82,12 +84,21 @@ func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 }
 
 func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.UpdatingCardDetails) (err error) {
+	logger := zerolog.Ctx(ctx)
+
 	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid rall back")
+			}
+		}
+	}()
 
 	queryClose := `
 	UPDATE task_version
@@ -124,6 +135,18 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 		updatingCard.DataDeadLine,
 	)
 	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrorInvalidReferenceCardData
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			}
+		}
+
 		return fmt.Errorf("tx.Exec: %w", err)
 	}
 
@@ -134,13 +157,22 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	return nil
 }
 
-func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard) error {
+func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard) (err error) {
+	logger := zerolog.Ctx(ctx)
+
 	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid rall back")
+			}
+		}
+	}()
 
 	queryClose := `
 		UPDATE task_version
@@ -225,6 +257,17 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		dueDate,
 	)
 	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrorInvalidReferenceCardData
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			}
+		}
 		return fmt.Errorf("tx.Exec: %w", err)
 	}
 
@@ -236,11 +279,20 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 }
 
 func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, error) {
+	logger := zerolog.Ctx(ctx)
+
 	tx, err := r.deps.Pool.Begin(ctx)
 	if err != nil {
 		return -1, fmt.Errorf("pool.Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid rall back")
+			}
+		}
+	}()
 
 	queryTask := `
 		INSERT INTO task (task_link, author_link) 
@@ -248,11 +300,20 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	`
 	_, err = tx.Exec(ctx, queryTask, newCard.LinkCard, newCard.LinkAuthor)
 	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.UniqueViolation:
+				return -1, common.ErrorCardAlreadyExist
+			case pgerrcode.NotNullViolation:
+				return -1, common.ErrorMissingRequiredField
+			}
+		}
 		return -1, fmt.Errorf("tx.Exec insert task: %w", err)
 	}
 
 	queryPos := `
-		SELECT COALESCE(MAX(position), 0) + 1 
+		SELECT COALESCE(MAX(position), 0) + 1 FOR NO KEY UPDATE
 		FROM task_version 
 		WHERE section_link = $1 AND valid_to IS NULL;
 	`
@@ -281,7 +342,24 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 		if strings.Contains(err.Error(), "fk_version_section") {
 			return -1, common.ErrorNotExistingSection
 		}
-		return -1, fmt.Errorf("tx.Exec: %w", err)
+
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			if pgError.Code == pgerrcode.ForeignKeyViolation && pgError.ConstraintName == "fk_version_section" {
+				return -1, common.ErrorNotExistingSection
+			}
+			switch pgError.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return -1, common.ErrorInvalidReferenceCardData
+			case pgerrcode.CheckViolation:
+				return -1, common.ErrorInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return -1, common.ErrorMissingRequiredField
+
+			}
+
+			return -1, fmt.Errorf("tx.Exec: %w", err)
+		}
 	}
 
 	if err = tx.Commit(ctx); err != nil {

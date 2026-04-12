@@ -22,11 +22,16 @@ const (
 	failGetSection      = "can not get info section"
 	failGetAllSections  = "can not get all info section"
 	failCreateSection   = "can not create new section"
-	failDeleteSection   = "can not delete new"
+	failDeleteSection   = "can not delete section"
 	failReorderSections = "can not reorder sections"
 	failUpdateSection   = "can not update section"
 
-	incorrectTypeColor = "color can be white, grey, red, orange, blue, green, purple, pink"
+	incorrectTypeColor   = "color can be white, grey, red, orange, blue, green, purple, pink"
+	incorrectUniqSection = "section already exists"
+	incorrectReferences  = "incorrect foreign key"
+	failNullValue        = "can not use null element"
+	invalidSectionData   = "invalid section data"
+	invalidCardData      = "invalid card data"
 
 	sectionLinkKey = "link"
 	boardLinkKey   = "board_link"
@@ -65,8 +70,9 @@ func NewHandler(deps Deps) *Handler {
 // @Tags         sections
 // @Produce      json
 // @Param        link path string true "UUID секции"
-// @Success      200 {object} dto.FullSectionInfo "Успешное получение данных секции"
-// @Failure      400 {object} api.ErrorResponse "Некорректный UUID или секция не найдена"
+// @Success      200 {object} api.OkResponse[dto.FullSectionInfo] "Успешное получение данных секции"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID в пути"
+// @Failure      404 {object} api.ErrorResponse "Секция не найдена"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
 // @Router       /sections/{link} [get]
@@ -83,7 +89,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 	result, err := h.deps.Srv.GetSectionInfo(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
-			api.RespondError(w, http.StatusBadRequest, failFindSection)
+			api.RespondError(w, http.StatusNotFound, failFindSection)
 			return
 		}
 		api.RespondError(w, http.StatusInternalServerError, failGetSection)
@@ -109,8 +115,9 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.CreatingSection true "Данные для создания секции"
-// @Success      200 {object} dto.FullSectionInfo "Секция успешно создана"
-// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или превышены лимиты задач"
+// @Success      200 {object} api.OkResponse[dto.FullSectionInfo] "Секция успешно создана"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос, превышены лимиты задач, неверный внешний ключ или отсутствуют обязательные поля"
+// @Failure      409 {object} api.ErrorResponse "Секция с таким названием/ссылкой уже существует"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
 // @Router       /sections [post]
@@ -136,7 +143,28 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 		Color:       newSection.Color,
 		MaxTasks:    newSection.MaxTasks,
 	})
+
 	if err != nil {
+		if errors.Is(err, common.ErrorSectionAlreadyExist) {
+			api.RespondError(w, http.StatusConflict, incorrectUniqSection)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidReferenceSectionData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidSectionData) {
+			api.RespondError(w, http.StatusBadRequest, invalidSectionData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failCreateSection)
 		return
 	}
@@ -158,7 +186,7 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        link path string true "UUID секции"
 // @Success      200 {object} api.Response "Секция успешно удалена"
-// @Failure      400 {object} api.ErrorResponse "Попытка удалить Backlog или некорректный путь"
+// @Failure      400 {object} api.ErrorResponse "Попытка удалить Backlog, неверный внешний ключ, нарушены данные карточек или пустые обязательные поля"
 // @Failure      404 {object} api.ErrorResponse "Секция не найдена"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
@@ -185,6 +213,21 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, common.ErrorInvalidReferenceSectionData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidCardData) {
+			api.RespondError(w, http.StatusBadRequest, invalidCardData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failDeleteSection)
 		return
 	}
@@ -201,8 +244,8 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 // @Param        board_link path string true "UUID доски"
 // @Param        request body dto.ListSectionLink true "Новый порядок секций (массив UUID)"
 // @Success      200 {object} api.Response "Порядок секций успешно обновлен"
-// @Failure      400 {object} api.ErrorResponse "Некорректный запрос или UUID доски"
-// @Failure      404 {object} api.ErrorResponse "Не все переданные секции найдены"
+// @Failure      400 {object} api.ErrorResponse "Некорректный запрос, неверные данные секции, внешний ключ или пропущены поля"
+// @Failure      404 {object} api.ErrorResponse "Не все переданные секции найдены для реордера"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
 // @Router       /boards/{board_link}/sections/reorder [patch]
@@ -231,6 +274,21 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, common.ErrorInvalidSectionData) {
+			api.RespondError(w, http.StatusBadRequest, invalidSectionData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidReferenceSectionData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failReorderSections)
 		return
 	}
@@ -247,7 +305,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 // @Param        link path string true "UUID секции"
 // @Param        request body dto.FullSectionInfo true "Новые данные секции"
 // @Success      200 {object} api.Response "Секция успешно обновлена"
-// @Failure      400 {object} api.ErrorResponse "Ошибка валидации, попытка изменить Backlog или неверный цвет"
+// @Failure      400 {object} api.ErrorResponse "Ошибка валидации, попытка изменить Backlog, неверный цвет, неверный внешний ключ или пустые обязательные поля"
 // @Failure      404 {object} api.ErrorResponse "Секция не найдена"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
@@ -309,6 +367,21 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, common.ErrorInvalidReferenceSectionData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidSectionData) {
+			api.RespondError(w, http.StatusBadRequest, invalidSectionData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failUpdateSection)
 		return
 	}
@@ -322,7 +395,7 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 // @Tags         sections
 // @Produce      json
 // @Param        board_link path string true "UUID доски"
-// @Success      200 {object} dto.SectionsResponse "Успешное получение списка секций"
+// @Success      200 {object} api.OkResponse[dto.SectionsResponse] "Успешное получение списка секций"
 // @Failure      400 {object} api.ErrorResponse "Некорректный UUID доски"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth

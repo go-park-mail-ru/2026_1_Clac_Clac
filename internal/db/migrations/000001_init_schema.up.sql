@@ -18,7 +18,9 @@ CREATE TABLE "user" (
     avatar_key TEXT DEFAULT '',
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    CONSTRAINT check_display_name CHECK (char_length(display_name) <= 128),
+    CONSTRAINT check_length_description CHECK (char_length(description_user) <= 1000),
 );
 
 CREATE TRIGGER set_user_updated_at
@@ -125,7 +127,7 @@ WHERE s.deleted_at IS NULL;
 CREATE TABLE task (
     task_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
-    author_link UUID NOT NULL,
+    author_link UUID,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
@@ -146,7 +148,7 @@ CREATE TABLE task_version (
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
-    CONSTRAINT check_length_title CHECK (char_length(title) <= 128),
+    CONSTRAINT check_length_itle CHECK (char_length(title) <= 128),
     CONSTRAINT check_length_description CHECK (char_length(description) <= 1000),
     CONSTRAINT check_task_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
     CONSTRAINT fk_version_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE

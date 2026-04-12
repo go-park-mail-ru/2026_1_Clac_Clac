@@ -24,8 +24,12 @@ const (
 	failReorderCard = "can not reorder card"
 	failCreateCard  = "can not create new card"
 	failFindSection = "can not find section"
+	failNullValue   = "can not use null element"
 
-	incorectMoveCard = "can not skip mandatory section"
+	incorrectMoveCard   = "can not skip mandatory section"
+	incorrectUniqCard   = "link card must be unique"
+	incorrectReferences = "incorrect foreign key"
+	invalidCardData     = "invalid card data"
 
 	cardLinkKey = "link"
 )
@@ -184,9 +188,25 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 		LinkExecuter: updatingInfo.LinkExecuter,
 		DataDeadLine: updatingInfo.DataDeadLine,
 	})
+
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingCard) {
 			api.RespondError(w, http.StatusNotFound, failFindCard)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidReferenceCardData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidCardData) {
+			api.RespondError(w, http.StatusBadRequest, invalidCardData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
 			return
 		}
 
@@ -234,14 +254,30 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 		LinkSection: updatingPlaceCard.LinkSection,
 		Position:    updatingPlaceCard.Position,
 	})
+
 	if err != nil {
 		if errors.Is(err, common.ErrorSkipMandatorySection) {
-			api.RespondError(w, http.StatusBadRequest, incorectMoveCard)
+			api.RespondError(w, http.StatusBadRequest, incorrectMoveCard)
 			return
 		}
 
 		if errors.Is(err, common.ErrorNotExistingCard) {
 			api.RespondError(w, http.StatusNotFound, failFindCard)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidReferenceCardData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidCardData) {
+			api.RespondError(w, http.StatusBadRequest, invalidCardData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
 			return
 		}
 
@@ -263,6 +299,7 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 // @Failure      400 {object} api.ErrorResponse "Некорректный запрос или превышена максимальная длина текста"
 // @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
 // @Failure      404 {object} api.ErrorResponse "Указанная секция не найдена"
+// @Failure      409 {object} api.ErrorResponse "Конфликт данных (например, карточка уже существует)"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
 // @Router       /cards [post]
@@ -304,6 +341,26 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
+			return
+		}
+
+		if errors.Is(err, common.ErrorCardAlreadyExist) {
+			api.RespondError(w, http.StatusConflict, incorrectUniqCard)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidReferenceCardData) {
+			api.RespondError(w, http.StatusBadRequest, incorrectReferences)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidCardData) {
+			api.RespondError(w, http.StatusBadRequest, invalidCardData)
+			return
+		}
+
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
 			return
 		}
 

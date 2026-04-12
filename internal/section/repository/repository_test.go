@@ -3,12 +3,15 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v3"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,7 +88,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
 					if errors.Is(test.expectedError, common.ErrorNotExistingSection) {
-						assert.ErrorIs(t, err, common.ErrorNotExistingSection)
+						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -161,6 +164,58 @@ func TestRepositoryCreateSection(t *testing.T) {
 			expectedData:  expectedResult,
 		},
 		{
+			nameTest: "Error section already exist",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)INSERT INTO section \(section_link, board_link\).*`).
+					WithArgs(creatingSection.SectionLink, creatingSection.BoardLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorSectionAlreadyExist,
+			expectedData:  dto.FullSectionInfo{},
+		},
+		{
+			nameTest: "Error missing required field in section",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)INSERT INTO section \(section_link, board_link\).*`).
+					WithArgs(creatingSection.SectionLink, creatingSection.BoardLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorMissingRequiredField,
+			expectedData:  dto.FullSectionInfo{},
+		},
+		{
+			nameTest: "Error check violation in version",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)INSERT INTO section \(section_link, board_link\).*`).
+					WithArgs(creatingSection.SectionLink, creatingSection.BoardLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				m.ExpectQuery(`(?s)SELECT COALESCE\(MAX.*`).
+					WithArgs(creatingSection.BoardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(2))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version.*`).
+					WithArgs(
+						creatingSection.SectionLink,
+						creatingSection.SectionName,
+						2,
+						creatingSection.IsMandatory,
+						creatingSection.Color,
+						creatingSection.MaxTasks,
+					).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidSectionData,
+			expectedData:  dto.FullSectionInfo{},
+		},
+		{
 			nameTest: "Error execution fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -169,7 +224,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 					WillReturnError(errors.New("insert conflict"))
 				m.ExpectRollback()
 			},
-			expectedError: errors.New("tx.Exec: insert conflict"),
+			expectedError: errors.New("tx.Exec section: insert conflict"),
 			expectedData:  dto.FullSectionInfo{},
 		},
 	}
@@ -191,7 +246,14 @@ func TestRepositoryCreateSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					assert.EqualError(t, err, test.expectedError.Error())
+					if errors.Is(test.expectedError, common.ErrorSectionAlreadyExist) ||
+						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
 				}
 			} else {
 				if assert.NoError(t, err) {
@@ -262,6 +324,77 @@ func TestRepositoryDeleteSection(t *testing.T) {
 			},
 			expectedError: common.ErrorDeleteBacklog,
 		},
+		{
+			nameTest: "Error move tasks invalid reference data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
+					WithArgs(targetLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 2))
+
+				m.ExpectQuery(`(?s)SELECT s.section_link FROM section s.*`).
+					WithArgs(boardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link"}).AddRow(backlogLink))
+
+				m.ExpectExec(`(?s)UPDATE section SET deleted_at = NOW\(\).*`).
+					WithArgs(targetLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+				m.ExpectExec(`(?s)WITH closed_tasks AS \(.*`).
+					WithArgs(targetLink, backlogLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidReferenceSectionData,
+		},
+		{
+			nameTest: "Error move tasks invalid card data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
+					WithArgs(targetLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 2))
+
+				m.ExpectQuery(`(?s)SELECT s.section_link FROM section s.*`).
+					WithArgs(boardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link"}).AddRow(backlogLink))
+
+				m.ExpectExec(`(?s)UPDATE section SET deleted_at = NOW\(\).*`).
+					WithArgs(targetLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+				m.ExpectExec(`(?s)WITH closed_tasks AS \(.*`).
+					WithArgs(targetLink, backlogLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidCardData,
+		},
+		{
+			nameTest: "Error generic DB error on delete",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)SELECT s.board_link, v.position FROM section s.*`).
+					WithArgs(targetLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 2))
+
+				m.ExpectQuery(`(?s)SELECT s.section_link FROM section s.*`).
+					WithArgs(boardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link"}).AddRow(backlogLink))
+
+				m.ExpectExec(`(?s)UPDATE section SET deleted_at = NOW\(\).*`).
+					WithArgs(targetLink).
+					WillReturnError(errors.New("db error on delete"))
+
+				m.ExpectRollback()
+			},
+			expectedError: fmt.Errorf("tx.Exec delete section: %w", errors.New("db error on delete")),
+		},
 	}
 
 	for _, test := range tests {
@@ -281,8 +414,12 @@ func TestRepositoryDeleteSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) {
-						assert.ErrorIs(t, err, common.ErrorNotExistingSection)
+					if errors.Is(test.expectedError, common.ErrorNotExistingSection) ||
+						errors.Is(test.expectedError, common.ErrorDeleteBacklog) ||
+						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) ||
+						errors.Is(test.expectedError, common.ErrorInvalidCardData) ||
+						errors.Is(test.expectedError, common.ErrorMissingRequiredField) {
+						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -331,6 +468,39 @@ func TestRepositoryReorderSection(t *testing.T) {
 			expectedError: common.ErrorNotFindAllLinks,
 		},
 		{
+			nameTest: "Error check violation data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidSectionData,
+		},
+		{
+			nameTest: "Error missing required field",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorMissingRequiredField,
+		},
+		{
+			nameTest: "Error foreign key violation",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectExec(`(?s)WITH new_positions AS \(.*`).
+					WithArgs(linksSection, boardLink).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidReferenceSectionData,
+		},
+		{
 			nameTest: "Error query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -339,7 +509,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 					WillReturnError(errors.New("db error"))
 				m.ExpectRollback()
 			},
-			expectedError: errors.New("tx.Exec: db error"),
+			expectedError: errors.New("tx.Exec reorder: db error"),
 		},
 	}
 
@@ -360,8 +530,11 @@ func TestRepositoryReorderSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotFindAllLinks) {
-						assert.ErrorIs(t, err, common.ErrorNotFindAllLinks)
+					if errors.Is(test.expectedError, common.ErrorNotFindAllLinks) ||
+						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -428,6 +601,98 @@ func TestRepositoryUpdateSection(t *testing.T) {
 			},
 			expectedError: common.ErrorNotExistingSection,
 		},
+		{
+			nameTest: "Error missing required field",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(3))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version \(section_link, section_name.*`).
+					WithArgs(
+						updateData.SectionLink,
+						updateData.SectionName,
+						3,
+						updateData.IsMandatory,
+						updateData.Color,
+						updateData.MaxTasks,
+					).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorMissingRequiredField,
+		},
+		{
+			nameTest: "Error foreign key violation",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(3))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version \(section_link, section_name.*`).
+					WithArgs(
+						updateData.SectionLink,
+						updateData.SectionName,
+						3,
+						updateData.IsMandatory,
+						updateData.Color,
+						updateData.MaxTasks,
+					).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidReferenceSectionData,
+		},
+		{
+			nameTest: "Error invalid section data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(3))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version \(section_link, section_name.*`).
+					WithArgs(
+						updateData.SectionLink,
+						updateData.SectionName,
+						3,
+						updateData.IsMandatory,
+						updateData.Color,
+						updateData.MaxTasks,
+					).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
+
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrorInvalidSectionData,
+		},
+		{
+			nameTest: "Error generic DB error on exec",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE section_version.*SET valid_to = NOW\(\).*`).
+					WithArgs(updateData.SectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(3))
+
+				m.ExpectExec(`(?s)INSERT INTO section_version \(section_link, section_name.*`).
+					WithArgs(
+						updateData.SectionLink,
+						updateData.SectionName,
+						3,
+						updateData.IsMandatory,
+						updateData.Color,
+						updateData.MaxTasks,
+					).
+					WillReturnError(errors.New("db error"))
+
+				m.ExpectRollback()
+			},
+			expectedError: fmt.Errorf("tx.Exec insert update: %w", errors.New("db error")),
+		},
 	}
 
 	for _, test := range tests {
@@ -447,8 +712,11 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) {
-						assert.ErrorIs(t, err, common.ErrorNotExistingSection)
+					if errors.Is(test.expectedError, common.ErrorNotExistingSection) ||
+						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -504,6 +772,16 @@ func TestRepositoryGetAllSections(t *testing.T) {
 			},
 			expectedError: nil,
 			expectedData:  expectedSections,
+		},
+		{
+			nameTest: "Error DB query fails",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT.*FROM section_actual.*WHERE board_link = \$1.*ORDER BY position ASC`).
+					WithArgs(boardLink).
+					WillReturnError(errors.New("db error"))
+			},
+			expectedError: fmt.Errorf("pool.Query: %w", errors.New("db error")),
+			expectedData:  nil,
 		},
 	}
 
