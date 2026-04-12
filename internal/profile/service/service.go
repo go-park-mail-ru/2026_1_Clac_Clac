@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
+//go:generate mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
 type ProfileRepository interface {
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
 	UpdateProfile(ctx context.Context, updatedInfo repositoryDto.UpdatedInfo) error

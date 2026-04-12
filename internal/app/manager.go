@@ -42,7 +42,7 @@ func NewManager(s *Store, conf config.Config) *Manager {
 	profileDeps := profile.Deps{
 		Rep:               s.Profile,
 		GenerateAvatarKey: profile.GenerateAvatarKey,
-		BaseURLAvatar:     s3.GenerateBaseURL(conf.S3Avatars.Bucket, conf.S3Avatars.Endpoint),
+		BaseURLAvatar:     s3.GetURL(conf.S3Avatars.Endpoint, conf.S3Avatars.Bucket),
 	}
 
 	sectionDeps := section.Deps{

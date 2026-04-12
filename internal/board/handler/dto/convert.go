@@ -2,6 +2,7 @@ package dto
 
 import (
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
+	"github.com/google/uuid"
 )
 
 func BoardInfoResponseFromInfo(info serviceDto.BoardInfo) BoardInfoResponse {
@@ -22,9 +23,9 @@ func ToNewBoardInfo(info CreateBoardRequest) serviceDto.NewBoardInfo {
 	}
 }
 
-func ToUpdateBoardInfo(info UpdateBoardRequest) serviceDto.UpdateBoardInfo {
+func ToUpdateBoardInfo(info UpdateBoardRequest, boardLink uuid.UUID) serviceDto.UpdateBoardInfo {
 	return serviceDto.UpdateBoardInfo{
-		Link:        info.Link,
+		Link:        boardLink,
 		Name:        info.Name,
 		Description: info.Description,
 		Background:  info.Background,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -94,7 +96,11 @@ func (h *BoardHandler) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 	boardsResponse := make([]dto.BoardInfoResponse, 0)
 	for _, board := range boards {
-		boardsResponse = append(boardsResponse, dto.BoardInfoResponseFromInfo(board))
+		info := dto.BoardInfoResponseFromInfo(board)
+		if strings.HasPrefix(info.Background, "backgrounds") {
+			info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+		}
+		boardsResponse = append(boardsResponse, info)
 	}
 
 	api.HandleError(api.RespondOk(w, boardsResponse))
@@ -152,7 +158,12 @@ func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.BoardInfoResponseFromInfo(board)))
+	info := dto.BoardInfoResponseFromInfo(board)
+	if strings.HasPrefix(info.Background, "backgrounds") {
+		info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+	}
+
+	api.HandleError(api.RespondOk(w, info))
 }
 
 // @Summary		Создать новую доску
@@ -275,6 +286,19 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	vars := mux.Vars(r)
+
+	rawBoardLink, ok := vars[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
 	var updateRequest dto.UpdateBoardRequest
 	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
 		logger.Error().Err(ErrInvalidRequestSchema).Msg("decode update board request")
@@ -283,7 +307,7 @@ func (h *BoardHandler) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 	updateRequest.Sanitize()
 
-	err := h.srv.UpdateBoard(r.Context(), dto.ToUpdateBoardInfo(updateRequest), userLink)
+	err = h.srv.UpdateBoard(r.Context(), dto.ToUpdateBoardInfo(updateRequest, boardLink), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrActionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrActionDenied.Error())

@@ -20,10 +20,9 @@ type DeleteBoardRequest struct {
 
 // UpdateBoardRequest описывает модель для обновления данных доски
 type UpdateBoardRequest struct {
-	Link        uuid.UUID `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Name        string    `json:"name" example:"Project Beta"`
-	Description string    `json:"description" example:"Обновленное описание"`
-	Background  string    `json:"background" example:"https://example.com/bg.png"`
+	Name        string `json:"name" example:"Project Beta"`
+	Description string `json:"description" example:"Обновленное описание"`
+	Background  string `json:"background" example:"https://example.com/bg.png"`
 }
 
 // BoardInfoResponse описывает модель ответа с информацией о доске
