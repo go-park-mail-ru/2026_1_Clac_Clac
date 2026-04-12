@@ -113,15 +113,15 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	vkOAuth := setupVKOAuth(&conf.VkOAuth)
 	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(&conf.VkOAuth, "/", vkOAuth))
 
+	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
+	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
+	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
+
 	csrfProtected := router.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
 
 	publicWithCSRFProtection := csrfProtected.PathPrefix("/").Subrouter()
 	publicWithCSRFProtection.Use(textSizeLimitter)
-
-	publicWithCSRFProtection.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
-	publicWithCSRFProtection.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
-	publicWithCSRFProtection.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
 	// Для досутпа к этим ручкам нужна авторизация
 	protected := csrfProtected.PathPrefix("/").Subrouter()
