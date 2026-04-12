@@ -268,6 +268,36 @@ func TestUpdateCardDetails(t *testing.T) {
 			expectedResponse:   newErrorResponse(http.StatusNotFound, failFindCard),
 		},
 		{
+			nameTest:    "Error invalid reference data",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateCardDetails", mock.Anything, mock.Anything).Return(common.ErrorInvalidReferenceCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error check violation data",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateCardDetails", mock.Anything, mock.Anything).Return(common.ErrorInvalidCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidCardData),
+		},
+		{
+			nameTest:    "Error missing required field",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateCardDetails", mock.Anything, mock.Anything).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
+		},
+		{
 			nameTest:    "Error internal server",
 			pathVars:    map[string]string{"link": targetCardLink.String()},
 			requestBody: validRequest,
@@ -337,7 +367,6 @@ func TestReorderCard(t *testing.T) {
 			pathVars:    map[string]string{"link": targetCardLink.String()},
 			requestBody: validRequest,
 			mockBehavior: func(m *mockCardSrv.CardService) {
-
 				m.On("ReorderCard", mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
@@ -369,7 +398,37 @@ func TestReorderCard(t *testing.T) {
 				m.On("ReorderCard", mock.Anything, mock.Anything).Return(common.ErrorSkipMandatorySection)
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorectMoveCard),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectMoveCard),
+		},
+		{
+			nameTest:    "Error invalid reference data",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("ReorderCard", mock.Anything, mock.Anything).Return(common.ErrorInvalidReferenceCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error check violation data",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("ReorderCard", mock.Anything, mock.Anything).Return(common.ErrorInvalidCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidCardData),
+		},
+		{
+			nameTest:    "Error missing required field",
+			pathVars:    map[string]string{"link": targetCardLink.String()},
+			requestBody: validRequest,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("ReorderCard", mock.Anything, mock.Anything).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
 		},
 		{
 			nameTest:    "Error internal server",
@@ -399,7 +458,7 @@ func TestReorderCard(t *testing.T) {
 				bodyBytes, _ = json.Marshal(test.requestBody)
 			}
 
-			request := httptest.NewRequest(http.MethodPut, "/", bytes.NewBuffer(bodyBytes))
+			request := httptest.NewRequest(http.MethodPatch, "/", bytes.NewBuffer(bodyBytes))
 			request = mux.SetURLVars(request, test.pathVars)
 			response := httptest.NewRecorder()
 
@@ -415,6 +474,7 @@ func TestReorderCard(t *testing.T) {
 		})
 	}
 }
+
 func TestCreateCard(t *testing.T) {
 	targetSectionLink := uuid.New()
 	targetAuthorLink := uuid.New()
@@ -493,6 +553,46 @@ func TestCreateCard(t *testing.T) {
 			},
 			expectedStatusCode: http.StatusNotFound,
 			expectedResponse:   newErrorResponse(http.StatusNotFound, failFindSection),
+		},
+		{
+			nameTest:    "Error card already exist",
+			requestBody: validRequest,
+			withAuth:    true,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrorCardAlreadyExist)
+			},
+			expectedStatusCode: http.StatusConflict,
+			expectedResponse:   newErrorResponse(http.StatusConflict, incorrectUniqCard),
+		},
+		{
+			nameTest:    "Error invalid reference data",
+			requestBody: validRequest,
+			withAuth:    true,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrorInvalidReferenceCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, incorrectReferences),
+		},
+		{
+			nameTest:    "Error check violation data",
+			requestBody: validRequest,
+			withAuth:    true,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrorInvalidCardData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidCardData),
+		},
+		{
+			nameTest:    "Error missing required field",
+			requestBody: validRequest,
+			withAuth:    true,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
 		},
 		{
 			nameTest:    "Error internal server",

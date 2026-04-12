@@ -31,6 +31,9 @@ const (
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
 	failUpdateUserInfo  = "can not update name or description"
+	failNullValue       = "get null, but wait not null"
+
+	invalidProfileData = "invalid profile data"
 
 	nameAvatarBlock = "avatar"
 )
@@ -71,7 +74,7 @@ type Handler struct {
 // @Description  Возвращает информацию о текущем авторизованном пользователе (ID, имя, email, URL аватара).
 // @Tags         profile
 // @Produce      json
-// @Success      200 {object} dto.UserInfoResponse "Успешное получение профиля"
+// @Success      200 {object} api.OkResponse[dto.UserInfoResponse] "Успешное получение профиля"
 // @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
 // @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
@@ -115,14 +118,12 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        request body dto.UpdatedInfo true "Новые данные профиля"
 // @Success      200 {object} api.Response "Профиль успешно обновлен"
-// @Failure      400 {object} api.ErrorResponse "Некорректный формат запроса или ошибка валидации длины текста"
+// @Failure      400 {object} api.ErrorResponse "Некорректный формат, ошибка валидации длины, пропущены обязательные поля или неверные данные"
 // @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
 // @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
 // @Security     CookieAuth
 // @Router       /profiles [put]
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	logger := zerolog.Ctx(r.Context())
-
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
@@ -157,7 +158,16 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	err = h.deps.Srv.UpdateProfile(r.Context(), userInfo)
 	if err != nil {
-		logger.Err(fmt.Errorf("srv.UpdateProfile: %w", err))
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidProfileData) {
+			api.RespondError(w, http.StatusBadRequest, invalidProfileData)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failUpdateUserInfo)
 		return
 	}
@@ -172,7 +182,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        avatar formData file true "Файл изображения аватара"
-// @Success      200 {object} dto.AvatarResponse "Аватар успешно загружен, возвращает новый URL"
+// @Success      200 {object} api.OkResponse[dto.AvatarResponse] "Аватар успешно загружен, возвращает новый URL"
 // @Failure      400 {object} api.ErrorResponse "Файл слишком большой, отсутствует или имеет неверный формат"
 // @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
 // @Failure      404 {object} api.ErrorResponse "Пользователь не найден"

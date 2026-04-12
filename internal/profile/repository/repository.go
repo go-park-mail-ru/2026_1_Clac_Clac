@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -75,11 +76,20 @@ func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedI
 		updated_at = NOW()
 	WHERE link = $3 AND (
 		display_name IS DISTINCT FROM $1 OR
-      	description_user IS DISTINCT FROM $2
+		description_user IS DISTINCT FROM $2
 	)`
 
 	_, err := r.deps.Pool.Exec(ctx, query, updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidProfileData
+			}
+		}
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
 

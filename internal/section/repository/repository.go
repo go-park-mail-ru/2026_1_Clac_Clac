@@ -8,6 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -114,7 +115,6 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	if err != nil {
 		return dto.FullSectionInfo{}, fmt.Errorf("pool.Begin: %w", err)
 	}
-
 	defer tx.Rollback(ctx)
 
 	querySection := `
@@ -123,7 +123,18 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	`
 	_, err = tx.Exec(ctx, querySection, newSection.SectionLink, newSection.BoardLink)
 	if err != nil {
-		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return dto.FullSectionInfo{}, common.ErrorSectionAlreadyExist
+			case pgerrcode.ForeignKeyViolation:
+				return dto.FullSectionInfo{}, common.ErrorInvalidReferenceSectionData
+			case pgerrcode.NotNullViolation:
+				return dto.FullSectionInfo{}, common.ErrorMissingRequiredField
+			}
+		}
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec section: %w", err)
 	}
 
 	var position int
@@ -135,7 +146,7 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	`
 	err = tx.QueryRow(ctx, queryPos, newSection.BoardLink).Scan(&position)
 	if err != nil {
-		return dto.FullSectionInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.QueryRow position: %w", err)
 	}
 
 	queryVersion := `
@@ -153,7 +164,18 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 		newSection.MaxTasks,
 	)
 	if err != nil {
-		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return dto.FullSectionInfo{}, common.ErrorInvalidReferenceSectionData
+			case pgerrcode.CheckViolation:
+				return dto.FullSectionInfo{}, common.ErrorInvalidSectionData
+			case pgerrcode.NotNullViolation:
+				return dto.FullSectionInfo{}, common.ErrorMissingRequiredField
+			}
+		}
+		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec version: %w", err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -209,13 +231,13 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 	`
 	err = tx.QueryRow(ctx, queryBacklog, boardLink).Scan(&backlogLink)
 	if err != nil {
-		return fmt.Errorf("tx.QueryRow: %w", err)
+		return fmt.Errorf("tx.QueryRow backlog: %w", err)
 	}
 
 	queryDelete := `UPDATE section SET deleted_at = NOW() WHERE section_link = $1;`
 	_, err = tx.Exec(ctx, queryDelete, linksSection)
 	if err != nil {
-		return fmt.Errorf("tx.Exec: %w", err)
+		return fmt.Errorf("tx.Exec delete section: %w", err)
 	}
 
 	queryMoveTasks := `
@@ -245,7 +267,18 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 	`
 	_, err = tx.Exec(ctx, queryMoveTasks, linksSection, backlogLink)
 	if err != nil {
-		return fmt.Errorf("tx.Exec: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrorInvalidReferenceSectionData
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			}
+		}
+		return fmt.Errorf("tx.Exec move tasks: %w", err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -284,7 +317,18 @@ func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, li
 
 	commandTag, err := tx.Exec(ctx, query, linksSection, linkBoard)
 	if err != nil {
-		return fmt.Errorf("tx.Exec: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidSectionData
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrorInvalidReferenceSectionData
+			}
+		}
+		return fmt.Errorf("tx.Exec reorder: %w", err)
 	}
 
 	if commandTag.RowsAffected() != int64(len(linksSection)) {
@@ -335,7 +379,18 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 		updatingSection.MaxTasks,
 	)
 	if err != nil {
-		return fmt.Errorf("tx.Exec: %w", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrorInvalidReferenceSectionData
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidSectionData
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			}
+		}
+		return fmt.Errorf("tx.Exec insert update: %w", err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {

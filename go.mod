@@ -24,6 +24,8 @@ require (
 	golang.org/x/sync v0.19.0
 )
 
+require github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
+
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
