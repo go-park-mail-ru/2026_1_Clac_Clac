@@ -544,6 +544,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
+
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
@@ -594,6 +598,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
+
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
@@ -619,6 +627,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
+
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
@@ -640,6 +652,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
 
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).

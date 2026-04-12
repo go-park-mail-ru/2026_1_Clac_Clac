@@ -312,18 +312,24 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 		return -1, fmt.Errorf("tx.Exec insert task: %w", err)
 	}
 
-	queryPos := `
-		SELECT COALESCE(MAX(position), 0) + 1
+	queryLock := `
+		SELECT 1
 		FROM task_version
 		WHERE section_link = $1 AND valid_to IS NULL
 		FOR NO KEY UPDATE;
+	`
+	_, _ = tx.Exec(ctx, queryLock, newCard.LinkSection)
+
+	queryPos := `
+		SELECT COALESCE(MAX(position), 0) + 1
+		FROM task_version
+		WHERE section_link = $1 AND valid_to IS NULL;
 	`
 	var position int
 	err = tx.QueryRow(ctx, queryPos, newCard.LinkSection).Scan(&position)
 	if err != nil {
 		return -1, fmt.Errorf("tx.QueryRow: %w", err)
 	}
-
 	queryVersion := `
 		INSERT INTO task_version (
 			task_link, section_link, executer_link, title, description, position, due_date
