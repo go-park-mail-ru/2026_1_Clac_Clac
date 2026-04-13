@@ -428,6 +428,7 @@ func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAu
 
 		rawEmail := token.Extra(oauthEmailKey)
 		if rawEmail == nil {
+			logger.Error().Msg("VK did not provide email in token")
 			Redirect(w, r, redirectTo, http.StatusBadGateway, ErrOAuthNoEmailProvided.Error())
 			return
 		}
