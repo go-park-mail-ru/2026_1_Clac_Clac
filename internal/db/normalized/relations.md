@@ -138,6 +138,7 @@ erDiagram
     BoardTemplate {
         int ID PK
         int AuthorID FK
+        uuid Link
         string TemplateName
         timestamp CreatedAt
         timestamp UpdatedAt
@@ -182,7 +183,7 @@ erDiagram
 
     Section {
         int ID PK
-        int BoardID FK
+        int BoardLink FK
         uuid Link
         timestamp CreatedAt
     }
@@ -193,6 +194,7 @@ erDiagram
         string SectionName
         int Position
         boolean IsMandatory
+        string Color
         int MaxTasks
         timestamp ValidFrom
         timestamp ValidTo

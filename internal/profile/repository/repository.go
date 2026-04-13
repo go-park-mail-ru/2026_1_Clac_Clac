@@ -7,10 +7,10 @@ import (
 	"io"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -25,10 +25,10 @@ type Repository struct {
 	avatars s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, conf *config.S3Avatars) *Repository {
+func NewRepository(pool DBEngine, avatars s3.S3Bucket) *Repository {
 	return &Repository{
 		pool:    pool,
-		avatars: s3Client.NewBucket(conf.Bucket, conf.Prefix, s3.ACL.PublicRead),
+		avatars: avatars,
 	}
 }
 
@@ -64,20 +64,33 @@ func (r *Repository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.Us
 	return userInfo, nil
 }
 
+func (r *Repository) GetProfileByLink(ctx context.Context, userLink uuid.UUID) (dto.UserInfoEntity, error) {
+	return r.GetProfile(ctx, userLink)
+}
+
 func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {
 	query := `
 	UPDATE "user"
-	SET 
-		display_name = $1, 
+	SET
+		display_name = $1,
 		description_user = $2,
 		updated_at = NOW()
 	WHERE link = $3 AND (
 		display_name IS DISTINCT FROM $1 OR
-      	description_user IS DISTINCT FROM $2
+		description_user IS DISTINCT FROM $2
 	)`
 
 	_, err := r.pool.Exec(ctx, query, updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NotNullViolation:
+				return common.ErrorMissingRequiredField
+			case pgerrcode.CheckViolation:
+				return common.ErrorInvalidProfileData
+			}
+		}
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
 
@@ -94,7 +107,11 @@ func (r *Repository) GetAvatarKey(ctx context.Context, userLink uuid.UUID) (stri
 	var avatarKeyPtr *string
 	err := r.pool.QueryRow(ctx, query, userLink).Scan(&avatarKeyPtr)
 	if err != nil {
-		return "", common.ErrorNonexistentUser
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", common.ErrorNonexistentUser
+		}
+
+		return "", fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
 	if avatarKeyPtr == nil {

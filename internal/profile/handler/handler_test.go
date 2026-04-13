@@ -18,6 +18,7 @@ import (
 	mockProfileSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -96,6 +97,18 @@ func TestGetUserProfile(t *testing.T) {
 			expectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
 		},
 		{
+			nameTest: "Error user not found",
+			ctxValue: targetUserLink,
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileUser", mock.Anything, targetUserLink).Return(
+					serviceDto.UserInfo{},
+					common.ErrorNonexistentUser,
+				)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failFoundUser),
+		},
+		{
 			nameTest: "Error from service",
 			ctxValue: targetUserLink,
 			mockBehavior: func(m *mockProfileSrv.ProfileService) {
@@ -116,7 +129,9 @@ func TestGetUserProfile(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(mockProfileService, Config{
+				ValidExtensions: vaildExtensions,
+			})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 			if test.ctxValue != nil {
@@ -139,6 +154,97 @@ func TestGetUserProfile(t *testing.T) {
 	}
 }
 
+func TestGetProfileByLink(t *testing.T) {
+	targetUserLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	expectedUser := serviceDto.UserInfo{
+		Link:        targetUserLink,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+		AvatarURL:   "",
+	}
+
+	expectedHandlerResponse := dto.UserInfoResponse{
+		Link:        targetUserLink,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+		AvatarURL:   "",
+	}
+
+	tests := []struct {
+		nameTest           string
+		userLinkParam      string
+		mockBehavior       func(m *mockProfileSrv.ProfileService)
+		expectedStatusCode int
+		expectedResponse   any
+	}{
+		{
+			nameTest:      "Success get profile by link",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(expectedUser, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   newOkResponse(api.StatusOK, expectedHandlerResponse),
+		},
+		{
+			nameTest:           "Error invalid UUID",
+			userLinkParam:      "invalid-uuid",
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
+		},
+		{
+			nameTest:      "Error user not found",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(
+					serviceDto.UserInfo{},
+					common.ErrorNonexistentUser,
+				)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failFoundUser),
+		},
+		{
+			nameTest:      "Error from service",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(
+					serviceDto.UserInfo{},
+					errors.New("service error"),
+				)
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetInfoUser),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockProfileService := mockProfileSrv.NewProfileService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockProfileService)
+			}
+
+			handler := NewHandler(mockProfileService, Config{})
+			request := httptest.NewRequest(http.MethodGet, "/profiles/"+test.userLinkParam, nil)
+			request = mux.SetURLVars(request, map[string]string{"user_link": test.userLinkParam})
+
+			response := httptest.NewRecorder()
+			handler.GetProfileByLink(response, request)
+
+			assert.Equal(t, test.expectedStatusCode, response.Code)
+
+			if test.expectedResponse != nil {
+				responseJson, err := json.Marshal(test.expectedResponse)
+				require.NoError(t, err)
+
+				assert.Equal(t, string(responseJson), response.Body.String())
+			}
+		})
+	}
+}
+
 func TestUpdateProfile(t *testing.T) {
 	vaildExtensions := map[string]struct{}{
 		"image/jpg":  {},
@@ -147,11 +253,14 @@ func TestUpdateProfile(t *testing.T) {
 		"image/webp": {},
 	}
 
+	ErrorIncorrectLengthName := errors.New("must contain maximum 128 symbols")
+	ErrorIncorrectLengthDescription := errors.New("must contain maximum 500 symbols")
+
 	targetUserLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	tests := []struct {
 		nameTest           string
 		ctxValue           any
-		requestBody        dto.UpdatedInfo
+		requestBody        any
 		mockBahavior       func(m *mockProfileSrv.ProfileService)
 		expectedStatusCode int
 		expectedResponse   any
@@ -170,6 +279,22 @@ func TestUpdateProfile(t *testing.T) {
 			expectedResponse:   newOkResponse(api.StatusOK, api.StatusOK),
 		},
 		{
+			nameTest:           "Error user not authorized",
+			ctxValue:           nil,
+			requestBody:        dto.UpdatedInfo{DisplayName: "bobr", DescriptionUser: "desc"},
+			mockBahavior:       nil,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
+		},
+		{
+			nameTest:           "Error invalid JSON",
+			ctxValue:           targetUserLink,
+			requestBody:        "invalid-json-body",
+			mockBahavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectFormatRequest),
+		},
+		{
 			nameTest: "Invalid len display name",
 			ctxValue: targetUserLink,
 			requestBody: dto.UpdatedInfo{
@@ -178,7 +303,7 @@ func TestUpdateProfile(t *testing.T) {
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", ErrorIncorrectLength)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", ErrorIncorrectLengthName)),
 		},
 		{
 			nameTest: "Invaild len in description",
@@ -192,15 +317,53 @@ func TestUpdateProfile(t *testing.T) {
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 			aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
 			},
 			mockBahavior:       nil,
 			expectedStatusCode: http.StatusBadRequest,
-			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", ErrorIncorrectLength)),
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", ErrorIncorrectLengthDescription)),
 		},
 		{
-			nameTest: "Error update profile",
+			nameTest: "Error missing required field",
 			ctxValue: targetUserLink,
+			requestBody: dto.UpdatedInfo{
+				DisplayName:     "bobr",
+				DescriptionUser: "desc",
+			},
+			mockBahavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("UpdateProfile", mock.Anything, mock.Anything).Return(common.ErrorMissingRequiredField)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, failNullValue),
+		},
+		{
+			nameTest: "Error invalid profile data",
+			ctxValue: targetUserLink,
+			requestBody: dto.UpdatedInfo{
+				DisplayName:     "bobr",
+				DescriptionUser: "desc",
+			},
+			mockBahavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("UpdateProfile", mock.Anything, mock.Anything).Return(common.ErrorInvalidProfileData)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, invalidProfileData),
+		},
+		{
+			nameTest: "Error internal server",
+			ctxValue: targetUserLink,
+			requestBody: dto.UpdatedInfo{
+				DisplayName:     "bobr",
+				DescriptionUser: "desc",
+			},
 			mockBahavior: func(m *mockProfileSrv.ProfileService) {
 				m.On("UpdateProfile", mock.Anything, mock.Anything).Return(errors.New(failGetInfoUser))
 			},
@@ -216,8 +379,12 @@ func TestUpdateProfile(t *testing.T) {
 				test.mockBahavior(mockProfileService)
 			}
 
-			infoJSON, err := json.Marshal(test.requestBody)
-			assert.NoError(t, err, "not wait error")
+			var infoJSON []byte
+			if strBody, ok := test.requestBody.(string); ok {
+				infoJSON = []byte(strBody)
+			} else {
+				infoJSON, _ = json.Marshal(test.requestBody)
+			}
 
 			info := bytes.NewReader(infoJSON)
 			request := httptest.NewRequest(http.MethodPut, "/", info)
@@ -227,7 +394,11 @@ func TestUpdateProfile(t *testing.T) {
 			}
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(mockProfileService, Config{
+				ValidExtensions:       vaildExtensions,
+				MaxLenNameUser:        128,
+				MaxLenDescriptionUser: 500,
+			})
 			handler.UpdateProfile(response, request)
 
 			assert.Equal(t, test.expectedStatusCode, response.Code)
@@ -262,6 +433,7 @@ func TestUpdateAvatar(t *testing.T) {
 		ctxValue           any
 		formFieldName      string
 		fileContent        []byte
+		invalidMultipart   bool
 		mockBehavior       func(m *mockProfileSrv.ProfileService)
 		expectedStatusCode int
 		expectedResponse   any
@@ -278,6 +450,16 @@ func TestUpdateAvatar(t *testing.T) {
 			expectedResponse: newOkResponse(api.StatusOK, dto.AvatarResponse{
 				AvatarURL: expectedAvatarURL,
 			}),
+		},
+		{
+			nameTest:           "Error parse multipart form",
+			ctxValue:           targetUserLink,
+			formFieldName:      nameAvatarBlock,
+			fileContent:        validJpgBytes,
+			invalidMultipart:   true, // Симулируем отсутствие boundary в заголовках
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, tooLargeAvatar),
 		},
 		{
 			nameTest:           "Error invalid file field name",
@@ -305,6 +487,17 @@ func TestUpdateAvatar(t *testing.T) {
 			mockBehavior:       nil,
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedResponse:   newErrorResponse(http.StatusUnauthorized, unauthorizedMessage),
+		},
+		{
+			nameTest:      "Error user not found",
+			ctxValue:      targetUserLink,
+			formFieldName: nameAvatarBlock,
+			fileContent:   validJpgBytes,
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("UpdateAvatar", mock.Anything, mock.Anything).Return("", common.ErrorNonexistentUser)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failDeleteFile), // Согласно коду, он возвращает failDeleteFile
 		},
 		{
 			nameTest:      "Error from service",
@@ -340,7 +533,10 @@ func TestUpdateAvatar(t *testing.T) {
 			assert.NoError(t, err, "not wait error")
 
 			request := httptest.NewRequest(http.MethodPost, "/", body)
-			request.Header.Set("Content-Type", writer.FormDataContentType())
+
+			if !test.invalidMultipart {
+				request.Header.Set("Content-Type", writer.FormDataContentType())
+			}
 
 			if test.ctxValue != nil {
 				ctx := context.WithValue(context.Background(), middleware.UserContextLink{}, targetUserLink)
@@ -349,7 +545,11 @@ func TestUpdateAvatar(t *testing.T) {
 
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(mockProfileService, vaildExtensions)
+			handler := NewHandler(mockProfileService, Config{
+				ValidExtensions:     vaildExtensions,
+				MaxReadBytes:        5 * 1024 * 1024,
+				SiganatureTypeBytes: 512,
+			})
 
 			handler.UpdateAvatar(response, request)
 
@@ -418,7 +618,7 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(mockProfileService, nil)
+			handler := NewHandler(mockProfileService, Config{})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 
 			if test.ctxValue != nil {

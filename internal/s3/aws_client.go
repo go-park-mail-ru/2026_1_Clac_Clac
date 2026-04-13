@@ -45,7 +45,7 @@ func NewAWSClient(ctx context.Context, region, endpoint, access_key, secret_key 
 	}
 
 	client := awsS3.NewFromConfig(conf, func(o *awsS3.Options) {
-		o.BaseEndpoint = aws.String(endpoint)
+		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s", endpoint))
 	})
 
 	return &AWSClient{
@@ -53,6 +53,6 @@ func NewAWSClient(ctx context.Context, region, endpoint, access_key, secret_key 
 	}, nil
 }
 
-func GenerateBaseURL(bucket, endpoint string) string {
-	return fmt.Sprintf("https://%s/%s/", endpoint, bucket)
+func GetURL(endpoint string, bucket string) string {
+	return fmt.Sprintf("https://%s.%s", bucket, endpoint)
 }

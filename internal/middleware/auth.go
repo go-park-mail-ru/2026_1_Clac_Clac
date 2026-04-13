@@ -24,7 +24,7 @@ type SessionCheker interface {
 	RefreshSession(ctx context.Context, sessionID string) error
 }
 
-func AuthMiddleware(srv SessionCheker, logger *zerolog.Logger) func(http.Handler) http.Handler {
+func AuthMiddleware(srv SessionCheker, logger *zerolog.Logger, sessionLifeTime time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(authSrv.SessiondIdKey)
@@ -50,7 +50,7 @@ func AuthMiddleware(srv SessionCheker, logger *zerolog.Logger) func(http.Handler
 				Name:     service.SessiondIdKey,
 				Value:    tokenID,
 				Path:     "/",
-				Expires:  time.Now().Add(service.SessionLifetime),
+				Expires:  time.Now().Add(sessionLifeTime),
 				Secure:   true,
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,

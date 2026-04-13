@@ -67,10 +67,75 @@ func TestGetProfileUser(t *testing.T) {
 				test.mockBehavior(mockProfileRepo)
 			}
 
-			profileService := NewService(mockProfileRepo, nil, "")
+			profileService := NewService(mockProfileRepo, Config{})
 			ctx := context.Background()
 
 			user, err := profileService.GetProfileUser(ctx, test.userID)
+
+			assert.Equal(t, test.expectedUser, user, "incorrect user returned")
+
+			if test.expectedError != nil {
+				assert.EqualError(t, err, test.expectedError.Error(), "incorrect error message")
+			} else {
+				assert.NoError(t, err, "unexpected error")
+			}
+		})
+	}
+}
+
+func TestGetProfileByLink(t *testing.T) {
+	targetUserID := common.FixedUserUuiD
+
+	expectedUser := dto.UserInfo{
+		Link:        targetUserID,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+	}
+
+	someRepoError := errors.New("database connection lost")
+
+	tests := []struct {
+		nameTest      string
+		userID        uuid.UUID
+		mockBehavior  func(m *mockProfileRep.ProfileRepository)
+		expectedUser  dto.UserInfo
+		expectedError error
+	}{
+		{
+			nameTest: "Success get profile by link",
+			userID:   targetUserID,
+			mockBehavior: func(m *mockProfileRep.ProfileRepository) {
+				m.On("GetProfileByLink", mock.Anything, targetUserID).Return(repositoryDto.UserInfoEntity{
+					Link:        targetUserID,
+					DisplayName: "Artem",
+					Email:       "test@mail.ru"}, nil)
+			},
+			expectedUser:  expectedUser,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error from repository by link",
+			userID:   targetUserID,
+			mockBehavior: func(m *mockProfileRep.ProfileRepository) {
+				m.On("GetProfileByLink", mock.Anything, targetUserID).Return(repositoryDto.UserInfoEntity{}, someRepoError)
+			},
+			expectedUser:  dto.UserInfo{},
+			expectedError: fmt.Errorf("rep.GetProfile: %w", someRepoError),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockProfileRepo := mockProfileRep.NewProfileRepository(t)
+
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockProfileRepo)
+			}
+
+			profileService := NewService(mockProfileRepo, Config{})
+			ctx := context.Background()
+
+			user, err := profileService.GetProfileByLink(ctx, test.userID)
 
 			assert.Equal(t, test.expectedUser, user, "incorrect user returned")
 
@@ -125,16 +190,18 @@ func TestUpdateProfile(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		mockRep := mockProfileRep.NewProfileRepository(t)
-		if test.mockBehavior != nil {
-			test.mockBehavior(mockRep)
-		}
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockProfileRep.NewProfileRepository(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockRep)
+			}
 
-		srv := NewService(mockRep, nil, "")
+			srv := NewService(mockRep, Config{})
 
-		err := srv.UpdateProfile(context.Background(), test.info)
+			err := srv.UpdateProfile(context.Background(), test.info)
 
-		assert.Equal(t, test.expectedError, err)
+			assert.Equal(t, test.expectedError, err)
+		})
 	}
 }
 
@@ -160,6 +227,10 @@ func TestUpdateAvatar(t *testing.T) {
 
 	dbErr := errors.New("fail db upload")
 	deleteErr := errors.New("fail delete s3")
+
+	generateAvatarKey := func() (string, error) {
+		return "123-12/23", nil
+	}
 
 	tests := []struct {
 		nameTest      string
@@ -228,7 +299,10 @@ func TestUpdateAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(mockRep, GenerateAvatarKey, baseUrl)
+			srv := NewService(mockRep, Config{
+				GenerateAvatarKey: generateAvatarKey,
+				BaseURLAvatar:     baseUrl,
+			})
 
 			fullKey, err := srv.UpdateAvatar(context.Background(), dto.UpdatedAvatar{
 				UserLink: test.userLink,
@@ -309,7 +383,7 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(mockRep, nil, "")
+			srv := NewService(mockRep, Config{})
 			err := srv.DeleteAvatar(context.Background(), test.userLink)
 
 			if test.expectedError != nil {

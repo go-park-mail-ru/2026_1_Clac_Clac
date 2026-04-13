@@ -11,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -46,7 +47,7 @@ func NewRepository(pool DBEngine, redisClient RedisEngine) *Repository {
 func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error {
 	addUserQuery := `
 		INSERT INTO "user" (link, display_name, password_hash, email)
-		VALUES ($1, $2, $3, $4) 
+		VALUES ($1, $2, $3, $4)
 	`
 
 	_, err := r.pool.Exec(ctx, addUserQuery,
@@ -59,12 +60,15 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
-			if pgErr.Code == common.CodeUniqError {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
 				return common.ErrorExistingUser
+			case pgerrcode.NotNullViolation:
+				return common.ErrorNotNullValue
 			}
-
-			return fmt.Errorf("pool.Exec: %w", err)
 		}
+
+		return fmt.Errorf("pool.Exec: %w", err)
 	}
 
 	return nil
@@ -151,7 +155,7 @@ func (r *Repository) DeleteSession(ctx context.Context, sessionKey string) error
 
 func (r *Repository) GetUser(ctx context.Context, email string) (dto.UserEntity, error) {
 	getUserQuery := `
-		SELECT link, display_name, password_hash, email, avatar
+		SELECT link, display_name, password_hash, email, avatar_key
 		FROM "user"
 		WHERE email = $1
 	`
@@ -176,7 +180,7 @@ func (r *Repository) GetUser(ctx context.Context, email string) (dto.UserEntity,
 
 func (r *Repository) GetUserLink(ctx context.Context, email string) (uuid.UUID, error) {
 	query := `
-	SELECT link 
+	SELECT link
 	FROM "user"
 	WHERE email = $1`
 
@@ -226,7 +230,7 @@ func (r *Repository) DeleteResetToken(ctx context.Context, tokenKey string) erro
 
 func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPasswordHash string) error {
 	updatePasswordQuery := `
-	UPDATE "user" 
+	UPDATE "user"
 	SET password_hash = $1,
 	updated_at = NOW()
 	WHERE link = $2
@@ -234,6 +238,11 @@ func (r *Repository) UpdatePassword(ctx context.Context, link uuid.UUID, newPass
 
 	countModifies, err := r.pool.Exec(ctx, updatePasswordQuery, newPasswordHash, link)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.NotNullViolation {
+			return common.ErrorNotNullValue
+		}
+
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
 

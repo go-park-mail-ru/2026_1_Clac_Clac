@@ -12,9 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
+//go:generate mockery --name=ProfileRepository --output=mock_profile_rep --outpkg=mockProfileRep
 type ProfileRepository interface {
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
+	GetProfileByLink(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
 	UpdateProfile(ctx context.Context, updatedInfo repositoryDto.UpdatedInfo) error
 	GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error)
 	UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
@@ -23,17 +24,20 @@ type ProfileRepository interface {
 	DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-type Service struct {
-	rep               ProfileRepository
-	generateAvatarKey func() (string, error)
-	baseURLAvatar     string
+type Config struct {
+	GenerateAvatarKey func() (string, error)
+	BaseURLAvatar     string
 }
 
-func NewService(rep ProfileRepository, generateAvatarKey func() (string, error), baseURLAvatar string) *Service {
+type Service struct {
+	rep ProfileRepository
+	cnf Config
+}
+
+func NewService(rep ProfileRepository, cnf Config) *Service {
 	return &Service{
-		rep:               rep,
-		generateAvatarKey: generateAvatarKey,
-		baseURLAvatar:     baseURLAvatar,
+		rep: rep,
+		cnf: cnf,
 	}
 }
 
@@ -45,7 +49,32 @@ func (s *Service) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.U
 
 	var avatarUrl string
 	if repositoryUser.AvatarKey != "" {
-		avatarUrl, err = url.JoinPath(s.baseURLAvatar, repositoryUser.AvatarKey)
+		avatarUrl, err = url.JoinPath(s.cnf.BaseURLAvatar, repositoryUser.AvatarKey)
+		if err != nil {
+			return dto.UserInfo{}, fmt.Errorf("url.JoinPath: %w", err)
+		}
+	}
+
+	user := dto.UserInfo{
+		Link:        repositoryUser.Link,
+		DisplayName: repositoryUser.DisplayName,
+		Description: repositoryUser.DescriptionUser,
+		Email:       repositoryUser.Email,
+		AvatarURL:   avatarUrl,
+	}
+
+	return user, nil
+}
+
+func (s *Service) GetProfileByLink(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
+	repositoryUser, err := s.rep.GetProfileByLink(ctx, userLink)
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("rep.GetProfile: %w", err)
+	}
+
+	var avatarUrl string
+	if repositoryUser.AvatarKey != "" {
+		avatarUrl, err = url.JoinPath(s.cnf.BaseURLAvatar, repositoryUser.AvatarKey)
 		if err != nil {
 			return dto.UserInfo{}, fmt.Errorf("url.JoinPath: %w", err)
 		}
@@ -88,7 +117,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 		format = ".webp"
 	}
 
-	key, err := s.generateAvatarKey()
+	key, err := s.cnf.GenerateAvatarKey()
 	if err != nil {
 		return "", fmt.Errorf("cannot generate key: %w", err)
 	}
@@ -112,7 +141,7 @@ func (s *Service) UpdateAvatar(ctx context.Context, avatar dto.UpdatedAvatar) (s
 		return "", resultError
 	}
 
-	fullKey, err := url.JoinPath(s.baseURLAvatar, objectKey)
+	fullKey, err := url.JoinPath(s.cnf.BaseURLAvatar, objectKey)
 	if err != nil {
 		return "", fmt.Errorf("url.JoinPath: %w", err)
 	}

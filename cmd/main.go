@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/app"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
-	"github.com/joho/godotenv"
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/docs"
 )
 
 // @title			NeXus
@@ -14,10 +14,6 @@ import (
 // @BasePath		/api
 func main() {
 	const configPath = "."
-
-	if err := godotenv.Load(); err != nil {
-		log.Println("cannot find .env")
-	}
 
 	v, err := config.SetupViper(configPath)
 	if err != nil {

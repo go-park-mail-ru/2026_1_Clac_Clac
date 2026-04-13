@@ -14,21 +14,21 @@ var (
 	ErrorDifferencePasswords = errors.New("passwords don't match")
 )
 
-func ValidatorWithCheckPassword(email, password, repeatedPassword string) error {
+func ValidatorWithCheckPassword(email, password, repeatedPassword string, maxLenPassword, miLenPassword int) error {
 	if password != repeatedPassword {
 		return ErrorDifferencePasswords
 	}
 
-	return ValidatorRequestAuth(email, password)
+	return ValidatorRequestAuth(email, password, maxLenPassword, miLenPassword)
 }
 
-func ValidatorRequestAuth(email, password string) error {
+func ValidatorRequestAuth(email, password string, maxLenPassword, miLenPassword int) error {
 	correctSymbols := common.CheckAsciiSymbol(email, password)
 	if !correctSymbols {
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < 8 || len(password) > 128 {
+	if len(password) < miLenPassword || len(password) > maxLenPassword {
 		return ErrorLenPassword
 	}
 
@@ -40,7 +40,7 @@ func ValidatorRequestAuth(email, password string) error {
 	return nil
 }
 
-func ValidatorRequestNewPassword(password, repeatedPassword string) error {
+func ValidatorRequestNewPassword(password, repeatedPassword string, maxLenPassword, miLenPassword int) error {
 	if password != repeatedPassword {
 		return ErrorDifferencePasswords
 	}
@@ -50,7 +50,7 @@ func ValidatorRequestNewPassword(password, repeatedPassword string) error {
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < 8 || len(password) > 128 {
+	if len(password) < miLenPassword || len(password) > maxLenPassword {
 		return ErrorLenPassword
 	}
 

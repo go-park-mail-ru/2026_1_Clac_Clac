@@ -9,16 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler/dto"
-	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service/dto"
-	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/db"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/engine"
 	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/health/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
-	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,10 +42,8 @@ func NewApp(conf *config.Config) *App {
 	}
 
 	manager := setupManager(store, conf)
-
-	createDemoUser(manager, logger)
-
-	router := setupRouter(manager, conf, &conf.S3Avatars, logger)
+	dilivery := setupDilivery(manager, conf)
+	router := setupRouter(dilivery, manager, conf, logger)
 
 	e := setupEngine(&conf.Engine, logger, router)
 
@@ -77,25 +71,35 @@ func (a *App) Run() {
 }
 
 // Настройка рутов
-func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars, logger *zerolog.Logger) *mux.Router {
+func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+	authHandler := dilivery.Auth
+	profileHandler := dilivery.Profile
+	boardHandler := dilivery.Board
+	sectionHandler := dilivery.Section
+	cardHandler := dilivery.Card
+
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	// Добавление обищх мидлваре
 	router.Use(middleware.RecoveryMiddleware(logger))
 	router.Use(middleware.LoggerMiddleware(logger))
 	router.Use(middleware.CORSMiddleware(&conf.CORS))
-	router.Use(middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize))
 	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
+
+	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
+	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
+
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler).Methods(http.MethodGet)
+	router.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
 
 	// Ручки, которым не нужна авторизация
 	public := router.PathPrefix("/").Subrouter()
-	public.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+	public.Use(textSizeLimitter)
+
 	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
 	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
-	// Добавление рутов, зависящих от сервисов
-	authHandler := auth.NewHandler(manager.Auth)
 
-	public.HandleFunc("/register", authHandler.RegisterUser).Methods(http.MethodPost)
+	public.HandleFunc("/register", dilivery.Auth.RegisterUser).Methods(http.MethodPost)
 	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
 
 	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
@@ -113,25 +117,51 @@ func setupRouter(manager *Manager, conf *config.Config, s3Conf *config.S3Avatars
 	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
 
-	// Для досутпа к этим ручкам нужна авторизация
-	protected := router.PathPrefix("/").Subrouter()
-	protected.Use(middleware.AuthMiddleware(manager.Auth, logger))
-
-	protected.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler)
-
-	csrfProtected := protected.PathPrefix("/").Subrouter()
+	csrfProtected := router.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
 
-	boardHandler := board.NewHandler(manager.Board)
-	profileHandler := profile.NewHandler(manager.Profile, s3Conf.ValidExtensions)
+	publicWithCSRFProtection := csrfProtected.PathPrefix("/").Subrouter()
+	publicWithCSRFProtection.Use(textSizeLimitter)
 
-	protected.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
-	protected.HandleFunc("/home", boardHandler.GetUserBoards).Methods(http.MethodGet)
+	// Для досутпа к этим ручкам нужна авторизация
+	protected := csrfProtected.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger, conf.Auth.Handler.SessionLifetime))
 
-	protected.HandleFunc("/profile", profileHandler.GetProfile).Methods(http.MethodGet)
-	protected.HandleFunc("/update-avatar", profileHandler.UpdateAvatar).Methods(http.MethodPost)
-	protected.HandleFunc("/update-profile", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	withTextLimit := protected.PathPrefix("/").Subrouter()
+	withTextLimit.Use(textSizeLimitter)
 
+	withImageLimit := protected.PathPrefix("/").Subrouter()
+	withImageLimit.Use(uploadImageSizeLimitter)
+
+	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+
+	withTextLimit.HandleFunc("/profiles", profileHandler.GetProfile).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/{user_link}", profileHandler.GetProfileByLink).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	withImageLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/profiles/avatar", profileHandler.DeleteAvatar).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections/{link}/cards", sectionHandler.GetCards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
+
+	withTextLimit.HandleFunc("/boards", boardHandler.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards", boardHandler.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/boards/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
+
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 	return router
 }
 
@@ -170,11 +200,6 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 		return nil, fmt.Errorf("db.NewPool: %w", err)
 	}
 
-	err = db.RunMigrations(dsn, logger)
-	if err != nil {
-		return nil, fmt.Errorf("db.RunMigrations: %w", err)
-	}
-
 	return pool, nil
 }
 
@@ -210,23 +235,23 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 
 	const intConvertationBase = 10
 	const intConvertationSize = 64
-	s3ConnectTimeout, err := strconv.ParseInt(conf.S3Avatars.ConnectTimeout, intConvertationBase, intConvertationSize)
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3.ConnectTimeout, intConvertationBase, intConvertationSize)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
 	defer cancel()
 
 	s3Client, err := s3.NewAWSClient(
 		ctx,
-		conf.S3Avatars.Region,
-		conf.S3Avatars.Endpoint,
-		conf.S3Avatars.AccessKey,
-		conf.S3Avatars.SecretKey,
+		conf.S3.Region,
+		conf.S3.Endpoint,
+		conf.S3.AccessKey,
+		conf.S3.SecretKey,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, conf.S3Avatars), nil
+	return NewStore(pool, redisClient, s3Client, *conf), nil
 }
 
 // Настройка менеджера сервисов
@@ -234,26 +259,10 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
 }
 
-func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
-	return NewVKOAuth(conf)
+func setupDilivery(m *Manager, conf *config.Config) *Dilivery {
+	return NewDilivery(m, conf)
 }
 
-func createDemoUser(m *Manager, logger *zerolog.Logger) {
-	user, _, err := m.Auth.Register(context.Background(), serviceDto.RegistrationUser{
-		DisplayName: "Demo",
-		Password:    "12345678",
-		Email:       "demo@demo.ru",
-	})
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo user")
-	} else {
-		logger.Info().Msg("demo user created")
-	}
-
-	err = m.Board.CreateEmptyBoard(context.Background(), user.Link)
-	if err != nil {
-		logger.Err(err).Msg("cannot create demo board")
-	} else {
-		logger.Info().Msg("demo board created")
-	}
+func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
+	return NewVKOAuth(conf)
 }

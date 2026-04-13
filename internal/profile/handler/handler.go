@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
@@ -23,49 +24,66 @@ const (
 	tooLargeAvatar      = "size avatar too large"
 	invalidFile         = "file is invalid"
 	failReadFile        = "can not read file"
-	incorrectTypeAvatar = "avatar can be only jpeg/png"
+	incorrectTypeAvatar = "avatar can be only jpeg/png/jpg/webp"
 	fileProcessingError = "can not process file"
 	failAvatarUrl       = "can not create correct avatar URL"
 	failDeleteFile      = "can not delete avatar"
 	incorrectContext    = "context has not correct element"
 	incorrectCloseFile  = "fail close file"
 	failFoundUser       = "user not found"
-	incorrectUserInfo   = "get incorrect user info"
 	failUpdateUserInfo  = "can not update name or description"
+	failNullValue       = "get null, but wait not null"
 
-	maxReadBytes        = 5 << 20
-	siganatureTypeBytes = 512
-	nameAvatarBlock     = "avatar"
+	invalidProfileData = "invalid profile data"
 
-	maxLenNameUser        = 128
-	maxLenDescriptionUser = 500
+	nameAvatarBlock = "avatar"
 )
 
 var (
 	ErrInvalidRequestSchema = errors.New("invalid schema")
 )
 
-// mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
+//go:generate mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
 type ProfileService interface {
 	GetProfileUser(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
+	GetProfileByLink(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
 	UpdateProfile(ctx context.Context, updatedInfo serviceDto.UpdatedUserInfo) error
 	UpdateAvatar(ctx context.Context, avatar serviceDto.UpdatedAvatar) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-func NewHandler(srv ProfileService, validExtensions map[string]struct{}) *ProfileHandler {
-	return &ProfileHandler{
-		srv:             srv,
-		validExtensions: validExtensions,
+type Config struct {
+	ValidExtensions       map[string]struct{}
+	SiganatureTypeBytes   int
+	MaxLenNameUser        int
+	MaxLenDescriptionUser int
+	MaxReadBytes          int64
+}
+
+func NewHandler(srv ProfileService, cnf Config) *Handler {
+	return &Handler{
+		srv: srv,
+		cnf: cnf,
 	}
 }
 
-type ProfileHandler struct {
-	srv             ProfileService
-	validExtensions map[string]struct{}
+type Handler struct {
+	srv ProfileService
+	cnf Config
 }
 
-func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+// GetProfile godoc
+// @Summary      Получение профиля пользователя
+// @Description  Возвращает информацию о текущем авторизованном пользователе (ID, имя, email, URL аватара).
+// @Tags         profile
+// @Produce      json
+// @Success      200 {object} api.OkResponse[dto.UserInfoResponse] "Успешное получение профиля"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles [get]
+func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 
 	userLink, ok := value.(uuid.UUID)
@@ -74,7 +92,7 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceUser, err := ps.srv.GetProfileUser(r.Context(), userLink)
+	serviceUser, err := h.srv.GetProfileUser(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)
@@ -86,18 +104,77 @@ func (ps *ProfileHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := dto.UserInfoResponse{
-		Link:        serviceUser.Link,
-		DisplayName: serviceUser.DisplayName,
-		Email:       serviceUser.Email,
-		AvatarURL:   serviceUser.AvatarURL,
+		Link:            serviceUser.Link,
+		DisplayName:     serviceUser.DisplayName,
+		DescriptionUser: serviceUser.Description,
+		Email:           serviceUser.Email,
+		AvatarURL:       serviceUser.AvatarURL,
 	}
 
 	api.HandleError(api.RespondOk(w, user))
 }
 
-func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+// GetProfileByLink godoc
+// @Summary      Получение профиля пользователя по ссылке
+// @Description  Возвращает информацию о пользователе (ID, имя, email, URL аватара) по его уникальной ссылке (UUID).
+// @Tags         profile
+// @Produce      json
+// @Param        user_link path string true "UUID пользователя"
+// @Success      200 {object} api.OkResponse[dto.UserInfoResponse] "Успешное получение профиля"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles/{user_link} [get]
+func (h *Handler) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
+	vars := mux.Vars(r)
+	userLinkParam := vars["user_link"]
+
+	userLink, err := uuid.Parse(userLinkParam)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
+		return
+	}
+
+	serviceUser, err := h.srv.GetProfileByLink(r.Context(), userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, failFoundUser)
+			return
+		}
+
+		logger.Error().Err(err).Msg("ProfileService.GetProfileByLink")
+		api.RespondError(w, http.StatusInternalServerError, failGetInfoUser)
+		return
+	}
+
+	user := dto.UserInfoResponse{
+		Link:            serviceUser.Link,
+		DisplayName:     serviceUser.DisplayName,
+		DescriptionUser: serviceUser.Description,
+		Email:           serviceUser.Email,
+		AvatarURL:       serviceUser.AvatarURL,
+	}
+
+	api.HandleError(api.RespondOk(w, user))
+}
+
+// UpdateProfile godoc
+// @Summary      Обновление данных профиля
+// @Description  Изменяет отображаемое имя (DisplayName) и описание профиля пользователя.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.UpdatedInfo true "Новые данные профиля"
+// @Success      200 {object} api.Response "Профиль успешно обновлен"
+// @Failure      400 {object} api.ErrorResponse "Некорректный формат, ошибка валидации длины, пропущены обязательные поля или неверные данные"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles [put]
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
@@ -108,17 +185,17 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 	var updatedInfo dto.UpdatedInfo
 	err := json.NewDecoder(r.Body).Decode(&updatedInfo)
 	if err != nil {
-		api.HandleError(api.RespondError(w, http.StatusBadRequest, incorrectUserInfo))
+		api.HandleError(api.RespondError(w, http.StatusBadRequest, common.IncorrectFormatRequest))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DisplayName, maxLenNameUser)
+	err = common.ValidateTextInfo(updatedInfo.DisplayName, h.cnf.MaxLenNameUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
 	}
 
-	err = ValidateInfo(updatedInfo.DescriptionUser, maxLenDescriptionUser)
+	err = common.ValidateTextInfo(updatedInfo.DescriptionUser, h.cnf.MaxLenDescriptionUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
@@ -130,9 +207,18 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 		Description: updatedInfo.DescriptionUser,
 	}
 
-	err = ps.srv.UpdateProfile(r.Context(), userInfo)
+	err = h.srv.UpdateProfile(r.Context(), userInfo)
 	if err != nil {
-		logger.Err(fmt.Errorf("srv.UpdateProfile: %w", err))
+		if errors.Is(err, common.ErrorMissingRequiredField) {
+			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
+		if errors.Is(err, common.ErrorInvalidProfileData) {
+			api.RespondError(w, http.StatusBadRequest, invalidProfileData)
+			return
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, failUpdateUserInfo)
 		return
 	}
@@ -140,12 +226,25 @@ func (ps *ProfileHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) 
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
-func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
+// UpdateAvatar godoc
+// @Summary      Обновление аватара профиля
+// @Description  Загружает новый аватар для пользователя. Ожидается multipart/form-data с полем 'avatar'. Поддерживаемые форматы: jpeg, png, jpg, webp.
+// @Tags         profile
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        avatar formData file true "Файл изображения аватара"
+// @Success      200 {object} api.OkResponse[dto.AvatarResponse] "Аватар успешно загружен, возвращает новый URL"
+// @Failure      400 {object} api.ErrorResponse "Файл слишком большой, отсутствует или имеет неверный формат"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      422 {object} api.ErrorResponse "Ошибка при обработке файла (Seek error)"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles/avatar [put]
+func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxReadBytes)
-
-	if err := r.ParseMultipartForm(maxReadBytes); err != nil {
+	if err := r.ParseMultipartForm(h.cnf.MaxReadBytes); err != nil {
 		logger.Error().Err(err).Msg(tooLargeAvatar)
 		api.RespondError(w, http.StatusBadRequest, tooLargeAvatar)
 		return
@@ -163,7 +262,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	signatureFile := make([]byte, siganatureTypeBytes)
+	signatureFile := make([]byte, h.cnf.SiganatureTypeBytes)
 	countSignificantBytes, err := file.Read(signatureFile)
 	if err != nil && err != io.EOF {
 		logger.Error().Err(err).Msg(failReadFile)
@@ -172,7 +271,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mimeType := http.DetectContentType(signatureFile[:countSignificantBytes])
-	if _, ok := ps.validExtensions[mimeType]; !ok {
+	if _, ok := h.cnf.ValidExtensions[mimeType]; !ok {
 		logger.Error().Err(err).Msg(incorrectTypeAvatar)
 		api.RespondError(w, http.StatusBadRequest, incorrectTypeAvatar)
 		return
@@ -193,7 +292,7 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarUrl, err := ps.srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
+	avatarUrl, err := h.srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
 		UserLink: userLink,
 		File:     file,
 		MimeType: mimeType,
@@ -216,7 +315,18 @@ func (ps *ProfileHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, avatarResponse))
 }
 
-func (ps *ProfileHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+// DeleteAvatar godoc
+// @Summary      Удаление аватара профиля
+// @Description  Удаляет текущий аватар пользователя (возвращает к дефолтному состоянию или удаляет файл).
+// @Tags         profile
+// @Produce      json
+// @Success      200 {object} api.Response "Аватар успешно удален"
+// @Failure      401 {object} api.ErrorResponse "Пользователь не авторизован"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles/avatar [delete]
+func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	value := r.Context().Value(middleware.UserContextLink{})
@@ -228,7 +338,7 @@ func (ps *ProfileHandler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ps.srv.DeleteAvatar(r.Context(), userLink)
+	err := h.srv.DeleteAvatar(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)

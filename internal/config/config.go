@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -15,10 +14,15 @@ type Config struct {
 	VkOAuth         VkOAuth              `mapstructure:"vk_oauth"`
 	DBConnection    DatabaseConnection   `mapstructure:"database"`
 	RedisConnection RedisConnection      `mapstructure:"redis"`
-	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
+	S3              S3                   `mapstructure:"s3"`
 	CORS            CORS                 `mapstructure:"cors"`
-	Auth            Auth                 `mapstructure:"auth"`
 	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
+	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
+	Auth            Auth                 `mapstructure:"auth"`
+	Board           Board                `mapstructure:"board"`
+	Section         Section              `mapstructure:"section"`
+	Profile         Profile              `mapstructure:"profile"`
+	Card            Card                 `mapstructture:"card"`
 }
 
 func DefaultConfig() Config {
@@ -29,9 +33,15 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		DBConnection:    DefaultDBConnectionConfog(),
 		RedisConnection: DefaultRedisConnection(),
-		Auth:            DefaultAuthConfig(),
-		DBRateLimiters:  DefaultActionsRateLimiters(),
 		S3Avatars:       DefaultS3AvatarsConfig(),
+		S3:              DefaultS3Config(),
+		Board:           DefaultBoardConfig(),
+		CORS:            DefaultCORSConfig(),
+		DBRateLimiters:  DefaultActionsRateLimiters(),
+		Auth:            DefaultAuthConfig(),
+		Profile:         DefaultProfileConfig(),
+		Section:         DefaultSectionConfig(),
+		Card:            DefaultCardConfig(),
 	}
 }
 
@@ -46,8 +56,8 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 		return nil, fmt.Errorf("cannot read config file: %v", err)
 	}
 
-	v.SetConfigFile(filepath.Join(configPath, ".env"))
-	v.SetConfigType("env")
+	// v.SetConfigFile(filepath.Join(configPath, ".env"))
+	// v.SetConfigType("env")
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
@@ -56,7 +66,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	SetupEnvVkOAuth(v)
 	SetupEnvDbConnection(v)
 	SetupEnvRedisConnection(v)
-	SetupEnvS3Avatars(v)
+	SetupEnvS3(v)
 
 	if err := v.MergeInConfig(); err != nil {
 		return nil, fmt.Errorf("cannot read config file: %v", err)

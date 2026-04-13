@@ -20,10 +20,7 @@ const (
 
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
-		App: config.Application{
-			LogLevel:           DebugLevel,
-			MaxTextRequestSize: 10 * 1024, // 10 кБ
-		},
+		App: config.DefaultApplicationConfig(),
 		Engine: config.Engine{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
@@ -61,6 +58,8 @@ func TestConfigReading(t *testing.T) {
 				},
 			},
 		},
+		S3:    config.DefaultS3Config(),
+		Board: config.DefaultBoardConfig(),
 		S3Avatars: config.S3Avatars{
 			ValidExtensions: map[string]struct{}{
 				"image/jpg":  {},
@@ -69,12 +68,57 @@ func TestConfigReading(t *testing.T) {
 				"image/webp": {},
 			},
 		},
+		CORS: config.CORS{
+			Credentials: "false",
+			Origin:      "localhost",
+			Methods:     "GET,POST,OPTIONS",
+			Headers:     "",
+			MaxAge:      "60",
+		},
+
+		Auth: config.Auth{
+			Handler: config.AuthHandler{
+				MaxLenPassword:  128,
+				MinLenPassword:  8,
+				SessionLifetime: 24 * time.Hour,
+			},
+			Service: config.AuthService{
+				SessionLifetime: 24 * time.Hour,
+				CountRetries:    3,
+			},
+		},
+
+		Profile: config.Profile{
+			Handler: config.ProfileHandler{
+				SiganatureTypeBytes:   512,
+				MaxReadBytes:          5 << 20,
+				MaxLenNameUser:        128,
+				MaxLenDescriptionUser: 500,
+			},
+		},
+
+		Section: config.Section{
+			Handler: config.SectionHandler{
+				MaxQuantityTasks:  100,
+				MinQuantityTasks:  0,
+				MaxLenNameSection: 128,
+			},
+		},
+
+		Card: config.Card{
+			Handler: config.CardHandler{
+				MaxLenTitle:       128,
+				MaxLenDescription: 500,
+			},
+		},
 	}
 
 	var yamlTest = []byte(`
 app:
   log_level: debug
   max_text_request_size: 10240
+  max_upload_image_size: 10485760
+
 
 engine:
   addr: ":8080"

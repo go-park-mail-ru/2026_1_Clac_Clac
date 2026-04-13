@@ -13,12 +13,14 @@ CREATE TABLE "user" (
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
     display_name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
-    description_user TEXT DEFAULT '' NOT NULL
+    description_user TEXT DEFAULT '' NOT NULL,
     email TEXT NOT NULL UNIQUE,
     avatar_key TEXT DEFAULT '',
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    CONSTRAINT check_display_name CHECK (char_length(display_name) <= 128),
+    CONSTRAINT check_length_description CHECK (char_length(description_user) <= 1000),
 );
 
 CREATE TRIGGER set_user_updated_at
@@ -50,6 +52,38 @@ CREATE TABLE board_version (
     CONSTRAINT fk_version_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
 );
 
+-- View для получения актуальных досок
+CREATE OR REPLACE View board_actual AS
+SELECT
+    b.board_id,
+	b.link,
+	b.created_at,
+	v.board_name as name,
+	v.description_board as description,
+	v.url_path_background as background
+FROM board b
+JOIN board_version v ON v.board_id = b.board_id and v.valid_to IS NULL;
+
+-- Замещающий триггер на обновление версии доски
+CREATE OR REPLACE FUNCTION fn_update_board_actual()
+RETURNS TRIGGER AS $$
+BEGIN
+	UPDATE board_version
+	SET valid_to = NOW()
+	WHERE board_id = OLD.board_id AND valid_to IS NULL;
+
+	INSERT INTO board_version (board_id, board_name, description_board, url_path_background)
+	VALUES (NEW.board_id, NEW.name, NEW.description, NEW.background);
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_board
+INSTEAD OF UPDATE ON board_actual
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_board_actual();
+
 CREATE TYPE user_level AS ENUM ('viewer', 'editor', 'admin', 'creator');
 
 CREATE TABLE member_board (
@@ -73,64 +107,101 @@ BEFORE UPDATE ON member_board
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TYPE color AS ENUM ('white', 'grey', 'red', 'orange', 'blue', 'green', 'purple', 'pink');
+
 CREATE TABLE section (
     section_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    board_id INT NOT NULL,
-    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
-
+    section_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    board_link UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    deleted_at TIMESTAMPTZ DEFAULT NULL,
 
-    CONSTRAINT fk_section_board FOREIGN KEY (board_id) REFERENCES board(board_id) ON DELETE CASCADE
+    CONSTRAINT fk_section_board FOREIGN KEY (board_link) REFERENCES board(link) ON DELETE CASCADE
 );
 
 CREATE TABLE section_version (
     version_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    section_id INT NOT NULL,
+    section_link UUID NOT NULL,
 
     section_name TEXT DEFAULT '' NOT NULL,
     position INT NOT NULL,
     is_mandatory BOOLEAN DEFAULT false NOT NULL,
+    color color DEFAULT 'white' NOT NULL,
     max_tasks INT,
 
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
     CONSTRAINT check_length_section_name CHECK (char_length(section_name) <= 128),
-    CONSTRAINT check_min_tasks CHECK (max_tasks IS NULL or max_tasks > 0),
+    CONSTRAINT check_min_tasks CHECK (max_tasks IS NULL OR max_tasks > 0),
     CONSTRAINT check_section_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
-    CONSTRAINT fk_version_section FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE CASCADE
+    CONSTRAINT fk_version_section FOREIGN KEY (section_link) REFERENCES section(section_link) ON DELETE CASCADE
 );
+
+CREATE OR REPLACE VIEW section_actual AS
+SELECT
+    s.section_id,
+    s.section_link,
+    s.board_link,
+    s.created_at,
+
+    v.section_name,
+    v.position,
+    v.is_mandatory,
+    v.color,
+    v.max_tasks
+FROM section s
+JOIN section_version v
+  ON v.section_link = s.section_link
+ AND v.valid_to IS NULL
+WHERE s.deleted_at IS NULL;
 
 CREATE TABLE task (
     task_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    author_id INT,
-    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    task_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    author_link UUID,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT fk_task_author FOREIGN KEY (author_id) REFERENCES "user"(user_id) ON DELETE SET NULL
+    CONSTRAINT fk_task_author FOREIGN KEY (author_link) REFERENCES "user"(link) ON DELETE SET NULL
 );
 
 CREATE TABLE task_version (
     version_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    task_id INT NOT NULL,
-    section_id INT NOT NULL,
+    task_link UUID NOT NULL,
+    section_link UUID NOT NULL,
+    executer_link UUID,
 
     title TEXT DEFAULT '' NOT NULL,
-    description TEXT DEFAULT '' NOT NULL,
+    "description" TEXT DEFAULT '' NOT NULL,
     position INT NOT NULL,
     due_date TIMESTAMPTZ,
 
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
 
-    CONSTRAINT check_length_title CHECK (char_length(title) <= 128),
+    CONSTRAINT check_length_itle CHECK (char_length(title) <= 128),
     CONSTRAINT check_length_description CHECK (char_length(description) <= 1000),
-    CONSTRAINT check_due_date CHECK (due_date IS NULL or due_date >= valid_from),
     CONSTRAINT check_task_dates CHECK (valid_to IS NULL OR valid_to > valid_from),
-    CONSTRAINT fk_version_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE,
-    CONSTRAINT fk_version_section FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE CASCADE
+    CONSTRAINT fk_version_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE
 );
+
+CREATE OR REPLACE VIEW task_actual AS
+SELECT
+    t.task_id,
+    t.task_link,
+    t.author_link,
+    t.created_at,
+    v.section_link,
+    v.executer_link,
+    v.title,
+    v.description,
+    v.position,
+    v.due_date
+FROM task t
+JOIN task_version v
+  ON v.task_link = t.task_link
+ AND v.valid_to IS NULL;
 
 CREATE TABLE subtask (
     subtask_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -211,6 +282,7 @@ EXECUTE FUNCTION update_updated_at_column();
 CREATE TABLE board_template(
     btemplate_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     author_id INT,
+    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
     template_name TEXT DEFAULT '' NOT NULL,
 

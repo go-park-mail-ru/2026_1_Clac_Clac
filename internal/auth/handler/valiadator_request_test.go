@@ -7,6 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	maxLen = 128
+	minLen = 8
+)
+
 func TestValidatorRequestAuth(t *testing.T) {
 	tests := []struct {
 		Name          string
@@ -54,7 +59,7 @@ func TestValidatorRequestAuth(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			err := ValidatorRequestAuth(test.Email, test.Password)
+			err := ValidatorRequestAuth(test.Email, test.Password, maxLen, minLen)
 
 			assert.Equal(t, test.ExpectedError, err, "incorrect error")
 		})
@@ -96,7 +101,7 @@ func TestValidatorRequestNewPassword(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			err := ValidatorRequestNewPassword(test.Password, test.RepeatedPassword)
+			err := ValidatorRequestNewPassword(test.Password, test.RepeatedPassword, maxLen, minLen)
 
 			assert.Equal(t, test.ExpectedError, err, "incorrect error")
 		})
@@ -105,12 +110,12 @@ func TestValidatorRequestNewPassword(t *testing.T) {
 
 func TestValidatorWithCheckPassword(t *testing.T) {
 	t.Run("Passwords do not match", func(t *testing.T) {
-		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass5678")
+		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass5678", maxLen, minLen)
 		assert.Equal(t, ErrorDifferencePasswords, err)
 	})
 
 	t.Run("Success delegates to ValidatorRequestAuth", func(t *testing.T) {
-		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass1234")
+		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass1234", maxLen, minLen)
 		assert.NoError(t, err)
 	})
 }
