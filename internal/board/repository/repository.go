@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -26,17 +25,21 @@ type DBEngine interface {
 	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
 }
 
-type Repository struct {
-	conf        config.BoardRepository
-	pool        DBEngine
-	backgrounds s3.S3Bucket
+type Config struct {
+	CreateBoardDefaultUserRole string
 }
 
-func NewRepository(pool DBEngine, s3Client s3.S3Client, s3Conf config.S3, conf config.BoardRepository) *Repository {
+type Repository struct {
+	pool        DBEngine
+	backgrounds s3.S3Bucket
+	cnf         Config
+}
+
+func NewRepository(pool DBEngine, backgrounds s3.S3Bucket, cnf Config) *Repository {
 	return &Repository{
-		conf:        conf,
 		pool:        pool,
-		backgrounds: s3Client.NewBucket(s3Conf.BoardsBackgroundsBucket, s3Conf.BoardsBackgroundsPrefix, s3.ACL.PublicRead),
+		backgrounds: backgrounds,
+		cnf:         cnf,
 	}
 }
 
@@ -53,6 +56,8 @@ func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]dto.B
 		return []dto.BoardEntry{}, fmt.Errorf("pool.Query: %w", err)
 	}
 
+	defer rows.Close()
+
 	boards := make([]dto.BoardEntry, 0)
 	for rows.Next() {
 		var board dto.BoardEntry
@@ -64,7 +69,6 @@ func (r *Repository) GetBoards(ctx context.Context, userLink uuid.UUID) ([]dto.B
 
 		boards = append(boards, board)
 	}
-	defer rows.Close()
 
 	return boards, nil
 }
@@ -144,7 +148,7 @@ func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo
 		INSERT INTO member_board (board_link, user_link, level_member)
         VALUES ($1, $2, $3::user_level)
     `
-	_, err = tx.Exec(ctx, createBoardMemberQuery, boardLink, authorLink, r.conf.CreateBoardDefaultUserRole)
+	_, err = tx.Exec(ctx, createBoardMemberQuery, boardLink, authorLink, r.cnf.CreateBoardDefaultUserRole)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -275,6 +279,8 @@ func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) (
 		return []uuid.UUID{}, fmt.Errorf("pool.Query: %w", err)
 	}
 
+	defer rows.Close()
+
 	usersLinks := make([]uuid.UUID, 0)
 	for rows.Next() {
 		var link uuid.UUID
@@ -286,7 +292,6 @@ func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) (
 
 		usersLinks = append(usersLinks, link)
 	}
-	defer rows.Close()
 
 	// Чтобы не делать доп запрос, будем считать,
 	// что если запрос вернул НОЛЬ, значит доски не существует

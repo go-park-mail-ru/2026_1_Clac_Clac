@@ -42,20 +42,20 @@ type CardService interface {
 	CreateCard(ctx context.Context, newCard serviceDto.NewCard) (serviceDto.PlaceCard, error)
 }
 
-type Deps struct {
-	Srv CardService
-
+type Config struct {
 	MaxLenTitle       int
 	MaxLenDescription int
 }
 
 type Handler struct {
-	deps Deps
+	srv CardService
+	cnf Config
 }
 
-func NewHandler(deps Deps) *Handler {
+func NewHandler(srv CardService, cnf Config) *Handler {
 	return &Handler{
-		deps: deps,
+		srv: srv,
+		cnf: cnf,
 	}
 }
 
@@ -81,7 +81,7 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	card, err := h.deps.Srv.GetCard(r.Context(), linkCard)
+	card, err := h.srv.GetCard(r.Context(), linkCard)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingCard) {
 			api.RespondError(w, http.StatusNotFound, failFindCard)
@@ -123,7 +123,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.DeleteCard(r.Context(), linkCard)
+	err = h.srv.DeleteCard(r.Context(), linkCard)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingCard) {
 			api.RespondError(w, http.StatusNotFound, failFindCard)
@@ -169,19 +169,19 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = common.ValidateTextInfo(updatingInfo.Title, h.deps.MaxLenTitle)
+	err = common.ValidateTextInfo(updatingInfo.Title, h.cnf.MaxLenTitle)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len title is %d", h.deps.MaxLenTitle))
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len title is %d", h.cnf.MaxLenTitle))
 		return
 	}
 
-	err = common.ValidateTextInfo(updatingInfo.Description, h.deps.MaxLenDescription)
+	err = common.ValidateTextInfo(updatingInfo.Description, h.cnf.MaxLenDescription)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len description is %d", h.deps.MaxLenDescription))
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len description is %d", h.cnf.MaxLenDescription))
 		return
 	}
 
-	err = h.deps.Srv.UpdateCardDetails(r.Context(), serviceDto.UpdatingCardDetails{
+	err = h.srv.UpdateCardDetails(r.Context(), serviceDto.UpdatingCardDetails{
 		LinkCard:     linkCard,
 		Description:  updatingInfo.Description,
 		Title:        updatingInfo.Title,
@@ -249,7 +249,7 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.ReorderCard(r.Context(), serviceDto.PlaceCard{
+	err = h.srv.ReorderCard(r.Context(), serviceDto.PlaceCard{
 		LinkCard:    linkCard,
 		LinkSection: updatingPlaceCard.LinkSection,
 		Position:    updatingPlaceCard.Position,
@@ -311,15 +311,15 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = common.ValidateTextInfo(newCard.Title, h.deps.MaxLenTitle)
+	err = common.ValidateTextInfo(newCard.Title, h.cnf.MaxLenTitle)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len title is %d", h.deps.MaxLenTitle))
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len title is %d", h.cnf.MaxLenTitle))
 		return
 	}
 
-	err = common.ValidateTextInfo(newCard.Description, h.deps.MaxLenDescription)
+	err = common.ValidateTextInfo(newCard.Description, h.cnf.MaxLenDescription)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len description is %d", h.deps.MaxLenDescription))
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len description is %d", h.cnf.MaxLenDescription))
 		return
 	}
 
@@ -329,7 +329,7 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	card, err := h.deps.Srv.CreateCard(r.Context(), serviceDto.NewCard{
+	card, err := h.srv.CreateCard(r.Context(), serviceDto.NewCard{
 		LinkAuthor:   authorLink,
 		Title:        newCard.Title,
 		Description:  newCard.Description,

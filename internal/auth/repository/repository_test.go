@@ -61,7 +61,7 @@ func TestAddUser(t *testing.T) {
 				test.mockSetup(mockPool, test.user)
 			}
 
-			repoUsers := NewRepository(Deps{Pool: mockPool})
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoUsers.AddUser(ctx, test.user)
@@ -139,7 +139,7 @@ func TestAddUserError(t *testing.T) {
 				test.mockSetup(mockPool, test.user)
 			}
 
-			repoUsers := NewRepository(Deps{Pool: mockPool})
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoUsers.AddUser(ctx, test.user)
@@ -184,7 +184,7 @@ func TestAddSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.session)
 			}
 
-			repoUsers := NewRepository(Deps{RedisClient: redisMock})
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			err := repoUsers.AddSession(ctx, test.session)
@@ -208,9 +208,7 @@ func TestExtendSession(t *testing.T) {
 			timeExpires: time.Hour * 24,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration) {
 				key := fmt.Sprintf("session:%s", sessionID)
-
 				successfulCmd := redis.NewBoolResult(true, nil)
-
 				m.On("Expire", mock.Anything, key, timeExpires).Return(successfulCmd)
 			},
 		},
@@ -223,14 +221,13 @@ func TestExtendSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
 			}
 
-			repoUsers := NewRepository(Deps{RedisClient: redisMock})
+			repoUsers := NewRepository(nil, redisMock)
 			err := repoUsers.ExtendSession(context.Background(), dto.ExtendedSession{
 				Key:        fmt.Sprintf("session:%s", test.sessionID),
 				Expiration: test.timeExpires,
 			})
 
 			assert.NoError(t, err, "not wait error")
-
 			redisMock.AssertExpectations(t)
 		})
 	}
@@ -249,10 +246,8 @@ func TestExtendSessionError(t *testing.T) {
 			timeExpires: time.Hour * 24,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine, sessionID string, timeExpires time.Duration) {
 				key := fmt.Sprintf("session:%s", sessionID)
-
 				redisErr := errors.New("redis connection timeout")
 				errorCmd := redis.NewBoolResult(false, redisErr)
-
 				m.On("Expire", mock.Anything, key, timeExpires).Return(errorCmd)
 			},
 		},
@@ -265,7 +260,7 @@ func TestExtendSessionError(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.timeExpires)
 			}
 
-			rep := NewRepository(Deps{RedisClient: redisMock})
+			rep := NewRepository(nil, redisMock)
 			err := rep.ExtendSession(context.Background(), dto.ExtendedSession{
 				Key:        fmt.Sprintf("session:%s", test.sessionID),
 				Expiration: test.timeExpires,
@@ -298,7 +293,6 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-
 				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(true, nil))
 			},
 			expectedAllowed: true,
@@ -310,7 +304,6 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-
 				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
 				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(30*time.Second, nil))
 			},
@@ -323,7 +316,6 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-
 				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
 				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(-2*time.Second, nil))
 			},
@@ -336,7 +328,6 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-
 				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, errRedis))
 			},
 			expectedAllowed: false,
@@ -348,7 +339,6 @@ func TestSetCooldown(t *testing.T) {
 			config:   defaultConfig,
 			mockBehavior: func(m *mockRedisEngine.RedisEngine) {
 				ctx := context.Background()
-
 				m.On("SetNX", ctx, defaultConfig.Key, "", defaultConfig.Expiration).Return(redis.NewBoolResult(false, nil))
 				m.On("TTL", ctx, defaultConfig.Key).Return(redis.NewDurationResult(0, errRedis))
 			},
@@ -365,7 +355,7 @@ func TestSetCooldown(t *testing.T) {
 				test.mockBehavior(mockRedis)
 			}
 
-			rep := NewRepository(Deps{RedisClient: mockRedis})
+			rep := NewRepository(nil, mockRedis)
 
 			isAllowed, ttl, err := rep.SetCooldown(context.Background(), test.config)
 
@@ -412,7 +402,7 @@ func TestCheckLimit(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			rep := NewRepository(Deps{RedisClient: client})
+			rep := NewRepository(nil, client)
 
 			val, err := rep.CheckLimit(context.Background(), test.configLimiter)
 
@@ -424,6 +414,7 @@ func TestCheckLimit(t *testing.T) {
 		})
 	}
 }
+
 func TestDeleteSession(t *testing.T) {
 	tests := []struct {
 		nameTest     string
@@ -446,7 +437,7 @@ func TestDeleteSession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID)
 			}
 
-			repoUsers := NewRepository(Deps{RedisClient: redisMock})
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			err := repoUsers.DeleteSession(ctx, test.sessionID)
@@ -481,7 +472,7 @@ func TestGetUserIDBySession(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID, test.expectedUserID)
 			}
 
-			repoUsers := NewRepository(Deps{RedisClient: redisMock})
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			userID, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
@@ -517,7 +508,7 @@ func TestGetUserIDBySessionError(t *testing.T) {
 				test.mockBehavior(redisMock, test.sessionID)
 			}
 
-			repoUsers := NewRepository(Deps{RedisClient: redisMock})
+			repoUsers := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			_, err := repoUsers.GetUserIDBySession(ctx, test.sessionID)
@@ -554,7 +545,7 @@ func TestAddResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.token)
 			}
 
-			repoAuth := NewRepository(Deps{RedisClient: redisMock})
+			repoAuth := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			err := repoAuth.AddResetToken(ctx, test.token)
@@ -591,7 +582,7 @@ func TestGetUserLinkByResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID, test.expectedUserID)
 			}
 
-			repoAuth := NewRepository(Deps{RedisClient: redisMock})
+			repoAuth := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			token, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
@@ -628,7 +619,7 @@ func TestGetUserLinkByResetTokenError(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID)
 			}
 
-			repoAuth := NewRepository(Deps{RedisClient: redisMock})
+			repoAuth := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			_, err := repoAuth.GetUserLinkByResetToken(ctx, test.tokenID)
@@ -662,7 +653,7 @@ func TestDeleteResetToken(t *testing.T) {
 				test.mockBehavior(redisMock, test.tokenID)
 			}
 
-			repoAuth := NewRepository(Deps{RedisClient: redisMock})
+			repoAuth := NewRepository(nil, redisMock)
 			ctx := context.Background()
 
 			err := repoAuth.DeleteResetToken(ctx, test.tokenID)
@@ -714,7 +705,7 @@ func TestGetUser(t *testing.T) {
 				test.mockSetup(mockPool)
 			}
 
-			repoUsers := NewRepository(Deps{Pool: mockPool})
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			user, err := repoUsers.GetUser(ctx, test.email)
@@ -771,7 +762,7 @@ func TestGetUserError(t *testing.T) {
 				test.mockSetup(mockPool)
 			}
 
-			repoUsers := NewRepository(Deps{Pool: mockPool})
+			repoUsers := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			_, err = repoUsers.GetUser(ctx, test.email)
@@ -820,7 +811,7 @@ func TestGetUserLink(t *testing.T) {
 				test.mockSetUp(mockPool)
 			}
 
-			rep := NewRepository(Deps{Pool: mockPool})
+			rep := NewRepository(mockPool, nil)
 
 			ctx := context.Background()
 			userLink, err := rep.GetUserLink(ctx, test.email)
@@ -873,7 +864,7 @@ func TestGetUserLinkError(t *testing.T) {
 				test.mockSetUp(mockPool)
 			}
 
-			rep := NewRepository(Deps{Pool: mockPool})
+			rep := NewRepository(mockPool, nil)
 
 			ctx := context.Background()
 			_, err = rep.GetUserLink(ctx, test.email)
@@ -926,7 +917,7 @@ func TestUpdatePassword(t *testing.T) {
 				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
 			}
 
-			repoAuth := NewRepository(Deps{Pool: mockPool})
+			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)
@@ -953,10 +944,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNonexistentUser,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "user"
-					SET password_hash = $1,
-					updated_at = NOW()
-					WHERE link = $2`
+				query := `UPDATE "user" SET password_hash = $1, updated_at = NOW() WHERE link = $2`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
@@ -969,10 +957,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   common.ErrorNotNullValue,
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "user"
-					SET password_hash = $1,
-					updated_at = NOW()
-					WHERE link = $2`
+				query := `UPDATE "user" SET password_hash = $1, updated_at = NOW() WHERE link = $2`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
@@ -985,10 +970,7 @@ func TestUpdatePasswordError(t *testing.T) {
 			newPasswordHash: "newhash",
 			expectedError:   fmt.Errorf("pool.Exec: %w", errors.New("db error")),
 			mockSetup: func(mock pgxmock.PgxPoolIface, userID uuid.UUID, hash string) {
-				query := `UPDATE "user"
-					SET password_hash = $1,
-					updated_at = NOW()
-					WHERE link = $2`
+				query := `UPDATE "user" SET password_hash = $1, updated_at = NOW() WHERE link = $2`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(hash, userID).
@@ -1007,7 +989,7 @@ func TestUpdatePasswordError(t *testing.T) {
 				test.mockSetup(mockPool, test.userID, test.newPasswordHash)
 			}
 
-			repoAuth := NewRepository(Deps{Pool: mockPool})
+			repoAuth := NewRepository(mockPool, nil)
 			ctx := context.Background()
 
 			err = repoAuth.UpdatePassword(ctx, test.userID, test.newPasswordHash)

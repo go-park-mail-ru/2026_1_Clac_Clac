@@ -72,7 +72,7 @@ func TestRegister(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceRegistration := NewService(Deps{
+			serviceRegistration := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -159,7 +159,7 @@ func TestRegisterError(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			serviceRegistration := NewService(Deps{
+			serviceRegistration := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -232,7 +232,7 @@ func TestLogin(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogin := NewService(Deps{
+			serviceLogin := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -324,7 +324,7 @@ func TestLoginError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceLogin := NewService(Deps{
+			serviceLogin := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -381,7 +381,7 @@ func TestCreateSessionForUser(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(Deps{
+			serviceAuth := NewService(Tools{
 				Rep:               mockRepo,
 				GeneratorID:       test.generatorID,
 				CreaterResetKey:   CreaterResetKey,
@@ -447,7 +447,7 @@ func TestCreateSessionForUserError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(Deps{
+			serviceAuth := NewService(Tools{
 				Rep:               mockRepo,
 				GeneratorID:       test.generatorID,
 				CreaterResetKey:   CreaterResetKey,
@@ -468,7 +468,7 @@ func TestRefreshSessidon(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(nil)
 
-		srv := NewService(Deps{
+		srv := NewService(Tools{
 			Rep:               mockRep,
 			CreaterSessionKey: CreaterSessionKey,
 			SessionLifetime:   SessionLifetime,
@@ -532,7 +532,7 @@ func TestUpdateCountRequests(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(Deps{Rep: mockRepo})
+			srv := NewService(Tools{Rep: mockRepo})
 
 			isFull, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -578,7 +578,7 @@ func TestUpdateCountRequestsError(t *testing.T) {
 				test.mockAuthRep(mockRepo)
 			}
 
-			srv := NewService(Deps{Rep: mockRepo})
+			srv := NewService(Tools{Rep: mockRepo})
 
 			_, err := srv.UpdateCountRequests(context.Background(), test.config)
 
@@ -635,7 +635,7 @@ func TestCheckCoolDown(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(Deps{Rep: mockRepo})
+			srv := NewService(Tools{Rep: mockRepo})
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -684,7 +684,7 @@ func TestCheckCoolDownError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			srv := NewService(Deps{Rep: mockRepo})
+			srv := NewService(Tools{Rep: mockRepo})
 
 			isAllowed, ttl, err := srv.CheckCoolDown(context.Background(), test.config)
 
@@ -702,7 +702,7 @@ func TestRefreshSessionError(t *testing.T) {
 		mockRep := mockAuthRep.NewAuthRepository(t)
 		mockRep.On("ExtendSession", mock.Anything, mock.Anything).Return(newErr)
 
-		srv := NewService(Deps{
+		srv := NewService(Tools{
 			Rep:               mockRep,
 			CreaterSessionKey: CreaterSessionKey,
 			SessionLifetime:   SessionLifetime,
@@ -747,7 +747,7 @@ func TestLogOut(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(Deps{
+			serviceLogOut := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -809,7 +809,7 @@ func TestLogOutError(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceLogOut := NewService(Deps{
+			serviceLogOut := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -862,7 +862,7 @@ func TestGetUserLink(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -924,7 +924,7 @@ func TestGetUserLinkError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -987,7 +987,7 @@ func TestGetUserByEmail(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:         mockRepo,
 				Hasher:      test.hasher,
 				Checker:     test.checker,
@@ -1037,7 +1037,7 @@ func TestGetUserByEmailError(t *testing.T) {
 
 			ctx := context.Background()
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:               mockRepo,
 				Hasher:            test.hasher,
 				Checker:           test.checker,
@@ -1102,7 +1102,7 @@ func TestSendRecoveryCode(t *testing.T) {
 				test.senderMock(mockMail)
 			}
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:                mockRepo,
 				Sender:             mockMail,
 				GeneratorID:        test.generator,
@@ -1152,7 +1152,7 @@ func TestCheckCode(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:             mockRepo,
 				CreaterResetKey: CreaterResetKey,
 			})
@@ -1201,7 +1201,7 @@ func TestResetPassword(t *testing.T) {
 
 			ctx := context.Background()
 
-			serviceAuth := NewService(Deps{
+			serviceAuth := NewService(Tools{
 				Rep:             mockRepo,
 				Hasher:          test.hasher,
 				CreaterResetKey: CreaterResetKey,
@@ -1289,7 +1289,7 @@ func TestResetPasswordError(t *testing.T) {
 				test.mockBehavior(mockRepo)
 			}
 
-			serviceAuth := NewService(Deps{
+			serviceAuth := NewService(Tools{
 				Rep:             mockRepo,
 				Hasher:          test.hasher,
 				CreaterResetKey: CreaterResetKey,
@@ -1362,7 +1362,7 @@ func TestEnsureUserByEmail(t *testing.T) {
 				test.MockBehavior(authRepo)
 			}
 
-			service := NewService(Deps{
+			service := NewService(Tools{
 				Rep:               authRepo,
 				Hasher:            spyHasher,
 				GeneratorID:       spyGenerator,
@@ -1391,7 +1391,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 	ctx := context.Background()
 
 	secret := "super-secret"
-	svc := &Service{deps: Deps{CsrfSecret: secret}}
+	svc := &Service{tools: Tools{CsrfSecret: secret}}
 
 	t.Run("success generation", func(t *testing.T) {
 		sessionID := "user-123"
@@ -1412,8 +1412,8 @@ func TestGenerateCSRFToken(t *testing.T) {
 	})
 
 	t.Run("secret sensitivity", func(t *testing.T) {
-		svc1 := &Service{deps: Deps{CsrfSecret: "secret1"}}
-		svc2 := &Service{deps: Deps{CsrfSecret: "secret2"}}
+		svc1 := &Service{tools: Tools{CsrfSecret: "secret1"}}
+		svc2 := &Service{tools: Tools{CsrfSecret: "secret2"}}
 
 		t1, _ := svc1.GenerateCSRFToken(ctx, "sid", 123)
 		t2, _ := svc2.GenerateCSRFToken(ctx, "sid", 123)
@@ -1423,7 +1423,7 @@ func TestGenerateCSRFToken(t *testing.T) {
 
 func TestCheckCSRFToken(t *testing.T) {
 	secret := "test-secret-key"
-	svc := &Service{deps: Deps{CsrfSecret: secret}}
+	svc := &Service{tools: Tools{CsrfSecret: secret}}
 	ctx := context.Background()
 
 	validSessionID := "user-session-123"

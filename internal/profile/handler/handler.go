@@ -50,8 +50,7 @@ type ProfileService interface {
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-type Deps struct {
-	Srv                   ProfileService
+type Config struct {
 	ValidExtensions       map[string]struct{}
 	SiganatureTypeBytes   int
 	MaxLenNameUser        int
@@ -59,14 +58,16 @@ type Deps struct {
 	MaxReadBytes          int64
 }
 
-func NewHandler(deps Deps) *Handler {
+func NewHandler(srv ProfileService, cnf Config) *Handler {
 	return &Handler{
-		deps: deps,
+		srv: srv,
+		cnf: cnf,
 	}
 }
 
 type Handler struct {
-	deps Deps
+	srv ProfileService
+	cnf Config
 }
 
 // GetProfile godoc
@@ -89,7 +90,7 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceUser, err := h.deps.Srv.GetProfileUser(r.Context(), userLink)
+	serviceUser, err := h.srv.GetProfileUser(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)
@@ -138,13 +139,13 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = common.ValidateTextInfo(updatedInfo.DisplayName, h.deps.MaxLenNameUser)
+	err = common.ValidateTextInfo(updatedInfo.DisplayName, h.cnf.MaxLenNameUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
 	}
 
-	err = common.ValidateTextInfo(updatedInfo.DescriptionUser, h.deps.MaxLenDescriptionUser)
+	err = common.ValidateTextInfo(updatedInfo.DescriptionUser, h.cnf.MaxLenDescriptionUser)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
@@ -156,7 +157,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		Description: updatedInfo.DescriptionUser,
 	}
 
-	err = h.deps.Srv.UpdateProfile(r.Context(), userInfo)
+	err = h.srv.UpdateProfile(r.Context(), userInfo)
 	if err != nil {
 		if errors.Is(err, common.ErrorMissingRequiredField) {
 			api.RespondError(w, http.StatusBadRequest, failNullValue)
@@ -193,7 +194,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	if err := r.ParseMultipartForm(h.deps.MaxReadBytes); err != nil {
+	if err := r.ParseMultipartForm(h.cnf.MaxReadBytes); err != nil {
 		logger.Error().Err(err).Msg(tooLargeAvatar)
 		api.RespondError(w, http.StatusBadRequest, tooLargeAvatar)
 		return
@@ -211,7 +212,7 @@ func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	signatureFile := make([]byte, h.deps.SiganatureTypeBytes)
+	signatureFile := make([]byte, h.cnf.SiganatureTypeBytes)
 	countSignificantBytes, err := file.Read(signatureFile)
 	if err != nil && err != io.EOF {
 		logger.Error().Err(err).Msg(failReadFile)
@@ -220,7 +221,7 @@ func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mimeType := http.DetectContentType(signatureFile[:countSignificantBytes])
-	if _, ok := h.deps.ValidExtensions[mimeType]; !ok {
+	if _, ok := h.cnf.ValidExtensions[mimeType]; !ok {
 		logger.Error().Err(err).Msg(incorrectTypeAvatar)
 		api.RespondError(w, http.StatusBadRequest, incorrectTypeAvatar)
 		return
@@ -241,7 +242,7 @@ func (h *Handler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarUrl, err := h.deps.Srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
+	avatarUrl, err := h.srv.UpdateAvatar(r.Context(), serviceDto.UpdatedAvatar{
 		UserLink: userLink,
 		File:     file,
 		MimeType: mimeType,
@@ -287,7 +288,7 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.deps.Srv.DeleteAvatar(r.Context(), userLink)
+	err := h.srv.DeleteAvatar(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, failFoundUser)

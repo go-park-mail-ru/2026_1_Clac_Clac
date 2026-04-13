@@ -39,30 +39,20 @@ func (s *Store) Close() error {
 }
 
 func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Client, conf config.Config) *Store {
-	depsAuth := auth.Deps{
-		Pool:        pool,
-		RedisClient: redisClient,
-	}
+	backgrounds := s3Client.NewBucket(conf.S3.BoardsBackgroundsBucket, conf.S3.BoardsBackgroundsPrefix, s3.ACL.PublicRead)
+	avatars := s3Client.NewBucket(conf.S3.AvatarsBucket, conf.S3.AvatarsPrefix, s3.ACL.PublicRead)
 
-	depsProfile := profile.Deps{
-		Pool:    pool,
-		Avatars: s3Client.NewBucket(conf.S3.AvatarsBucket, conf.S3.AvatarsPrefix, s3.ACL.PublicRead),
-	}
-
-	depsSection := section.Deps{
-		Pool: pool,
-	}
-
-	depsCard := card.Deps{
-		Pool: pool,
+	boardConfig := board.Config{
+		CreateBoardDefaultUserRole: conf.Board.Repository.CreateBoardDefaultUserRole,
 	}
 
 	return &Store{
-		Auth:         auth.NewRepository(depsAuth),
-		Board:        board.NewRepository(pool, s3Client, conf.S3, conf.Board.Repository),
-		Profile:      profile.NewRepository(depsProfile),
-		Section:      section.NewRepository(depsSection),
-		Card:         card.NewRepository(depsCard),
+		Auth:    auth.NewRepository(pool, redisClient),
+		Board:   board.NewRepository(pool, backgrounds, boardConfig),
+		Profile: profile.NewRepository(pool, avatars),
+		Section: section.NewRepository(pool),
+		Card:    card.NewRepository(pool),
+
 		s3Client:     s3Client,
 		postgresPool: pool,
 		redisClient:  redisClient,

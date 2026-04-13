@@ -83,7 +83,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.GetSectionInfo(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -242,7 +242,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.CreateSection(ctx, creatingSection)
 
 			if test.expectedError != nil {
@@ -410,7 +410,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			err = repo.DeleteSection(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -526,7 +526,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			err = repo.ReorderSection(ctx, boardLink, linksSection)
 
 			if test.expectedError != nil {
@@ -708,7 +708,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			err = repo.UpdateSection(ctx, updateData)
 
 			if test.expectedError != nil {
@@ -798,7 +798,7 @@ func TestRepositoryGetAllSections(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.GetAllSections(ctx, boardLink)
 
 			if test.expectedError != nil {
@@ -922,7 +922,7 @@ func TestRepositoryGetCards(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.GetCards(ctx, targetSectionLink)
 
 			if test.expectedError != nil {

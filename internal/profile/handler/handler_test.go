@@ -128,8 +128,7 @@ func TestGetUserProfile(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv:             mockProfileService,
+			handler := NewHandler(mockProfileService, Config{
 				ValidExtensions: vaildExtensions,
 			})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -303,8 +302,7 @@ func TestUpdateProfile(t *testing.T) {
 			}
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(Deps{
-				Srv:                   mockProfileService,
+			handler := NewHandler(mockProfileService, Config{
 				ValidExtensions:       vaildExtensions,
 				MaxLenNameUser:        128,
 				MaxLenDescriptionUser: 500,
@@ -455,8 +453,7 @@ func TestUpdateAvatar(t *testing.T) {
 
 			response := httptest.NewRecorder()
 
-			handler := NewHandler(Deps{
-				Srv:                 mockProfileService,
+			handler := NewHandler(mockProfileService, Config{
 				ValidExtensions:     vaildExtensions,
 				MaxReadBytes:        5 * 1024 * 1024,
 				SiganatureTypeBytes: 512,
@@ -529,9 +526,7 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockProfileService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv: mockProfileService,
-			})
+			handler := NewHandler(mockProfileService, Config{})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 
 			if test.ctxValue != nil {

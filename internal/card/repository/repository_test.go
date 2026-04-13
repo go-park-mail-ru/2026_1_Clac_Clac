@@ -82,7 +82,7 @@ func TestRepositoryGetCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.GetCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -154,7 +154,7 @@ func TestRepositoryDeleteCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			err = repo.DeleteCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -306,7 +306,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			err = repo.UpdateCardDetails(ctx, updatingCard)
 
 			if test.expectedError != nil {
@@ -479,7 +479,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 
 			var updateDto dto.PlaceCard
 			if test.nameTest == "Success reorder same section" || test.nameTest == "Error check violation data" || test.nameTest == "Error missing required field" {
@@ -682,7 +682,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(Deps{Pool: mockDB})
+			repo := NewRepository(mockDB)
 			result, err := repo.CreateCard(ctx, newCard)
 
 			if test.expectedError != nil {

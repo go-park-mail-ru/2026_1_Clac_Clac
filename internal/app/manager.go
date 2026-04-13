@@ -23,7 +23,7 @@ type Manager struct {
 func NewManager(s *Store, conf config.Config) *Manager {
 	mailSender := mail.NewMailSender(&conf.MailSender)
 
-	authDeps := auth.Deps{
+	authDeps := auth.Tools{
 		Rep:    s.Auth,
 		Sender: &mailSender,
 
@@ -39,26 +39,17 @@ func NewManager(s *Store, conf config.Config) *Manager {
 		CountRetries:    conf.Auth.Service.CountRetries,
 	}
 
-	profileDeps := profile.Deps{
-		Rep:               s.Profile,
+	profileConfig := profile.Config{
 		GenerateAvatarKey: profile.GenerateAvatarKey,
 		BaseURLAvatar:     s3.GetURL(conf.S3.Endpoint, conf.S3.AvatarsBucket),
-	}
-
-	sectionDeps := section.Deps{
-		Rep: s.Section,
-	}
-
-	cardDeps := card.Deps{
-		Rep: s.Card,
 	}
 
 	return &Manager{
 		Auth:       auth.NewService(authDeps),
 		Board:      board.NewService(s.Board),
-		Profile:    profile.NewService(profileDeps),
-		Section:    section.NewService(sectionDeps),
-		Card:       card.NewService(cardDeps),
+		Profile:    profile.NewService(s.Profile, profileConfig),
+		Section:    section.NewService(s.Section),
+		Card:       card.NewService(s.Card),
 		MailSender: &mailSender,
 	}
 }

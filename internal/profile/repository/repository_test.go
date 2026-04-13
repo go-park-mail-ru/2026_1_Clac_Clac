@@ -45,9 +45,9 @@ func TestGetProfile(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `SELECT link, display_name, description_user, email, avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                FROM "user"
+                WHERE link = $1
+                `
 				rows := pgxmock.NewRows([]string{"link", "display_name", "description_user", "email", "avatar_key"}).
 					AddRow(expectedDTO.Link, expectedDTO.DisplayName, expectedDTO.DescriptionUser, expectedDTO.Email, &avatar)
 
@@ -61,9 +61,9 @@ func TestGetProfile(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `SELECT link, display_name, description_user, email, avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                FROM "user"
+                WHERE link = $1
+                `
 
 				rows := pgxmock.NewRows([]string{"link", "display_name", "description_user", "email", "avatar_key"}).
 					AddRow(expectedDTO.Link, expectedDTO.DisplayName, expectedDTO.DescriptionUser, expectedDTO.Email, nil)
@@ -84,9 +84,9 @@ func TestGetProfile(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `SELECT link, display_name, description_user, email, avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                FROM "user"
+                WHERE link = $1
+                `
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnError(pgx.ErrNoRows)
 			},
 			expectedUser:  dto.UserInfoEntity{},
@@ -97,9 +97,9 @@ func TestGetProfile(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `SELECT link, display_name, description_user, email, avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                FROM "user"
+                WHERE link = $1
+                `
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnError(errors.New("db error"))
 			},
 			expectedUser:  dto.UserInfoEntity{},
@@ -115,7 +115,7 @@ func TestGetProfile(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := NewRepository(Deps{Pool: mockPool})
+			repoProfile := NewRepository(mockPool, nil)
 			user, err := repoProfile.GetProfile(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
@@ -155,15 +155,15 @@ func TestUpdateProfile(t *testing.T) {
 			info:     updatedInfo,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET
-					display_name = $1,
-					description_user = $2,
-					updated_at = NOW()
-				WHERE link = $3 AND (
-					display_name IS DISTINCT FROM $1 OR
-					description_user IS DISTINCT FROM $2
-				)`
+                UPDATE "user"
+                SET
+                    display_name = $1,
+                    description_user = $2,
+                    updated_at = NOW()
+                WHERE link = $3 AND (
+                    display_name IS DISTINCT FROM $1 OR
+                    description_user IS DISTINCT FROM $2
+                )`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link).
@@ -176,15 +176,15 @@ func TestUpdateProfile(t *testing.T) {
 			info:     updatedInfo,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET 
-					display_name = $1, 
-					description_user = $2,
-					updated_at = NOW()
-				WHERE link = $3 AND (
-					display_name IS DISTINCT FROM $1 OR
-					description_user IS DISTINCT FROM $2
-				)`
+                UPDATE "user"
+                SET 
+                    display_name = $1, 
+                    description_user = $2,
+                    updated_at = NOW()
+                WHERE link = $3 AND (
+                    display_name IS DISTINCT FROM $1 OR
+                    description_user IS DISTINCT FROM $2
+                )`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link).
@@ -197,15 +197,15 @@ func TestUpdateProfile(t *testing.T) {
 			info:     updatedInfo,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET
-					display_name = $1,
-					description_user = $2,
-					updated_at = NOW()
-				WHERE link = $3 AND (
-					display_name IS DISTINCT FROM $1 OR
-					description_user IS DISTINCT FROM $2
-				)`
+                UPDATE "user"
+                SET
+                    display_name = $1,
+                    description_user = $2,
+                    updated_at = NOW()
+                WHERE link = $3 AND (
+                    display_name IS DISTINCT FROM $1 OR
+                    description_user IS DISTINCT FROM $2
+                )`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link).
@@ -223,7 +223,7 @@ func TestUpdateProfile(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := NewRepository(Deps{Pool: mockPool})
+			repoProfile := NewRepository(mockPool, nil)
 			err = repoProfile.UpdateProfile(context.Background(), test.info)
 
 			if test.expectedError != nil {
@@ -259,10 +259,10 @@ func TestGetAvatarKey(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				SELECT avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                SELECT avatar_key
+                FROM "user"
+                WHERE link = $1
+                `
 				rows := pgxmock.NewRows([]string{"avatar_key"}).AddRow(&avatar)
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnRows(rows)
 			},
@@ -274,10 +274,10 @@ func TestGetAvatarKey(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				SELECT avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                SELECT avatar_key
+                FROM "user"
+                WHERE link = $1
+                `
 				rows := pgxmock.NewRows([]string{"avatar_key"}).AddRow(nil)
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnRows(rows)
 			},
@@ -289,10 +289,10 @@ func TestGetAvatarKey(t *testing.T) {
 			targetID: targetLink,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				SELECT avatar_key
-				FROM "user"
-				WHERE link = $1
-				`
+                SELECT avatar_key
+                FROM "user"
+                WHERE link = $1
+                `
 				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnError(errors.New("db error"))
 			},
 			expectedKey:   "",
@@ -308,7 +308,7 @@ func TestGetAvatarKey(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := NewRepository(Deps{Pool: mockPool})
+			repoProfile := NewRepository(mockPool, nil)
 			key, err := repoProfile.GetAvatarKey(context.Background(), test.targetID)
 
 			if test.expectedError != nil {
@@ -366,7 +366,7 @@ func TestUploadAvatarS3(t *testing.T) {
 				test.mockBehavior(mockBucket)
 			}
 
-			repoProfile := NewRepository(Deps{Avatars: mockBucket})
+			repoProfile := NewRepository(nil, mockBucket)
 			key, err := repoProfile.UploadAvatarS3(context.Background(), file, pathFile, contentType)
 
 			if test.expectedError != nil {
@@ -392,11 +392,11 @@ func TestUploadURLAvatar(t *testing.T) {
 			nameTest: "Success upload URL avatar",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(objectKey, targetLink).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -407,11 +407,11 @@ func TestUploadURLAvatar(t *testing.T) {
 			nameTest: "Error user not found",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(objectKey, targetLink).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
@@ -422,11 +422,11 @@ func TestUploadURLAvatar(t *testing.T) {
 			nameTest: "Error DB",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(objectKey, targetLink).
 					WillReturnError(errors.New("db error"))
@@ -443,7 +443,7 @@ func TestUploadURLAvatar(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := NewRepository(Deps{Pool: mockPool})
+			repoProfile := NewRepository(mockPool, nil)
 			err = repoProfile.UploadURLAvatar(context.Background(), targetLink, objectKey)
 
 			if test.expectedError != nil {
@@ -494,7 +494,7 @@ func TestDeleteAvatarS3(t *testing.T) {
 				test.mockBehavior(mockBucket)
 			}
 
-			repoProfile := NewRepository(Deps{Avatars: mockBucket})
+			repoProfile := NewRepository(nil, mockBucket)
 			err := repoProfile.DeleteAvatarS3(context.Background(), deleteKey)
 
 			if test.expectedError != nil {
@@ -518,11 +518,11 @@ func TestDeleteURLAvatar(t *testing.T) {
 			nameTest: "Success delete URL avatar",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(nil, targetLink).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -533,11 +533,11 @@ func TestDeleteURLAvatar(t *testing.T) {
 			nameTest: "Error user not found",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(nil, targetLink).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
@@ -548,11 +548,11 @@ func TestDeleteURLAvatar(t *testing.T) {
 			nameTest: "Error DB",
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-				UPDATE "user"
-				SET avatar_key = $1,
-				updated_at = NOW()
-				WHERE link = $2
-				`
+                UPDATE "user"
+                SET avatar_key = $1,
+                updated_at = NOW()
+                WHERE link = $2
+                `
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(nil, targetLink).
 					WillReturnError(errors.New("db error"))
@@ -569,7 +569,7 @@ func TestDeleteURLAvatar(t *testing.T) {
 
 			test.mockSetup(mockPool)
 
-			repoProfile := NewRepository(Deps{Pool: mockPool})
+			repoProfile := NewRepository(mockPool, nil)
 			err = repoProfile.DeleteURLAvatar(context.Background(), targetLink)
 
 			if test.expectedError != nil {

@@ -17,22 +17,18 @@ type CardRep interface {
 	CreateCard(ctx context.Context, newCard repositoryDto.NewCard) (int, error)
 }
 
-type Deps struct {
-	Rep CardRep
-}
-
 type Service struct {
-	deps Deps
+	rep CardRep
 }
 
-func NewService(deps Deps) *Service {
+func NewService(rep CardRep) *Service {
 	return &Service{
-		deps: deps,
+		rep: rep,
 	}
 }
 
 func (s *Service) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
-	card, err := s.deps.Rep.GetCard(ctx, linkCard)
+	card, err := s.rep.GetCard(ctx, linkCard)
 	if err != nil {
 		return dto.InfoCard{}, fmt.Errorf("rep.GetCard: %w", err)
 	}
@@ -46,7 +42,7 @@ func (s *Service) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard
 }
 
 func (s *Service) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
-	err := s.deps.Rep.DeleteCard(ctx, linkCard)
+	err := s.rep.DeleteCard(ctx, linkCard)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteCard: %w", err)
 	}
@@ -55,7 +51,7 @@ func (s *Service) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 }
 
 func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.UpdatingCardDetails) error {
-	err := s.deps.Rep.UpdateCardDetails(ctx, repositoryDto.UpdatingCardDetails{
+	err := s.rep.UpdateCardDetails(ctx, repositoryDto.UpdatingCardDetails{
 		LinkCard:     updatingCard.LinkCard,
 		Description:  updatingCard.Description,
 		Title:        updatingCard.Title,
@@ -70,7 +66,7 @@ func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.Updati
 }
 
 func (s *Service) ReorderCard(ctx context.Context, updatedCard dto.PlaceCard) error {
-	err := s.deps.Rep.ReorderCard(ctx, repositoryDto.PlaceCard{
+	err := s.rep.ReorderCard(ctx, repositoryDto.PlaceCard{
 		LinkCard:    updatedCard.LinkCard,
 		LinkSection: updatedCard.LinkSection,
 		Position:    updatedCard.Position,
@@ -85,7 +81,7 @@ func (s *Service) ReorderCard(ctx context.Context, updatedCard dto.PlaceCard) er
 func (s *Service) CreateCard(ctx context.Context, newCard dto.NewCard) (dto.PlaceCard, error) {
 	linkCard := uuid.New()
 
-	position, err := s.deps.Rep.CreateCard(ctx, repositoryDto.NewCard{
+	position, err := s.rep.CreateCard(ctx, repositoryDto.NewCard{
 		LinkAuthor:   newCard.LinkAuthor,
 		LinkCard:     linkCard,
 		LinkSection:  newCard.LinkSection,

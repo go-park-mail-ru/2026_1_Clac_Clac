@@ -112,7 +112,7 @@ func TestGetSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -260,8 +260,7 @@ func TestCreateSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv:              mockService,
+			handler := NewHandler(mockService, Config{
 				MaxQuantityTasks: 100,
 				MinQuantityTasks: 0,
 			})
@@ -377,7 +376,7 @@ func TestDeleteSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -497,7 +496,7 @@ func TestReorderSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 
 			var bodyBytes []byte
 			if strBody, ok := test.requestBody.(string); ok {
@@ -686,8 +685,7 @@ func TestUpdateSection(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv:               mockService,
+			handler := NewHandler(mockService, Config{
 				MaxLenNameSection: 128,
 				MaxQuantityTasks:  100,
 				MinQuantityTasks:  0,
@@ -787,7 +785,7 @@ func TestGetAllSections(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -880,7 +878,7 @@ func TestGetCards(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 

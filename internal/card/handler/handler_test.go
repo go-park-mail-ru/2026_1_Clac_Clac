@@ -111,7 +111,7 @@ func TestGetCard(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodGet, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -182,7 +182,7 @@ func TestDeleteCard(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 			request := httptest.NewRequest(http.MethodDelete, "/", nil)
 			request = mux.SetURLVars(request, test.pathVars)
 
@@ -316,8 +316,7 @@ func TestUpdateCardDetails(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv:               mockService,
+			handler := NewHandler(mockService, Config{
 				MaxLenTitle:       10,
 				MaxLenDescription: 1000,
 			})
@@ -449,7 +448,7 @@ func TestReorderCard(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{Srv: mockService})
+			handler := NewHandler(mockService, Config{})
 
 			var bodyBytes []byte
 			if strBody, ok := test.requestBody.(string); ok {
@@ -613,8 +612,7 @@ func TestCreateCard(t *testing.T) {
 				test.mockBehavior(mockService)
 			}
 
-			handler := NewHandler(Deps{
-				Srv:               mockService,
+			handler := NewHandler(mockService, Config{
 				MaxLenTitle:       10,
 				MaxLenDescription: 1000,
 			})

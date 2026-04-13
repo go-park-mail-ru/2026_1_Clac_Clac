@@ -21,11 +21,10 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/dto"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/mock_board_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 )
 
-var testConf = config.BoardHandler{
+var testConf = handler.Config{
 	MaxBackgroundSize:          10 << 20,
 	MultipartBackgroundFileKey: "background",
 }

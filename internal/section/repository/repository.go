@@ -20,17 +20,13 @@ type DBEngine interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
-type Deps struct {
-	Pool DBEngine
-}
-
 type Repository struct {
-	deps Deps
+	pool DBEngine
 }
 
-func NewRepository(deps Deps) *Repository {
+func NewRepository(pool DBEngine) *Repository {
 	return &Repository{
-		deps: deps,
+		pool: pool,
 	}
 }
 
@@ -47,7 +43,7 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 	`
 
 	var infoSection dto.FullSectionInfo
-	err := r.deps.Pool.QueryRow(ctx, query, link).Scan(
+	err := r.pool.QueryRow(ctx, query, link).Scan(
 		&infoSection.SectionName,
 		&infoSection.Position,
 		&infoSection.IsMandatory,
@@ -78,7 +74,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 	ORDER BY t.position ASC;
 	`
 
-	rows, err := r.deps.Pool.Query(ctx, query, linkSection)
+	rows, err := r.pool.Query(ctx, query, linkSection)
 	if err != nil {
 		return []dto.Card{}, fmt.Errorf("pool.Query: %w", err)
 	}
@@ -111,7 +107,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 }
 
 func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.FullSectionInfo, error) {
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return dto.FullSectionInfo{}, fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -195,7 +191,7 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 }
 
 func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) error {
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -289,7 +285,7 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 }
 
 func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, linksSection []uuid.UUID) error {
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -343,7 +339,7 @@ func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, li
 }
 
 func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.FullSectionInfo) error {
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -414,7 +410,7 @@ func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) 
 		ORDER BY position ASC;
 	`
 
-	rows, err := r.deps.Pool.Query(ctx, query, boarderLink)
+	rows, err := r.pool.Query(ctx, query, boarderLink)
 	if err != nil {
 		return nil, fmt.Errorf("pool.Query: %w", err)
 	}

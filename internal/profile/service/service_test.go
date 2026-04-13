@@ -67,9 +67,7 @@ func TestGetProfileUser(t *testing.T) {
 				test.mockBehavior(mockProfileRepo)
 			}
 
-			profileService := NewService(Deps{
-				Rep: mockProfileRepo,
-			})
+			profileService := NewService(mockProfileRepo, Config{})
 			ctx := context.Background()
 
 			user, err := profileService.GetProfileUser(ctx, test.userID)
@@ -133,9 +131,7 @@ func TestUpdateProfile(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(Deps{
-				Rep: mockRep,
-			})
+			srv := NewService(mockRep, Config{})
 
 			err := srv.UpdateProfile(context.Background(), test.info)
 
@@ -238,8 +234,7 @@ func TestUpdateAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(Deps{
-				Rep:               mockRep,
+			srv := NewService(mockRep, Config{
 				GenerateAvatarKey: generateAvatarKey,
 				BaseURLAvatar:     baseUrl,
 			})
@@ -323,9 +318,7 @@ func TestDeleteAvatar(t *testing.T) {
 				test.mockBehavior(mockRep)
 			}
 
-			srv := NewService(Deps{
-				Rep: mockRep,
-			})
+			srv := NewService(mockRep, Config{})
 			err := srv.DeleteAvatar(context.Background(), test.userLink)
 
 			if test.expectedError != nil {

@@ -18,16 +18,13 @@ type Dilivery struct {
 }
 
 func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
-	authDeps := auth.Deps{
-		Srv: m.Auth,
-
+	authConfig := auth.Config{
 		MaxLenPassword:  conf.Auth.Handler.MaxLenPassword,
 		MinLenPassword:  conf.Auth.Handler.MinLenPassword,
 		SessionLifetime: conf.Auth.Handler.SessionLifetime,
 	}
 
-	profileDeps := profile.Deps{
-		Srv:             m.Profile,
+	profileConfig := profile.Config{
 		ValidExtensions: conf.S3Avatars.ValidExtensions,
 
 		SiganatureTypeBytes:   conf.Profile.Handler.SiganatureTypeBytes,
@@ -36,25 +33,27 @@ func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
 		MaxReadBytes:          conf.Profile.Handler.MaxReadBytes,
 	}
 
-	sectionDeps := section.Deps{
-		Srv: m.Section,
-
+	sectionConfig := section.Config{
 		MaxQuantityTasks:  conf.Section.Handler.MaxQuantityTasks,
 		MinQuantityTasks:  conf.Section.Handler.MinQuantityTasks,
 		MaxLenNameSection: conf.Section.Handler.MaxLenNameSection,
 	}
 
-	cardDeps := card.Deps{
-		Srv:               m.Card,
+	cardConfig := card.Config{
 		MaxLenTitle:       conf.Card.Handler.MaxLenTitle,
 		MaxLenDescription: conf.Card.Handler.MaxLenDescription,
 	}
 
+	boardConfig := board.Config{
+		MultipartBackgroundFileKey: conf.Board.Handler.MultipartBackgroundFileKey,
+		MaxBackgroundSize:          conf.Board.Handler.MaxBackgroundSize,
+	}
+
 	return &Dilivery{
-		Auth:    auth.NewHandler(authDeps),
-		Profile: profile.NewHandler(profileDeps),
-		Board:   board.NewHandler(m.Board, conf.Board.Handler),
-		Section: section.NewHandler(sectionDeps),
-		Card:    card.NewHandler(cardDeps),
+		Auth:    auth.NewHandler(m.Auth, authConfig),
+		Profile: profile.NewHandler(m.Profile, profileConfig),
+		Board:   board.NewHandler(m.Board, boardConfig),
+		Section: section.NewHandler(m.Section, sectionConfig),
+		Card:    card.NewHandler(m.Card, cardConfig),
 	}
 }

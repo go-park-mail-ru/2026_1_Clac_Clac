@@ -56,7 +56,7 @@ type AuthRepository interface {
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 }
 
-type Deps struct {
+type Tools struct {
 	Rep                AuthRepository
 	Sender             SenderLetters
 	Hasher             func(password string) (string, error)
@@ -72,38 +72,38 @@ type Deps struct {
 }
 
 type Service struct {
-	deps Deps
+	tools Tools
 }
 
-func NewService(deps Deps) *Service {
+func NewService(tools Tools) *Service {
 	return &Service{
-		deps: deps,
+		tools: tools,
 	}
 }
 
 func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, string, error) {
-	user, err := s.deps.Rep.GetUser(ctx, requestUser.Email)
+	user, err := s.tools.Rep.GetUser(ctx, requestUser.Email)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	err = s.deps.Checker(requestUser.Password, user.PasswordHash)
+	err = s.tools.Checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
-	sessionID, err := s.deps.GeneratorID()
+	sessionID, err := s.tools.GeneratorID()
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: s.deps.CreaterSessionKey(sessionID),
+		SessionKey: s.tools.CreaterSessionKey(sessionID),
 		UserLink:   user.Link,
-		LifeTime:   s.deps.SessionLifetime,
+		LifeTime:   s.tools.SessionLifetime,
 	}
 
-	err = s.deps.Rep.AddSession(ctx, session)
+	err = s.tools.Rep.AddSession(ctx, session)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
@@ -117,18 +117,18 @@ func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.Use
 }
 
 func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error) {
-	sessionID, err := s.deps.GeneratorID()
+	sessionID, err := s.tools.GeneratorID()
 	if err != nil {
 		return "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: s.deps.CreaterSessionKey(sessionID),
+		SessionKey: s.tools.CreaterSessionKey(sessionID),
 		UserLink:   link,
-		LifeTime:   s.deps.SessionLifetime,
+		LifeTime:   s.tools.SessionLifetime,
 	}
 
-	err = s.deps.Rep.AddSession(ctx, session)
+	err = s.tools.Rep.AddSession(ctx, session)
 	if err != nil {
 		return "", fmt.Errorf("rep.AddSession: %w", err)
 	}
@@ -137,9 +137,9 @@ func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (str
 }
 
 func (s *Service) RefreshSession(ctx context.Context, sessionID string) error {
-	err := s.deps.Rep.ExtendSession(ctx, repositoryDto.ExtendedSession{
-		Key:        s.deps.CreaterSessionKey(sessionID),
-		Expiration: s.deps.SessionLifetime,
+	err := s.tools.Rep.ExtendSession(ctx, repositoryDto.ExtendedSession{
+		Key:        s.tools.CreaterSessionKey(sessionID),
+		Expiration: s.tools.SessionLifetime,
 	})
 	if err != nil {
 		return fmt.Errorf("rep.UpdateExpirationSession: %w", err)
@@ -149,7 +149,7 @@ func (s *Service) RefreshSession(ctx context.Context, sessionID string) error {
 }
 
 func (s *Service) UpdateCountRequests(ctx context.Context, configRateLimiter dto.RateLimiterConfig) (bool, error) {
-	size, err := s.deps.Rep.CheckLimit(ctx, repositoryDto.RateLimiterConfig{
+	size, err := s.tools.Rep.CheckLimit(ctx, repositoryDto.RateLimiterConfig{
 		UserIP: configRateLimiter.UserIP,
 		Action: configRateLimiter.Action,
 		Window: configRateLimiter.Window,
@@ -166,7 +166,7 @@ func (s *Service) UpdateCountRequests(ctx context.Context, configRateLimiter dto
 }
 
 func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (dto.UserInfo, string, error) {
-	hashedPassword, err := s.deps.Hasher(userInfo.Password)
+	hashedPassword, err := s.tools.Hasher(userInfo.Password)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("HashPassword: %w", err)
 	}
@@ -178,23 +178,23 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 		Email:        userInfo.Email,
 	}
 
-	err = s.deps.Rep.AddUser(ctx, user)
+	err = s.tools.Rep.AddUser(ctx, user)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("rep.AddUser: %w", err)
 	}
 
-	sessionID, err := s.deps.GeneratorID()
+	sessionID, err := s.tools.GeneratorID()
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
 	}
 
 	session := repositoryDto.SessionEntity{
-		SessionKey: s.deps.CreaterSessionKey(sessionID),
+		SessionKey: s.tools.CreaterSessionKey(sessionID),
 		UserLink:   user.Link,
 		LifeTime:   24 * time.Hour,
 	}
 
-	err = s.deps.Rep.AddSession(ctx, session)
+	err = s.tools.Rep.AddSession(ctx, session)
 	if err != nil {
 		return dto.UserInfo{}, "", fmt.Errorf("rep.AddSession: %w", err)
 	}
@@ -207,8 +207,8 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 }
 
 func (s *Service) LogOut(ctx context.Context, sessionID string) error {
-	key := s.deps.CreaterSessionKey(sessionID)
-	err := s.deps.Rep.DeleteSession(ctx, key)
+	key := s.tools.CreaterSessionKey(sessionID)
+	err := s.tools.Rep.DeleteSession(ctx, key)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteSession: %w", err)
 	}
@@ -217,8 +217,8 @@ func (s *Service) LogOut(ctx context.Context, sessionID string) error {
 }
 
 func (s *Service) GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	key := s.deps.CreaterSessionKey(sessionID)
-	userLink, err := s.deps.Rep.GetUserIDBySession(ctx, key)
+	key := s.tools.CreaterSessionKey(sessionID)
+	userLink, err := s.tools.Rep.GetUserIDBySession(ctx, key)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("rep.GetUserIDBySession: %w", err)
 	}
@@ -232,7 +232,7 @@ func (s *Service) GetUserLink(ctx context.Context, sessionID string) (uuid.UUID,
 }
 
 func (s *Service) GetUserByEmail(ctx context.Context, email string) (dto.UserInfo, error) {
-	repositoryUser, err := s.deps.Rep.GetUser(ctx, email)
+	repositoryUser, err := s.tools.Rep.GetUser(ctx, email)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
 	}
@@ -250,7 +250,7 @@ func (s *Service) GetUserByEmail(ctx context.Context, email string) (dto.UserInf
 func (s *Service) CheckCoolDown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
 	fullKey := fmt.Sprintf("cd:%s:%s", config.Name, config.Email)
 
-	isAllowed, waitTime, err := s.deps.Rep.SetCooldown(ctx, repositoryDto.CoolDownConfig{
+	isAllowed, waitTime, err := s.tools.Rep.SetCooldown(ctx, repositoryDto.CoolDownConfig{
 		Key:        fullKey,
 		Expiration: config.Expiration,
 	})
@@ -264,23 +264,23 @@ func (s *Service) CheckCoolDown(ctx context.Context, config dto.CoolDownConfig) 
 func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 	logger := zerolog.Ctx(ctx)
 
-	userLink, err := s.deps.Rep.GetUserLink(ctx, email)
+	userLink, err := s.tools.Rep.GetUserLink(ctx, email)
 	if err != nil {
 		return fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	resetCode, err := s.deps.GeneratorResetCode()
+	resetCode, err := s.tools.GeneratorResetCode()
 	if err != nil {
 		return fmt.Errorf("generatorResetCode: %w", err)
 	}
 
 	resetToken := repositoryDto.ResetTokenEntity{
-		ResetTokenKey: s.deps.CreaterResetKey(resetCode),
+		ResetTokenKey: s.tools.CreaterResetKey(resetCode),
 		UserLink:      userLink,
 		LifeTime:      time.Minute * 15,
 	}
 
-	err = s.deps.Rep.AddResetToken(ctx, resetToken)
+	err = s.tools.Rep.AddResetToken(ctx, resetToken)
 	if err != nil {
 		return fmt.Errorf("rep.AddResetToken: %w", err)
 	}
@@ -288,8 +288,8 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 	htmlBody := fmt.Sprintf(common.TemplateLetter, resetCode)
 
 	go func(email, body string) {
-		for range s.deps.CountRetries {
-			err := s.deps.Sender.SendLetter(email, "Code to create a new password", body)
+		for range s.tools.CountRetries {
+			err := s.tools.Sender.SendLetter(email, "Code to create a new password", body)
 			if err == nil {
 				return
 			}
@@ -306,8 +306,8 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 }
 
 func (s *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
-	tokenKey := s.deps.CreaterResetKey(tokenID)
-	_, err := s.deps.Rep.GetUserLinkByResetToken(ctx, tokenKey)
+	tokenKey := s.tools.CreaterResetKey(tokenID)
+	_, err := s.tools.Rep.GetUserLinkByResetToken(ctx, tokenKey)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
 	}
@@ -316,8 +316,8 @@ func (s *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
 }
 
 func (s *Service) ResetPassword(ctx context.Context, tokenID, newPassword string) error {
-	tokenKey := s.deps.CreaterResetKey(tokenID)
-	userLink, err := s.deps.Rep.GetUserLinkByResetToken(ctx, tokenKey)
+	tokenKey := s.tools.CreaterResetKey(tokenID)
+	userLink, err := s.tools.Rep.GetUserLinkByResetToken(ctx, tokenKey)
 	if err != nil {
 		return fmt.Errorf("rep.GetResetToken: %w", err)
 	}
@@ -327,12 +327,12 @@ func (s *Service) ResetPassword(ctx context.Context, tokenID, newPassword string
 		return fmt.Errorf("uuid.Parse: %w", err)
 	}
 
-	newHashPassword, err := s.deps.Hasher(newPassword)
+	newHashPassword, err := s.tools.Hasher(newPassword)
 	if err != nil {
 		return fmt.Errorf("hasher: %w", err)
 	}
 
-	err = s.deps.Rep.UpdatePassword(ctx, parseUserLink, newHashPassword)
+	err = s.tools.Rep.UpdatePassword(ctx, parseUserLink, newHashPassword)
 	if err != nil {
 		return fmt.Errorf("rep.UpdatePassword: %w", err)
 	}
@@ -385,7 +385,7 @@ func (a *Service) GetCSRFTokenExpireTime(ctx context.Context) (time.Time, error)
 }
 
 func (a *Service) GenerateCSRFToken(ctx context.Context, sessionId string, expireTime int64) (string, error) {
-	h := hmac.New(sha256.New, []byte(a.deps.CsrfSecret))
+	h := hmac.New(sha256.New, []byte(a.tools.CsrfSecret))
 	data := fmt.Sprintf("%s:%d", sessionId, expireTime)
 	h.Write([]byte(data))
 
@@ -409,7 +409,7 @@ func (a *Service) CheckCSRFToken(ctx context.Context, sessionId string, token st
 		return ErrCSRFTokenExpired
 	}
 
-	h := hmac.New(sha256.New, []byte(a.deps.CsrfSecret))
+	h := hmac.New(sha256.New, []byte(a.tools.CsrfSecret))
 	data := fmt.Sprintf("%s:%d", sessionId, expireTime)
 	h.Write([]byte(data))
 

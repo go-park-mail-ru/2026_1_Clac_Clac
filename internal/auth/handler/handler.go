@@ -47,21 +47,22 @@ type VkOAuth interface {
 	Client(ctx context.Context, t *oauth2.Token) *http.Client
 }
 
-type Handler struct {
-	deps Deps
-}
-
-func NewHandler(deps Deps) *Handler {
-	return &Handler{
-		deps: deps,
-	}
-}
-
-type Deps struct {
-	Srv             AuthService
+type Config struct {
 	MaxLenPassword  int
 	MinLenPassword  int
 	SessionLifetime time.Duration
+}
+
+type Handler struct {
+	srv AuthService
+	cfg Config
+}
+
+func NewHandler(srv AuthService, cfg Config) *Handler {
+	return &Handler{
+		srv: srv,
+		cfg: cfg,
+	}
 }
 
 const (
@@ -136,13 +137,13 @@ func (h *Handler) LogInUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ValidatorRequestAuth(request.Email, request.Password, h.deps.MaxLenPassword, h.deps.MinLenPassword)
+	err := ValidatorRequestAuth(request.Email, request.Password, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
-	serviceUser, sessionID, err := h.deps.Srv.LogIn(r.Context(), serviceDto.LogInUser{
+	serviceUser, sessionID, err := h.srv.LogIn(r.Context(), serviceDto.LogInUser{
 		Email:    request.Email,
 		Password: request.Password,
 	})
@@ -167,7 +168,7 @@ func (h *Handler) LogInUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, api.NewSessionCookie(
 		service.SessiondIdKey,
 		sessionID,
-		time.Now().Add(h.deps.SessionLifetime)))
+		time.Now().Add(h.cfg.SessionLifetime)))
 
 	api.HandleError(api.RespondOk(w, handlerUser))
 }
@@ -193,13 +194,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	request.Sanitize()
 
-	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword, h.deps.MaxLenPassword, h.deps.MinLenPassword)
+	err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
-	serviceUser, sessionID, err := h.deps.Srv.Register(r.Context(), serviceDto.RegistrationUser{
+	serviceUser, sessionID, err := h.srv.Register(r.Context(), serviceDto.RegistrationUser{
 		DisplayName: request.DisplayName,
 		Email:       request.Email,
 		Password:    request.Password,
@@ -230,7 +231,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, api.NewSessionCookie(
 		service.SessiondIdKey,
 		sessionID,
-		time.Now().Add(h.deps.SessionLifetime)))
+		time.Now().Add(h.cfg.SessionLifetime)))
 
 	api.HandleError(api.RespondCreated(w, handlerUser))
 }
@@ -246,9 +247,9 @@ func (h *Handler) LogOutUser(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie(service.SessiondIdKey)
 	if err == nil && cookie != nil {
-		errLogOut := h.deps.Srv.LogOut(r.Context(), cookie.Value)
+		errLogOut := h.srv.LogOut(r.Context(), cookie.Value)
 		if errLogOut != nil {
-			logger.Err(fmt.Errorf("Srv.LogOut: %w", errLogOut))
+			logger.Err(fmt.Errorf("srv.LogOut: %w", errLogOut))
 		}
 	}
 
@@ -279,7 +280,7 @@ func (h *Handler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAllowed, waitTime, err := h.deps.Srv.CheckCoolDown(r.Context(), serviceDto.CoolDownConfig{
+	isAllowed, waitTime, err := h.srv.CheckCoolDown(r.Context(), serviceDto.CoolDownConfig{
 		Name:       nameCoolDown,
 		Email:      request.Email,
 		Expiration: 1 * time.Minute,
@@ -298,7 +299,7 @@ func (h *Handler) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.SendRecoveryCode(r.Context(), request.Email)
+	err = h.srv.SendRecoveryCode(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, ErrUserDoesNotExists.Error())
@@ -333,7 +334,7 @@ func (h *Handler) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.CheckRecoveryCode(r.Context(), request.Code)
+	err = h.srv.CheckRecoveryCode(r.Context(), request.Code)
 	if err != nil {
 		logger.Error().Err(err).Msg("auth.CheckRecoveryCode failed")
 		api.RespondError(w, http.StatusInternalServerError, ErrInternalServerError.Error())
@@ -364,13 +365,13 @@ func (h *Handler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword, h.deps.MaxLenPassword, h.deps.MinLenPassword)
+	err = ValidatorRequestNewPassword(request.Password, request.RepeatedPassword, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
-	err = h.deps.Srv.ResetPassword(r.Context(), request.TokenID, request.Password)
+	err = h.srv.ResetPassword(r.Context(), request.TokenID, request.Password)
 	if err != nil {
 		logger.Error().Err(err).Msg("auth.ResetPassword failed")
 
@@ -477,7 +478,7 @@ func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAu
 			Email:       userEmail,
 		}
 
-		user, err := h.deps.Srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
+		user, err := h.srv.EnsureUserByEmail(r.Context(), registrationUserInfo)
 		if err != nil {
 			logger.Err(err).Msg("authService.EnsureUserByEmail")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
@@ -491,14 +492,14 @@ func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAu
 			Avatar:      user.Avatar,
 		}
 
-		err = h.deps.Srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
+		err = h.srv.SaveRefreshTokenFroUser(r.Context(), userInfo, token.RefreshToken)
 		if err != nil {
 			logger.Err(ErrOAuthCannotSaveRefreshToken).Msg("authService.SaveRefreshToken")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
 			return
 		}
 
-		sessionID, err := h.deps.Srv.CreateSessionForUser(r.Context(), user.Link)
+		sessionID, err := h.srv.CreateSessionForUser(r.Context(), user.Link)
 		if err != nil {
 			logger.Err(err).Msg("authService.CreateSessionForUser")
 			Redirect(w, r, redirectTo, http.StatusInternalServerError, ErrOAuthInternalServerError.Error())
@@ -508,7 +509,7 @@ func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAu
 		http.SetCookie(w, api.NewSessionCookie(
 			service.SessiondIdKey,
 			sessionID,
-			time.Now().Add(h.deps.SessionLifetime)))
+			time.Now().Add(h.cfg.SessionLifetime)))
 
 		Redirect(w, r, redirectTo, http.StatusOK, oauthSuccessAuthMessage)
 	}
@@ -532,14 +533,14 @@ func (h *Handler) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionId := cookie.Value
 
-	expireTime, err := h.deps.Srv.GetCSRFTokenExpireTime(r.Context())
+	expireTime, err := h.srv.GetCSRFTokenExpireTime(r.Context())
 	if err != nil {
 		logger.Error().Err(ErrCannotGetCSRFTokenExpireTime).Msg("get csrf token expire time")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())
 		return
 	}
 
-	token, err := h.deps.Srv.GenerateCSRFToken(r.Context(), sessionId, expireTime.Unix())
+	token, err := h.srv.GenerateCSRFToken(r.Context(), sessionId, expireTime.Unix())
 	if err != nil {
 		logger.Error().Err(ErrCannotCreateCSRFToken).Msg("generate csrf token")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateCSRFToken.Error())

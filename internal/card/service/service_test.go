@@ -60,7 +60,7 @@ func TestGetCard(t *testing.T) {
 			mockRep := mockCardRep.NewCardRep(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			res, err := service.GetCard(context.Background(), targetCardLink)
 
 			if test.expectedError {
@@ -102,7 +102,7 @@ func TestDeleteCard(t *testing.T) {
 			mockRep := mockCardRep.NewCardRep(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			err := service.DeleteCard(context.Background(), targetCardLink)
 
 			if test.expectedError {
@@ -161,7 +161,7 @@ func TestUpdateCardDetails(t *testing.T) {
 			mockRep := mockCardRep.NewCardRep(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			err := service.UpdateCardDetails(context.Background(), updateDto)
 
 			if test.expectedError {
@@ -215,7 +215,7 @@ func TestReordredCard(t *testing.T) {
 			mockRep := mockCardRep.NewCardRep(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			err := service.ReorderCard(context.Background(), placeDto)
 
 			if test.expectedError {
@@ -268,7 +268,7 @@ func TestCreateCard(t *testing.T) {
 			mockRep := mockCardRep.NewCardRep(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			res, err := service.CreateCard(context.Background(), newCardDto)
 
 			if test.expectedError {

@@ -15,7 +15,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
@@ -56,7 +55,12 @@ type BoardService interface {
 	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
 }
 
-func NewHandler(srv BoardService, conf config.BoardHandler) *BoardHandler {
+type Config struct {
+	MultipartBackgroundFileKey string
+	MaxBackgroundSize          int64
+}
+
+func NewHandler(srv BoardService, conf Config) *BoardHandler {
 	return &BoardHandler{
 		srv:  srv,
 		conf: conf,
@@ -65,7 +69,7 @@ func NewHandler(srv BoardService, conf config.BoardHandler) *BoardHandler {
 
 type BoardHandler struct {
 	srv  BoardService
-	conf config.BoardHandler
+	conf Config
 }
 
 // @Summary		Получить список досок пользователя

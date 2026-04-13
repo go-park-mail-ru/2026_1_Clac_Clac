@@ -49,20 +49,21 @@ type SectionService interface {
 	UpdateSection(ctx context.Context, updatingSection serviceDto.FullSectionInfo) error
 }
 
-type Deps struct {
-	Srv               SectionService
+type Config struct {
 	MaxQuantityTasks  int
 	MinQuantityTasks  int
 	MaxLenNameSection int
 }
 
 type Handler struct {
-	deps Deps
+	srv SectionService
+	cnf Config
 }
 
-func NewHandler(deps Deps) *Handler {
+func NewHandler(srv SectionService, cnf Config) *Handler {
 	return &Handler{
-		deps: deps,
+		srv: srv,
+		cnf: cnf,
 	}
 }
 
@@ -88,7 +89,7 @@ func (h *Handler) GetSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.deps.Srv.GetSectionInfo(r.Context(), linkSection)
+	result, err := h.srv.GetSectionInfo(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -132,7 +133,7 @@ func (h *Handler) GetCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cards, err := h.deps.Srv.GetCards(r.Context(), linkSection)
+	cards, err := h.srv.GetCards(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -179,13 +180,13 @@ func (h *Handler) CreateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.deps.MaxQuantityTasks ||
-		*newSection.MaxTasks < h.deps.MinQuantityTasks) {
+	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.cnf.MaxQuantityTasks ||
+		*newSection.MaxTasks < h.cnf.MinQuantityTasks) {
 		api.RespondError(w, http.StatusBadRequest, common.IncorrectRequest)
 		return
 	}
 
-	result, err := h.deps.Srv.CreateSection(r.Context(), serviceDto.CreatingSection{
+	result, err := h.srv.CreateSection(r.Context(), serviceDto.CreatingSection{
 		BoardLink:   newSection.BoardLink,
 		SectionName: newSection.SectionName,
 		IsMandatory: newSection.IsMandatory,
@@ -250,7 +251,7 @@ func (h *Handler) DeleteSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.DeleteSection(r.Context(), linkSection)
+	err = h.srv.DeleteSection(r.Context(), linkSection)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSection) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -316,7 +317,7 @@ func (h *Handler) ReorderSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.deps.Srv.ReorderSection(r.Context(), linkBoard, listSectionLinks.List)
+	err = h.srv.ReorderSection(r.Context(), linkBoard, listSectionLinks.List)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotFindAllLinks) {
 			api.RespondError(w, http.StatusNotFound, failFindSection)
@@ -377,9 +378,9 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = common.ValidateTextInfo(sectionInfo.SectionName, h.deps.MaxLenNameSection)
+	err = common.ValidateTextInfo(sectionInfo.SectionName, h.cnf.MaxLenNameSection)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len name is %d", h.deps.MaxLenNameSection))
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max len name is %d", h.cnf.MaxLenNameSection))
 		return
 	}
 
@@ -390,13 +391,13 @@ func (h *Handler) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if sectionInfo.MaxTasks != nil {
-		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, h.deps.MaxQuantityTasks, h.deps.MinQuantityTasks); err != nil {
-			api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max quantity tasks is %d", h.deps.MaxQuantityTasks))
+		if err := common.ValidateNumberInfo(*sectionInfo.MaxTasks, h.cnf.MaxQuantityTasks, h.cnf.MinQuantityTasks); err != nil {
+			api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("max quantity tasks is %d", h.cnf.MaxQuantityTasks))
 			return
 		}
 	}
 
-	err = h.deps.Srv.UpdateSection(r.Context(), serviceDto.FullSectionInfo{
+	err = h.srv.UpdateSection(r.Context(), serviceDto.FullSectionInfo{
 		SectionLink: sectionLink,
 		SectionName: sectionInfo.SectionName,
 		Position:    sectionInfo.Position,
@@ -459,7 +460,7 @@ func (h *Handler) GetAllSections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sections, err := h.deps.Srv.GetAllSections(r.Context(), boarderLink)
+	sections, err := h.srv.GetAllSections(r.Context(), boarderLink)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, failGetAllSections)
 		return

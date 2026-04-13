@@ -23,17 +23,13 @@ type DBEngine interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
-type Deps struct {
-	Pool DBEngine
-}
-
 type Repository struct {
-	deps Deps
+	pool DBEngine
 }
 
-func NewRepository(deps Deps) *Repository {
+func NewRepository(pool DBEngine) *Repository {
 	return &Repository{
-		deps: deps,
+		pool: pool,
 	}
 }
 
@@ -51,7 +47,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 
 	var infoCard dto.InfoCard
 
-	err := r.deps.Pool.QueryRow(ctx, query, linkCard).Scan(
+	err := r.pool.QueryRow(ctx, query, linkCard).Scan(
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
@@ -71,7 +67,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	query := `DELETE FROM task WHERE task_link = $1;`
 
-	commandTag, err := r.deps.Pool.Exec(ctx, query, linkCard)
+	commandTag, err := r.pool.Exec(ctx, query, linkCard)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
@@ -86,7 +82,7 @@ func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.UpdatingCardDetails) (err error) {
 	logger := zerolog.Ctx(ctx)
 
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -160,7 +156,7 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard) (err error) {
 	logger := zerolog.Ctx(ctx)
 
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
@@ -281,7 +277,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, error) {
 	logger := zerolog.Ctx(ctx)
 
-	tx, err := r.deps.Pool.Begin(ctx)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return -1, fmt.Errorf("pool.Begin: %w", err)
 	}

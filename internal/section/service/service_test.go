@@ -69,7 +69,7 @@ func TestServiceGetSectionInfo(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			result, err := service.GetSectionInfo(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -140,7 +140,7 @@ func TestServiceCreateSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			result, err := service.CreateSection(ctx, inputDto)
 
 			if test.expectedError != nil {
@@ -202,7 +202,7 @@ func TestServiceDeleteSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			err := service.DeleteSection(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -263,7 +263,7 @@ func TestServiceReorderSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			err := service.ReorderSection(ctx, boardLink, test.sectionLinks)
 
 			if test.expectedError != nil {
@@ -336,7 +336,7 @@ func TestServiceUpdateSection(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			err := service.UpdateSection(ctx, updateDto)
 
 			if test.expectedError != nil {
@@ -421,7 +421,7 @@ func TestServiceGetAllSections(t *testing.T) {
 				test.mockBehavior(mockRepository)
 			}
 
-			service := NewService(Deps{Rep: mockRepository})
+			service := NewService(mockRepository)
 			result, err := service.GetAllSections(ctx, boardLink)
 
 			if test.expectedError != nil {
@@ -489,7 +489,7 @@ func TestGetCards(t *testing.T) {
 			mockRep := mockSectionRep.NewSectionRepository(t)
 			test.mockBehavior(mockRep)
 
-			service := NewService(Deps{Rep: mockRep})
+			service := NewService(mockRep)
 			res, err := service.GetCards(context.Background(), targetSectionLink)
 
 			if test.expectedError {
