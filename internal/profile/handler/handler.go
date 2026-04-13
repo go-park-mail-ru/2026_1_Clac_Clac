@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
@@ -45,6 +46,7 @@ var (
 //go:generate mockery --name=ProfileService --output=mock_profile_srv --outpkg=mockProfileSrv
 type ProfileService interface {
 	GetProfileUser(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
+	GetProfileByLink(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
 	UpdateProfile(ctx context.Context, updatedInfo serviceDto.UpdatedUserInfo) error
 	UpdateAvatar(ctx context.Context, avatar serviceDto.UpdatedAvatar) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
@@ -102,10 +104,58 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := dto.UserInfoResponse{
-		Link:        serviceUser.Link,
-		DisplayName: serviceUser.DisplayName,
-		Email:       serviceUser.Email,
-		AvatarURL:   serviceUser.AvatarURL,
+		Link:            serviceUser.Link,
+		DisplayName:     serviceUser.DisplayName,
+		DescriptionUser: serviceUser.Description,
+		Email:           serviceUser.Email,
+		AvatarURL:       serviceUser.AvatarURL,
+	}
+
+	api.HandleError(api.RespondOk(w, user))
+}
+
+// GetProfileByLink godoc
+// @Summary      Получение профиля пользователя по ссылке
+// @Description  Возвращает информацию о пользователе (ID, имя, email, URL аватара) по его уникальной ссылке (UUID).
+// @Tags         profile
+// @Produce      json
+// @Param        user_link path string true "UUID пользователя"
+// @Success      200 {object} api.OkResponse[dto.UserInfoResponse] "Успешное получение профиля"
+// @Failure      400 {object} api.ErrorResponse "Некорректный UUID"
+// @Failure      404 {object} api.ErrorResponse "Пользователь не найден"
+// @Failure      500 {object} api.ErrorResponse "Внутренняя ошибка сервера"
+// @Security     CookieAuth
+// @Router       /profiles/{user_link} [get]
+func (h *Handler) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	vars := mux.Vars(r)
+	userLinkParam := vars["user_link"]
+
+	userLink, err := uuid.Parse(userLinkParam)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
+		return
+	}
+
+	serviceUser, err := h.srv.GetProfileByLink(r.Context(), userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, failFoundUser)
+			return
+		}
+
+		logger.Error().Err(err).Msg("ProfileService.GetProfileByLink")
+		api.RespondError(w, http.StatusInternalServerError, failGetInfoUser)
+		return
+	}
+
+	user := dto.UserInfoResponse{
+		Link:            serviceUser.Link,
+		DisplayName:     serviceUser.DisplayName,
+		DescriptionUser: serviceUser.Description,
+		Email:           serviceUser.Email,
+		AvatarURL:       serviceUser.AvatarURL,
 	}
 
 	api.HandleError(api.RespondOk(w, user))

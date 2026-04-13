@@ -136,6 +136,81 @@ func TestGetProfile(t *testing.T) {
 	}
 }
 
+func TestGetProfileByLink(t *testing.T) {
+	targetLink := common.FixedUserUuiD
+	avatar := "avatar.jpg"
+
+	expectedDTO := dto.UserInfoEntity{
+		Link:            targetLink,
+		DisplayName:     "Bobr",
+		DescriptionUser: "desc",
+		Email:           "bobr@mail.ru",
+		AvatarKey:       avatar,
+	}
+
+	tests := []struct {
+		nameTest      string
+		targetID      uuid.UUID
+		mockSetup     func(mock pgxmock.PgxPoolIface)
+		expectedUser  dto.UserInfoEntity
+		expectedError error
+	}{
+		{
+			nameTest: "Success get user profile by link",
+			targetID: targetLink,
+			mockSetup: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link, display_name, description_user, email, avatar_key
+				FROM "user"
+				WHERE link = $1
+				`
+				rows := pgxmock.NewRows([]string{"link", "display_name", "description_user", "email", "avatar_key"}).
+					AddRow(expectedDTO.Link, expectedDTO.DisplayName, expectedDTO.DescriptionUser, expectedDTO.Email, &avatar)
+
+				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnRows(rows)
+			},
+			expectedUser:  expectedDTO,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error user not found by link",
+			targetID: targetLink,
+			mockSetup: func(mock pgxmock.PgxPoolIface) {
+				query := `SELECT link, display_name, description_user, email, avatar_key
+				FROM "user"
+				WHERE link = $1
+				`
+				mock.ExpectQuery(regexp.QuoteMeta(query)).WithArgs(targetLink).WillReturnError(pgx.ErrNoRows)
+			},
+			expectedUser:  dto.UserInfoEntity{},
+			expectedError: common.ErrorNonexistentUser,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockPool, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer mockPool.Close()
+
+			test.mockSetup(mockPool)
+
+			repoProfile := NewRepository(mockPool, nil)
+			user, err := repoProfile.GetProfileByLink(context.Background(), test.targetID)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					assert.ErrorIs(t, err, test.expectedError)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, test.expectedUser, user)
+
+			assert.NoError(t, mockPool.ExpectationsWereMet())
+		})
+	}
+}
+
 func TestUpdateProfile(t *testing.T) {
 	targetLink := uuid.New()
 	updatedInfo := dto.UpdatedInfo{
@@ -176,15 +251,15 @@ func TestUpdateProfile(t *testing.T) {
 			info:     updatedInfo,
 			mockSetup: func(mock pgxmock.PgxPoolIface) {
 				query := `
-                UPDATE "user"
-                SET 
-                    display_name = $1, 
-                    description_user = $2,
-                    updated_at = NOW()
-                WHERE link = $3 AND (
-                    display_name IS DISTINCT FROM $1 OR
-                    description_user IS DISTINCT FROM $2
-                )`
+				UPDATE "user"
+				SET
+					display_name = $1,
+					description_user = $2,
+					updated_at = NOW()
+				WHERE link = $3 AND (
+					display_name IS DISTINCT FROM $1 OR
+					description_user IS DISTINCT FROM $2
+				)`
 
 				mock.ExpectExec(regexp.QuoteMeta(query)).
 					WithArgs(updatedInfo.NameUser, updatedInfo.DescriptionUser, updatedInfo.Link).

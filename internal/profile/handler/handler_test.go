@@ -18,6 +18,7 @@ import (
 	mockProfileSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler/mock_profile_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/service/dto"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -148,6 +149,97 @@ func TestGetUserProfile(t *testing.T) {
 				require.NoError(t, err, "response marshal should not return error")
 
 				assert.Equal(t, string(responseJson), response.Body.String(), "incorrect response body")
+			}
+		})
+	}
+}
+
+func TestGetProfileByLink(t *testing.T) {
+	targetUserLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	expectedUser := serviceDto.UserInfo{
+		Link:        targetUserLink,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+		AvatarURL:   "",
+	}
+
+	expectedHandlerResponse := dto.UserInfoResponse{
+		Link:        targetUserLink,
+		DisplayName: "Artem",
+		Email:       "test@mail.ru",
+		AvatarURL:   "",
+	}
+
+	tests := []struct {
+		nameTest           string
+		userLinkParam      string
+		mockBehavior       func(m *mockProfileSrv.ProfileService)
+		expectedStatusCode int
+		expectedResponse   any
+	}{
+		{
+			nameTest:      "Success get profile by link",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(expectedUser, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   newOkResponse(api.StatusOK, expectedHandlerResponse),
+		},
+		{
+			nameTest:           "Error invalid UUID",
+			userLinkParam:      "invalid-uuid",
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   newErrorResponse(http.StatusBadRequest, common.IncorrectPath),
+		},
+		{
+			nameTest:      "Error user not found",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(
+					serviceDto.UserInfo{},
+					common.ErrorNonexistentUser,
+				)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectedResponse:   newErrorResponse(http.StatusNotFound, failFoundUser),
+		},
+		{
+			nameTest:      "Error from service",
+			userLinkParam: targetUserLink.String(),
+			mockBehavior: func(m *mockProfileSrv.ProfileService) {
+				m.On("GetProfileByLink", mock.Anything, targetUserLink).Return(
+					serviceDto.UserInfo{},
+					errors.New("service error"),
+				)
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponse:   newErrorResponse(http.StatusInternalServerError, failGetInfoUser),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockProfileService := mockProfileSrv.NewProfileService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockProfileService)
+			}
+
+			handler := NewHandler(mockProfileService, Config{})
+			request := httptest.NewRequest(http.MethodGet, "/profiles/"+test.userLinkParam, nil)
+			request = mux.SetURLVars(request, map[string]string{"user_link": test.userLinkParam})
+
+			response := httptest.NewRecorder()
+			handler.GetProfileByLink(response, request)
+
+			assert.Equal(t, test.expectedStatusCode, response.Code)
+
+			if test.expectedResponse != nil {
+				responseJson, err := json.Marshal(test.expectedResponse)
+				require.NoError(t, err)
+
+				assert.Equal(t, string(responseJson), response.Body.String())
 			}
 		})
 	}

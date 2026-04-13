@@ -35,6 +35,34 @@ func (_m *ProfileService) DeleteAvatar(ctx context.Context, userLink uuid.UUID) 
 	return r0
 }
 
+// GetProfileByLink provides a mock function with given fields: ctx, userLink
+func (_m *ProfileService) GetProfileByLink(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfileByLink")
+	}
+
+	var r0 dto.UserInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.UserInfo, error)); ok {
+		return rf(ctx, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.UserInfo); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Get(0).(dto.UserInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetProfileUser provides a mock function with given fields: ctx, userLink
 func (_m *ProfileService) GetProfileUser(ctx context.Context, userLink uuid.UUID) (dto.UserInfo, error) {
 	ret := _m.Called(ctx, userLink)

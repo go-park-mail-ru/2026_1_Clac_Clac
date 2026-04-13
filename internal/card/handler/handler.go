@@ -14,6 +14,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -72,6 +73,7 @@ func NewHandler(srv CardService, cnf Config) *Handler {
 // @Security     CookieAuth
 // @Router       /cards/{link} [get]
 func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
 
@@ -88,6 +90,7 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.GetCard")
 		api.RespondError(w, http.StatusInternalServerError, failGetCard)
 		return
 	}
@@ -114,6 +117,7 @@ func (h *Handler) GetCard(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link} [delete]
 func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkParam := vars[cardLinkKey]
 
@@ -130,6 +134,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.DeleteCard")
 		api.RespondError(w, http.StatusInternalServerError, failDeleteCard)
 		return
 	}
@@ -152,6 +157,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link} [put]
 func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
 
@@ -210,6 +216,7 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.UpdateCardDetails")
 		api.RespondError(w, http.StatusInternalServerError, failUpdateCard)
 		return
 	}
@@ -232,6 +239,7 @@ func (h *Handler) UpdateCardDetails(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards/{link}/reorder [patch]
 func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 	vars := mux.Vars(r)
 	linkCardParam := vars[cardLinkKey]
 
@@ -281,6 +289,7 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.ReorderCard")
 		api.RespondError(w, http.StatusInternalServerError, failReorderCard)
 		return
 	}
@@ -304,6 +313,8 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 // @Security     CookieAuth
 // @Router       /cards [post]
 func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	var newCard dto.NewCard
 	err := json.NewDecoder(r.Body).Decode(&newCard)
 	if err != nil {
@@ -364,6 +375,7 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logger.Error().Err(err).Msg("CardHandler.CreateCard")
 		api.RespondError(w, http.StatusInternalServerError, failCreateCard)
 		return
 	}
