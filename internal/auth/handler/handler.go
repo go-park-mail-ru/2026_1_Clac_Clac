@@ -411,7 +411,7 @@ func (h *Handler) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) VkOAuthCallback(conf *config.VkOAuth, redirectTo string, vkOAuth VkOAuth) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := zerolog.Ctx(r.Context())
-
+		logger.Info().Msg("👉👉👉 ХЕНДЛЕР VK ЗАПУЩЕН! НОВЫЙ КОД РАБОТАЕТ! 👈👈👈")
 		code := r.FormValue(oauthCodeKey)
 		if code == "" {
 			logger.Err(ErrOAuthCodeEmpty).Msg("vk oauth callback")
