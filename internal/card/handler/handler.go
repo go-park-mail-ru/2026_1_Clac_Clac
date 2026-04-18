@@ -18,14 +18,15 @@ import (
 )
 
 const (
-	failFindCard    = "can not find card"
-	failGetCard     = "can not get info card"
-	failDeleteCard  = "can not delete card"
-	failUpdateCard  = "can not update card"
-	failReorderCard = "can not reorder card"
-	failCreateCard  = "can not create new card"
-	failFindSection = "can not find section"
-	failNullValue   = "can not use null element"
+	failFindCard      = "can not find card"
+	failGetCard       = "can not get info card"
+	failDeleteCard    = "can not delete card"
+	failUpdateCard    = "can not update card"
+	failReorderCard   = "can not reorder card"
+	failCreateCard    = "can not create new card"
+	failFindSection   = "can not find section"
+	failNullValue     = "can not use null element"
+	failRichLimitTask = "rich limit task"
 
 	incorrectMoveCard   = "can not skip mandatory section"
 	incorrectUniqCard   = "link card must be unique"
@@ -289,6 +290,11 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, common.ErrorRichLimitTasks) {
+			api.RespondError(w, http.StatusBadRequest, failRichLimitTask)
+			return
+		}
+
 		logger.Error().Err(err).Msg("CardHandler.ReorderCard")
 		api.RespondError(w, http.StatusInternalServerError, failReorderCard)
 		return
@@ -372,6 +378,11 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(err, common.ErrorMissingRequiredField) {
 			api.RespondError(w, http.StatusBadRequest, failNullValue)
+			return
+		}
+
+		if errors.Is(err, common.ErrorRichLimitTasks) {
+			api.RespondError(w, http.StatusBadRequest, failRichLimitTask)
 			return
 		}
 
