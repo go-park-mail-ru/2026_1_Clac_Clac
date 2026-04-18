@@ -36,6 +36,7 @@ var (
 	ErrorCardAlreadyExist         = errors.New("card with this link is already exist")
 	ErrorInvalidReferenceCardData = errors.New("invalid references for card")
 	ErrorInvalidCardData          = errors.New("incorrect card data")
+	ErrorRichLimitTasks           = errors.New("rich limit of number counts")
 
 	ErrorMissingRequiredField = errors.New("required field is missing")
 

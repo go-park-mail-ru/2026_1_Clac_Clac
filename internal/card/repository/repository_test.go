@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRepositoryGetCard(t *testing.T) {
+func TestGetCard(t *testing.T) {
 	ctx := context.Background()
 	targetLink := uuid.New()
 	targetDeadLine := time.Now()
@@ -104,7 +104,7 @@ func TestRepositoryGetCard(t *testing.T) {
 	}
 }
 
-func TestRepositoryDeleteCard(t *testing.T) {
+func TestDeleteCard(t *testing.T) {
 	ctx := context.Background()
 	targetLink := uuid.New()
 
@@ -174,7 +174,7 @@ func TestRepositoryDeleteCard(t *testing.T) {
 	}
 }
 
-func TestRepositoryUpdateCardDetails(t *testing.T) {
+func TestUpdateCardDetails(t *testing.T) {
 	ctx := context.Background()
 	targetLink := uuid.New()
 	targetSection := uuid.New()
@@ -329,7 +329,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 	}
 }
 
-func TestRepositoryReorderCard(t *testing.T) {
+func TestReorderCard(t *testing.T) {
 	ctx := context.Background()
 	targetCardLink := uuid.New()
 	oldSectionLink := uuid.New()
@@ -363,6 +363,10 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(2, 10))
 
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
@@ -407,6 +411,10 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(2, 10))
 
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
@@ -511,7 +519,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 	}
 }
 
-func TestRepositoryCreateCard(t *testing.T) {
+func TestCreateCard(t *testing.T) {
 	ctx := context.Background()
 	targetCardLink := uuid.New()
 	targetAuthorLink := uuid.New()
@@ -540,6 +548,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -566,6 +578,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
@@ -580,6 +596,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
@@ -593,6 +613,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error not existing section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
 
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
@@ -623,6 +647,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -649,6 +677,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -674,6 +706,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error exec fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)WITH count_tasks AS.*SELECT c\.count, s\.max_tasks.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(1, 10))
 
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
