@@ -194,14 +194,14 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
 
-	logger.Info().Msg("ЗАШЁЛ_1")
-
 	if updatingPlaceCard.LinkSection != oldSectionLink {
 		err = checkLimitTasks(ctx, tx, updatingPlaceCard.LinkSection)
-		logger.Info().Msg("ЗАШЁЛ_2")
 		if err != nil {
+			logger.Info().Msg("ЗАШЁЛ_3")
 			return fmt.Errorf("checkLimitTasks: %w", err)
 		}
+
+		logger.Info().Msg("ЗАШЁЛ_1")
 
 		queryCheckMandatory := `
 			WITH positions AS (

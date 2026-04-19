@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
@@ -28,6 +29,10 @@ func checkLimitTasks(ctx context.Context, tx pgx.Tx, linkSection uuid.UUID) erro
 
 	err := tx.QueryRow(ctx, queryCheckLimits, linkSection).Scan(&sizeSection, &maxTasks)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return common.ErrorNotExistingSection
+		}
+
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
 
