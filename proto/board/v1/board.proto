@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package proto.board.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1";
+
+message BoardInfo {
+  string link = 1;
+  string name = 2;
+  string description = 3;
+  string background = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// GetBoards
+message GetBoardsRequest {
+  string user_link = 1;
+}
+
+message GetBoardsResponse {
+  repeated BoardInfo boards_info = 1;
+}
+
+// GetBoard
+message GetBoardRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message GetBoardResponse {
+  BoardInfo board_info = 1;
+}
+
+// CreateBoard
+message CreateBoardRequest {
+  string user_link = 1;
+  string name = 2;
+  string description = 3;
+  string background = 4;
+}
+
+message CreateBoardResponse {
+  BoardInfo board_info = 1;
+}
+
+// DeleteBoard
+message DeleteBoardRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message DeleteBoardResponse {}
+
+// UpdateBoard
+message UpdateBoardRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string name = 3;
+  string description = 4;
+  string background = 5;
+}
+
+message UpdateBoardResponse {}
+
+// UploadBackground
+message UploadBackgroundRequest {
+  string user_link = 1;
+  string board_link = 2;
+  bytes image = 3;
+  string filename = 4;
+}
+
+message UploadBackgroundResponse {
+  string background_key = 1;
+}
+
+// GetMembers
+message GetMembersRequest {
+  string board_link = 1;
+}
+
+message GetMembersResponse {
+  repeated string users_links = 1;
+}
+
+service BoardService {
+  rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
+  rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
+  rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
+  rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
+  rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
+  rpc UploadBackground(UploadBackgroundRequest) returns (UploadBackgroundResponse);
+  rpc GetMembers(GetMembersRequest) returns (GetMembersResponse);
+}

@@ -24,13 +24,17 @@ require (
 	golang.org/x/sync v0.19.0
 )
 
-require github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // indirect
+require (
+	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
+	google.golang.org/grpc v1.80.0 // indirect
+)
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6 // direct
 	golang.org/x/net v0.49.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 require (
