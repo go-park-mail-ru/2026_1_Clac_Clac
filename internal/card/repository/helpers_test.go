@@ -15,6 +15,7 @@ import (
 
 func TestCheckLimitTasks(t *testing.T) {
 	targetSectionID := uuid.New()
+	testMaxTask := 5
 
 	queryCheckLimits := `
 		WITH count_tasks AS (
@@ -52,7 +53,17 @@ func TestCheckLimitTasks(t *testing.T) {
 			mockSetup: func(mock pgxmock.PgxPoolIface, sectionID uuid.UUID) {
 				mock.ExpectQuery(regexp.QuoteMeta(queryCheckLimits)).
 					WithArgs(sectionID).
-					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(3, 10))
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(3, &testMaxTask))
+			},
+		},
+		{
+			nameTest:      "Limit reached",
+			linkSection:   targetSectionID,
+			expectedError: common.ErrorRichLimitTasks,
+			mockSetup: func(mock pgxmock.PgxPoolIface, sectionID uuid.UUID) {
+				mock.ExpectQuery(regexp.QuoteMeta(queryCheckLimits)).
+					WithArgs(sectionID).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(10, &testMaxTask))
 			},
 		},
 		{
