@@ -8,6 +8,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
 )
 
 func checkLimitTasks(ctx context.Context, tx pgx.Tx, linkSection uuid.UUID) error {
@@ -24,19 +25,24 @@ func checkLimitTasks(ctx context.Context, tx pgx.Tx, linkSection uuid.UUID) erro
 		FOR UPDATE OF s
 		`
 
+	logger := zerolog.Ctx(ctx)
+
 	var sizeSection int
 	var maxTasks *int
 
 	err := tx.QueryRow(ctx, queryCheckLimits, linkSection).Scan(&sizeSection, &maxTasks)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			logger.Info().Msg("Не нашёл секцию")
 			return common.ErrorNotExistingSection
 		}
 
+		logger.Err(err).Msg(err.Error())
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
 
 	if maxTasks != nil && sizeSection+1 > *maxTasks {
+		logger.Info().Msg("Достиггли лимита")
 		return common.ErrorRichLimitTasks
 	}
 
