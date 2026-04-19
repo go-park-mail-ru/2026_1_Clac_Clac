@@ -197,11 +197,8 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 	if updatingPlaceCard.LinkSection != oldSectionLink {
 		err = checkLimitTasks(ctx, tx, updatingPlaceCard.LinkSection)
 		if err != nil {
-			logger.Info().Msg("ЗАШЁЛ_3")
 			return fmt.Errorf("checkLimitTasks: %w", err)
 		}
-
-		logger.Info().Msg("ЗАШЁЛ_1")
 
 		queryCheckMandatory := `
 			WITH positions AS (
@@ -300,7 +297,6 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 
 	err = checkLimitTasks(ctx, tx, newCard.LinkSection)
 	if err != nil {
-		logger.Info().Msg("Создал")
 		return -1, fmt.Errorf("checkLimitTasks: %w", err)
 	}
 
