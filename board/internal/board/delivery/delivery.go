@@ -1,3 +1,5 @@
+// TODO: Добавить проверку прав во все методы
+
 package delivery
 
 import (

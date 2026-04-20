@@ -5,7 +5,7 @@ package mockSectionService
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
 
 	mock "github.com/stretchr/testify/mock"
 

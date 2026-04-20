@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/dto"
-	mockRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/mock_section_rep"
-	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/mock_section_rep"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
+	mockRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/mock_section_rep"
+	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/mock_section_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +18,7 @@ import (
 
 func TestServiceGetSectionInfo(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedUserUuiD
+	targetLink := common.FixedUserUUID
 	maxTasks := 50
 
 	repoResult := repositoryDto.FullSectionInfo{
@@ -87,7 +87,7 @@ func TestServiceGetSectionInfo(t *testing.T) {
 
 func TestServiceCreateSection(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedBoardUuiD
+	boardLink := common.FixedBoardUUID
 	maxTasks := 20
 
 	inputDto := dto.CreatingSection{
@@ -163,7 +163,7 @@ func TestServiceCreateSection(t *testing.T) {
 
 func TestServiceDeleteSection(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedUserUuiD
+	targetLink := common.FixedUserUUID
 
 	tests := []struct {
 		nameTest      string
@@ -207,8 +207,8 @@ func TestServiceDeleteSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorDeleteBacklog) {
-						assert.ErrorIs(t, err, common.ErrorDeleteBacklog)
+					if errors.Is(test.expectedError, common.ErrCannotDeleteBacklog) {
+						assert.ErrorIs(t, err, common.ErrCannotDeleteBacklog)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -222,8 +222,8 @@ func TestServiceDeleteSection(t *testing.T) {
 
 func TestServiceReorderSection(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedBoardUuiD
-	section1 := common.FixedUserUuiD
+	boardLink := common.FixedBoardUUID
+	section1 := common.FixedSectionUUID
 	section2 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 
 	tests := []struct {
@@ -279,7 +279,7 @@ func TestServiceReorderSection(t *testing.T) {
 
 func TestServiceUpdateSection(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedSectionUuiD
+	targetLink := common.FixedSectionUUID
 	maxTasks := 50
 
 	updateDto := dto.FullSectionInfo{
@@ -325,7 +325,7 @@ func TestServiceUpdateSection(t *testing.T) {
 			mockBehavior: func(m *mockRepo.SectionRepository) {
 				m.On("GetSectionInfo", ctx, targetLink).Return(repositoryDto.FullSectionInfo{Position: 1}, nil)
 			},
-			expectedError: common.ErrorUpdateBacklog,
+			expectedError: common.ErrCannotUpdateBacklog,
 		},
 	}
 
@@ -341,8 +341,8 @@ func TestServiceUpdateSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorUpdateBacklog) {
-						assert.ErrorIs(t, err, common.ErrorUpdateBacklog)
+					if errors.Is(test.expectedError, common.ErrCannotUpdateBacklog) {
+						assert.ErrorIs(t, err, common.ErrCannotUpdateBacklog)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -356,8 +356,8 @@ func TestServiceUpdateSection(t *testing.T) {
 
 func TestServiceGetAllSections(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedBoardUuiD
-	sectionLink := common.FixedUserUuiD
+	boardLink := common.FixedBoardUUID
+	sectionLink := common.FixedSectionUUID
 	maxTasks := 50
 
 	repoSections := []repositoryDto.FullSectionInfo{

@@ -1,4 +1,4 @@
-package config
+package db
 
 import (
 	"time"
@@ -34,11 +34,11 @@ type DatabaseConnection struct {
 
 func DefaultDBConnectionConfog() DatabaseConnection {
 	return DatabaseConnection{
-		User:     defaultValue,
-		Password: defaultValue,
-		Host:     defaultValue,
-		Port:     defaultValue,
-		Name:     defaultValue,
+		User:     "",
+		Password: "",
+		Host:     "",
+		Port:     "",
+		Name:     "",
 
 		MinConnections:        defaultMinPostgresConnections,
 		MaxConnections:        defaultMaxPostgresConnections,
@@ -51,11 +51,11 @@ func DefaultDBConnectionConfog() DatabaseConnection {
 }
 
 func SetupEnvDbConnection(v *viper.Viper) {
-	v.SetDefault("database.user", defaultValue)
-	v.SetDefault("database.password", defaultValue)
-	v.SetDefault("database.host", defaultValue)
-	v.SetDefault("database.port", defaultValue)
-	v.SetDefault("database.name", defaultValue)
+	v.SetDefault("database.user", "")
+	v.SetDefault("database.password", "")
+	v.SetDefault("database.host", "")
+	v.SetDefault("database.port", "")
+	v.SetDefault("database.name", "")
 
 	v.RegisterAlias("database.user", "database_user")
 	v.RegisterAlias("database.password", "database_password")

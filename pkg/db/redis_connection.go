@@ -1,4 +1,4 @@
-package config
+package db
 
 import (
 	"time"
@@ -28,9 +28,9 @@ type RedisConnection struct {
 
 func DefaultRedisConnection() RedisConnection {
 	return RedisConnection{
-		Password: defaultValue,
-		Host:     defaultValue,
-		Port:     defaultValue,
+		Password: "",
+		Host:     "",
+		Port:     "",
 
 		NumberDB:       defaultNumberDB,
 		MaxConnections: defaultMaxRedisConnections,
@@ -41,9 +41,9 @@ func DefaultRedisConnection() RedisConnection {
 }
 
 func SetupEnvRedisConnection(v *viper.Viper) {
-	v.SetDefault("redis.password", defaultValue)
-	v.SetDefault("redis.host", defaultValue)
-	v.SetDefault("redis.port", defaultValue)
+	v.SetDefault("redis.password", "")
+	v.SetDefault("redis.host", "")
+	v.SetDefault("redis.port", "")
 
 	v.RegisterAlias("redis.password", "redis_password")
 	v.RegisterAlias("redis.host", "redis_host")

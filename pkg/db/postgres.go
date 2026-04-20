@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
@@ -21,7 +20,7 @@ const (
 	migrationsPath = "file://internal/db/migrations"
 )
 
-func NewPoolPostgres(dsn string, dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
+func NewPoolPostgres(dsn string, dbConnection *DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse dsn: %w", err)

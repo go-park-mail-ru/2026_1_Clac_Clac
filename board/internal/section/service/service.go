@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
 	"github.com/google/uuid"
 )
 
-// mockery --name=SectionRepository --output=mock_section_rep --outpkg=mockSectionRep
+//go:generate mockery --name=SectionRepository --output=mock_section_rep --outpkg=mockSectionRep
 type SectionRepository interface {
 	GetSectionInfo(ctx context.Context, link uuid.UUID) (repositoryDto.FullSectionInfo, error)
 	GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]repositoryDto.FullSectionInfo, error)
@@ -122,7 +122,7 @@ func (s *Service) DeleteSection(ctx context.Context, linksSection uuid.UUID) err
 	}
 
 	if info.Position == 1 {
-		return common.ErrorDeleteBacklog
+		return common.ErrCannotDeleteBacklog
 	}
 
 	err = s.rep.DeleteSection(ctx, linksSection)
@@ -153,7 +153,7 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 	}
 
 	if info.Position == 1 {
-		return common.ErrorUpdateBacklog
+		return common.ErrCannotUpdateBacklog
 	}
 
 	err = s.rep.UpdateSection(ctx, repositoryDto.FullSectionInfo{

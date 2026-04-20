@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,22 +27,6 @@ func TestConfigReading(t *testing.T) {
 			ReadTimeout:             30,
 			IdleTimeout:             90,
 			GracefulShutdownTimeout: 25,
-		},
-		DBConnection: config.DatabaseConnection{
-			MinConnections:        2,
-			MaxConnections:        10,
-			MaxConnectionLifetime: 1 * time.Hour,
-			MaxHealthCheckPeriod:  30 * time.Second,
-			PingSleepTime:         2 * time.Second,
-			TimeOut:               5 * time.Second,
-			MaxRetries:            5,
-		},
-		RedisConnection: config.RedisConnection{
-			NumberDB:       0,
-			MaxConnections: 100,
-			MinConnections: 20,
-			PingSleepTime:  2 * time.Second,
-			MaxRetries:     5,
 		},
 		DBRateLimiters: config.DataBaseRateLimiters{
 			DBActions: map[string]config.ActionRateLimiters{

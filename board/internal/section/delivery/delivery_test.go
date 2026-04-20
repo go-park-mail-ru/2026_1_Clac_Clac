@@ -1,0 +1,686 @@
+package delivery_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery"
+	mockSectionService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery/mock_section_service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+func grpcCode(err error) codes.Code {
+	st, _ := status.FromError(err)
+	return st.Code()
+}
+
+func TestGetSection(t *testing.T) {
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	maxTasks := 50
+	maxTasks64 := int64(maxTasks)
+
+	serviceSectionInfo := serviceDto.FullSectionInfo{
+		SectionLink: sectionLink,
+		SectionName: "To Do",
+		Position:    1,
+		IsMandatory: true,
+		Color:       "white",
+		MaxTasks:    &maxTasks,
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetSectionRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.GetSectionResponse)
+	}{
+		{
+			name: "success",
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceSectionInfo, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetSectionResponse) {
+				assert.Equal(t, sectionLink.String(), resp.SectionInfo.Link)
+				assert.Equal(t, "To Do", resp.SectionInfo.Name)
+				assert.Equal(t, int64(1), resp.SectionInfo.Position)
+				assert.True(t, resp.SectionInfo.IsMandatory)
+				assert.Equal(t, "white", resp.SectionInfo.Color)
+				assert.Equal(t, maxTasks64, resp.SectionInfo.GetMaxTasks())
+			},
+		},
+		{
+			name:         "invalid uuid",
+			req:          &pb.GetSectionRequest{SectionLink: "not-a-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "section not found",
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceDto.FullSectionInfo{}, common.ErrSectionNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "internal error",
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceDto.FullSectionInfo{}, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{})
+			resp, err := h.GetSection(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+			if tc.checkResp != nil && err == nil {
+				tc.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestGetSections(t *testing.T) {
+	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	maxTasks := 50
+
+	serviceSections := []serviceDto.FullSectionInfo{
+		{
+			SectionLink: sectionLink,
+			SectionName: "To Do",
+			Position:    1,
+			IsMandatory: true,
+			Color:       "white",
+			MaxTasks:    &maxTasks,
+		},
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetSectionsRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.GetSectionsResponse)
+	}{
+		{
+			name: "success",
+			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetAllSections", mock.Anything, boardLink).Return(serviceSections, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetSectionsResponse) {
+				assert.Len(t, resp.SectionsInfo, 1)
+				assert.Equal(t, sectionLink.String(), resp.SectionsInfo[0].Link)
+				assert.Equal(t, "To Do", resp.SectionsInfo[0].Name)
+			},
+		},
+		{
+			name:         "invalid board uuid",
+			req:          &pb.GetSectionsRequest{BoardLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "internal error",
+			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetAllSections", mock.Anything, boardLink).Return(nil, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{})
+			resp, err := h.GetSections(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+			if tc.checkResp != nil && err == nil {
+				tc.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestGetCards(t *testing.T) {
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	cardLink := uuid.New()
+	executer := "John Doe"
+	deadline := time.Now().Add(24 * time.Hour)
+
+	serviceCards := []serviceDto.Card{
+		{
+			CardLink:     cardLink,
+			ExecuterName: &executer,
+			Title:        "Task 1",
+			DeadLine:     &deadline,
+		},
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetCardsRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.GetCardsResponse)
+	}{
+		{
+			name: "success",
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, sectionLink).Return(serviceCards, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetCardsResponse) {
+				assert.Len(t, resp.CardsInfo, 1)
+				assert.Equal(t, cardLink.String(), resp.CardsInfo[0].Link)
+				assert.Equal(t, "Task 1", resp.CardsInfo[0].Title)
+			},
+		},
+		{
+			name:         "invalid section uuid",
+			req:          &pb.GetCardsRequest{SectionLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "section not found",
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, sectionLink).Return([]serviceDto.Card{}, common.ErrSectionNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "internal error",
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, sectionLink).Return([]serviceDto.Card{}, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{})
+			resp, err := h.GetCards(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+			if tc.checkResp != nil && err == nil {
+				tc.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestCreateSection(t *testing.T) {
+	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	validMaxTasks := 50
+	validMaxTasks64 := int64(validMaxTasks)
+	invalidMaxTasks64 := int64(101)
+
+	serviceResult := serviceDto.EntitySection{
+		SectionLink: sectionLink,
+		SectionName: "In Progress",
+		IsMandatory: false,
+		Position:    2,
+		Color:       "blue",
+		MaxTasks:    &validMaxTasks,
+	}
+
+	makeReq := func(maxTasks *int64) *pb.CreateSectionRequest {
+		return &pb.CreateSectionRequest{
+			BoardLink:   boardLink.String(),
+			Name:        "In Progress",
+			IsMandatory: false,
+			Color:       "blue",
+			MaxTasks:    maxTasks,
+		}
+	}
+
+	serviceInput := serviceDto.CreatingSection{
+		BoardLink:   boardLink,
+		SectionName: "In Progress",
+		IsMandatory: false,
+		Color:       "blue",
+		MaxTasks:    &validMaxTasks,
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.CreateSectionRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "success",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceResult, nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "invalid board uuid",
+			req:          &pb.CreateSectionRequest{BoardLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "max tasks exceeded",
+			req:          makeReq(&invalidMaxTasks64),
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "section already exists",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrSectionAlreadyExists)
+			},
+			expectedCode: codes.AlreadyExists,
+		},
+		{
+			name: "invalid reference data",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrInvalidReferenceSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "invalid section data",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrInvalidSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "missing required field",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "internal error",
+			req:  makeReq(&validMaxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{
+				MaxQuantityTasks: 100,
+				MinQuantityTasks: 0,
+			})
+			_, err := h.CreateSection(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestDeleteSection(t *testing.T) {
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+
+	tests := []struct {
+		name         string
+		req          *pb.DeleteSectionRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "success",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "invalid uuid",
+			req:          &pb.DeleteSectionRequest{SectionLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "section not found",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrSectionNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "cannot delete backlog",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrCannotDeleteBacklog)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "invalid reference data",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrInvalidReferenceSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "invalid section data",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrInvalidSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "missing required field",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "internal error",
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("DeleteSection", mock.Anything, sectionLink).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{})
+			_, err := h.DeleteSection(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestUpdateSection(t *testing.T) {
+	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	maxTasks := 50
+	maxTasks64 := int64(maxTasks)
+	invalidMaxTasks64 := int64(101)
+
+	serviceUpdateInfo := serviceDto.FullSectionInfo{
+		SectionLink: sectionLink,
+		SectionName: "Updated Name",
+		Position:    0,
+		IsMandatory: true,
+		Color:       "red",
+		MaxTasks:    &maxTasks,
+	}
+
+	makeReq := func(name, color string, maxT *int64) *pb.UpdateSectionRequest {
+		return &pb.UpdateSectionRequest{
+			SectionLink: sectionLink.String(),
+			Name:        name,
+			IsMandatory: true,
+			Color:       color,
+			MaxTasks:    maxT,
+		}
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.UpdateSectionRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "success",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "invalid section uuid",
+			req:          &pb.UpdateSectionRequest{SectionLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "name too long",
+			req:          makeReq(string(make([]byte, 129)), "red", &maxTasks64),
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "invalid color",
+			req:          makeReq("Updated Name", "invisible", &maxTasks64),
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "max tasks exceeded",
+			req:          makeReq("Updated Name", "red", &invalidMaxTasks64),
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "section not found",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrSectionNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "cannot update backlog",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrCannotUpdateBacklog)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "invalid reference data",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrInvalidReferenceSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "invalid section data",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrInvalidSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "missing required field",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "internal error",
+			req:  makeReq("Updated Name", "red", &maxTasks64),
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{
+				MaxLenNameSection: 128,
+				MaxQuantityTasks:  100,
+				MinQuantityTasks:  0,
+			})
+			_, err := h.UpdateSection(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestReorderSection(t *testing.T) {
+	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	section1 := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	section2 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	linksList := []uuid.UUID{section1, section2}
+
+	tests := []struct {
+		name         string
+		req          *pb.ReorderSectionRequest
+		mockBehavior func(m *mockSectionService.SectionService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "success",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "invalid board uuid",
+			req:          &pb.ReorderSectionRequest{BoardLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "invalid section uuid in list",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{"bad-uuid"},
+			},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "not find all links",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrNotFindAllLinks)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "invalid reference data",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrInvalidReferenceSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "invalid section data",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrInvalidSectionData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "missing required field",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "internal error",
+			req: &pb.ReorderSectionRequest{
+				BoardLink: boardLink.String(),
+				LinksList: []string{section1.String(), section2.String()},
+			},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockSvc := mockSectionService.NewSectionService(t)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(mockSvc)
+			}
+			h := delivery.NewHandler(mockSvc, delivery.Config{})
+			_, err := h.ReorderSection(context.Background(), tc.req)
+			assert.Equal(t, tc.expectedCode, grpcCode(err))
+		})
+	}
+}

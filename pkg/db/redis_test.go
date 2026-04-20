@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +63,7 @@ func TestNewPoolRedisError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 
-			client, err := NewPoolRedis(test.options, &config.RedisConnection{
+			client, err := NewPoolRedis(test.options, &RedisConnection{
 				PingSleepTime: pingSleepTime,
 				MaxRetries:    maxRetries,
 			}, &logger)

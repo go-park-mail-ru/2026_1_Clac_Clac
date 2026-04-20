@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -19,7 +19,7 @@ import (
 
 func TestRepositoryGetSectionInfo(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedSectionUuiD
+	targetLink := common.FixedSectionUUID
 	maxTasks := 50
 
 	expectedInfo := dto.FullSectionInfo{
@@ -56,7 +56,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 					WithArgs(targetLink).
 					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedError: common.ErrorNotExistingSection,
+			expectedError: common.ErrSectionNotFound,
 			expectedData:  dto.FullSectionInfo{},
 		},
 		{
@@ -88,7 +88,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) {
+					if errors.Is(test.expectedError, common.ErrSectionNotFound) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -107,8 +107,8 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 
 func TestRepositoryCreateSection(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedSectionUuiD
-	sectionLink := common.FixedSectionUuiD
+	boardLink := common.FixedBoardUUID
+	sectionLink := common.FixedSectionUUID
 	maxTasks := 10
 
 	creatingSection := dto.CreatingSection{
@@ -173,7 +173,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorSectionAlreadyExist,
+			expectedError: common.ErrSectionAlreadyExists,
 			expectedData:  dto.FullSectionInfo{},
 		},
 		{
@@ -185,7 +185,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 			expectedData:  dto.FullSectionInfo{},
 		},
 		{
@@ -213,7 +213,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidSectionData,
+			expectedError: common.ErrInvalidSectionData,
 			expectedData:  dto.FullSectionInfo{},
 		},
 		{
@@ -247,10 +247,10 @@ func TestRepositoryCreateSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorSectionAlreadyExist) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
-						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+					if errors.Is(test.expectedError, common.ErrSectionAlreadyExists) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceSectionData) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -269,7 +269,7 @@ func TestRepositoryCreateSection(t *testing.T) {
 
 func TestRepositoryDeleteSection(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedSectionUuiD
+	targetLink := common.FixedSectionUUID
 	boardLink := uuid.New()
 	backlogLink := uuid.New()
 
@@ -312,7 +312,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 					WillReturnError(pgx.ErrNoRows)
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotExistingSection,
+			expectedError: common.ErrSectionNotFound,
 		},
 		{
 			nameTest: "Error try delete backlog",
@@ -323,7 +323,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 					WillReturnRows(pgxmock.NewRows([]string{"board_link", "position"}).AddRow(boardLink, 1))
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorDeleteBacklog,
+			expectedError: common.ErrCannotDeleteBacklog,
 		},
 		{
 			nameTest: "Error move tasks invalid reference data",
@@ -348,7 +348,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidReferenceSectionData,
+			expectedError: common.ErrInvalidReferenceSectionData,
 		},
 		{
 			nameTest: "Error move tasks invalid card data",
@@ -373,7 +373,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidCardData,
+			expectedError: common.ErrInvalidCardData,
 		},
 		{
 			nameTest: "Error generic DB error on delete",
@@ -415,11 +415,11 @@ func TestRepositoryDeleteSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) ||
-						errors.Is(test.expectedError, common.ErrorDeleteBacklog) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) ||
-						errors.Is(test.expectedError, common.ErrorInvalidCardData) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) {
+					if errors.Is(test.expectedError, common.ErrSectionNotFound) ||
+						errors.Is(test.expectedError, common.ErrCannotDeleteBacklog) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceSectionData) ||
+						errors.Is(test.expectedError, common.ErrInvalidCardData) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -436,7 +436,7 @@ func TestRepositoryDeleteSection(t *testing.T) {
 
 func TestRepositoryReorderSection(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedSectionUuiD
+	boardLink := common.FixedBoardUUID
 	section1 := uuid.New()
 	section2 := uuid.New()
 	linksSection := []uuid.UUID{section1, section2}
@@ -466,7 +466,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotFindAllLinks,
+			expectedError: common.ErrNotFindAllLinks,
 		},
 		{
 			nameTest: "Error check violation data",
@@ -477,7 +477,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidSectionData,
+			expectedError: common.ErrInvalidSectionData,
 		},
 		{
 			nameTest: "Error missing required field",
@@ -488,7 +488,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 		},
 		{
 			nameTest: "Error foreign key violation",
@@ -499,7 +499,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidReferenceSectionData,
+			expectedError: common.ErrInvalidReferenceSectionData,
 		},
 		{
 			nameTest: "Error query fail",
@@ -531,10 +531,10 @@ func TestRepositoryReorderSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotFindAllLinks) ||
-						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+					if errors.Is(test.expectedError, common.ErrNotFindAllLinks) ||
+						errors.Is(test.expectedError, common.ErrInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceSectionData) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -551,7 +551,7 @@ func TestRepositoryReorderSection(t *testing.T) {
 
 func TestRepositoryUpdateSection(t *testing.T) {
 	ctx := context.Background()
-	targetLink := common.FixedSectionUuiD
+	targetLink := common.FixedSectionUUID
 	maxTasks := 50
 
 	updateData := dto.FullSectionInfo{
@@ -600,7 +600,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 					WillReturnError(pgx.ErrNoRows)
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotExistingSection,
+			expectedError: common.ErrSectionNotFound,
 		},
 		{
 			nameTest: "Error missing required field",
@@ -623,7 +623,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 		},
 		{
 			nameTest: "Error foreign key violation",
@@ -646,7 +646,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidReferenceSectionData,
+			expectedError: common.ErrInvalidReferenceSectionData,
 		},
 		{
 			nameTest: "Error invalid section data",
@@ -669,7 +669,7 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidSectionData,
+			expectedError: common.ErrInvalidSectionData,
 		},
 		{
 			nameTest: "Error generic DB error on exec",
@@ -713,10 +713,10 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) ||
-						errors.Is(test.expectedError, common.ErrorInvalidSectionData) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceSectionData) {
+					if errors.Is(test.expectedError, common.ErrSectionNotFound) ||
+						errors.Is(test.expectedError, common.ErrInvalidSectionData) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceSectionData) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -733,8 +733,8 @@ func TestRepositoryUpdateSection(t *testing.T) {
 
 func TestRepositoryGetAllSections(t *testing.T) {
 	ctx := context.Background()
-	boardLink := common.FixedSectionUuiD
-	sectionLink := common.FixedSectionUuiD
+	boardLink := common.FixedBoardUUID
+	sectionLink := common.FixedSectionUUID
 	maxTasks := 50
 
 	expectedSections := []dto.FullSectionInfo{

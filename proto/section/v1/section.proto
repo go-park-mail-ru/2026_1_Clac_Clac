@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package proto.section.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1";
+
+message SectionInfo {
+  string link = 1;
+  string name = 2;
+  int64 position = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
+}
+
+message CardInfo {
+  string link = 1;
+  optional string executer_name = 2;
+  string title = 3;
+  optional google.protobuf.Timestamp deadline = 4;
+}
+
+// GetSections
+message GetSectionsRequest {
+  string board_link = 1;
+}
+
+message GetSectionsResponse {
+  repeated SectionInfo sections_info = 1;
+}
+
+// GetSection
+message GetSectionRequest {
+  string section_link = 1;
+}
+
+message GetSectionResponse {
+  SectionInfo section_info = 1;
+}
+
+// GetCards
+message GetCardsRequest {
+  string section_link = 1;
+}
+
+message GetCardsResponse {
+  repeated CardInfo cards_info = 1;
+}
+
+// CreateSection
+message CreateSectionRequest {
+  string board_link = 1;
+  string name = 2;
+  bool is_mandatory = 3;
+  string color = 4;
+  optional int64 max_tasks = 5;
+}
+
+message CreateSectionResponse {
+  SectionInfo section_info = 1;
+}
+
+// DeleteSection
+message DeleteSectionRequest {
+  string section_link = 1;
+}
+
+message DeleteSectionResponse {}
+
+// ReorderSection
+message ReorderSectionRequest {
+  string board_link = 1;
+  repeated string links_list = 2;
+}
+
+message ReorderSectionResponse {}
+
+// UpdateSection
+message UpdateSectionRequest {
+  string section_link = 1;
+  string name = 2;
+  bool is_mandatory = 3;
+  string color = 4;
+  optional int64 max_tasks = 5;
+}
+
+message UpdateSectionResponse {}
+
+service SectionService {
+  rpc GetSections(GetSectionsRequest) returns (GetSectionsResponse);
+  rpc GetSection(GetSectionRequest) returns (GetSectionResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc CreateSection(CreateSectionRequest) returns (CreateSectionResponse);
+  rpc DeleteSection(DeleteSectionRequest) returns (DeleteSectionResponse);
+  rpc ReorderSection(ReorderSectionRequest) returns (ReorderSectionResponse);
+  rpc UpdateSection(UpdateSectionRequest) returns (UpdateSectionResponse);
+}

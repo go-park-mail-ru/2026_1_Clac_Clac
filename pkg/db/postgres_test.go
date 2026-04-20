@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,7 @@ func TestNewPoolPostgresError(t *testing.T) {
 	const pingSleepTime = time.Millisecond * 2
 
 	logger := zerolog.Nop()
-	dbConfig := &config.DatabaseConnection{
+	dbConfig := &DatabaseConnection{
 		MinConnections:        1,
 		MaxConnections:        5,
 		MaxConnectionLifetime: time.Hour,

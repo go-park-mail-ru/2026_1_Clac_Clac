@@ -5,7 +5,7 @@ package mockSectionRep
 import (
 	context "context"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

@@ -8,40 +8,34 @@ import (
 )
 
 type Config struct {
-	App             Application          `mapstructure:"app"`
-	Engine          Engine               `mapstructure:"engine"`
-	MailSender      MailSender           `mapstructure:"mail_sender"`
-	VkOAuth         VkOAuth              `mapstructure:"vk_oauth"`
-	DBConnection    DatabaseConnection   `mapstructure:"database"`
-	RedisConnection RedisConnection      `mapstructure:"redis"`
-	S3              S3                   `mapstructure:"s3"`
-	CORS            CORS                 `mapstructure:"cors"`
-	DBRateLimiters  DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
-	S3Avatars       S3Avatars            `mapstructure:"s3_avatars"`
-	Auth            Auth                 `mapstructure:"auth"`
-	Board           Board                `mapstructure:"board"`
-	Section         Section              `mapstructure:"section"`
-	Profile         Profile              `mapstructure:"profile"`
-	Card            Card                 `mapstructture:"card"`
+	App            Application          `mapstructure:"app"`
+	Engine         Engine               `mapstructure:"engine"`
+	VkOAuth        VkOAuth              `mapstructure:"vk_oauth"`
+	S3             S3                   `mapstructure:"s3"`
+	CORS           CORS                 `mapstructure:"cors"`
+	DBRateLimiters DataBaseRateLimiters `mapstructure:"database_rate_limiters"`
+	S3Avatars      S3Avatars            `mapstructure:"s3_avatars"`
+	Auth           Auth                 `mapstructure:"auth"`
+	Board          Board                `mapstructure:"board"`
+	Section        Section              `mapstructure:"section"`
+	Profile        Profile              `mapstructure:"profile"`
+	Card           Card                 `mapstructture:"card"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:             DefaultApplicationConfig(),
-		Engine:          DefaultEngineConfig(),
-		MailSender:      DefaultMailSenderConfig(),
-		VkOAuth:         DefaultVkOAuthConfig(),
-		DBConnection:    DefaultDBConnectionConfog(),
-		RedisConnection: DefaultRedisConnection(),
-		S3Avatars:       DefaultS3AvatarsConfig(),
-		S3:              DefaultS3Config(),
-		Board:           DefaultBoardConfig(),
-		CORS:            DefaultCORSConfig(),
-		DBRateLimiters:  DefaultActionsRateLimiters(),
-		Auth:            DefaultAuthConfig(),
-		Profile:         DefaultProfileConfig(),
-		Section:         DefaultSectionConfig(),
-		Card:            DefaultCardConfig(),
+		App:            DefaultApplicationConfig(),
+		Engine:         DefaultEngineConfig(),
+		VkOAuth:        DefaultVkOAuthConfig(),
+		S3Avatars:      DefaultS3AvatarsConfig(),
+		S3:             DefaultS3Config(),
+		Board:          DefaultBoardConfig(),
+		CORS:           DefaultCORSConfig(),
+		DBRateLimiters: DefaultActionsRateLimiters(),
+		Auth:           DefaultAuthConfig(),
+		Profile:        DefaultProfileConfig(),
+		Section:        DefaultSectionConfig(),
+		Card:           DefaultCardConfig(),
 	}
 }
 
@@ -62,10 +56,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	SetupEnvMailSender(v)
 	SetupEnvVkOAuth(v)
-	SetupEnvDbConnection(v)
-	SetupEnvRedisConnection(v)
 	SetupEnvS3(v)
 
 	if err := v.MergeInConfig(); err != nil {

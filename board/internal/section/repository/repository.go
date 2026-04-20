@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -52,7 +52,7 @@ func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.Fu
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return dto.FullSectionInfo{}, common.ErrorNotExistingSection
+			return dto.FullSectionInfo{}, common.ErrSectionNotFound
 		}
 
 		return dto.FullSectionInfo{}, fmt.Errorf("QueryRow: %w", err)
@@ -123,11 +123,11 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.UniqueViolation:
-				return dto.FullSectionInfo{}, common.ErrorSectionAlreadyExist
+				return dto.FullSectionInfo{}, common.ErrSectionAlreadyExists
 			case pgerrcode.ForeignKeyViolation:
-				return dto.FullSectionInfo{}, common.ErrorInvalidReferenceSectionData
+				return dto.FullSectionInfo{}, common.ErrInvalidReferenceSectionData
 			case pgerrcode.NotNullViolation:
-				return dto.FullSectionInfo{}, common.ErrorMissingRequiredField
+				return dto.FullSectionInfo{}, common.ErrMissingRequiredField
 			}
 		}
 		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec section: %w", err)
@@ -164,11 +164,11 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return dto.FullSectionInfo{}, common.ErrorInvalidReferenceSectionData
+				return dto.FullSectionInfo{}, common.ErrInvalidReferenceSectionData
 			case pgerrcode.CheckViolation:
-				return dto.FullSectionInfo{}, common.ErrorInvalidSectionData
+				return dto.FullSectionInfo{}, common.ErrInvalidSectionData
 			case pgerrcode.NotNullViolation:
-				return dto.FullSectionInfo{}, common.ErrorMissingRequiredField
+				return dto.FullSectionInfo{}, common.ErrMissingRequiredField
 			}
 		}
 		return dto.FullSectionInfo{}, fmt.Errorf("tx.Exec version: %w", err)
@@ -208,13 +208,13 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 	err = tx.QueryRow(ctx, queryCheck, linksSection).Scan(&boardLink, &position)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return common.ErrorNotExistingSection
+			return common.ErrSectionNotFound
 		}
 		return fmt.Errorf("tx.QueryRow check target section: %w", err)
 	}
 
 	if position == 1 {
-		return common.ErrorDeleteBacklog
+		return common.ErrCannotDeleteBacklog
 	}
 
 	var backlogLink uuid.UUID
@@ -267,11 +267,11 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return common.ErrorInvalidReferenceSectionData
+				return common.ErrInvalidReferenceSectionData
 			case pgerrcode.CheckViolation:
-				return common.ErrorInvalidCardData
+				return common.ErrInvalidCardData
 			case pgerrcode.NotNullViolation:
-				return common.ErrorMissingRequiredField
+				return common.ErrMissingRequiredField
 			}
 		}
 		return fmt.Errorf("tx.Exec move tasks: %w", err)
@@ -317,18 +317,18 @@ func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, li
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.CheckViolation:
-				return common.ErrorInvalidSectionData
+				return common.ErrInvalidSectionData
 			case pgerrcode.NotNullViolation:
-				return common.ErrorMissingRequiredField
+				return common.ErrMissingRequiredField
 			case pgerrcode.ForeignKeyViolation:
-				return common.ErrorInvalidReferenceSectionData
+				return common.ErrInvalidReferenceSectionData
 			}
 		}
 		return fmt.Errorf("tx.Exec reorder: %w", err)
 	}
 
 	if commandTag.RowsAffected() != int64(len(linksSection)) {
-		return common.ErrorNotFindAllLinks
+		return common.ErrNotFindAllLinks
 	}
 
 	if err = tx.Commit(ctx); err != nil {
@@ -356,7 +356,7 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 	err = tx.QueryRow(ctx, queryClose, updatingSection.SectionLink).Scan(&position)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return common.ErrorNotExistingSection
+			return common.ErrSectionNotFound
 		}
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
@@ -379,11 +379,11 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return common.ErrorInvalidReferenceSectionData
+				return common.ErrInvalidReferenceSectionData
 			case pgerrcode.CheckViolation:
-				return common.ErrorInvalidSectionData
+				return common.ErrInvalidSectionData
 			case pgerrcode.NotNullViolation:
-				return common.ErrorMissingRequiredField
+				return common.ErrMissingRequiredField
 			}
 		}
 		return fmt.Errorf("tx.Exec insert update: %w", err)

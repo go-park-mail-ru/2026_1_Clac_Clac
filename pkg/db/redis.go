@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
 
 var ErrorConnectRedis = errors.New("cannot connect to Redis")
 
-func NewPoolRedis(settings *redis.Options, redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
+func NewPoolRedis(settings *redis.Options, redisConnection *RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
 	client := redis.NewClient(settings)
 
 	for i := 1; i <= redisConnection.MaxRetries; i++ {
