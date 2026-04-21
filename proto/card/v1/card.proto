@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package proto.card.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1";
+
+message CardInfo {
+  string link = 1;
+  optional string executer_name = 2;
+  string title = 3;
+  string description = 4;
+  optional google.protobuf.Timestamp deadline = 5;
+}
+
+// GetCard
+message GetCardRequest {
+  string card_link = 1;
+}
+
+message GetCardResponse {
+  CardInfo card_info = 1;
+}
+
+// DeleteCard
+message DeleteCardRequest {
+  string card_link = 1;
+}
+
+message DeleteCardResponse {}
+
+// UpdateCard
+message UpdateCardRequest {
+  string card_link = 1;
+  optional string executor_link = 2;
+  string title = 3;
+  string description = 4;
+  optional google.protobuf.Timestamp deadline = 5;
+}
+
+message UpdateCardResponse {}
+
+// ReorderCard
+message ReorderCardsRequest {
+  string section_link = 1;
+  string card_link = 2;
+  int64 position = 3;
+}
+
+message ReorderCardsResponse {}
+
+// CreateCard
+message CreateCardRequest {
+  string author_link = 1;
+  string title = 2;
+  string description = 3;
+  optional string executor_link = 4;
+  optional google.protobuf.Timestamp deadline = 5;
+  string section_link = 6;
+}
+
+message CreateCardResponse {
+  string card_link = 1;
+  string section_link = 2;
+  int64 position = 3;
+}
+
+service CardService {
+  rpc GetCard(GetCardRequest) returns (GetCardResponse);
+  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
+  rpc UpdateCard(UpdateCardRequest) returns (UpdateCardResponse);
+  rpc ReorderCards(ReorderCardsRequest) returns (ReorderCardsResponse);
+  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+}

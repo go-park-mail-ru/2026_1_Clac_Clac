@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/service/dto"
-	mockCardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/service/mock_card_rep"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	mockCardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/mock_card_rep"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -28,13 +28,13 @@ func TestGetCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRep)
+		mockBehavior  func(m *mockCardRep.CardRepository)
 		expectedError bool
 		expectedRes   dto.InfoCard
 	}{
 		{
 			nameTest: "Success get card",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repResponse, nil)
 			},
 			expectedError: false,
@@ -47,7 +47,7 @@ func TestGetCard(t *testing.T) {
 		},
 		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{}, errors.New("db error"))
 			},
 			expectedError: true,
@@ -57,7 +57,7 @@ func TestGetCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRep := mockCardRep.NewCardRep(t)
+			mockRep := mockCardRep.NewCardRepository(t)
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)
@@ -78,19 +78,19 @@ func TestDeleteCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRep)
+		mockBehavior  func(m *mockCardRep.CardRepository)
 		expectedError bool
 	}{
 		{
 			nameTest: "Success delete card",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("DeleteCard", mock.Anything, targetCardLink).Return(nil)
 			},
 			expectedError: false,
 		},
 		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("DeleteCard", mock.Anything, targetCardLink).Return(errors.New("db error"))
 			},
 			expectedError: true,
@@ -99,7 +99,7 @@ func TestDeleteCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRep := mockCardRep.NewCardRep(t)
+			mockRep := mockCardRep.NewCardRepository(t)
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)
@@ -137,19 +137,19 @@ func TestUpdateCardDetails(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRep)
+		mockBehavior  func(m *mockCardRep.CardRepository)
 		expectedError bool
 	}{
 		{
 			nameTest: "Success update card",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("UpdateCardDetails", mock.Anything, repUpdateDto).Return(nil)
 			},
 			expectedError: false,
 		},
 		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("UpdateCardDetails", mock.Anything, repUpdateDto).Return(errors.New("db error"))
 			},
 			expectedError: true,
@@ -158,7 +158,7 @@ func TestUpdateCardDetails(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRep := mockCardRep.NewCardRep(t)
+			mockRep := mockCardRep.NewCardRepository(t)
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)
@@ -191,19 +191,19 @@ func TestReordredCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRep)
+		mockBehavior  func(m *mockCardRep.CardRepository)
 		expectedError bool
 	}{
 		{
 			nameTest: "Success reorder card",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("ReorderCard", mock.Anything, repPlaceDto).Return(nil)
 			},
 			expectedError: false,
 		},
 		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("ReorderCard", mock.Anything, repPlaceDto).Return(errors.New("db error"))
 			},
 			expectedError: true,
@@ -212,7 +212,7 @@ func TestReordredCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRep := mockCardRep.NewCardRep(t)
+			mockRep := mockCardRep.NewCardRepository(t)
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)
@@ -244,19 +244,19 @@ func TestCreateCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRep)
+		mockBehavior  func(m *mockCardRep.CardRepository)
 		expectedError bool
 	}{
 		{
 			nameTest: "Success create card",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("CreateCard", mock.Anything, mock.AnythingOfType("dto.NewCard")).Return(5, nil)
 			},
 			expectedError: false,
 		},
 		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRep) {
+			mockBehavior: func(m *mockCardRep.CardRepository) {
 				m.On("CreateCard", mock.Anything, mock.AnythingOfType("dto.NewCard")).Return(-1, errors.New("db error"))
 			},
 			expectedError: true,
@@ -265,7 +265,7 @@ func TestCreateCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockRep := mockCardRep.NewCardRep(t)
+			mockRep := mockCardRep.NewCardRepository(t)
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)

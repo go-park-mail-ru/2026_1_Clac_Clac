@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -55,7 +55,7 @@ func TestRepositoryGetCard(t *testing.T) {
 					WithArgs(targetLink).
 					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedError: common.ErrorNotExistingCard,
+			expectedError: common.ErrCardNotFound,
 			expectedData:  dto.InfoCard{},
 		},
 		{
@@ -87,8 +87,8 @@ func TestRepositoryGetCard(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingCard) {
-						assert.ErrorIs(t, err, common.ErrorNotExistingCard)
+					if errors.Is(test.expectedError, common.ErrCardNotFound) {
+						assert.ErrorIs(t, err, common.ErrCardNotFound)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -129,7 +129,7 @@ func TestRepositoryDeleteCard(t *testing.T) {
 					WithArgs(targetLink).
 					WillReturnResult(pgxmock.NewResult("DELETE", 0))
 			},
-			expectedError: common.ErrorNotExistingCard,
+			expectedError: common.ErrCardNotFound,
 		},
 		{
 			nameTest: "Error exec fail",
@@ -159,8 +159,8 @@ func TestRepositoryDeleteCard(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingCard) {
-						assert.ErrorIs(t, err, common.ErrorNotExistingCard)
+					if errors.Is(test.expectedError, common.ErrCardNotFound) {
+						assert.ErrorIs(t, err, common.ErrCardNotFound)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}
@@ -222,7 +222,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotExistingCard,
+			expectedError: common.ErrCardNotFound,
 		},
 		{
 			nameTest: "Error invalid reference data",
@@ -239,7 +239,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidReferenceCardData,
+			expectedError: common.ErrInvalidReferenceCardData,
 		},
 		{
 			nameTest: "Error check violation data",
@@ -256,7 +256,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidCardData,
+			expectedError: common.ErrInvalidCardData,
 		},
 		{
 			nameTest: "Error missing required field",
@@ -273,7 +273,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 		},
 		{
 			nameTest: "Error insert fail",
@@ -311,10 +311,10 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingCard) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceCardData) ||
-						errors.Is(test.expectedError, common.ErrorInvalidCardData) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) {
+					if errors.Is(test.expectedError, common.ErrCardNotFound) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceCardData) ||
+						errors.Is(test.expectedError, common.ErrInvalidCardData) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -414,7 +414,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorSkipMandatorySection,
+			expectedError: common.ErrCannotSkipMandatorySection,
 		},
 		{
 			nameTest: "Error not found",
@@ -427,7 +427,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotExistingCard,
+			expectedError: common.ErrCardNotFound,
 		},
 		{
 			nameTest: "Error check violation data",
@@ -445,7 +445,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidCardData,
+			expectedError: common.ErrInvalidCardData,
 		},
 		{
 			nameTest: "Error missing required field",
@@ -463,7 +463,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 		},
 	}
 
@@ -492,11 +492,11 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingCard) ||
-						errors.Is(test.expectedError, common.ErrorSkipMandatorySection) ||
-						errors.Is(test.expectedError, common.ErrorInvalidCardData) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceCardData) {
+					if errors.Is(test.expectedError, common.ErrCardNotFound) ||
+						errors.Is(test.expectedError, common.ErrCannotSkipMandatorySection) ||
+						errors.Is(test.expectedError, common.ErrInvalidCardData) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceCardData) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
@@ -572,7 +572,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorCardAlreadyExist,
+			expectedError: common.ErrCardAlreadyExists,
 			expectedData:  -1,
 		},
 		{
@@ -586,7 +586,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 			expectedData:  -1,
 		},
 		{
@@ -615,7 +615,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorNotExistingSection,
+			expectedError: common.ErrSectionNotFound,
 			expectedData:  -1,
 		},
 		{
@@ -641,7 +641,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorInvalidCardData,
+			expectedError: common.ErrInvalidCardData,
 			expectedData:  -1,
 		},
 		{
@@ -667,7 +667,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 				m.ExpectRollback()
 			},
-			expectedError: common.ErrorMissingRequiredField,
+			expectedError: common.ErrMissingRequiredField,
 			expectedData:  -1,
 		},
 		{
@@ -703,11 +703,11 @@ func TestRepositoryCreateCard(t *testing.T) {
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
-					if errors.Is(test.expectedError, common.ErrorNotExistingSection) ||
-						errors.Is(test.expectedError, common.ErrorCardAlreadyExist) ||
-						errors.Is(test.expectedError, common.ErrorMissingRequiredField) ||
-						errors.Is(test.expectedError, common.ErrorInvalidCardData) ||
-						errors.Is(test.expectedError, common.ErrorInvalidReferenceCardData) {
+					if errors.Is(test.expectedError, common.ErrSectionNotFound) ||
+						errors.Is(test.expectedError, common.ErrCardAlreadyExists) ||
+						errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidCardData) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceCardData) {
 						assert.ErrorIs(t, err, test.expectedError)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())

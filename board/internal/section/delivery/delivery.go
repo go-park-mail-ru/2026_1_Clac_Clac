@@ -31,29 +31,6 @@ var (
 	ErrCannotUpdateSection        = errors.New("cannot update section")
 )
 
-const (
-	failFindSection     = "can not find section"
-	failDeleteBacklog   = "can not delete backlog section"
-	failUpdateBacklog   = "can not update backlog section"
-	failGetSection      = "can not get info section"
-	failGetAllSections  = "can not get all info section"
-	failCreateSection   = "can not create new section"
-	failDeleteSection   = "can not delete section"
-	failReorderSections = "can not reorder sections"
-	failUpdateSection   = "can not update section"
-	failGetCards        = "can not get cards in section"
-
-	incorrectTypeColor   = "color can be white, grey, red, orange, blue, green, purple, pink"
-	incorrectUniqSection = "section already exists"
-	incorrectReferences  = "incorrect foreign key"
-	failNullValue        = "can not use null element"
-	invalidSectionData   = "invalid section data"
-	invalidCardData      = "invalid card data"
-
-	sectionLinkKey = "link"
-	boardLinkKey   = "board_link"
-)
-
 //go:generate mockery --name=SectionService --output=mock_section_service --outpkg=mockSectionService
 type SectionService interface {
 	GetSectionInfo(ctx context.Context, linkSection uuid.UUID) (serviceDto.FullSectionInfo, error)

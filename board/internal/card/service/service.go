@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/service/dto"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	"github.com/google/uuid"
 )
 
-type CardRep interface {
+//go:generate mockery --name=CardRepository --output mock_card_rep
+type CardRepository interface {
 	GetCard(ctx context.Context, linkCard uuid.UUID) (repositoryDto.InfoCard, error)
 	DeleteCard(ctx context.Context, linkCard uuid.UUID) error
 	UpdateCardDetails(ctx context.Context, updatedCard repositoryDto.UpdatingCardDetails) error
@@ -18,10 +19,10 @@ type CardRep interface {
 }
 
 type Service struct {
-	rep CardRep
+	rep CardRepository
 }
 
-func NewService(rep CardRep) *Service {
+func NewService(rep CardRepository) *Service {
 	return &Service{
 		rep: rep,
 	}

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -55,7 +55,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return dto.InfoCard{}, common.ErrorNotExistingCard
+			return dto.InfoCard{}, common.ErrCardNotFound
 		}
 
 		return dto.InfoCard{}, fmt.Errorf("rep.QueryRow: %w", err)
@@ -73,7 +73,7 @@ func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		return common.ErrorNotExistingCard
+		return common.ErrCardNotFound
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	err = tx.QueryRow(ctx, queryClose, updatingCard.LinkCard).Scan(&oldSectionLink, &oldPosition)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return common.ErrorNotExistingCard
+			return common.ErrCardNotFound
 		}
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
@@ -135,11 +135,11 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 		if errors.As(err, &pgError) {
 			switch pgError.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return common.ErrorInvalidReferenceCardData
+				return common.ErrInvalidReferenceCardData
 			case pgerrcode.CheckViolation:
-				return common.ErrorInvalidCardData
+				return common.ErrInvalidCardData
 			case pgerrcode.NotNullViolation:
-				return common.ErrorMissingRequiredField
+				return common.ErrMissingRequiredField
 			}
 		}
 
@@ -188,7 +188,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return common.ErrorNotExistingCard
+			return common.ErrCardNotFound
 		}
 
 		return fmt.Errorf("tx.QueryRow: %w", err)
@@ -220,7 +220,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		}
 
 		if hasMandatorySkipped {
-			return common.ErrorSkipMandatorySection
+			return common.ErrCannotSkipMandatorySection
 		}
 
 		queryPos := `
@@ -257,11 +257,11 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		if errors.As(err, &pgError) {
 			switch pgError.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return common.ErrorInvalidReferenceCardData
+				return common.ErrInvalidReferenceCardData
 			case pgerrcode.CheckViolation:
-				return common.ErrorInvalidCardData
+				return common.ErrInvalidCardData
 			case pgerrcode.NotNullViolation:
-				return common.ErrorMissingRequiredField
+				return common.ErrMissingRequiredField
 			}
 		}
 		return fmt.Errorf("tx.Exec: %w", err)
@@ -300,9 +300,9 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 		if errors.As(err, &pgError) {
 			switch pgError.Code {
 			case pgerrcode.UniqueViolation:
-				return -1, common.ErrorCardAlreadyExist
+				return -1, common.ErrCardAlreadyExists
 			case pgerrcode.NotNullViolation:
-				return -1, common.ErrorMissingRequiredField
+				return -1, common.ErrMissingRequiredField
 			}
 		}
 		return -1, fmt.Errorf("tx.Exec insert task: %w", err)
@@ -343,21 +343,21 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "fk_version_section") {
-			return -1, common.ErrorNotExistingSection
+			return -1, common.ErrCardNotFound
 		}
 
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
 			if pgError.Code == pgerrcode.ForeignKeyViolation && pgError.ConstraintName == "fk_version_section" {
-				return -1, common.ErrorNotExistingSection
+				return -1, common.ErrSectionNotFound
 			}
 			switch pgError.Code {
 			case pgerrcode.ForeignKeyViolation:
-				return -1, common.ErrorInvalidReferenceCardData
+				return -1, common.ErrInvalidReferenceCardData
 			case pgerrcode.CheckViolation:
-				return -1, common.ErrorInvalidCardData
+				return -1, common.ErrInvalidCardData
 			case pgerrcode.NotNullViolation:
-				return -1, common.ErrorMissingRequiredField
+				return -1, common.ErrMissingRequiredField
 
 			}
 
