@@ -8,26 +8,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TABLE "user" (
-    user_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
-    display_name TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    description_user TEXT DEFAULT '' NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    avatar_key TEXT DEFAULT '',
-
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    CONSTRAINT check_display_name CHECK (char_length(display_name) <= 128),
-    CONSTRAINT check_length_description CHECK (char_length(description_user) <= 1000),
-);
-
-CREATE TRIGGER set_user_updated_at
-BEFORE UPDATE ON "user"
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TABLE board (
     board_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
@@ -98,7 +78,6 @@ CREATE TABLE member_board (
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
     CONSTRAINT pk_member_board PRIMARY KEY (board_link, user_link),
-    CONSTRAINT fk_member_user FOREIGN KEY (user_link) REFERENCES "user"(link) ON DELETE CASCADE,
     CONSTRAINT fk_member_board FOREIGN KEY (board_link) REFERENCES board(link) ON DELETE CASCADE
 );
 
@@ -161,9 +140,7 @@ CREATE TABLE task (
     task_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
     author_link UUID,
 
-    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-
-    CONSTRAINT fk_task_author FOREIGN KEY (author_link) REFERENCES "user"(link) ON DELETE SET NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 CREATE TABLE task_version (
@@ -243,7 +220,6 @@ CREATE TABLE worker_task (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
     CONSTRAINT pk_worker_task PRIMARY KEY (assignee_id, task_id),
-    CONSTRAINT fk_wt_user FOREIGN KEY (assignee_id) REFERENCES "user"(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_wt_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE
 );
 
@@ -254,7 +230,6 @@ CREATE TABLE listener_task (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
     CONSTRAINT pk_listener_task PRIMARY KEY (listener_id, task_id),
-    CONSTRAINT fk_lt_listener FOREIGN KEY (listener_id) REFERENCES "user"(user_id) ON DELETE CASCADE,
     CONSTRAINT fk_lt_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE
 );
 

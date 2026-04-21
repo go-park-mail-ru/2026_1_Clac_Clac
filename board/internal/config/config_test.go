@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpc_engine"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,66 +21,15 @@ const (
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
 		App: config.DefaultApplicationConfig(),
-		Engine: config.Engine{
+		Engine: grpc_engine.Config{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
 			ReadTimeout:             30,
 			IdleTimeout:             90,
 			GracefulShutdownTimeout: 25,
 		},
-		DBRateLimiters: config.DataBaseRateLimiters{
-			DBActions: map[string]config.ActionRateLimiters{
-				"login": {
-					Limit:  5,
-					Action: "login",
-					Window: 1 * time.Minute,
-				},
-				"register": {
-					Limit:  5,
-					Action: "register",
-					Window: 1 * time.Hour,
-				},
-			},
-		},
-		S3:    config.DefaultS3Config(),
+		S3:    config.S3{},
 		Board: config.DefaultBoardConfig(),
-		S3Avatars: config.S3Avatars{
-			ValidExtensions: map[string]struct{}{
-				"image/jpg":  {},
-				"image/jpeg": {},
-				"image/png":  {},
-				"image/webp": {},
-			},
-		},
-		CORS: config.CORS{
-			Credentials: "false",
-			Origin:      "localhost",
-			Methods:     "GET,POST,OPTIONS",
-			Headers:     "",
-			MaxAge:      "60",
-		},
-
-		Auth: config.Auth{
-			Handler: config.AuthHandler{
-				MaxLenPassword:  128,
-				MinLenPassword:  8,
-				SessionLifetime: 24 * time.Hour,
-			},
-			Service: config.AuthService{
-				SessionLifetime: 24 * time.Hour,
-				CountRetries:    3,
-			},
-		},
-
-		Profile: config.Profile{
-			Handler: config.ProfileHandler{
-				SiganatureTypeBytes:   512,
-				MaxReadBytes:          5 << 20,
-				MaxLenNameUser:        128,
-				MaxLenDescriptionUser: 500,
-			},
-		},
-
 		Section: config.Section{
 			Handler: config.SectionHandler{
 				MaxQuantityTasks:  100,

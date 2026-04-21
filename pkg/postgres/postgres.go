@@ -1,4 +1,4 @@
-package db
+package postgres
 
 import (
 	"context"
@@ -20,19 +20,19 @@ const (
 	migrationsPath = "file://internal/db/migrations"
 )
 
-func NewPoolPostgres(dsn string, dbConnection *DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
+func NewPoolPostgres(dsn string, conf *Config, logger *zerolog.Logger) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse dsn: %w", err)
 	}
 
-	poolConfig.MinConns = dbConnection.MinConnections
-	poolConfig.MaxConns = dbConnection.MaxConnections
-	poolConfig.MaxConnLifetime = dbConnection.MaxConnectionLifetime
-	poolConfig.HealthCheckPeriod = dbConnection.MaxHealthCheckPeriod
+	poolConfig.MinConns = conf.MinConnections
+	poolConfig.MaxConns = conf.MaxConnections
+	poolConfig.MaxConnLifetime = conf.MaxConnectionLifetime
+	poolConfig.HealthCheckPeriod = conf.MaxHealthCheckPeriod
 
-	for i := 1; i <= dbConnection.MaxRetries; i++ {
-		contextWithTimeOut, cancel := context.WithTimeout(context.Background(), dbConnection.TimeOut)
+	for i := 1; i <= conf.MaxRetries; i++ {
+		contextWithTimeOut, cancel := context.WithTimeout(context.Background(), conf.TimeOut)
 
 		if pool, err := pgxpool.NewWithConfig(contextWithTimeOut, poolConfig); err == nil {
 			pingErr := pool.Ping(contextWithTimeOut)
@@ -47,8 +47,8 @@ func NewPoolPostgres(dsn string, dbConnection *DatabaseConnection, logger *zerol
 
 		logger.Warn().Msgf("Postgres not ready yet, retrying")
 
-		if i < dbConnection.MaxRetries {
-			time.Sleep(dbConnection.PingSleepTime)
+		if i < conf.MaxRetries {
+			time.Sleep(conf.PingSleepTime)
 		}
 		cancel()
 	}

@@ -12,10 +12,10 @@ import (
 
 var ErrorConnectRedis = errors.New("cannot connect to Redis")
 
-func NewPoolRedis(settings *redis.Options, redisConnection *RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
+func NewPoolRedis(settings *redis.Options, conf *Config, logger *zerolog.Logger) (*redis.Client, error) {
 	client := redis.NewClient(settings)
 
-	for i := 1; i <= redisConnection.MaxRetries; i++ {
+	for i := 1; i <= conf.MaxRetries; i++ {
 		contextWithTimeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 		err := client.Ping(contextWithTimeout).Err()
@@ -28,8 +28,8 @@ func NewPoolRedis(settings *redis.Options, redisConnection *RedisConnection, log
 
 		logger.Warn().Msgf("Redis not ready yet, retrying")
 
-		if i < redisConnection.MaxRetries {
-			time.Sleep(redisConnection.PingSleepTime)
+		if i < conf.MaxRetries {
+			time.Sleep(conf.PingSleepTime)
 		}
 	}
 

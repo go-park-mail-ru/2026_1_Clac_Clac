@@ -1,4 +1,4 @@
-package db
+package redis
 
 import (
 	"testing"
@@ -63,7 +63,7 @@ func TestNewPoolRedisError(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 
-			client, err := NewPoolRedis(test.options, &RedisConnection{
+			client, err := NewPoolRedis(test.options, &Config{
 				PingSleepTime: pingSleepTime,
 				MaxRetries:    maxRetries,
 			}, &logger)

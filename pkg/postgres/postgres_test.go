@@ -1,4 +1,4 @@
-package db
+package postgres
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ func TestNewPoolPostgresError(t *testing.T) {
 	const pingSleepTime = time.Millisecond * 2
 
 	logger := zerolog.Nop()
-	dbConfig := &DatabaseConnection{
+	dbConfig := &Config{
 		MinConnections:        1,
 		MaxConnections:        5,
 		MaxConnectionLifetime: time.Hour,
