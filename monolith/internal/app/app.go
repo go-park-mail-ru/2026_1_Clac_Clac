@@ -1,0 +1,268 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
+	handlerDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/auth/handler/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/db"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/engine"
+	health "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/health/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/middleware"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/s3"
+	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"golang.org/x/oauth2"
+)
+
+type App struct {
+	Config  *config.Config
+	Logger  *zerolog.Logger
+	Engine  *engine.Engine
+	Store   *Store
+	Manager *Manager
+}
+
+// Создает приложение, настраивает его компоненты
+func NewApp(conf *config.Config) *App {
+	logger := setupLogger(&conf.App)
+
+	store, err := setupStore(conf, logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("cannot initialise store")
+	}
+
+	manager := setupManager(store, conf)
+	dilivery := setupDilivery(manager, conf)
+	router := setupRouter(dilivery, manager, conf, logger)
+
+	e := setupEngine(&conf.Engine, logger, router)
+
+	return &App{
+		Config:  conf,
+		Logger:  logger,
+		Engine:  e,
+		Store:   store,
+		Manager: manager,
+	}
+}
+
+// Запуск приложения
+func (a *App) Run() {
+	defer func() {
+		errClose := a.Store.Close()
+		if errClose != nil {
+			a.Logger.Err(errClose).Msg("close strore error")
+		}
+	}()
+
+	if err := a.Engine.Start(context.Background()); err != nil {
+		a.Logger.Err(err).Msg("engine error")
+	}
+}
+
+// Настройка рутов
+func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+	authHandler := dilivery.Auth
+	profileHandler := dilivery.Profile
+	boardHandler := dilivery.Board
+	sectionHandler := dilivery.Section
+	cardHandler := dilivery.Card
+
+	router := mux.NewRouter().PathPrefix("/api").Subrouter()
+
+	// Добавление обищх мидлваре
+	router.Use(middleware.RecoveryMiddleware(logger))
+	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.CORSMiddleware(&conf.CORS))
+	router.Use(middleware.TimeOutMiddleware(time.Second * 5))
+
+	textSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
+	uploadImageSizeLimitter := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
+
+	router.HandleFunc("/csrf", authHandler.SetCSRFCookieHandler).Methods(http.MethodGet)
+	router.HandleFunc("/healthcheck", health.HealthcheckHandler).Methods(http.MethodGet)
+
+	// Ручки, которым не нужна авторизация
+	public := router.PathPrefix("/").Subrouter()
+	public.Use(textSizeLimitter)
+
+	public.Handle("/docs", http.RedirectHandler("/api/docs/", http.StatusMovedPermanently))
+	public.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
+
+	public.HandleFunc("/register", dilivery.Auth.RegisterUser).Methods(http.MethodPost)
+	public.HandleFunc("/login", authHandler.LogInUser).Methods(http.MethodPost)
+
+	public.Handle("/login", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.LogInUser)),
+		logger, authHandler.LogInUser)).Methods(http.MethodPost)
+
+	public.Handle("/register", wrapWithLimit(manager.Auth, handlerDto.RateLimitConfig(conf.DBRateLimiters.GetParameters(config.RegisterUser)),
+		logger, authHandler.RegisterUser)).Methods(http.MethodPost)
+
+	public.HandleFunc("/logout", authHandler.LogOutUser).Methods(http.MethodPost)
+
+	vkOAuth := setupVKOAuth(&conf.VkOAuth)
+	public.HandleFunc("/oauth/vk", authHandler.VkOAuthCallback(&conf.VkOAuth, "/", vkOAuth))
+
+	public.HandleFunc("/forgot-password", authHandler.SendRecoveryEmail).Methods(http.MethodPost)
+	public.HandleFunc("/check-code", authHandler.CheckRecoveryCode).Methods(http.MethodPost)
+	public.HandleFunc("/reset-password", authHandler.ResetUserPassword).Methods(http.MethodPost)
+
+	csrfProtected := router.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware(manager.Auth.CheckCSRFToken))
+
+	publicWithCSRFProtection := csrfProtected.PathPrefix("/").Subrouter()
+	publicWithCSRFProtection.Use(textSizeLimitter)
+
+	// Для досутпа к этим ручкам нужна авторизация
+	protected := csrfProtected.PathPrefix("/").Subrouter()
+	protected.Use(middleware.AuthMiddleware(manager.Auth, logger, conf.Auth.Handler.SessionLifetime))
+
+	withTextLimit := protected.PathPrefix("/").Subrouter()
+	withTextLimit.Use(textSizeLimitter)
+
+	withImageLimit := protected.PathPrefix("/").Subrouter()
+	withImageLimit.Use(uploadImageSizeLimitter)
+
+	withTextLimit.HandleFunc("/me", authHandler.MeHandler).Methods(http.MethodGet)
+
+	withTextLimit.HandleFunc("/profiles", profileHandler.GetProfile).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/{user_link}", profileHandler.GetProfileByLink).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/info", profileHandler.UpdateProfile).Methods(http.MethodPost)
+	withImageLimit.HandleFunc("/profiles/avatar", profileHandler.UpdateAvatar).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/profiles/avatar", profileHandler.DeleteAvatar).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.GetSection).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections", sectionHandler.GetAllSections).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections/{link}/cards", sectionHandler.GetCards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections", sectionHandler.CreateSection).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", sectionHandler.ReorderSection).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.DeleteSection).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/sections/{link}", sectionHandler.UpdateSection).Methods(http.MethodPut)
+
+	withTextLimit.HandleFunc("/boards", boardHandler.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards", boardHandler.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/boards/{link}", boardHandler.UpdateBoard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/users", boardHandler.GetUsersOfBoard).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/boards/{link}/background", boardHandler.UploadBackground).Methods(http.MethodPut)
+
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
+	return router
+}
+
+func setupEngine(conf *config.Engine, logger *zerolog.Logger, router *mux.Router) *engine.Engine {
+	return engine.New(conf, logger, router)
+}
+
+// Настройка логера
+func setupLogger(conf *config.Application) *zerolog.Logger {
+	var loggerOutput io.Writer
+
+	// В зависимости от режима работы разные форматы вывода
+	if config.IsDebug(conf.LogLevel) {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		loggerOutput = os.Stdout
+	}
+
+	logger := zerolog.New(loggerOutput).With().Timestamp().Logger()
+	return &logger
+}
+
+// Настройка подключения к базе данных
+func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbConnection.User,
+		dbConnection.Password,
+		dbConnection.Host,
+		dbConnection.Port,
+		dbConnection.Name)
+
+	pool, err := db.NewPoolPostgres(dsn, dbConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.NewPool: %w", err)
+	}
+
+	return pool, nil
+}
+
+// Настройка подключения к Redis
+func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
+	redisSettings := redis.Options{
+		Addr:         fmt.Sprintf("%s:%s", redisConnection.Host, redisConnection.Port),
+		Password:     redisConnection.Password,
+		DB:           redisConnection.NumberDB,
+		PoolSize:     redisConnection.MaxConnections,
+		MinIdleConns: redisConnection.MinConnections,
+	}
+
+	client, err := db.NewPoolRedis(&redisSettings, redisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.NewPoolRedis: %w", err)
+	}
+
+	return client, nil
+}
+
+// Настройка стора
+func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
+	pool, err := setupDatabase(&conf.DBConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupDatabase: %w", err)
+	}
+
+	redisClient, err := setupRedis(&conf.RedisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupRedis: %w", err)
+	}
+
+	const intConvertationBase = 10
+	const intConvertationSize = 64
+	s3ConnectTimeout, err := strconv.ParseInt(conf.S3.ConnectTimeout, intConvertationBase, intConvertationSize)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
+	defer cancel()
+
+	s3Client, err := s3.NewAWSClient(
+		ctx,
+		conf.S3.Region,
+		conf.S3.Endpoint,
+		conf.S3.AccessKey,
+		conf.S3.SecretKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
+	}
+
+	return NewStore(pool, redisClient, s3Client, *conf), nil
+}
+
+// Настройка менеджера сервисов
+func setupManager(s *Store, conf *config.Config) *Manager {
+	return NewManager(s, *conf)
+}
+
+func setupDilivery(m *Manager, conf *config.Config) *Dilivery {
+	return NewDilivery(m, conf)
+}
+
+func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
+	return NewVKOAuth(conf)
+}

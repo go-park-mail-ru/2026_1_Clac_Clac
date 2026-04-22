@@ -1,6 +1,6 @@
-module github.com/go-park-mail-ru/2026_1_Clac_Clac
+module github.com/go-park-mail-ru/2026_1_Clac_Clac/user
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.5

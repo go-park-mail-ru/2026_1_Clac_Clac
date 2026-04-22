@@ -1,0 +1,40 @@
+syntax = "proto3";
+package profile;
+option go_package = "./pkg/profile;profile";
+
+service ProfileService {
+    rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
+    rpc GetProfileByLink(UserLinkRequest) returns (ProfileResponse);
+    rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+    rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
+    rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
+}
+
+message UpdateProfileResponse {}
+message DeleteAvatarResponse {}
+
+message UserLinkRequest {
+    string user_link = 1;
+}
+
+message ProfileResponse {
+    string user_link = 1;
+    string email = 2;
+    string display_name = 3;
+    string description = 4;
+    string avatar_url = 5;
+}
+message UpdateProfileRequest {
+    string user_link = 1;
+    string display_name = 2;
+    string description = 3;
+}
+message UpdateAvatarRequest {
+    string user_link = 1;
+    bytes file_data = 2;
+    string content_type = 3;
+    string file_extension = 4;
+}
+message AvatarResponse {
+    string avatar_url = 1;
+}
