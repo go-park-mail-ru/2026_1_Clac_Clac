@@ -222,6 +222,10 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
+		if errors.Is(err, common.ErrTaskLimitReached) {
+			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
+		}
+
 		logger.Error().Err(err).Msg("CardHandler.ReorderCard")
 		return nil, status.Error(codes.Internal, ErrCannotReorderCards.Error())
 	}
@@ -295,6 +299,10 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 
 		if errors.Is(err, common.ErrMissingRequiredField) {
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+		}
+
+		if errors.Is(err, common.ErrTaskLimitReached) {
+			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
 		}
 
 		logger.Error().Err(err).Msg("CardHandler.CreateCard")

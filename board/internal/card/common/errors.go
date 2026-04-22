@@ -10,4 +10,5 @@ var (
 	ErrCannotSkipMandatorySection = errors.New("cannot skip mandatory section")
 	ErrSectionNotFound            = errors.New("section not found")
 	ErrCardAlreadyExists          = errors.New("card already exists")
+	ErrTaskLimitReached           = errors.New("task limit reached")
 )

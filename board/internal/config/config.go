@@ -21,7 +21,12 @@ type Config struct {
 }
 
 func DefaultConfig() Config {
-	return Config{}
+	return Config{
+		App:     DefaultApplicationConfig(),
+		Board:   DefaultBoardConfig(),
+		Section: DefaultSectionConfig(),
+		Card:    DefaultCardConfig(),
+	}
 }
 
 func SetupViper(configPath string) (*viper.Viper, error) {

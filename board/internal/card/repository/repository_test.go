@@ -364,6 +364,10 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
@@ -407,6 +411,10 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
 
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
@@ -540,6 +548,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -566,6 +578,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
@@ -580,6 +596,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
@@ -593,6 +613,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error not existing section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
 
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
@@ -623,6 +647,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -649,6 +677,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -674,6 +706,10 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error exec fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
 
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
