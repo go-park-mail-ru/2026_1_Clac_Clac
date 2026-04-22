@@ -29,6 +29,12 @@ var (
 	ErrCannotReorderCards      = errors.New("cannot reorder cards")
 	ErrInvalidAuthorLink       = errors.New("invalid author link")
 	ErrCannotCreateCard        = errors.New("cannot create card")
+	ErrCannotGetComments       = errors.New("cannot get comments")
+	ErrCannotDeleteComment     = errors.New("cannot delete comment")
+	ErrInvalidParentLink       = errors.New("invalid parent link")
+	ErrCannotCreateComment     = errors.New("cannot create comment")
+	ErrInvalidUserLink         = errors.New("invalid user link")
+	ErrCannotUpdateComment     = errors.New("cannot update comment")
 )
 
 //go:generate mockery --name=CardService --output mock_card_srv
@@ -38,6 +44,10 @@ type CardService interface {
 	UpdateCardDetails(ctx context.Context, updatedCard serviceDto.UpdatingCardDetails) error
 	ReorderCard(ctx context.Context, updatingPlaceCard serviceDto.PlaceCard) error
 	CreateCard(ctx context.Context, newCard serviceDto.NewCard) (serviceDto.PlaceCard, error)
+	GetComments(ctx context.Context, cardLink uuid.UUID) ([]serviceDto.CommentInfo, error)
+	CreateComment(ctx context.Context, createCardInfo serviceDto.CreateCommentInfo) (serviceDto.CommentInfo, error)
+	DeleteComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) error
+	UpdateComment(ctx context.Context, updateCommentInfo serviceDto.UpdateCommentInfo) error
 }
 
 type Config struct {
@@ -314,4 +324,150 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		SectionLink: card.LinkSection.String(),
 		Position:    int64(card.Position),
 	}, nil
+}
+
+func (h *CardHandler) GetComments(ctx context.Context, req *pb.GetCommentsRequest) (*pb.GetCommentsResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawCardLink := req.GetCardLink()
+	cardLink, err := uuid.Parse(rawCardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	comments, err := h.srv.GetComments(ctx, cardLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+		default:
+			logger.Error().Err(err).Msg("CardService.GetComments")
+			return nil, status.Error(codes.Internal, ErrCannotGetComments.Error())
+		}
+	}
+
+	commentsInfo := make([]*pb.CommentInfo, 0)
+	for _, comment := range comments {
+		var parentLink string
+		if comment.ParentLink != nil {
+			parentLink = comment.ParentLink.String()
+		}
+
+		commentsInfo = append(commentsInfo, &pb.CommentInfo{
+			CommentLink: comment.Link.String(),
+			ParentLink:  &parentLink,
+			AuthorLink:  comment.AuthorLink.String(),
+			Text:        comment.Text,
+		})
+	}
+
+	return &pb.GetCommentsResponse{
+		CommentsInfo: commentsInfo,
+	}, nil
+}
+
+func (h *CardHandler) CreateComment(ctx context.Context, req *pb.CreateCommentRequest) (*pb.CreateCommentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawCardLink := req.GetCardLink()
+	cardLink, err := uuid.Parse(rawCardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	rawAuthorLink := req.GetAuthorLink()
+	authorLink, err := uuid.Parse(rawAuthorLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidAuthorLink.Error())
+	}
+
+	var parentLink uuid.UUID
+	if req.ParentLink != nil {
+		rawParentLink := req.GetParentLink()
+		parentLink, err = uuid.Parse(rawParentLink)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, ErrInvalidParentLink.Error())
+		}
+	}
+
+	comment, err := h.srv.CreateComment(ctx, serviceDto.CreateCommentInfo{
+		CardLink:   cardLink,
+		ParentLink: &parentLink,
+		AuthorLink: authorLink,
+		Text:       req.GetText(),
+	})
+	if err != nil {
+		logger.Error().Err(err).Msg("CardService.CreateComment")
+		return nil, status.Error(codes.Internal, ErrCannotCreateComment.Error())
+	}
+
+	return &pb.CreateCommentResponse{
+		CommentLink: comment.Link.String(),
+	}, nil
+}
+
+func (h *CardHandler) DeleteComment(ctx context.Context, req *pb.DeleteCommentRequest) (*pb.DeleteCommentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawCommentLink := req.GetCommentLink()
+	commentLink, err := uuid.Parse(rawCommentLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.DeleteComment(ctx, commentLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrCommentNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
+		case errors.Is(err, common.ErrPermissionDenied):
+			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
+		default:
+			logger.Error().Err(err).Msg("CardService.DeleteComment")
+			return nil, status.Error(codes.Internal, ErrCannotDeleteComment.Error())
+		}
+	}
+
+	return &pb.DeleteCommentResponse{}, nil
+}
+
+func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRequest) (*pb.UpdateCommentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawCommentLink := req.GetCommentLink()
+	commentLink, err := uuid.Parse(rawCommentLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.UpdateComment(ctx, serviceDto.UpdateCommentInfo{
+		CommentLink: commentLink,
+		UserLink:    userLink,
+		Text:        req.GetText(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrCommentNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
+		case errors.Is(err, common.ErrPermissionDenied):
+			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
+		default:
+			logger.Error().Err(err).Msg("CardService.UpdateComment")
+			return nil, status.Error(codes.Internal, ErrCannotUpdateComment.Error())
+		}
+	}
+
+	return &pb.UpdateCommentResponse{}, nil
 }

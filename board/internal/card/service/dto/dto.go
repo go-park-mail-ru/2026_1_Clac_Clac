@@ -35,3 +35,23 @@ type PlaceCard struct {
 	LinkSection uuid.UUID
 	Position    int
 }
+
+type CommentInfo struct {
+	Link       uuid.UUID
+	ParentLink *uuid.UUID
+	AuthorLink uuid.UUID
+	Text       string
+}
+
+type CreateCommentInfo struct {
+	CardLink   uuid.UUID
+	ParentLink *uuid.UUID
+	AuthorLink uuid.UUID
+	Text       string
+}
+
+type UpdateCommentInfo struct {
+	CommentLink uuid.UUID
+	UserLink    uuid.UUID
+	Text        string
+}

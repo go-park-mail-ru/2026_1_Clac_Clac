@@ -237,6 +237,7 @@ CREATE TABLE comment_task (
     comment_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_id INT NOT NULL,
     parent_id INT,
+    author_link UUID NOT NULL,
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
     text TEXT NOT NULL,
