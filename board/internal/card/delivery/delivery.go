@@ -397,6 +397,13 @@ func (h *CardHandler) CreateComment(ctx context.Context, req *pb.CreateCommentRe
 		Text:       req.GetText(),
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrMissingRequiredField):
+			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
+			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		}
+
 		logger.Error().Err(err).Msg("CardService.CreateComment")
 		return nil, status.Error(codes.Internal, ErrCannotCreateComment.Error())
 	}
@@ -428,10 +435,10 @@ func (h *CardHandler) DeleteComment(ctx context.Context, req *pb.DeleteCommentRe
 			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
 		case errors.Is(err, common.ErrPermissionDenied):
 			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
-		default:
-			logger.Error().Err(err).Msg("CardService.DeleteComment")
-			return nil, status.Error(codes.Internal, ErrCannotDeleteComment.Error())
 		}
+
+		logger.Error().Err(err).Msg("CardService.DeleteComment")
+		return nil, status.Error(codes.Internal, ErrCannotDeleteComment.Error())
 	}
 
 	return &pb.DeleteCommentResponse{}, nil
@@ -463,10 +470,10 @@ func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRe
 			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
 		case errors.Is(err, common.ErrPermissionDenied):
 			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
-		default:
-			logger.Error().Err(err).Msg("CardService.UpdateComment")
-			return nil, status.Error(codes.Internal, ErrCannotUpdateComment.Error())
 		}
+
+		logger.Error().Err(err).Msg("CardService.UpdateComment")
+		return nil, status.Error(codes.Internal, ErrCannotUpdateComment.Error())
 	}
 
 	return &pb.UpdateCommentResponse{}, nil

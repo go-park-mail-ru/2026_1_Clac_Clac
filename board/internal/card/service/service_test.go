@@ -282,3 +282,227 @@ func TestCreateCard(t *testing.T) {
 		})
 	}
 }
+
+func TestGetComments(t *testing.T) {
+	targetCardLink := uuid.New()
+	commentLink := uuid.New()
+	authorLink := uuid.New()
+	parentLink := uuid.New()
+
+	repComments := []repositoryDto.CommentInfo{
+		{Link: commentLink, ParentLink: &parentLink, AuthorLink: authorLink, Text: "hello"},
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *mockCardRep.CardRepository)
+		expectedError bool
+		expectedLen   int
+	}{
+		{
+			nameTest: "Success get comments",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return(repComments, nil)
+			},
+			expectedError: false,
+			expectedLen:   1,
+		},
+		{
+			nameTest: "Success empty comments",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]repositoryDto.CommentInfo{}, nil)
+			},
+			expectedError: false,
+			expectedLen:   0,
+		},
+		{
+			nameTest: "Error from repository",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]repositoryDto.CommentInfo{}, errors.New("db error"))
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockCardRep.NewCardRepository(t)
+			test.mockBehavior(mockRep)
+
+			service := NewService(mockRep)
+			res, err := service.GetComments(context.Background(), targetCardLink)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Len(t, res, test.expectedLen)
+			}
+		})
+	}
+}
+
+func TestCreateComment(t *testing.T) {
+	targetCardLink := uuid.New()
+	targetAuthorLink := uuid.New()
+	targetCommentLink := uuid.New()
+
+	createDto := dto.CreateCommentInfo{
+		CardLink:   targetCardLink,
+		AuthorLink: targetAuthorLink,
+		Text:       "test comment",
+	}
+
+	repResult := repositoryDto.CommentInfo{
+		Link:       targetCommentLink,
+		AuthorLink: targetAuthorLink,
+		Text:       "test comment",
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *mockCardRep.CardRepository)
+		expectedError bool
+	}{
+		{
+			nameTest: "Success create comment",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(repResult, nil)
+			},
+			expectedError: false,
+		},
+		{
+			nameTest: "Error from repository",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(repositoryDto.CommentInfo{}, errors.New("db error"))
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockCardRep.NewCardRepository(t)
+			test.mockBehavior(mockRep)
+
+			service := NewService(mockRep)
+			res, err := service.CreateComment(context.Background(), createDto)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, targetCommentLink, res.Link)
+				assert.Equal(t, "test comment", res.Text)
+			}
+		})
+	}
+}
+
+func TestDeleteComment(t *testing.T) {
+	targetCommentLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *mockCardRep.CardRepository)
+		expectedError bool
+	}{
+		{
+			nameTest: "Success delete comment",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+				m.On("DeleteComment", mock.Anything, targetCommentLink).Return(nil)
+			},
+			expectedError: false,
+		},
+		{
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false)
+			},
+			expectedError: true,
+		},
+		{
+			nameTest: "Error from repository",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+				m.On("DeleteComment", mock.Anything, targetCommentLink).Return(errors.New("db error"))
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockCardRep.NewCardRepository(t)
+			test.mockBehavior(mockRep)
+
+			service := NewService(mockRep)
+			err := service.DeleteComment(context.Background(), targetCommentLink, targetUserLink)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestUpdateComment(t *testing.T) {
+	targetCommentLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	updateDto := dto.UpdateCommentInfo{
+		CommentLink: targetCommentLink,
+		UserLink:    targetUserLink,
+		Text:        "updated text",
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *mockCardRep.CardRepository)
+		expectedError bool
+	}{
+		{
+			nameTest: "Success update comment",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedError: false,
+		},
+		{
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false)
+			},
+			expectedError: true,
+		},
+		{
+			nameTest: "Error from repository",
+			mockBehavior: func(m *mockCardRep.CardRepository) {
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := mockCardRep.NewCardRepository(t)
+			test.mockBehavior(mockRep)
+
+			service := NewService(mockRep)
+			err := service.UpdateComment(context.Background(), updateDto)
+
+			if test.expectedError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

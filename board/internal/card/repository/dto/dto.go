@@ -36,3 +36,22 @@ type NewCard struct {
 	DataDeadLine *time.Time
 	LinkSection  uuid.UUID
 }
+
+type CommentInfo struct {
+	Link       uuid.UUID
+	ParentLink *uuid.UUID
+	AuthorLink uuid.UUID
+	Text       string
+}
+
+type CreateCommentInfo struct {
+	CardLink   uuid.UUID
+	ParentLink *uuid.UUID
+	AuthorLink uuid.UUID
+	Text       string
+}
+
+type UpdateCommentInfo struct {
+	CommentLink uuid.UUID
+	Text        string
+}

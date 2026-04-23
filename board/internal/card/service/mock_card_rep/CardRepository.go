@@ -44,6 +44,34 @@ func (_m *CardRepository) CreateCard(ctx context.Context, newCard dto.NewCard) (
 	return r0, r1
 }
 
+// CreateComment provides a mock function with given fields: ctx, createCardInfo
+func (_m *CardRepository) CreateComment(ctx context.Context, createCardInfo dto.CreateCommentInfo) (dto.CommentInfo, error) {
+	ret := _m.Called(ctx, createCardInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateComment")
+	}
+
+	var r0 dto.CommentInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateCommentInfo) (dto.CommentInfo, error)); ok {
+		return rf(ctx, createCardInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateCommentInfo) dto.CommentInfo); ok {
+		r0 = rf(ctx, createCardInfo)
+	} else {
+		r0 = ret.Get(0).(dto.CommentInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CreateCommentInfo) error); ok {
+		r1 = rf(ctx, createCardInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteCard provides a mock function with given fields: ctx, linkCard
 func (_m *CardRepository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	ret := _m.Called(ctx, linkCard)
@@ -55,6 +83,24 @@ func (_m *CardRepository) DeleteCard(ctx context.Context, linkCard uuid.UUID) er
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
 		r0 = rf(ctx, linkCard)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteComment provides a mock function with given fields: ctx, commentLink
+func (_m *CardRepository) DeleteComment(ctx context.Context, commentLink uuid.UUID) error {
+	ret := _m.Called(ctx, commentLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteComment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, commentLink)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -90,6 +136,54 @@ func (_m *CardRepository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.
 	return r0, r1
 }
 
+// GetComments provides a mock function with given fields: ctx, cardLink
+func (_m *CardRepository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
+	ret := _m.Called(ctx, cardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetComments")
+	}
+
+	var r0 []dto.CommentInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.CommentInfo, error)); ok {
+		return rf(ctx, cardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.CommentInfo); ok {
+		r0 = rf(ctx, cardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.CommentInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, cardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IsCommentAuthor provides a mock function with given fields: ctx, commentLink, userLink
+func (_m *CardRepository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) bool {
+	ret := _m.Called(ctx, commentLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for IsCommentAuthor")
+	}
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) bool); ok {
+		r0 = rf(ctx, commentLink, userLink)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
 // ReorderCard provides a mock function with given fields: ctx, updatingPlaceCard
 func (_m *CardRepository) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard) error {
 	ret := _m.Called(ctx, updatingPlaceCard)
@@ -119,6 +213,24 @@ func (_m *CardRepository) UpdateCardDetails(ctx context.Context, updatedCard dto
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatingCardDetails) error); ok {
 		r0 = rf(ctx, updatedCard)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateComment provides a mock function with given fields: ctx, updateCommentInfo
+func (_m *CardRepository) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
+	ret := _m.Called(ctx, updateCommentInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateComment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateCommentInfo) error); ok {
+		r0 = rf(ctx, updateCommentInfo)
 	} else {
 		r0 = ret.Error(0)
 	}

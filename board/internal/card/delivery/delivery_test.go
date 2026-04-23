@@ -496,3 +496,359 @@ func TestCreateCard(t *testing.T) {
 		})
 	}
 }
+
+func TestGetComments(t *testing.T) {
+	targetCardLink := uuid.New()
+	commentLink := uuid.New()
+	authorLink := uuid.New()
+	parentLink := uuid.New()
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.GetCommentsRequest
+		mockBehavior func(m *mockCardSrv.CardService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.GetCommentsResponse)
+	}{
+		{
+			nameTest: "Success get comments",
+			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String()},
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]serviceDto.CommentInfo{
+					{Link: commentLink, ParentLink: &parentLink, AuthorLink: authorLink, Text: "hello"},
+				}, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetCommentsResponse) {
+				assert.NotNil(t, resp)
+				assert.Len(t, resp.CommentsInfo, 1)
+				assert.Equal(t, commentLink.String(), resp.CommentsInfo[0].CommentLink)
+				assert.Equal(t, "hello", resp.CommentsInfo[0].Text)
+			},
+		},
+		{
+			nameTest: "Success empty comments",
+			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String()},
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]serviceDto.CommentInfo{}, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetCommentsResponse) {
+				assert.NotNil(t, resp)
+				assert.Empty(t, resp.CommentsInfo)
+			},
+		},
+		{
+			nameTest:     "Error invalid card uuid",
+			req:          &pb.GetCommentsRequest{CardLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error card not found",
+			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String()},
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]serviceDto.CommentInfo{}, common.ErrCardNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String()},
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("GetComments", mock.Anything, targetCardLink).Return([]serviceDto.CommentInfo{}, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := mockCardSrv.NewCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			resp, err := handler.GetComments(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			if test.checkResp != nil {
+				test.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestCreateComment(t *testing.T) {
+	targetCardLink := uuid.New()
+	targetAuthorLink := uuid.New()
+	targetParentLink := uuid.New()
+	parentLinkStr := targetParentLink.String()
+	newCommentLink := uuid.New()
+
+	validReq := &pb.CreateCommentRequest{
+		CardLink:   targetCardLink.String(),
+		AuthorLink: targetAuthorLink.String(),
+		Text:       "test comment",
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.CreateCommentRequest
+		mockBehavior func(m *mockCardSrv.CardService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.CreateCommentResponse)
+	}{
+		{
+			nameTest: "Success create comment",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{
+					Link:       newCommentLink,
+					AuthorLink: targetAuthorLink,
+					Text:       "test comment",
+				}, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.CreateCommentResponse) {
+				assert.NotNil(t, resp)
+				assert.Equal(t, newCommentLink.String(), resp.CommentLink)
+			},
+		},
+		{
+			nameTest:     "Error invalid card uuid",
+			req:          &pb.CreateCommentRequest{CardLink: "invalid", AuthorLink: targetAuthorLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid author uuid",
+			req:          &pb.CreateCommentRequest{CardLink: targetCardLink.String(), AuthorLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error invalid parent uuid",
+			req: &pb.CreateCommentRequest{
+				CardLink:   targetCardLink.String(),
+				AuthorLink: targetAuthorLink.String(),
+				ParentLink: func() *string { s := "invalid"; return &s }(),
+			},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Success create comment with parent",
+			req: &pb.CreateCommentRequest{
+				CardLink:   targetCardLink.String(),
+				AuthorLink: targetAuthorLink.String(),
+				ParentLink: &parentLinkStr,
+				Text:       "reply",
+			},
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{
+					Link:       newCommentLink,
+					ParentLink: &targetParentLink,
+					AuthorLink: targetAuthorLink,
+					Text:       "reply",
+				}, nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest: "Error missing required field",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error invalid reference data",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, common.ErrInvalidReferenceCardData)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := mockCardSrv.NewCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			resp, err := handler.CreateComment(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			if test.checkResp != nil {
+				test.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestDeleteComment(t *testing.T) {
+	targetCommentLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	validReq := &pb.DeleteCommentRequest{
+		CommentLink: targetCommentLink.String(),
+		UserLink:    targetUserLink.String(),
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.DeleteCommentRequest
+		mockBehavior func(m *mockCardSrv.CardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success delete comment",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid comment uuid",
+			req:          &pb.DeleteCommentRequest{CommentLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.DeleteCommentRequest{CommentLink: targetCommentLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error comment not found",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(common.ErrCommentNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error permission denied",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(common.ErrPermissionDenied)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := mockCardSrv.NewCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.DeleteComment(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestUpdateComment(t *testing.T) {
+	targetCommentLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	validReq := &pb.UpdateCommentRequest{
+		CommentLink: targetCommentLink.String(),
+		UserLink:    targetUserLink.String(),
+		Text:        "updated text",
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.UpdateCommentRequest
+		mockBehavior func(m *mockCardSrv.CardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success update comment",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid comment uuid",
+			req:          &pb.UpdateCommentRequest{CommentLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.UpdateCommentRequest{CommentLink: targetCommentLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error comment not found",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(common.ErrCommentNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error permission denied",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(common.ErrPermissionDenied)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *mockCardSrv.CardService) {
+				m.On("UpdateComment", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := mockCardSrv.NewCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.UpdateComment(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
