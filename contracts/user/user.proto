@@ -8,6 +8,13 @@ service ProfileService {
     rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
     rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
     rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
+
+    rpc RegisterUser(RegisterRequest) returns (UserResponse);
+    rpc LogInUser(LogInRequest) returns (UserResponse);
+    rpc LogOutUser(SessionRequest) returns (LogOutResponse);
+    rpc CheckRecoveryCode(TokenRequest) returns (CheckRecoveryCodeResponse);
+    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+    rpc LoginWithVK(VKLoginRequest) returns (LoginVKResponse);
 }
 
 message UpdateProfileResponse {}

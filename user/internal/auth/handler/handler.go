@@ -13,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/auth/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/auth/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/common"
-	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
@@ -24,21 +23,9 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, string, error)
 	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, string, error)
-	CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error)
-	RefreshSession(ctx context.Context, sessionID string) error
-	UpdateCountRequests(ctx context.Context, config serviceDto.RateLimiterConfig) (bool, error)
-	CheckCoolDown(ctx context.Context, config serviceDto.CoolDownConfig) (bool, time.Duration, error)
 	LogOut(ctx context.Context, sessionID string) error
-	GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error)
-	GetUserByEmail(ctx context.Context, email string) (serviceDto.UserInfo, error)
-	// SendRecoveryCode(ctx context.Context, email string) error
-	CheckRecoveryCode(ctx context.Context, tokenID string) error
-	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 	EnsureUserByEmail(ctx context.Context, info serviceDto.RegistrationUser) (serviceDto.UserInfo, error)
-	SaveRefreshTokenFroUser(ctx context.Context, info serviceDto.UserInfo, token string) error
-	GetCSRFTokenExpireTime(ctx context.Context) (time.Time, error)
-	GenerateCSRFToken(ctx context.Context, sessionId string, expireTime int64) (string, error)
-	CheckCSRFToken(ctx context.Context, sessionId string, token string) error
+	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 }
 
 type VkOAuth interface {

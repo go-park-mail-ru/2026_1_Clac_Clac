@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/app"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/app"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/config"
 	"github.com/joho/godotenv"
 )
 

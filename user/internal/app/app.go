@@ -4,39 +4,36 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"os"
 	"strconv"
 	"time"
 
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db"
-	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
-	"google.golang.org/grpc"
 )
 
 type App struct {
-	Config     *config.Config
-	Logger     *zerolog.Logger
-	Store      *Store
-	Manager    *Manager
-	GRPCServer *grpc.Server
+	Config  *config.Config
+	Logger  *zerolog.Logger
+	Store   *Store
+	Manager *Manager
+	Engine  *engine.Engine
 }
 
 // Создает приложение, настраивает его компоненты
-func NewApp(conf *config.Config) *App {
+func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	grpcServer := grpc.NewServer()
+	engine := setupEngine(conf.Engine, logger)
 
 	store, err := setupStore(conf, logger)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("cannot initialise store")
+		return nil, fmt.Errorf("setupStore: %w", err)
 	}
 
 	manager := setupManager(store, conf)
@@ -44,15 +41,15 @@ func NewApp(conf *config.Config) *App {
 	vkOAuth := setupVKOAuth(&conf.VkOAuth)
 	delivery := setupDelivery(manager, conf, vkOAuth)
 
-	delivery.Register(grpcServer)
+	delivery.Register(engine.Server)
 
 	return &App{
-		Config:     conf,
-		Logger:     logger,
-		Store:      store,
-		Manager:    manager,
-		GRPCServer: grpcServer,
-	}
+		Config:  conf,
+		Logger:  logger,
+		Store:   store,
+		Manager: manager,
+		Engine:  engine,
+	}, nil
 }
 
 // Запуск приложения
@@ -64,17 +61,10 @@ func (a *App) Run() {
 		}
 	}()
 
-	address := ":" + a.Config.GRPC.Port
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		a.Logger.Fatal().Err(err).Msgf("Fail to connect listener, %s", err.Error())
-	}
+}
 
-	a.Logger.Info().Msgf("user gRPC Server is listening on %s", address)
-
-	if err := a.GRPCServer.Serve(listener); err != nil {
-		a.Logger.Fatal().Err(err).Msg("Failed to serve gRPC")
-	}
+func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
+	return engine.New(conf, logger)
 }
 
 // Настройка логера
@@ -127,39 +117,11 @@ func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logg
 	return pool, nil
 }
 
-// Настройка подключения к Redis
-func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
-	redisSettings := redis.Options{
-		Addr:         fmt.Sprintf("%s:%s", redisConnection.Host, redisConnection.Port),
-		Password:     redisConnection.Password,
-		DB:           redisConnection.NumberDB,
-		PoolSize:     redisConnection.MaxConnections,
-		MinIdleConns: redisConnection.MinConnections,
-	}
-
-	covertedConfigRedis := redisConnector.Config{
-		PingSleepTime: redisConnection.PingSleepTime,
-		MaxRetries:    redisConnection.MaxRetries,
-	}
-
-	client, err := redisConnector.NewPoolRedis(&redisSettings, covertedConfigRedis, logger)
-	if err != nil {
-		return nil, fmt.Errorf("db.NewPoolRedis: %w", err)
-	}
-
-	return client, nil
-}
-
 // Настройка стора
 func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 	pool, err := setupDatabase(&conf.DBConnection, logger)
 	if err != nil {
 		return nil, fmt.Errorf("setupDatabase: %w", err)
-	}
-
-	redisClient, err := setupRedis(&conf.RedisConnection, logger)
-	if err != nil {
-		return nil, fmt.Errorf("setupRedis: %w", err)
 	}
 
 	const intConvertationBase = 10
@@ -180,7 +142,7 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 		return nil, fmt.Errorf("s3.NewAWSClient: %w", err)
 	}
 
-	return NewStore(pool, redisClient, s3Client, *conf), nil
+	return NewStore(pool, s3Client, *conf), nil
 }
 
 // Настройка менеджера сервисов

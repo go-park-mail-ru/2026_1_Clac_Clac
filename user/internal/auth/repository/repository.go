@@ -22,25 +22,23 @@ type DBEngine interface {
 }
 
 // mockery --name=RedisEngine --output=mock_redis_engine --outpkg=mockRedisEngine
-type RedisEngine interface {
-	Get(ctx context.Context, key string) *redis.StringCmd
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
-	Del(ctx context.Context, keys ...string) *redis.IntCmd
-	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
-	Pipeline() redis.Pipeliner
-	SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd
-	TTL(ctx context.Context, key string) *redis.DurationCmd
-}
+// type RedisEngine interface {
+// 	Get(ctx context.Context, key string) *redis.StringCmd
+// 	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+// 	Del(ctx context.Context, keys ...string) *redis.IntCmd
+// 	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
+// 	Pipeline() redis.Pipeliner
+// 	SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.BoolCmd
+// 	TTL(ctx context.Context, key string) *redis.DurationCmd
+// }
 
 type Repository struct {
-	pool        DBEngine
-	redisClient RedisEngine
+	pool DBEngine
 }
 
-func NewRepository(pool DBEngine, redisClient RedisEngine) *Repository {
+func NewRepository(pool DBEngine) *Repository {
 	return &Repository{
-		pool:        pool,
-		redisClient: redisClient,
+		pool: pool,
 	}
 }
 
@@ -69,24 +67,6 @@ func (r *Repository) AddUser(ctx context.Context, user dto.UserInitialize) error
 		}
 
 		return fmt.Errorf("pool.Exec: %w", err)
-	}
-
-	return nil
-}
-
-func (r *Repository) AddSession(ctx context.Context, session dto.SessionEntity) error {
-	err := r.redisClient.Set(ctx, session.SessionKey, session.UserLink.String(), session.LifeTime).Err()
-	if err != nil {
-		return fmt.Errorf("client.Set: %w", err)
-	}
-
-	return nil
-}
-
-func (r *Repository) ExtendSession(ctx context.Context, session dto.ExtendedSession) error {
-	err := r.redisClient.Expire(ctx, session.Key, session.Expiration).Err()
-	if err != nil {
-		return fmt.Errorf("redisClient.Expire: %w", err)
 	}
 
 	return nil
@@ -129,28 +109,6 @@ func (r *Repository) CheckLimit(ctx context.Context, configLimiter dto.RateLimit
 	}
 
 	return size.Val(), nil
-}
-
-func (r *Repository) GetUserIDBySession(ctx context.Context, sessionKey string) (string, error) {
-	userLink, err := r.redisClient.Get(ctx, sessionKey).Result()
-	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return "", common.ErrorNotExistingSession
-		}
-
-		return "", fmt.Errorf("client.Get: %w", err)
-	}
-
-	return userLink, nil
-}
-
-func (r *Repository) DeleteSession(ctx context.Context, sessionKey string) error {
-	err := r.redisClient.Del(ctx, sessionKey).Err()
-	if err != nil {
-		return fmt.Errorf("client.Del: %w", err)
-	}
-
-	return nil
 }
 
 func (r *Repository) GetUser(ctx context.Context, email string) (dto.UserEntity, error) {

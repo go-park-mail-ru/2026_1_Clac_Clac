@@ -11,8 +11,8 @@ import (
 func main() {
 	const configPath = "./mail_sender"
 
-	if err := godotenv.Load("mail_sender/.env"); err != nil {
-		log.Println("Файл .env не найден, надеемся на системные ENV переменные")
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env not found")
 	}
 
 	v, err := config.SetupViper(configPath)

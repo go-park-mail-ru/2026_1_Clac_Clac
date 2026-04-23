@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App             Application        `mapstructure:"app"`
-	GRPC            GRPCConfig         `mapstructure:"grpc"`
-	VkOAuth         VkOAuth            `mapstructure:"vk_oauth"`
-	DBConnection    DatabaseConnection `mapstructure:"database"`
-	RedisConnection RedisConnection    `mapstructure:"redis"`
-	S3              S3                 `mapstructure:"s3"`
-	S3Avatars       S3Avatars          `mapstructure:"s3_avatars"`
+	App          Application        `mapstructure:"app"`
+	Engine       engine.Config      `mapstructure:"engine"`
+	VkOAuth      VkOAuth            `mapstructure:"vk_oauth"`
+	DBConnection DatabaseConnection `mapstructure:"database"`
+	S3           S3                 `mapstructure:"s3"`
+	S3Avatars    S3Avatars          `mapstructure:"s3_avatars"`
 
 	Auth    Auth    `mapstructure:"auth"`
 	Profile Profile `mapstructure:"profile"`
@@ -22,13 +22,12 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		App:             DefaultApplicationConfig(),
-		GRPC:            DefaultGRPCConfig(),
-		VkOAuth:         DefaultVkOAuthConfig(),
-		DBConnection:    DefaultDBConnectionConfog(),
-		RedisConnection: DefaultRedisConnection(),
-		S3Avatars:       DefaultS3AvatarsConfig(),
-		S3:              DefaultS3Config(),
+		App:          DefaultApplicationConfig(),
+		Engine:       DefaultEngineConfig(),
+		VkOAuth:      DefaultVkOAuthConfig(),
+		DBConnection: DefaultDBConnectionConfog(),
+		S3Avatars:    DefaultS3AvatarsConfig(),
+		S3:           DefaultS3Config(),
 
 		Auth:    DefaultAuthConfig(),
 		Profile: DefaultProfileConfig(),
@@ -50,7 +49,6 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	SetupEnvDbConnection(v)
-	// SetupEnvRedisConnection(v)
 	SetupEnvS3(v)
 
 	return v, nil

@@ -1,3 +1,10 @@
+app:
+  log_level: info
+
+engine:
+  addr: ":50053"
+  graceful_shutdown_timeout: 15
+
 s3_avatars:
   valid_extensions:
     image/png:
@@ -12,13 +19,6 @@ database:
   max_health_check_period: 30s
   ping_sleep_time: 2s
   time_out: 5s
-  max_retries: 5
-
-redis:
-  number_db: 0
-  min_connections: 20
-  max_connections: 100
-  ping_sleep_time: 2s
   max_retries: 5
 
 auth:
@@ -36,6 +36,3 @@ profile:
     max_read_bytes: 5242880
     max_len_name_user: 128
     max_len_description_user: 500
-
-grpc:
-  port: "50052"

@@ -81,39 +81,39 @@ func NewService(tools Tools) *Service {
 	}
 }
 
-func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, string, error) {
+func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, error) {
 	user, err := s.tools.Rep.GetUser(ctx, requestUser.Email)
 	if err != nil {
-		return dto.UserInfo{}, "", fmt.Errorf("rep.GetUser: %w", err)
+		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
 	}
 
 	err = s.tools.Checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
-		return dto.UserInfo{}, "", fmt.Errorf("rep.CheckPassword: %w", err)
+		return dto.UserInfo{}, fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
-	sessionID, err := s.tools.GeneratorID()
-	if err != nil {
-		return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
-	}
+	// sessionID, err := s.tools.GeneratorID()
+	// if err != nil {
+	// 	return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
+	// }
 
-	session := repositoryDto.SessionEntity{
-		SessionKey: s.tools.CreaterSessionKey(sessionID),
-		UserLink:   user.Link,
-		LifeTime:   s.tools.SessionLifetime,
-	}
+	// session := repositoryDto.SessionEntity{
+	// 	SessionKey: s.tools.CreaterSessionKey(sessionID),
+	// 	UserLink:   user.Link,
+	// 	LifeTime:   s.tools.SessionLifetime,
+	// }
 
-	err = s.tools.Rep.AddSession(ctx, session)
-	if err != nil {
-		return dto.UserInfo{}, "", fmt.Errorf("rep.AddSession: %w", err)
-	}
+	// err = s.tools.Rep.AddSession(ctx, session)
+	// if err != nil {
+	// 	return dto.UserInfo{}, "", fmt.Errorf("rep.AddSession: %w", err)
+	// }
 
 	return dto.UserInfo{
 		Link:        user.Link,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
 		Avatar:      user.Avatar,
-	}, sessionID, nil
+	}, nil
 }
 
 func (s *Service) CreateSessionForUser(ctx context.Context, link uuid.UUID) (string, error) {
@@ -183,10 +183,10 @@ func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (
 		return dto.UserInfo{}, "", fmt.Errorf("rep.AddUser: %w", err)
 	}
 
-	sessionID, err := s.tools.GeneratorID()
-	if err != nil {
-		return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
-	}
+	// sessionID, err := s.tools.GeneratorID()
+	// if err != nil {
+	// 	return dto.UserInfo{}, "", fmt.Errorf("GenerateID: %w", err)
+	// }
 
 	session := repositoryDto.SessionEntity{
 		SessionKey: s.tools.CreaterSessionKey(sessionID),
@@ -214,37 +214,6 @@ func (s *Service) LogOut(ctx context.Context, sessionID string) error {
 	}
 
 	return nil
-}
-
-func (s *Service) GetUserLink(ctx context.Context, sessionID string) (uuid.UUID, error) {
-	key := s.tools.CreaterSessionKey(sessionID)
-	userLink, err := s.tools.Rep.GetUserIDBySession(ctx, key)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("rep.GetUserIDBySession: %w", err)
-	}
-
-	parseUserLink, err := uuid.Parse(userLink)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("uuid.Parse: %w", err)
-	}
-
-	return parseUserLink, nil
-}
-
-func (s *Service) GetUserByEmail(ctx context.Context, email string) (dto.UserInfo, error) {
-	repositoryUser, err := s.tools.Rep.GetUser(ctx, email)
-	if err != nil {
-		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
-	}
-
-	user := dto.UserInfo{
-		Link:        repositoryUser.Link,
-		DisplayName: repositoryUser.DisplayName,
-		Email:       repositoryUser.Email,
-		Avatar:      repositoryUser.Avatar,
-	}
-
-	return user, nil
 }
 
 func (s *Service) CheckCoolDown(ctx context.Context, config dto.CoolDownConfig) (bool, time.Duration, error) {
@@ -302,16 +271,6 @@ func (s *Service) SendRecoveryCode(ctx context.Context, email string) error {
 
 		logger.Error().Msg("all attempts to send mail failed")
 	}(email, htmlBody)
-
-	return nil
-}
-
-func (s *Service) CheckRecoveryCode(ctx context.Context, tokenID string) error {
-	tokenKey := s.tools.CreaterResetKey(tokenID)
-	_, err := s.tools.Rep.GetUserLinkByResetToken(ctx, tokenKey)
-	if err != nil {
-		return fmt.Errorf("rep.GetResetToken: %w", err)
-	}
 
 	return nil
 }
@@ -374,11 +333,6 @@ func (s *Service) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUs
 	}
 
 	return user, nil
-}
-
-func (s *Service) SaveRefreshTokenFroUser(ctx context.Context, info dto.UserInfo, token string) error {
-	// TODO: реализовать сохранение в redis
-	return nil
 }
 
 func (a *Service) GetCSRFTokenExpireTime(ctx context.Context) (time.Time, error) {
