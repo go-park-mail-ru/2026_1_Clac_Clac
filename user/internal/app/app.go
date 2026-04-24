@@ -55,12 +55,14 @@ func NewApp(conf *config.Config) (*App, error) {
 // Запуск приложения
 func (a *App) Run() {
 	defer func() {
-		errClose := a.Store.Close()
-		if errClose != nil {
-			a.Logger.Err(errClose).Msg("close strore error")
+		if err := a.Store.Close(); err != nil {
+			a.Logger.Err(err).Msg("close store error")
 		}
 	}()
 
+	if err := a.Engine.Start(context.Background()); err != nil {
+		a.Logger.Fatal().Err(err).Msg("engine.Start")
+	}
 }
 
 func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {

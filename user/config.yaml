@@ -21,18 +21,11 @@ database:
   time_out: 5s
   max_retries: 5
 
-auth:
-  service:
-    session_life_time: 24h
-    count_retries: 3
+user:
   handler:
-    session_life_time: 24h
     max_len_password: 128
     min_len_password: 8
-
-profile:
-  handler:
-    siganature_type_bytes: 512
+    signature_type_bytes: 512
     max_read_bytes: 5242880
     max_len_name_user: 128
     max_len_description_user: 500

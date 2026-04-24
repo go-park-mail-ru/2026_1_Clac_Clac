@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	const configPath = "./mail_sender"
+	const configPath = "."
 
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env not found")
@@ -25,6 +25,9 @@ func main() {
 		log.Fatalf("viper.Unmarshal: %v", err)
 	}
 
-	app := app.NewApp(&conf)
+	app, err := app.NewApp(&conf)
+	if err != nil {
+		log.Fatalf("Failed to initialize application: %v", err)
+	}
 	app.Run()
 }

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package rate_limiter;
+
+option go_package = "./pkg/contracts/rate_limiter;rate_limiter";
+
+// Сервис для ограничения частоты запросов и cooldown-а между действиями
+service RateLimiterService {
+    // Проверка sliding window rate limit для IP + действия
+    rpc CheckRateLimit(CheckRateLimitRequest) returns (CheckRateLimitResponse);
+
+    // Установка и проверка cooldown между одинаковыми действиями пользователя
+    rpc SetCooldown(SetCooldownRequest) returns (SetCooldownResponse);
+}
+
+message CheckRateLimitRequest {
+    string user_ip   = 1;
+    string action    = 2;
+    int64  window_ms = 3; // Размер окна в миллисекундах
+    int64  limit     = 4; // Максимальное число запросов в окне
+}
+
+message CheckRateLimitResponse {
+    bool exceeded = 1; // true — лимит превышен
+}
+
+message SetCooldownRequest {
+    string name          = 1; // Название cooldown-а (например, "send_recovery_code")
+    string email         = 2; // Email пользователя
+    int64  expiration_ms = 3; // Время жизни cooldown-а в миллисекундах
+}
+
+message SetCooldownResponse {
+    bool  allowed = 1; // true — действие разрешено (первый запрос в окне)
+    int64 wait_ms = 2; // Оставшееся время ожидания в миллисекундах (если не разрешено)
+}

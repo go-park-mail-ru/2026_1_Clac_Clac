@@ -2,16 +2,13 @@ package app
 
 import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
-	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/auth/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
-	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/profile/repository"
+	userRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/repository"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Для хранения всех репозиториев и их удобной инициализации
 type Store struct {
-	Auth    *auth.Repository
-	Profile *profile.Repository
+	User *userRepo.Repository
 
 	s3Client     s3.S3Client
 	postgresPool *pgxpool.Pool
@@ -19,7 +16,6 @@ type Store struct {
 
 func (s *Store) Close() error {
 	s.postgresPool.Close()
-
 	return nil
 }
 
@@ -27,8 +23,7 @@ func NewStore(pool *pgxpool.Pool, s3Client s3.S3Client, conf config.Config) *Sto
 	avatars := s3Client.NewBucket(conf.S3.AvatarsBucket, conf.S3.AvatarsPrefix, s3.ACL.PublicRead)
 
 	return &Store{
-		Auth:    auth.NewRepository(pool),
-		Profile: profile.NewRepository(pool, avatars),
+		User: userRepo.NewRepository(pool, avatars),
 
 		s3Client:     s3Client,
 		postgresPool: pool,

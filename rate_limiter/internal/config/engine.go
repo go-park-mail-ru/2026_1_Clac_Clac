@@ -1,0 +1,15 @@
+package config
+
+import engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+
+const (
+	defaultAddr                    = ":50055"
+	defaultGracefulShutdownTimeout = 15
+)
+
+func DefaultEngineConfig() engine.Config {
+	return engine.Config{
+		Addr:                    defaultAddr,
+		GracefulShutdownTimeout: defaultGracefulShutdownTimeout,
+	}
+}

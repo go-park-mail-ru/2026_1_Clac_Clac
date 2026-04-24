@@ -1,20 +1,18 @@
 syntax = "proto3";
-package profile;
-option go_package = "./pkg/profile;profile";
+package user;
+option go_package = "./pkg/contracts/user;user";
 
-service ProfileService {
+service UserService {
     rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
-    rpc GetProfileByLink(UserLinkRequest) returns (ProfileResponse);
     rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
     rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
     rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
 
-    rpc RegisterUser(RegisterRequest) returns (UserResponse);
     rpc LogInUser(LogInRequest) returns (UserResponse);
-    rpc LogOutUser(SessionRequest) returns (LogOutResponse);
-    rpc CheckRecoveryCode(TokenRequest) returns (CheckRecoveryCodeResponse);
+    rpc RegisterUser(RegisterRequest) returns (UserResponse);
+    rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
     rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
-    rpc LoginWithVK(VKLoginRequest) returns (LoginVKResponse);
+    rpc LoginWithVK(VKLoginRequest) returns (VKLoginResponse);
 }
 
 message UpdateProfileResponse {}
@@ -44,4 +42,48 @@ message UpdateAvatarRequest {
 }
 message AvatarResponse {
     string avatar_url = 1;
+}
+
+message LogInRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message UserResponse {
+    string user_link = 1;
+    string display_name = 2;
+    string email = 3;
+    string avatar = 4;
+}
+
+message RegisterRequest {
+    string display_name = 1;
+    string password = 2;
+    string repeated_password = 3;
+    string email = 4;
+}
+
+message GetUserLinkRequest {
+    string email = 1;
+}
+
+message GetUserLinkResponse {
+    string user_link = 1;
+}
+
+
+message ResetPasswordRequest {
+    string password = 1;
+    string repeated_password = 2;
+    string user_link = 3;
+}
+
+message ResetPasswordResponse {}
+
+message VKLoginRequest  {
+    string code = 1;
+}
+
+message VKLoginResponse  {
+    string user_link = 1;
 }

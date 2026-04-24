@@ -7,6 +7,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCheckAsciiSymbol(t *testing.T) {
+	tests := []struct {
+		nameTest string
+		input    []string
+		expected bool
+	}{
+		{
+			nameTest: "All ASCII symbols",
+			input:    []string{"hello", "world123", "test@mail.ru"},
+			expected: true,
+		},
+		{
+			nameTest: "Contains non-ASCII symbol",
+			input:    []string{"hello", "мир"},
+			expected: false,
+		},
+		{
+			nameTest: "Empty strings",
+			input:    []string{"", ""},
+			expected: true,
+		},
+		{
+			nameTest: "Single non-ASCII string",
+			input:    []string{"пароль"},
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			result := CheckAsciiSymbol(test.input...)
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
 func TestValidateInfo(t *testing.T) {
 	maxLenNameUser := 128
 	maxLenDescriptionUser := 500

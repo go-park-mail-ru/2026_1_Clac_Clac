@@ -2,17 +2,18 @@ app:
   log_level: info
 
 engine:
-  addr: 0.0.0.0:8082
-  write_timeout: 15
-  read_timeout: 15
-  idle_timeout: 60
+  addr: ":50052"
   graceful_shutdown_timeout: 15
 
-cors:
-  credentials: "true"
-  methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-  headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
-  max_age: 864000
+redis:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
 
-grpc:
-  port: "50051"
+sender:
+  service:
+    count_retries: 5
+    life_time_reset_token: 15m
+    sleep_time: 2s

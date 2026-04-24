@@ -1,64 +1,69 @@
 package app
 
 import (
+	"context"
+	"fmt"
 	"io"
-	"net"
 	"os"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/config"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/manager"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc"
-
-	grpc_delivery "github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/delivery/grpc"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/mail"
 )
 
 type App struct {
-	Config      *config.Config
-	Logger      *zerolog.Logger
-	MailManager *manager.MailManager
-	GRPCServer  *grpc.Server
+	Config  *config.Config
+	Logger  *zerolog.Logger
+	Engine  *engine.Engine
+	Store   *Store
+	Manager *Manager
 }
 
-// Создает приложение, настраивает его компоненты
-func NewApp(conf *config.Config) *App {
+func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	mailManager := setupMailManager(&conf.MailSender)
+	engine := setupEngine(conf.Engine, logger)
 
-	mailHandler := setupMailHandler(mailManager)
-	grpcServer := grpc.NewServer()
+	store, err := setupStore(conf, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupStore: %w", err)
+	}
 
-	pb.RegisterMailServiceServer(grpcServer, mailHandler)
+	manager := setupManager(store, conf)
+
+	delivery := setupDelivery(manager)
+	delivery.Register(engine.Server)
 
 	return &App{
-		Config:      conf,
-		Logger:      logger,
-		MailManager: mailManager,
-		GRPCServer:  grpcServer,
-	}
+		Config:  conf,
+		Logger:  logger,
+		Engine:  engine,
+		Store:   store,
+		Manager: manager,
+	}, nil
 }
 
 func (a *App) Run() {
-	address := ":" + a.Config.GRPC.Port
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		a.Logger.Fatal().Err(err).Msgf("Fail to connect listener, %s", err.Error())
-	}
+	defer func() {
+		if err := a.Store.Close(); err != nil {
+			a.Logger.Err(err).Msg("close store error")
+		}
+	}()
 
-	a.Logger.Info().Msgf("MailSender gRPC Server is listening on %s", address)
-
-	if err := a.GRPCServer.Serve(listener); err != nil {
-		a.Logger.Fatal().Err(err).Msg("Failed to serve gRPC")
+	if err := a.Engine.Start(context.Background()); err != nil {
+		a.Logger.Fatal().Err(err).Msg("engine.Start")
 	}
 }
 
-// Настройка логера
+func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
+	return engine.New(conf, logger)
+}
+
 func setupLogger(conf *config.Application) *zerolog.Logger {
 	var loggerOutput io.Writer
 
-	// В зависимости от режима работы разные форматы вывода
 	if config.IsDebug(conf.LogLevel) {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
@@ -71,10 +76,41 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 	return &logger
 }
 
-func setupMailManager(conf *config.MailSender) *manager.MailManager {
-	return manager.NewMailSender(conf)
+func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {
+	redisSettings := redis.Options{
+		Addr:         fmt.Sprintf("%s:%s", redisConnection.Host, redisConnection.Port),
+		Password:     redisConnection.Password,
+		DB:           redisConnection.NumberDB,
+		PoolSize:     redisConnection.MaxConnections,
+		MinIdleConns: redisConnection.MinConnections,
+	}
+
+	convertedConfigRedis := redisConnector.Config{
+		PingSleepTime: redisConnection.PingSleepTime,
+		MaxRetries:    redisConnection.MaxRetries,
+	}
+
+	client, err := redisConnector.NewPoolRedis(&redisSettings, convertedConfigRedis, logger)
+	if err != nil {
+		return nil, fmt.Errorf("db.NewPoolRedis: %w", err)
+	}
+
+	return client, nil
 }
 
-func setupMailHandler(mailManager *manager.MailManager) *grpc_delivery.MailHandler {
-	return grpc_delivery.NewMailHandler(mailManager)
+func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
+	redisClient, err := setupRedis(&conf.RedisConnection, logger)
+	if err != nil {
+		return nil, fmt.Errorf("setupRedis: %w", err)
+	}
+
+	return NewStore(redisClient), nil
+}
+
+func setupManager(s *Store, conf *config.Config) *Manager {
+	return NewManager(s, *conf)
+}
+
+func setupDelivery(m *Manager) *Delivery {
+	return NewDelivery(m)
 }
