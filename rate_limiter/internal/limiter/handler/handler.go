@@ -5,7 +5,7 @@ import (
 	"time"
 
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/rate_limiter"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service"
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,8 +16,8 @@ const (
 )
 
 type ServiceLimiter interface {
-	CheckRateLimit(ctx context.Context, config service.RateLimiterConfig) (bool, error)
-	SetCooldown(ctx context.Context, config service.CooldownConfig) (bool, time.Duration, error)
+	CheckRateLimit(ctx context.Context, config serviceDto.RateLimiterConfig) (bool, error)
+	SetCooldown(ctx context.Context, config serviceDto.CooldownConfig) (bool, time.Duration, error)
 }
 
 type Handler struct {
@@ -36,7 +36,7 @@ func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequ
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
 
-	exceeded, err := h.srv.CheckRateLimit(ctx, service.RateLimiterConfig{
+	exceeded, err := h.srv.CheckRateLimit(ctx, serviceDto.RateLimiterConfig{
 		UserIP: req.UserIp,
 		Action: req.Action,
 		Window: time.Duration(req.WindowMs) * time.Millisecond,
@@ -56,7 +56,7 @@ func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
 
-	allowed, waitTime, err := h.srv.SetCooldown(ctx, service.CooldownConfig{
+	allowed, waitTime, err := h.srv.SetCooldown(ctx, serviceDto.CooldownConfig{
 		Name:       req.Name,
 		Email:      req.Email,
 		Expiration: time.Duration(req.ExpirationMs) * time.Millisecond,

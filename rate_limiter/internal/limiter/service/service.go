@@ -6,24 +6,12 @@ import (
 	"time"
 
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
 )
 
 type LimiterRepository interface {
 	CheckLimit(ctx context.Context, config repositoryDto.RateLimiterConfig) (int64, error)
 	SetCooldown(ctx context.Context, config repositoryDto.CooldownConfig) (bool, time.Duration, error)
-}
-
-type RateLimiterConfig struct {
-	UserIP string
-	Action string
-	Window time.Duration
-	Limit  int64
-}
-
-type CooldownConfig struct {
-	Name       string
-	Email      string
-	Expiration time.Duration
 }
 
 type Service struct {
@@ -36,7 +24,7 @@ func NewService(rep LimiterRepository) *Service {
 	}
 }
 
-func (s *Service) CheckRateLimit(ctx context.Context, config RateLimiterConfig) (bool, error) {
+func (s *Service) CheckRateLimit(ctx context.Context, config dto.RateLimiterConfig) (bool, error) {
 	count, err := s.rep.CheckLimit(ctx, repositoryDto.RateLimiterConfig{
 		UserIP: config.UserIP,
 		Action: config.Action,
@@ -49,7 +37,7 @@ func (s *Service) CheckRateLimit(ctx context.Context, config RateLimiterConfig) 
 	return count > config.Limit, nil
 }
 
-func (s *Service) SetCooldown(ctx context.Context, config CooldownConfig) (bool, time.Duration, error) {
+func (s *Service) SetCooldown(ctx context.Context, config dto.CooldownConfig) (bool, time.Duration, error) {
 	key := fmt.Sprintf("cd:%s:%s", config.Name, config.Email)
 
 	allowed, waitTime, err := s.rep.SetCooldown(ctx, repositoryDto.CooldownConfig{
