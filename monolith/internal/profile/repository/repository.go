@@ -167,7 +167,7 @@ func (r *Repository) DeleteURLAvatar(ctx context.Context, userLink uuid.UUID) er
 	WHERE link = $2
 	`
 
-	countModifies, err := r.pool.Exec(ctx, query, nil, userLink)
+	countModifies, err := r.pool.Exec(ctx, query, "", userLink)
 	if err != nil {
 		return fmt.Errorf("pool.Exec: %w", err)
 	}
