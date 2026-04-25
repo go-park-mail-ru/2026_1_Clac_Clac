@@ -47,7 +47,7 @@ func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo
 
 func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]dto.AppealEntry, error) {
 	query := `
-		SELECT appeal_link, mail, display_name, status, category, description, attachment_key, created_at
+		SELECT appeal_id, appeal_link, mail, display_name, status, category, description, attachment_key, created_at
 		FROM appeal
 		WHERE user_link = $1
 		ORDER BY created_at DESC;
@@ -63,6 +63,7 @@ func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]
 	for rows.Next() {
 		var a dto.AppealEntry
 		err := rows.Scan(
+			&a.AppealID,
 			&a.AppealLink,
 			&a.Email,
 			&a.DisplayName,
@@ -87,7 +88,7 @@ func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]
 
 func (r *Repository) GetOpenAppeals(ctx context.Context) ([]dto.AppealEntry, error) {
 	query := `
-		SELECT appeal_link, mail, display_name, status, category, description, attachment_key, created_at
+		SELECT appeal_id, appeal_link, mail, display_name, status, category, description, attachment_key, created_at
 		FROM appeal
 		WHERE status = $1
 		ORDER BY created_at ASC; -- Сортировка по возрастанию, чтобы первыми шли самые старые открытые тикеты
@@ -103,6 +104,7 @@ func (r *Repository) GetOpenAppeals(ctx context.Context) ([]dto.AppealEntry, err
 	for rows.Next() {
 		var a dto.AppealEntry
 		err := rows.Scan(
+			&a.AppealID,
 			&a.AppealLink,
 			&a.Email,
 			&a.DisplayName,

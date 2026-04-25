@@ -16,12 +16,28 @@ type EntityAppeal struct {
 }
 
 type Appeal struct {
-	AppealLink  uuid.UUID
-	AppelID     int
-	Category    common.Category
-	Description string
-	CreatedAt   time.Time
+	AppelID       int
+	AppealLink    uuid.UUID
+	Email         string
+	DisplayName   string
+	Status        common.Status
+	Category      common.Category
+	Description   string
+	AttachmentKey string
+	CreatedAt     time.Time
 }
+
 type Appeals struct {
-	Appeals []Appeal `json:"appeal"`
+	Appeals []Appeal
+}
+
+type AppealInfo struct {
+	AppealLink    uuid.UUID
+	Email         string
+	DisplayName   string
+	Status        common.Status
+	Category      common.Category
+	Description   string
+	AttachmentKey string
+	CreatedAt     time.Time
 }

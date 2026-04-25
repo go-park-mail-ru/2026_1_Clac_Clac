@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate mockery --name=AppealRepository --output mock_appeal_rep
 type AppealRepository interface {
 	GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error)
 	CreateAppeal(ctx context.Context, info repositoryDto.CreateAppealInfo) error
@@ -69,4 +70,44 @@ func (s *Service) GetStats(ctx context.Context) (repositoryDto.AppealStats, erro
 	}
 
 	return stats, nil
+}
+
+func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appeals, error) {
+	userRole, err := s.rep.GetUserRole(ctx, userLink)
+	if err != nil {
+		return dto.Appeals{}, fmt.Errorf("ServiceAppeal.GetUserRole: %w", err)
+	}
+
+	var rawAppeals []repositoryDto.AppealEntry
+	switch userRole {
+	case common.Roles.Support, common.Roles.Admin:
+		rawAppeals, err = s.rep.GetOpenAppeals(ctx)
+		if err != nil {
+			return dto.Appeals{}, fmt.Errorf("ServiceAppeal.GetOpenAppeals: %w", err)
+		}
+	default:
+		rawAppeals, err = s.rep.GetUserAppeals(ctx, userLink)
+		if err != nil {
+			return dto.Appeals{}, fmt.Errorf("SerivceAppeal.GetUserAppeals: %w", err)
+		}
+	}
+
+	appeals := dto.Appeals{
+		Appeals: make([]dto.Appeal, 0, len(rawAppeals)),
+	}
+
+	for _, rawAppeal := range rawAppeals {
+		appeals.Appeals = append(appeals.Appeals, dto.Appeal{
+			AppealLink:    rawAppeal.AppealLink,
+			Email:         rawAppeal.Email,
+			DisplayName:   rawAppeal.DisplayName,
+			Status:        rawAppeal.Status,
+			Category:      rawAppeal.Category,
+			Description:   rawAppeal.Description,
+			AttachmentKey: rawAppeal.AttachmentKey,
+			CreatedAt:     rawAppeal.CreatedAt,
+		})
+	}
+
+	return appeals, nil
 }

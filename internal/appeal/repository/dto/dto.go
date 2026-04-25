@@ -8,6 +8,7 @@ import (
 )
 
 type AppealEntry struct {
+	AppealID      int
 	AppealLink    uuid.UUID
 	Email         string
 	DisplayName   string

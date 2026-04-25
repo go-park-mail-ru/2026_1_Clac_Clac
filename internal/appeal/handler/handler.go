@@ -106,16 +106,21 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := serviceDto.Appeals{
-		Appeals: make([]serviceDto.Appeal, 0, len(appeals.Appeals)),
+	response := dto.Appeals{
+		Appeals: make([]dto.Appeal, 0, len(appeals.Appeals)),
 	}
 
 	for _, a := range appeals.Appeals {
-		response.Appeals = append(response.Appeals, serviceDto.Appeal{
-			AppealLink:  a.AppealLink,
-			Category:    a.Category,
-			Description: a.Description,
-			CreatedAt:   a.CreatedAt,
+		response.Appeals = append(response.Appeals, dto.Appeal{
+			AppealID:      a.AppelID,
+			AppealLink:    a.AppealLink,
+			Email:         a.Email,
+			DisplayName:   a.DisplayName,
+			Category:      a.Category,
+			Status:        a.Status,
+			Description:   a.Description,
+			AttachmentKey: a.AttachmentKey,
+			CreatedAt:     a.CreatedAt,
 		})
 	}
 

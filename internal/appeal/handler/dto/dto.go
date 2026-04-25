@@ -15,14 +15,17 @@ type EntityAppealRequest struct {
 }
 
 type Appeal struct {
-	AppealLink  uuid.UUID       `json:"appeal_link"`
-	AppealID    int             `json:"appeal_id,omitempty"`
-	Category    common.Category `json:"category"`
-	Status      common.Status   `json:"status"`
-	Description string          `json:"description"`
-	CreatedAt   time.Time       `json:"created_at"`
+	AppealID      int             `json:"appeal_id"`
+	AppealLink    uuid.UUID       `json:"appeal_link"`
+	Email         string          `json:"email"`
+	DisplayName   string          `json:"display_name"`
+	Status        common.Status   `json:"status"`
+	Category      common.Category `json:"category"`
+	Description   string          `json:"description"`
+	AttachmentKey string          `json:"attachment_key"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
-type CardsSection struct {
-	Cards []Appeal `json:"appeals"`
+type Appeals struct {
+	Appeals []Appeal `json:"appeals"`
 }
