@@ -31,34 +31,35 @@ func NewRepository(pool DBEngine, attachments s3.S3Bucket) *Repository {
 	return &Repository{pool: pool, attachments: attachments}
 }
 
-func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) error {
+func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) (uuid.UUID, error) {
 	query := `
 		INSERT INTO appeal (user_link, mail, display_name, category, description, attachment_key)
-		VALUES ($1, $2, $3, $4, $5, $6);
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING appeal_link;
 	`
 
-	_, err := r.pool.Exec(ctx, query,
+	var appealLink uuid.UUID
+	err := r.pool.QueryRow(ctx, query,
 		info.UserLink,
 		info.Email,
 		info.DisplayName,
 		info.Category,
 		info.Description,
 		info.AttachmentKey,
-	)
+	).Scan(&appealLink)
 
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "22P02" {
-
-				return fmt.Errorf("create appeal: %w", common.ErrInvalidCategory)
+				return uuid.UUID{}, fmt.Errorf("create appeal: %w", common.ErrInvalidCategory)
 			}
 		}
 
-		return fmt.Errorf("create appeal: %w", err)
+		return uuid.UUID{}, fmt.Errorf("create appeal: %w", err)
 	}
 
-	return nil
+	return appealLink, nil
 }
 
 func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]dto.AppealEntry, error) {

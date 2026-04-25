@@ -36,7 +36,7 @@ var (
 )
 
 type AppealService interface {
-	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) error
+	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) (uuid.UUID, error)
 	GetAppeals(ctx context.Context, userLink uuid.UUID) (serviceDto.Appeals, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 	GetStats(ctx context.Context, userLink uuid.UUID) (serviceDto.AppealStats, error)
@@ -69,7 +69,7 @@ func NewHandler(srv AppealService, conf Config) *Handler {
 // @Accept       json
 // @Produce      json
 // @Param        request body dto.EntityAppealRequest true "Данные обращения"
-// @Success      200  {string} string "OK"
+// @Success      200  {object} object{appeal_link=string} "Appeal link UUID"
 // @Failure      400  {string} string "Bad Request"
 // @Failure      401  {string} string "Unauthorized"
 // @Failure      500  {string} string "Internal Server Error"
@@ -99,7 +99,7 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.srv.CreateAppeal(r.Context(), serviceDto.EntityAppeal{
+	appealLink, err := h.srv.CreateAppeal(r.Context(), serviceDto.EntityAppeal{
 		UserLink:    userLink,
 		DisplayName: request.DisplayName,
 		Mail:        request.Mail,
@@ -121,13 +121,16 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 
 		if errors.Is(err, common.ErrInvalidCategory) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+			return
 		}
 
 		api.RespondError(w, http.StatusInternalServerError, "server error internal")
 		return
 	}
 
-	api.RespondOk(w, api.StatusOK)
+	api.RespondOk(w, struct {
+		AppealLink uuid.UUID `json:"appeal_link"`
+	}{AppealLink: appealLink})
 }
 
 // GetAppeals godoc

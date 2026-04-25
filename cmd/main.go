@@ -25,6 +25,8 @@ func main() {
 		log.Fatalf("viper.Unmarshal: %v", err)
 	}
 
+	log.Println(conf)
+
 	app := app.NewApp(&conf)
 	app.Run()
 }

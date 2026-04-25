@@ -14,7 +14,7 @@ import (
 //go:generate mockery --name=AppealRepository --output mock_appeal_rep
 type AppealRepository interface {
 	GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error)
-	CreateAppeal(ctx context.Context, info repositoryDto.CreateAppealInfo) error
+	CreateAppeal(ctx context.Context, info repositoryDto.CreateAppealInfo) (uuid.UUID, error)
 	GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]repositoryDto.AppealEntry, error)
 	GetOpenAppeals(ctx context.Context, supportLink uuid.UUID) ([]repositoryDto.AppealEntry, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
@@ -32,8 +32,8 @@ func NewService(rep AppealRepository) *Service {
 	return &Service{rep: rep}
 }
 
-func (s *Service) CreateAppeal(ctx context.Context, appeal dto.EntityAppeal) error {
-	err := s.rep.CreateAppeal(ctx, repositoryDto.CreateAppealInfo{
+func (s *Service) CreateAppeal(ctx context.Context, appeal dto.EntityAppeal) (uuid.UUID, error) {
+	appealLink, err := s.rep.CreateAppeal(ctx, repositoryDto.CreateAppealInfo{
 		UserLink:    &appeal.UserLink,
 		Email:       appeal.Mail,
 		Category:    appeal.Category,
@@ -42,10 +42,10 @@ func (s *Service) CreateAppeal(ctx context.Context, appeal dto.EntityAppeal) err
 	})
 
 	if err != nil {
-		return fmt.Errorf("rep.CreateAppeal: %w", err)
+		return uuid.UUID{}, fmt.Errorf("rep.CreateAppeal: %w", err)
 	}
 
-	return nil
+	return appealLink, nil
 }
 
 func (s *Service) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error {
