@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -272,7 +271,7 @@ func (h *Handler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 
 	extension := filepath.Ext(header.Filename)
 
-	key, err := h.srv.UploadAttachment(r.Context(), bytes.NewReader(buf), contentType, extension, appealLink)
+	key, err := h.srv.UploadAttachment(r.Context(), file, contentType, extension, appealLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
 
