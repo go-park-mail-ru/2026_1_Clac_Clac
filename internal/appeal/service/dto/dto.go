@@ -28,6 +28,7 @@ type Appeal struct {
 }
 
 type Appeals struct {
+	Role    common.Role
 	Appeals []Appeal
 }
 
@@ -40,4 +41,16 @@ type AppealInfo struct {
 	Description   string
 	AttachmentKey string
 	CreatedAt     time.Time
+}
+
+type ChangeAppealStatusInfo struct {
+	SupporterLink uuid.UUID
+	AppealLink    uuid.UUID
+	Status        common.Status
+}
+
+type AppealStats struct {
+	Open   int
+	InWork int
+	Close  int
 }

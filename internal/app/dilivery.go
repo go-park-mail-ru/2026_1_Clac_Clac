@@ -57,5 +57,6 @@ func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
 		Board:   board.NewHandler(m.Board, boardConfig),
 		Section: section.NewHandler(m.Section, sectionConfig),
 		Card:    card.NewHandler(m.Card, cardConfig),
+		Appeal:  appeal.NewHandler(m.Appeal),
 	}
 }

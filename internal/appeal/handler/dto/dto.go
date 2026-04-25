@@ -33,5 +33,16 @@ type Appeal struct {
 // Appeals представляет список обращений
 // @Description Ответ, содержащий массив обращений
 type Appeals struct {
-	Appeals []Appeal `json:"appeals"`
+	Role    common.Role `json:"role" example:"user"`
+	Appeals []Appeal    `json:"appeals"`
+}
+
+type ChangeAppealStatus struct {
+	Status common.Status
+}
+
+type AppealStats struct {
+	Open   int
+	InWork int
+	Close  int
 }

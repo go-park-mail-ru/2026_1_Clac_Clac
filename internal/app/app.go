@@ -165,8 +165,10 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 
 	withTextLimit.HandleFunc("/appeals", appealHandler.CreateAppeal).Methods(http.MethodPost)
-	withTextLimit.HandleFunc("/appeals", appealHandler.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/{link}", appealHandler.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/{link}", appealHandler.ChangeAppealStatus).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/appeals", appealHandler.GetAppeals).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/stats", appealHandler.GetStats).Methods(http.MethodGet)
 	return router
 }
 

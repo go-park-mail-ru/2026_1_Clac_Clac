@@ -13,18 +13,24 @@ import (
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/service/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
 var (
-	ErrInvalidRequestSchema = errors.New("invalid schema")          // Поправил опечатку shema -> schema
-	ErrInvalidEmailOrName   = errors.New("incorrect email or name") // Поправил опечатку ot -> or
+	ErrInvalidRequestSchema = errors.New("invalid schema")
+	ErrInvalidEmailOrName   = errors.New("incorrect email or name")
+	ErrInvalidActions       = errors.New("this role can not do it")
+
+	msgInternalError = "server error internal"
 )
 
 type AppealService interface {
 	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) error
 	GetAppeals(ctx context.Context, userLink uuid.UUID) (serviceDto.Appeals, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
+	GetStats(ctx context.Context, userLink uuid.UUID) (serviceDto.AppealStats, error)
+	ChangeAppealStatus(ctx context.Context, info serviceDto.ChangeAppealStatusInfo) error
 }
 
 type Handler struct {
@@ -125,11 +131,12 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	appeals, err := h.srv.GetAppeals(r.Context(), userLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.GetUserAppeals: %w", err)).Msg("failed to get user appeals")
-		api.RespondError(w, http.StatusInternalServerError, "server error internal")
+		api.RespondError(w, http.StatusInternalServerError, msgInternalError)
 		return
 	}
 
 	response := dto.Appeals{
+		Role:    appeals.Role,
 		Appeals: make([]dto.Appeal, 0, len(appeals.Appeals)),
 	}
 
@@ -171,7 +178,7 @@ func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appealLinkStr := r.PathValue("id")
+	appealLinkStr := r.PathValue("link")
 	appealLink, err := uuid.Parse(appealLinkStr)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, "invalid appeal link format")
@@ -181,8 +188,82 @@ func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	err = h.srv.DeleteAppeal(r.Context(), appealLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
-		api.RespondError(w, http.StatusInternalServerError, "server error internal")
+		api.RespondError(w, http.StatusInternalServerError, msgInternalError)
 		return
+	}
+
+	api.RespondOk(w, http.StatusOK)
+}
+
+func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+
+	userLink, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
+		return
+	}
+
+	stats, err := h.srv.GetStats(r.Context(), userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("your role can not do it")
+			api.RespondError(w, http.StatusForbidden, ErrInvalidActions.Error())
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, msgInternalError)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, dto.AppealStats{
+		Open:   stats.Open,
+		Close:  stats.Close,
+		InWork: stats.InWork,
+	}))
+}
+
+func (h *Handler) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+
+	userLink, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
+		return
+	}
+
+	vars := mux.Vars(r)
+	linkParam := vars["link"]
+
+	appealLink, err := uuid.Parse(linkParam)
+	if err != nil {
+		logger.Error().Err(err).Msg("can not parse appeal link")
+		api.RespondError(w, http.StatusBadRequest, common.IncorrectPath)
+		return
+	}
+
+	var request dto.ChangeAppealStatus
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		logger.Error().Err(err).Msg("can not decode status")
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	err = h.srv.ChangeAppealStatus(r.Context(), serviceDto.ChangeAppealStatusInfo{
+		SupporterLink: userLink,
+		AppealLink:    appealLink,
+		Status:        request.Status,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("your role can not do it")
+			api.RespondError(w, http.StatusForbidden, ErrInvalidActions.Error())
+		}
+
+		api.RespondOk(w, http.StatusInternalServerError)
 	}
 
 	api.RespondOk(w, http.StatusOK)

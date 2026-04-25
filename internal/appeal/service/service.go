@@ -54,8 +54,21 @@ func (s *Service) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error 
 	return nil
 }
 
-func (s *Service) ChangeAppealStatus(ctx context.Context, info repositoryDto.ChangeAppealStatusInfo) error {
-	err := s.rep.ChangeAppealStatus(ctx, info)
+func (s *Service) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealStatusInfo) error {
+	userRole, err := s.rep.GetUserRole(ctx, info.SupporterLink)
+	if err != nil {
+		return fmt.Errorf("rep.GetUserRole: %w", err)
+	}
+
+	if userRole == common.Roles.None {
+		return common.ErrorPermissionDenied
+	}
+
+	err = s.rep.ChangeAppealStatus(ctx, repositoryDto.ChangeAppealStatusInfo{
+		SupporterLink: info.SupporterLink,
+		AppealLink:    info.AppealLink,
+		Status:        info.Status,
+	})
 	if err != nil {
 		return fmt.Errorf("rep.ChangeAppealStatus: %w", err)
 	}
@@ -63,13 +76,26 @@ func (s *Service) ChangeAppealStatus(ctx context.Context, info repositoryDto.Cha
 	return nil
 }
 
-func (s *Service) GetStats(ctx context.Context) (repositoryDto.AppealStats, error) {
-	stats, err := s.rep.GetStats(ctx)
+func (s *Service) GetStats(ctx context.Context, userLink uuid.UUID) (dto.AppealStats, error) {
+	userRole, err := s.rep.GetUserRole(ctx, userLink)
 	if err != nil {
-		return repositoryDto.AppealStats{}, fmt.Errorf("rep.GetStats: %w", err)
+		return dto.AppealStats{}, fmt.Errorf("rep.GetUserRole: %w", err)
 	}
 
-	return stats, nil
+	if userRole != common.Roles.Admin {
+		return dto.AppealStats{}, common.ErrorPermissionDenied
+	}
+
+	stats, err := s.rep.GetStats(ctx)
+	if err != nil {
+		return dto.AppealStats{}, fmt.Errorf("rep.GetStats: %w", err)
+	}
+
+	return dto.AppealStats{
+		Open:   stats.Open,
+		InWork: stats.InWork,
+		Close:  stats.Close,
+	}, nil
 }
 
 func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appeals, error) {
@@ -93,6 +119,7 @@ func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appea
 	}
 
 	appeals := dto.Appeals{
+		Role:    userRole,
 		Appeals: make([]dto.Appeal, 0, len(rawAppeals)),
 	}
 
