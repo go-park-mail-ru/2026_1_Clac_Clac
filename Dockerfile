@@ -7,7 +7,8 @@ ENV GOOS=linux CGO_ENABLED=0
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest \
     && apk add --no-cache make
@@ -15,7 +16,9 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest \
 COPY . .
 
 # Бинарник будет в /bin
-RUN make build
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    make build
 
 
 FROM alpine:latest
