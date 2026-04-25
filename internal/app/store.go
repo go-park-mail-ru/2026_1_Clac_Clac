@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/repository"
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/repository"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/repository"
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/repository"
@@ -21,6 +22,7 @@ type Store struct {
 	Profile *profile.Repository
 	Section *section.Repository
 	Card    *card.Repository
+	Appeal  *appeal.Repository
 
 	s3Client     s3.S3Client
 	postgresPool *pgxpool.Pool

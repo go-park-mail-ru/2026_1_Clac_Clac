@@ -1,6 +1,7 @@
 package app
 
 import (
+	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/service"
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/service"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/service"
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/service"
@@ -18,6 +19,7 @@ type Manager struct {
 	Section    *section.Service
 	Card       *card.Service
 	MailSender *mail.MailSender
+	Appeal     *appeal.Service
 }
 
 func NewManager(s *Store, conf config.Config) *Manager {
@@ -51,5 +53,6 @@ func NewManager(s *Store, conf config.Config) *Manager {
 		Section:    section.NewService(s.Section),
 		Card:       card.NewService(s.Card),
 		MailSender: &mailSender,
+		Appeal:     appeal.NewService(s.Appeal),
 	}
 }

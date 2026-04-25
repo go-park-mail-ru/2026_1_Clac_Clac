@@ -1,6 +1,7 @@
 package app
 
 import (
+	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/handler"
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/auth/handler"
 	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/board/handler"
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/handler"
@@ -15,6 +16,7 @@ type Dilivery struct {
 	Board   *board.BoardHandler
 	Section *section.Handler
 	Card    *card.Handler
+	Appeal  *appeal.Handler
 }
 
 func NewDilivery(m *Manager, conf *config.Config) *Dilivery {

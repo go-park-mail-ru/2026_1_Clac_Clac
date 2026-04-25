@@ -23,7 +23,7 @@ var (
 
 type AppealService interface {
 	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) error
-	GetUserAppeals(ctx context.Context, userLink uuid.UUID) (serviceDto.Appeals, error)
+	GetAppeals(ctx context.Context, userLink uuid.UUID) (serviceDto.Appeals, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 }
 
@@ -122,7 +122,7 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appeals, err := h.srv.GetUserAppeals(r.Context(), userLink)
+	appeals, err := h.srv.GetAppeals(r.Context(), userLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.GetUserAppeals: %w", err)).Msg("failed to get user appeals")
 		api.RespondError(w, http.StatusInternalServerError, "server error internal")

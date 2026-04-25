@@ -77,6 +77,7 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	boardHandler := dilivery.Board
 	sectionHandler := dilivery.Section
 	cardHandler := dilivery.Card
+	appealHandler := dilivery.Appeal
 
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
@@ -162,6 +163,10 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
+
+	withTextLimit.HandleFunc("/appeals", appealHandler.CreateAppeal).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/appeals", appealHandler.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals", appealHandler.GetAppeals).Methods(http.MethodGet)
 	return router
 }
 
