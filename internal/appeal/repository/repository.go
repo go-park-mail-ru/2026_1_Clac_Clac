@@ -24,37 +24,165 @@ type Repository struct {
 }
 
 func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) error {
+	query := `
+		INSERT INTO appeal (user_link, mail, display_name, category, description, attachment_key)
+		VALUES ($1, $2, $3, $4, $5, $6);
+	`
+
+	_, err := r.pool.Exec(ctx, query,
+		info.UserLink,
+		info.Email,
+		info.DisplayName,
+		info.Category,
+		info.Description,
+		info.AttachmentKey,
+	)
+
+	if err != nil {
+		return fmt.Errorf("create appeal: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]dto.AppealEntry, error) {
+	query := `
+		SELECT appeal_link, mail, display_name, status, category, description, attachment_key, created_at
+		FROM appeal
+		WHERE user_link = $1
+		ORDER BY created_at DESC;
+	`
+
+	rows, err := r.pool.Query(ctx, query, userLink)
+	if err != nil {
+		return nil, fmt.Errorf("query user appeals: %w", err)
+	}
+	defer rows.Close()
+
 	appeals := make([]dto.AppealEntry, 0)
+	for rows.Next() {
+		var a dto.AppealEntry
+		err := rows.Scan(
+			&a.AppealLink,
+			&a.Email,
+			&a.DisplayName,
+			&a.Status,
+			&a.Category,
+			&a.Description,
+			&a.AttachmentKey,
+			&a.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan user appeal: %w", err)
+		}
+		appeals = append(appeals, a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user appeals: %w", err)
+	}
+
 	return appeals, nil
 }
 
 func (r *Repository) GetOpenAppeals(ctx context.Context) ([]dto.AppealEntry, error) {
+	query := `
+		SELECT appeal_link, mail, display_name, status, category, description, attachment_key, created_at
+		FROM appeal
+		WHERE status = $1
+		ORDER BY created_at ASC; -- Сортировка по возрастанию, чтобы первыми шли самые старые открытые тикеты
+	`
+
+	rows, err := r.pool.Query(ctx, query, common.Statuses.Open)
+	if err != nil {
+		return nil, fmt.Errorf("query open appeals: %w", err)
+	}
+	defer rows.Close()
+
 	appeals := make([]dto.AppealEntry, 0)
+	for rows.Next() {
+		var a dto.AppealEntry
+		err := rows.Scan(
+			&a.AppealLink,
+			&a.Email,
+			&a.DisplayName,
+			&a.Status,
+			&a.Category,
+			&a.Description,
+			&a.AttachmentKey,
+			&a.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan open appeal: %w", err)
+		}
+		appeals = append(appeals, a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate open appeals: %w", err)
+	}
+
 	return appeals, nil
 }
 
 func (r *Repository) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error {
+	query := `
+		DELETE FROM appeal
+		WHERE appeal_link = $1;
+	`
+
+	_, err := r.pool.Exec(ctx, query, appealLink)
+	if err != nil {
+		return fmt.Errorf("delete appeal: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealStatusInfo) error {
+	query := `
+		UPDATE appeal
+		SET status = $1,
+		    supporter_link = $2
+		WHERE appeal_link = $3;
+	`
+
+	_, err := r.pool.Exec(ctx, query, info.Status, info.SupporterLink, info.AppealLink)
+	if err != nil {
+		return fmt.Errorf("change appeal status: %w", err)
+	}
+
 	return nil
 }
 
 func (r *Repository) GetStats(ctx context.Context) (dto.AppealStats, error) {
-	return dto.AppealStats{}, nil
+	query := `
+		SELECT
+			COUNT(*) FILTER (WHERE status = $1) AS open_count,
+			COUNT(*) FILTER (WHERE status = $2) AS in_work_count,
+			COUNT(*) FILTER (WHERE status = $3) AS closed_count
+		FROM appeal;
+	`
+
+	var stats dto.AppealStats
+	err := r.pool.QueryRow(ctx, query,
+		common.Statuses.Open,
+		common.Statuses.InWork,
+		common.Statuses.Close,
+	).Scan(&stats.Open, &stats.InWork, &stats.Close)
+
+	if err != nil {
+		return dto.AppealStats{}, fmt.Errorf("get appeal stats: %w", err)
+	}
+
+	return stats, nil
 }
 
 func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error) {
 	getUserRoleQuery := `
-		SELECT support_link, role FROM support
+		SELECT role FROM support
 		WHERE user_link = $1;
 	`
-
 	row := r.pool.QueryRow(ctx, getUserRoleQuery, userLink)
 
 	var role common.Role

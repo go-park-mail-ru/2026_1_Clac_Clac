@@ -19,7 +19,7 @@ type AppealEntry struct {
 }
 
 type CreateAppealInfo struct {
-	UserLink      uuid.UUID
+	UserLink      *uuid.UUID
 	Email         string
 	DisplayName   string
 	Category      common.Category

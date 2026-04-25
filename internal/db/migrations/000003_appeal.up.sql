@@ -7,6 +7,7 @@ CREATE TABLE appeal (
     appeal_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
     user_link UUID,
+    supporter_link UUID,
 
     mail TEXT,
     display_name TEXT NOT NULL,
