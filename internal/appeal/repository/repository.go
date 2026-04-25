@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -22,10 +23,32 @@ type Repository struct {
 	pool DBEngine
 }
 
+func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) (dto.AppealEntry, error) {
+	return dto.AppealEntry{}, nil
+}
+
+func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]dto.AppealEntry, error) {
+	appeals := make([]dto.AppealEntry, 0)
+	return appeals, nil
+}
+
+func (r *Repository) GetOpenAppeals(ctx context.Context) ([]dto.AppealEntry, error) {
+	appeals := make([]dto.AppealEntry, 0)
+	return appeals, nil
+}
+
+func (r *Repository) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error {
+	return nil
+}
+
+func (r *Repository) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealStatusInfo) error {
+	return nil
+}
+
 func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error) {
 	getUserRoleQuery := `
-		SELECT level_member FROM member_board
-		WHERE board_link = $1 AND user_link = $2;
+		SELECT support_link, role FROM support
+		WHERE user_link = $1;
 	`
 
 	row := r.pool.QueryRow(ctx, getUserRoleQuery, userLink)

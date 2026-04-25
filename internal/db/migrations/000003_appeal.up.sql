@@ -8,8 +8,8 @@ CREATE TABLE appeal (
 
     user_link UUID,
 
-    mail TEXT NOT NULL,
-    description_name TEXT NOT NULL,
+    mail TEXT,
+    display_name TEXT NOT NULL,
 
     "status" appeal_status DEFAULT 'new' NOT NULL,
     category appeal_category NOT NULL,
