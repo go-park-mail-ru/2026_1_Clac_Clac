@@ -23,8 +23,8 @@ type Repository struct {
 	pool DBEngine
 }
 
-func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) (dto.AppealEntry, error) {
-	return dto.AppealEntry{}, nil
+func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) error {
+	return nil
 }
 
 func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]dto.AppealEntry, error) {
@@ -43,6 +43,10 @@ func (r *Repository) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) err
 
 func (r *Repository) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealStatusInfo) error {
 	return nil
+}
+
+func (r *Repository) GetStats(ctx context.Context) (dto.AppealStats, error) {
+	return dto.AppealStats{}, nil
 }
 
 func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error) {
