@@ -125,6 +125,7 @@ func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appea
 
 	for _, rawAppeal := range rawAppeals {
 		appeals.Appeals = append(appeals.Appeals, dto.Appeal{
+			AppelID:       rawAppeal.AppealID,
 			AppealLink:    rawAppeal.AppealLink,
 			Email:         rawAppeal.Email,
 			DisplayName:   rawAppeal.DisplayName,
