@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -239,27 +240,21 @@ func (h *Handler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	buf := make([]byte, 512)
-	_, err = file.Read(buf)
-	if err != nil && err != io.EOF {
+	data, err := io.ReadAll(file)
+	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotReadFile.Error())
 		return
 	}
 
-	contentType := http.DetectContentType(buf)
+	contentType := http.DetectContentType(data)
 	if !strings.HasPrefix(contentType, "image/") {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidContentType.Error())
 		return
 	}
 
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotOperateWithFile.Error())
-		return
-	}
-
 	extension := filepath.Ext(header.Filename)
 
-	key, err := h.srv.UploadAttachment(r.Context(), file, contentType, extension, appealLink)
+	key, err := h.srv.UploadAttachment(r.Context(), bytes.NewReader(data), contentType, extension, appealLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
 
