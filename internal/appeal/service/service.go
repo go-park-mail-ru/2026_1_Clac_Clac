@@ -29,8 +29,12 @@ func (s *Service) CreateAppeal(ctx context.Context, appeal dto.EntityAppeal) err
 	})
 
 	if err != nil {
-		return fmt.Errorf("rep.CreateAppeal: $w", err)
+		return fmt.Errorf("rep.CreateAppeal: %w", err)
 	}
 
+	return nil
+}
+
+func (s *Service) DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error {
 	return nil
 }

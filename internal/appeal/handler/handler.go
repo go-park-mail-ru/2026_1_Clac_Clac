@@ -23,6 +23,8 @@ var (
 
 type AppealService interface {
 	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) error
+	GetAppeals(ctx context.Context, appeals serviceDto.Appeals)
+	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 }
 
 type Handler struct {
@@ -83,4 +85,20 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.RespondOk(w, api.StatusOK)
+}
+
+func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+
+	userLink, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
+		return
+	}
+}
+
+func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
+
 }
