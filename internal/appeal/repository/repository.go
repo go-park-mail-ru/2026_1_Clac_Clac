@@ -23,6 +23,10 @@ type Repository struct {
 	pool DBEngine
 }
 
+func NewRepository(pool DBEngine) *Repository {
+	return &Repository{pool: pool}
+}
+
 func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) error {
 	query := `
 		INSERT INTO appeal (user_link, mail, display_name, category, description, attachment_key)

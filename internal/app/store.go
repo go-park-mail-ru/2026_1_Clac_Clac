@@ -54,6 +54,7 @@ func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Clien
 		Profile: profile.NewRepository(pool, avatars),
 		Section: section.NewRepository(pool),
 		Card:    card.NewRepository(pool),
+		Appeal:  appeal.NewRepository(pool),
 
 		s3Client:     s3Client,
 		postgresPool: pool,
