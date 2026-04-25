@@ -1,4 +1,8 @@
 package dto
 
-type AppealRequest struct {
+type EntityAppealRequest struct {
+	Mail        string
+	Category    string
+	Description string
+	DisplayName string
 }
