@@ -16,7 +16,7 @@ type EntityAppeal struct {
 }
 
 type Appeal struct {
-	AppelID       int
+	AppealID      int
 	AppealLink    uuid.UUID
 	Email         string
 	DisplayName   string
