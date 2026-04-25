@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
@@ -185,6 +186,12 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, response))
 }
 
+var detectContentTypeBufferPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 512)
+	},
+}
+
 // UploadAttachment godoc
 // @Summary      Загрузить вложение к обращению
 // @Description  Загружает изображение (multipart/form-data) и прикрепляет его к обращению
@@ -240,21 +247,32 @@ func (h *Handler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	data, err := io.ReadAll(file)
-	if err != nil {
+	buf := detectContentTypeBufferPool.Get().([]byte)
+	defer func() {
+		clear(buf)
+		detectContentTypeBufferPool.Put(buf)
+	}()
+
+	_, err = file.Read(buf)
+	if err != nil && err != io.EOF {
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotReadFile.Error())
 		return
 	}
 
-	contentType := http.DetectContentType(data)
+	contentType := http.DetectContentType(buf)
 	if !strings.HasPrefix(contentType, "image/") {
 		api.RespondError(w, http.StatusBadRequest, ErrInvalidContentType.Error())
 		return
 	}
 
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotOperateWithFile.Error())
+		return
+	}
+
 	extension := filepath.Ext(header.Filename)
 
-	key, err := h.srv.UploadAttachment(r.Context(), bytes.NewReader(data), contentType, extension, appealLink)
+	key, err := h.srv.UploadAttachment(r.Context(), bytes.NewReader(buf), contentType, extension, appealLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
 
