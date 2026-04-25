@@ -7,25 +7,31 @@ import (
 	"github.com/google/uuid"
 )
 
+// EntityAppealRequest представляет входные данные для создания обращения
+// @Description Данные запроса на создание нового обращения (тикета)
 type EntityAppealRequest struct {
-	Mail        string          `json:"mail"`
-	Category    common.Category `json:"category"`
-	Description string          `json:"description"`
-	DisplayName string          `json:"display_name"`
+	Mail        string          `json:"mail" example:"user@example.com"`
+	Category    common.Category `json:"category" example:"bug"`
+	Description string          `json:"description" example:"При нажатии на кнопку ничего не происходит."`
+	DisplayName string          `json:"display_name" example:"Не работает кнопка оплаты"`
 }
 
+// Appeal представляет сущность одного обращения
+// @Description Полная информация о созданном обращении
 type Appeal struct {
-	AppealID      int             `json:"appeal_id"`
-	AppealLink    uuid.UUID       `json:"appeal_link"`
-	Email         string          `json:"email"`
-	DisplayName   string          `json:"display_name"`
-	Status        common.Status   `json:"status"`
-	Category      common.Category `json:"category"`
-	Description   string          `json:"description"`
-	AttachmentKey string          `json:"attachment_key"`
-	CreatedAt     time.Time       `json:"created_at"`
+	AppealID      int             `json:"appeal_id" example:"42"`
+	AppealLink    uuid.UUID       `json:"appeal_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Email         string          `json:"email" example:"user@example.com"`
+	DisplayName   string          `json:"display_name" example:"Не работает кнопка оплаты"`
+	Status        common.Status   `json:"status" example:"new"`
+	Category      common.Category `json:"category" example:"bug"`
+	Description   string          `json:"description" example:"При нажатии на кнопку ничего не происходит."`
+	AttachmentKey string          `json:"attachment_key" example:"attachments/screenshot_1.png"`
+	CreatedAt     time.Time       `json:"created_at" example:"2023-10-12T07:20:50.52Z"`
 }
 
+// Appeals представляет список обращений
+// @Description Ответ, содержащий массив обращений
 type Appeals struct {
 	Appeals []Appeal `json:"appeals"`
 }

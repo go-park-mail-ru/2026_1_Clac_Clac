@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	ErrInvalidRequestSchema = errors.New("invalid shema")
-	ErrInvalidEmailOrName   = errors.New("incorrect email ot name")
+	ErrInvalidRequestSchema = errors.New("invalid schema")          // Поправил опечатку shema -> schema
+	ErrInvalidEmailOrName   = errors.New("incorrect email or name") // Поправил опечатку ot -> or
 )
 
 type AppealService interface {
@@ -37,6 +37,19 @@ func NewHandler(srv AppealService) *Handler {
 	}
 }
 
+// CreateAppeal godoc
+// @Summary      Создать обращение
+// @Description  Создает новое обращение (тикет) от лица авторизованного пользователя
+// @Tags         appeals
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.EntityAppealRequest true "Данные обращения"
+// @Success      200  {string} string "OK"
+// @Failure      400  {string} string "Bad Request"
+// @Failure      401  {string} string "Unauthorized"
+// @Failure      500  {string} string "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /appeals [post]
 func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -88,6 +101,16 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, api.StatusOK)
 }
 
+// GetAppeals godoc
+// @Summary      Получить список обращений
+// @Description  Возвращает все обращения, созданные текущим авторизованным пользователем
+// @Tags         appeals
+// @Produce      json
+// @Success      200  {object} dto.Appeals "Успешный ответ со списком обращений"
+// @Failure      401  {string} string "Unauthorized"
+// @Failure      500  {string} string "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /appeals [get]
 func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -127,6 +150,17 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, response))
 }
 
+// DeleteAppeal godoc
+// @Summary      Удалить обращение
+// @Description  Удаляет конкретное обращение по его UUID
+// @Tags         appeals
+// @Param        id   path      string  true  "UUID обращения" format(uuid)
+// @Success      200  {string}  string  "OK"
+// @Failure      400  {string}  string  "Bad Request (невалидный UUID)"
+// @Failure      401  {string}  string  "Unauthorized"
+// @Failure      500  {string}  string  "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /appeals/{id} [delete]
 func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
