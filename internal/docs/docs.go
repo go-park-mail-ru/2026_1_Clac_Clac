@@ -15,7 +15,281 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/board": {
+        "/appeals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает все обращения, созданные текущим авторизованным пользователем",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Получить список обращений",
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ со списком обращений",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Appeals"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Создает новое обращение (тикет) от лица авторизованного пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Создать обращение",
+                "parameters": [
+                    {
+                        "description": "Данные обращения",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.EntityAppealRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/appeals/{link}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет конкретное обращение по его UUID",
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Удалить обращение",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID обращения",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request (невалидный UUID)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Меняет статус существующего обращения (доступно только для support/admin)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Изменить статус обращения",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID обращения",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый статус",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChangeAppealStatus"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (Недостаточно прав)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/appeals/{link}/attachment": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Загружает изображение (multipart/form-data) и прикрепляет его к обращению",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Загрузить вложение к обращению",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID обращения",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Файл вложения (PNG/JPEG)",
+                        "name": "attachment",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-dto_UploadAttachmentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards": {
             "get": {
                 "description": "Возвращает все доски, к которым у авторизованного пользователя есть доступ",
                 "produces": [
@@ -97,7 +371,117 @@ const docTemplate = `{
                 }
             }
         },
-        "/board/{link}": {
+        "/boards/{board_link}/sections": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает массив всех секций, привязанных к конкретной доске.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Получить все секции доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение списка секций",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-dto_SectionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID доски",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{board_link}/sections/reorder": {
+            "patch": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Обновляет порядок секций на доске. Передается упорядоченный массив UUID секций.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sections"
+                ],
+                "summary": "Перемещение секций",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый порядок секций (массив UUID)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListSectionLink"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Порядок секций успешно обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос, неверные данные секции, внешний ключ или пропущены поля",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Не все переданные секции найдены для реордера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{link}": {
             "get": {
                 "description": "Возвращает информацию о доске по её UUID ссылке",
                 "produces": [
@@ -285,7 +669,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/board/{link}/background": {
+        "/boards/{link}/background": {
             "put": {
                 "description": "Загружает изображение (multipart/form-data) и устанавливает его как фон доски",
                 "consumes": [
@@ -349,7 +733,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/board/{link}/users": {
+        "/boards/{link}/users": {
             "get": {
                 "description": "Возвращает массив UUID всех пользователей, имеющих доступ к доске",
                 "produces": [
@@ -390,116 +774,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "cannot get users of board",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/boards/{board_link}/sections": {
-            "get": {
-                "security": [
-                    {
-                        "CookieAuth": []
-                    }
-                ],
-                "description": "Возвращает массив всех секций, привязанных к конкретной доске.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "sections"
-                ],
-                "summary": "Получить все секции доски",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "UUID доски",
-                        "name": "board_link",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Успешное получение списка секций",
-                        "schema": {
-                            "$ref": "#/definitions/dto.SectionsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный UUID доски",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/boards/{board_link}/sections/reorder": {
-            "patch": {
-                "security": [
-                    {
-                        "CookieAuth": []
-                    }
-                ],
-                "description": "Обновляет порядок секций на доске. Передается упорядоченный массив UUID секций.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "sections"
-                ],
-                "summary": "Перемещение секций",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "UUID доски",
-                        "name": "board_link",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Новый порядок секций (массив UUID)",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ListSectionLink"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Порядок секций успешно обновлен",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Некорректный запрос или UUID доски",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Не все переданные секции найдены",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -557,6 +831,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Указанная секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Конфликт данных (например, карточка уже существует)",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1085,7 +1365,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/profile": {
+        "/profiles": {
             "get": {
                 "security": [
                     {
@@ -1104,7 +1384,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешное получение профиля",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse"
+                            "$ref": "#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto_UserInfoResponse"
                         }
                     },
                     "401": {
@@ -1163,7 +1443,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректный формат запроса или ошибка валидации длины текста",
+                        "description": "Некорректный формат, ошибка валидации длины, пропущены обязательные поля или неверные данные",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1183,7 +1463,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/profile/avatar": {
+        "/profiles/avatar": {
             "put": {
                 "security": [
                     {
@@ -1214,7 +1494,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Аватар успешно загружен, возвращает новый URL",
                         "schema": {
-                            "$ref": "#/definitions/dto.AvatarResponse"
+                            "$ref": "#/definitions/api.OkResponse-dto_AvatarResponse"
                         }
                     },
                     "400": {
@@ -1291,6 +1571,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/profiles/{user_link}": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает информацию о пользователе (ID, имя, email, URL аватара) по его уникальной ссылке (UUID).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Получение профиля пользователя по ссылке",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID пользователя",
+                        "name": "user_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение профиля",
+                        "schema": {
+                            "$ref": "#/definitions/api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto_UserInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/register": {
             "post": {
                 "description": "Создает новый аккаунт и сразу авторизует пользователя, выдавая сессионную cookie.",
@@ -1323,7 +1655,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "invalid schema / invalid email or password",
+                        "description": "invalid schema / invalid email or password / user exists / empty fields",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1369,7 +1701,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "invalid schema / invalid email or password",
+                        "description": "invalid schema / invalid email or password / missing field / token expired",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "user not found",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1416,11 +1754,17 @@ const docTemplate = `{
                     "200": {
                         "description": "Секция успешно создана",
                         "schema": {
-                            "$ref": "#/definitions/dto.FullSectionInfo"
+                            "$ref": "#/definitions/api.OkResponse-dto_FullSectionInfo"
                         }
                     },
                     "400": {
-                        "description": "Некорректный запрос или превышены лимиты задач",
+                        "description": "Некорректный запрос, превышены лимиты задач, неверный внешний ключ или отсутствуют обязательные поля",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Секция с таким названием/ссылкой уже существует",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1462,11 +1806,17 @@ const docTemplate = `{
                     "200": {
                         "description": "Успешное получение данных секции",
                         "schema": {
-                            "$ref": "#/definitions/dto.FullSectionInfo"
+                            "$ref": "#/definitions/api.OkResponse-dto_FullSectionInfo"
                         }
                     },
                     "400": {
-                        "description": "Некорректный UUID или секция не найдена",
+                        "description": "Некорректный UUID в пути",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Секция не найдена",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1522,7 +1872,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Ошибка валидации, попытка изменить Backlog или неверный цвет",
+                        "description": "Ошибка валидации, попытка изменить Backlog, неверный цвет, неверный внешний ключ или пустые обязательные поля",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1572,7 +1922,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Попытка удалить Backlog или некорректный путь",
+                        "description": "Попытка удалить Backlog, неверный внешний ключ, нарушены данные карточек или пустые обязательные поля",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1587,6 +1937,101 @@ const docTemplate = `{
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sections/{link}/cards": {
+            "get": {
+                "security": [
+                    {
+                        "CookieAuth": []
+                    }
+                ],
+                "description": "Возвращает список всех актуальных карточек, находящихся в указанной секции, отсортированных по позиции.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cards"
+                ],
+                "summary": "Получение карточек секции",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID секции",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное получение списка карточек",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CardsSection"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат UUID секции",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Секция не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает количество обращений по статусам (доступно только для support/admin)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "appeals"
+                ],
+                "summary": "Получить статистику обращений",
+                "responses": {
+                    "200": {
+                        "description": "Успешный ответ со статистикой",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AppealStats"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (Недостаточно прав)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1637,6 +2082,17 @@ const docTemplate = `{
                 }
             }
         },
+        "api.OkResponse-dto_AvatarResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.AvatarResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "api.OkResponse-dto_BackgroundUpdateResponse": {
             "type": "object",
             "properties": {
@@ -1659,11 +2115,55 @@ const docTemplate = `{
                 }
             }
         },
+        "api.OkResponse-dto_FullSectionInfo": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.FullSectionInfo"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-dto_SectionsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.SectionsResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-dto_UploadAttachmentResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.UploadAttachmentResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto_UserInfoResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_auth_handler_dto.UserInfoResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto_UserInfoResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_internal_profile_handler_dto.UserInfoResponse"
                 },
                 "status": {
                     "type": "string"
@@ -1676,6 +2176,82 @@ const docTemplate = `{
             "properties": {
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.Appeal": {
+            "description": "Полная информация о созданном обращении",
+            "type": "object",
+            "properties": {
+                "appeal_id": {
+                    "type": "integer",
+                    "example": 42
+                },
+                "appeal_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "attachment_key": {
+                    "type": "string",
+                    "example": "attachments/screenshot_1.png"
+                },
+                "category": {
+                    "type": "string",
+                    "example": "bug"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2023-10-12T07:20:50.52Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "При нажатии на кнопку ничего не происходит."
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "Не работает кнопка оплаты"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "new"
+                }
+            }
+        },
+        "dto.AppealStats": {
+            "description": "Статистика количества обращений по их текущему статусу",
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "integer",
+                    "example": 42
+                },
+                "in_work": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "open": {
+                    "type": "integer",
+                    "example": 15
+                }
+            }
+        },
+        "dto.Appeals": {
+            "description": "Ответ, содержащий массив обращений",
+            "type": "object",
+            "properties": {
+                "appeals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Appeal"
+                    }
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
                 }
             }
         },
@@ -1723,6 +2299,50 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Card": {
+            "description": "Краткая информация о карточке задачи",
+            "type": "object",
+            "properties": {
+                "card_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "dead_line": {
+                    "type": "string",
+                    "example": "2026-04-12T14:35:00Z"
+                },
+                "executer_name": {
+                    "type": "string",
+                    "example": "Иван Иванов"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Починить баг на фронтенде"
+                }
+            }
+        },
+        "dto.CardsSection": {
+            "description": "Ответ, содержащий массив карточек секции",
+            "type": "object",
+            "properties": {
+                "cards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Card"
+                    }
+                }
+            }
+        },
+        "dto.ChangeAppealStatus": {
+            "description": "Запрос на изменение статуса обращения",
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "in_progress"
+                }
+            }
+        },
         "dto.CreateBoardRequest": {
             "type": "object",
             "properties": {
@@ -1763,6 +2383,28 @@ const docTemplate = `{
                 "section_name": {
                     "type": "string",
                     "example": "To Do"
+                }
+            }
+        },
+        "dto.EntityAppealRequest": {
+            "description": "Данные запроса на создание нового обращения (тикета)",
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "example": "bug"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "При нажатии на кнопку ничего не происходит."
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "Не работает кнопка оплаты"
+                },
+                "mail": {
+                    "type": "string",
+                    "example": "user@example.com"
                 }
             }
         },
@@ -1983,10 +2625,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Обновленное описание"
                 },
-                "link": {
-                    "type": "string",
-                    "example": "123e4567-e89b-12d3-a456-426614174000"
-                },
                 "name": {
                     "type": "string",
                     "example": "Project Beta"
@@ -2030,6 +2668,16 @@ const docTemplate = `{
                 "title": {
                     "type": "string",
                     "example": "Обновленный заголовок"
+                }
+            }
+        },
+        "dto.UploadAttachmentResponse": {
+            "description": "Ответ после загрузки вложения",
+            "type": "object",
+            "properties": {
+                "attachment_url": {
+                    "type": "string",
+                    "example": "https://bucket.endpoint/attachments/uuid.png"
                 }
             }
         },
