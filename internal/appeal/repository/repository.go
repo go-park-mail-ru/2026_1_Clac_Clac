@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/rs/zerolog"
 )
 
 type DBEngine interface {
@@ -217,11 +218,16 @@ func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (commo
 }
 
 func (r *Repository) UploadAttachment(ctx context.Context, source io.Reader, filename, contentType string) (string, error) {
+	logger := zerolog.Ctx(ctx)
+	logger.Info().Str("filename", filename).Str("content_type", contentType).Msg("s3 upload attachment start")
+
 	key, err := r.attachments.Put(ctx, source, filename, contentType)
 	if err != nil {
+		logger.Error().Err(err).Str("filename", filename).Msg("s3 upload attachment failed")
 		return "", fmt.Errorf("s3 cannot upload attachment: %w", err)
 	}
 
+	logger.Info().Str("key", key).Msg("s3 upload attachment success")
 	return key, nil
 }
 

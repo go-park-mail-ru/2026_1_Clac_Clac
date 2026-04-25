@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	awsTypes "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockery --name AWSClientAPI --output mock_aws_client
@@ -27,6 +28,14 @@ type AWSBucket struct {
 // Подставляет префикс
 func (b *AWSBucket) Put(ctx context.Context, data io.Reader, key string, contentType string) (string, error) {
 	objectKey := path.Join(b.prefix, key)
+
+	logger := zerolog.Ctx(ctx)
+	logger.Debug().
+		Str("bucket", b.bucket).
+		Str("key", objectKey).
+		Str("content_type", contentType).
+		Str("acl", string(b.acl)).
+		Msg("s3 PutObject request")
 
 	_, err := b.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket:      aws.String(b.bucket),
