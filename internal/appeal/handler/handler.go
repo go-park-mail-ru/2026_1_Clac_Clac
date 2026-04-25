@@ -178,8 +178,9 @@ func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appealLinkStr := r.PathValue("link")
-	appealLink, err := uuid.Parse(appealLinkStr)
+	vars := mux.Vars(r)
+	linkParam := vars["link"]
+	appealLink, err := uuid.Parse(linkParam)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, "invalid appeal link format")
 		return
