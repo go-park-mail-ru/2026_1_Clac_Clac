@@ -7,9 +7,9 @@ import (
 )
 
 type EntityAppeal struct {
-	UserLink    uuid.UUID
-	Mail        string
-	Category    string
+	UserLink uuid.UUID
+	Mail     string
+	Category
 	Description string
 	DisplayName string
 }

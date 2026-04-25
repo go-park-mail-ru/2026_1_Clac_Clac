@@ -22,7 +22,7 @@ type Service struct {
 func (s *Service) CreateAppeal(ctx context.Context, appeal dto.EntityAppeal) error {
 	_, err := s.rep.CreateAppeal(ctx, repositoryDto.CreateAppealInfo{
 		UserLink:    appeal.UserLink,
-		Mail:        appeal.Mail,
+		EmailMail:   appeal.Mail,
 		Category:    appeal.Category,
 		Description: appeal.Description,
 		DisplayName: appeal.DisplayName,
