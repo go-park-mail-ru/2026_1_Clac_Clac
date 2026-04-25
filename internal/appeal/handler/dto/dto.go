@@ -37,12 +37,16 @@ type Appeals struct {
 	Appeals []Appeal    `json:"appeals"`
 }
 
+// ChangeAppealStatus представляет данные для обновления статуса
+// @Description Запрос на изменение статуса обращения
 type ChangeAppealStatus struct {
-	Status common.Status
+	Status common.Status `json:"status" example:"in_progress"`
 }
 
+// AppealStats представляет статистику по обращениям
+// @Description Статистика количества обращений по их текущему статусу
 type AppealStats struct {
-	Open   int
-	InWork int
-	Close  int
+	Open   int `json:"open" example:"15"`
+	InWork int `json:"in_work" example:"4"`
+	Close  int `json:"close" example:"42"`
 }

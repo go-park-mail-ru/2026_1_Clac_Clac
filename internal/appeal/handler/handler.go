@@ -161,13 +161,13 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 // @Summary      Удалить обращение
 // @Description  Удаляет конкретное обращение по его UUID
 // @Tags         appeals
-// @Param        id   path      string  true  "UUID обращения" format(uuid)
+// @Param        link path      string  true  "UUID обращения" format(uuid)
 // @Success      200  {string}  string  "OK"
 // @Failure      400  {string}  string  "Bad Request (невалидный UUID)"
 // @Failure      401  {string}  string  "Unauthorized"
 // @Failure      500  {string}  string  "Internal Server Error"
 // @Security     BearerAuth
-// @Router       /appeals/{id} [delete]
+// @Router       /appeals/{link} [delete]
 func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -195,6 +195,17 @@ func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	api.RespondOk(w, http.StatusOK)
 }
 
+// GetStats godoc
+// @Summary      Получить статистику обращений
+// @Description  Возвращает количество обращений по статусам (доступно только для support/admin)
+// @Tags         appeals
+// @Produce      json
+// @Success      200  {object} dto.AppealStats "Успешный ответ со статистикой"
+// @Failure      401  {string} string "Unauthorized"
+// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
+// @Failure      500  {string} string "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /stats [get]
 func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -211,6 +222,7 @@ func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, common.ErrorPermissionDenied) {
 			logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("your role can not do it")
 			api.RespondError(w, http.StatusForbidden, ErrInvalidActions.Error())
+			return
 		}
 
 		api.RespondError(w, http.StatusInternalServerError, msgInternalError)
@@ -224,6 +236,21 @@ func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// ChangeAppealStatus godoc
+// @Summary      Изменить статус обращения
+// @Description  Меняет статус существующего обращения (доступно только для support/admin)
+// @Tags         appeals
+// @Accept       json
+// @Produce      json
+// @Param        link    path string                 true "UUID обращения" format(uuid)
+// @Param        request body dto.ChangeAppealStatus true "Новый статус"
+// @Success      200  {string} string "OK"
+// @Failure      400  {string} string "Bad Request"
+// @Failure      401  {string} string "Unauthorized"
+// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
+// @Failure      500  {string} string "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /appeals/{link} [patch]
 func (h *Handler) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -259,11 +286,13 @@ func (h *Handler) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("your role can not do it")
+			logger.Error().Err(fmt.Errorf("srv.ChangeAppealStatus: %w", err)).Msg("your role can not do it")
 			api.RespondError(w, http.StatusForbidden, ErrInvalidActions.Error())
+			return
 		}
 
-		api.RespondOk(w, http.StatusInternalServerError)
+		api.RespondError(w, http.StatusInternalServerError, msgInternalError)
+		return
 	}
 
 	api.RespondOk(w, http.StatusOK)
