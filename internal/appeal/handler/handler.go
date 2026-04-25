@@ -100,6 +100,10 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, common.ErrInvalidCategory) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+		}
+
 		api.RespondError(w, http.StatusInternalServerError, "server error internal")
 		return
 	}

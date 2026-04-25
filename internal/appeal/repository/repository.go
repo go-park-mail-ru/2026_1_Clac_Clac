@@ -39,6 +39,14 @@ func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo
 	)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "22P02" {
+
+				return fmt.Errorf("create appeal: %w", common.ErrInvalidCategory)
+			}
+		}
+
 		return fmt.Errorf("create appeal: %w", err)
 	}
 
