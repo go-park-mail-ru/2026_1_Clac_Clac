@@ -18,4 +18,7 @@ type ChangeAppealStatusInfo struct {
 }
 
 type AppealStats struct {
+	Open   int
+	InWork int
+	Close  int
 }

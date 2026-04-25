@@ -45,6 +45,10 @@ func (r *Repository) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppe
 	return nil
 }
 
+func (r *Repository) GetStats(ctx context.Context) (dto.AppealStats, error) {
+	return dto.AppealStats{}, nil
+}
+
 func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error) {
 	getUserRoleQuery := `
 		SELECT support_link, role FROM support
