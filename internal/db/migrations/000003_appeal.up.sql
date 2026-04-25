@@ -22,7 +22,7 @@ CREATE TABLE appeal (
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
     CONSTRAINT check_length_display_name CHECK (char_length(display_name) <= 128),
-    CONSTRAINT check_length_appeal_desc CHECK (char_length(description) <= 2000)
+    CONSTRAINT check_length_appeal_desc CHECK (char_length("description") <= 2000)
 );
 
 CREATE TRIGGER set_appeal_updated_at
