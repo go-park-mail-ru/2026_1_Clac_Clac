@@ -8,20 +8,21 @@ import (
 )
 
 type EntityAppealRequest struct {
-	Mail        string
-	Category    string
-	Description string
-	DisplayName string
+	Mail        string          `json:"mail"`
+	Category    common.Category `json:"category"`
+	Description string          `json:"description"`
+	DisplayName string          `json:"display_name"`
 }
 
 type Appeal struct {
-	AppealLink uuid.UUID
-	AppelID    int
-	Category   common.Category
-
-	Description string
-	CreatedAt   time.Time
+	AppealLink  uuid.UUID       `json:"appeal_link"`
+	AppealID    int             `json:"appeal_id,omitempty"`
+	Category    common.Category `json:"category"`
+	Status      common.Status   `json:"status"`
+	Description string          `json:"description"`
+	CreatedAt   time.Time       `json:"created_at"`
 }
+
 type CardsSection struct {
-	Cards []Appeal `json:"appeal"`
+	Cards []Appeal `json:"appeals"`
 }

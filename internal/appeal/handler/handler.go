@@ -8,22 +8,22 @@ import (
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/handler/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
 var (
-	ErrInvalidRequestSchema = errors.New("invalid schema")
-	ErrInvalidEmailOrName   = errors.New("invalid email or name")
+	ErrInvalidRequestSchema = errors.New("invalid shema")
+	ErrInvalidEmailOrName   = errors.New("incorrect email ot name")
 )
 
 type AppealService interface {
 	CreateAppeal(ctx context.Context, appeal serviceDto.EntityAppeal) error
-	GetAppeals(ctx context.Context, appeals serviceDto.Appeals)
+	GetUserAppeals(ctx context.Context, userLink uuid.UUID) (serviceDto.Appeals, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 }
 
@@ -69,7 +69,8 @@ func (h *Handler) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		Category:    request.Category,
 	})
 	if err != nil {
-		logger.Err(fmt.Errorf("srv.CreateAppeal: %w", err))
+		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
+
 		if errors.Is(err, common.ErrorExistingUser) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorExistingUser.Error())
 			return
@@ -97,8 +98,53 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
 		return
 	}
+
+	appeals, err := h.srv.GetUserAppeals(r.Context(), userLink)
+	if err != nil {
+		logger.Error().Err(fmt.Errorf("srv.GetUserAppeals: %w", err)).Msg("failed to get user appeals")
+		api.RespondError(w, http.StatusInternalServerError, "server error internal")
+		return
+	}
+
+	response := serviceDto.Appeals{
+		Appeals: make([]serviceDto.Appeal, 0, len(appeals.Appeals)),
+	}
+
+	for _, a := range appeals.Appeals {
+		response.Appeals = append(response.Appeals, serviceDto.Appeal{
+			AppealLink:  a.AppealLink,
+			Category:    a.Category,
+			Description: a.Description,
+			CreatedAt:   a.CreatedAt,
+		})
+	}
+
+	api.HandleError(api.RespondOk(w, response))
 }
 
 func (h *Handler) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
 
+	value := r.Context().Value(middleware.UserContextLink{})
+	_, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
+		return
+	}
+
+	appealLinkStr := r.PathValue("id")
+	appealLink, err := uuid.Parse(appealLinkStr)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid appeal link format")
+		return
+	}
+
+	err = h.srv.DeleteAppeal(r.Context(), appealLink)
+	if err != nil {
+		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
+		api.RespondError(w, http.StatusInternalServerError, "server error internal")
+		return
+	}
+
+	api.RespondOk(w, http.StatusOK)
 }
