@@ -7,6 +7,7 @@ import (
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/card/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/config"
 	profile "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/profile/handler"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/section/handler"
 )
 
@@ -51,12 +52,18 @@ func NewDilivery(m *Manager, conf *config.Config) *Dilivery {
 		MaxBackgroundSize:          conf.Board.Handler.MaxBackgroundSize,
 	}
 
+	appealConfig := appeal.Config{
+		MultipartAttachmentFileKey: conf.Appeal.Handler.MultipartAttachmentFileKey,
+		MaxAttachmentSize:          conf.Appeal.Handler.MaxAttachmentSize,
+		AttachmentBaseURL:          s3.GetURL(conf.S3.Endpoint, conf.S3.SupportAttachmentsBucket),
+	}
+
 	return &Dilivery{
 		Auth:    auth.NewHandler(m.Auth, authConfig),
 		Profile: profile.NewHandler(m.Profile, profileConfig),
 		Board:   board.NewHandler(m.Board, boardConfig),
 		Section: section.NewHandler(m.Section, sectionConfig),
 		Card:    card.NewHandler(m.Card, cardConfig),
-		Appeal:  appeal.NewHandler(m.Appeal),
+		Appeal:  appeal.NewHandler(m.Appeal, appealConfig),
 	}
 }

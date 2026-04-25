@@ -43,6 +43,7 @@ func (s *Store) Close() error {
 func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Client, conf config.Config) *Store {
 	backgrounds := s3Client.NewBucket(conf.S3.BoardsBackgroundsBucket, conf.S3.BoardsBackgroundsPrefix, s3.ACL.PublicRead)
 	avatars := s3Client.NewBucket(conf.S3.AvatarsBucket, conf.S3.AvatarsPrefix, s3.ACL.PublicRead)
+	attachments := s3Client.NewBucket(conf.S3.SupportAttachmentsBucket, conf.S3.SupportAttachmentsPrefix, s3.ACL.PublicRead)
 
 	boardConfig := board.Config{
 		CreateBoardDefaultUserRole: conf.Board.Repository.CreateBoardDefaultUserRole,
@@ -54,7 +55,7 @@ func NewStore(pool *pgxpool.Pool, redisClient *redis.Client, s3Client s3.S3Clien
 		Profile: profile.NewRepository(pool, avatars),
 		Section: section.NewRepository(pool),
 		Card:    card.NewRepository(pool),
-		Appeal:  appeal.NewRepository(pool),
+		Appeal:  appeal.NewRepository(pool, attachments),
 
 		s3Client:     s3Client,
 		postgresPool: pool,

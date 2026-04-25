@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/s3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -20,11 +22,12 @@ type DBEngine interface {
 }
 
 type Repository struct {
-	pool DBEngine
+	pool        DBEngine
+	attachments s3.S3Bucket
 }
 
-func NewRepository(pool DBEngine) *Repository {
-	return &Repository{pool: pool}
+func NewRepository(pool DBEngine, attachments s3.S3Bucket) *Repository {
+	return &Repository{pool: pool, attachments: attachments}
 }
 
 func (r *Repository) CreateAppeal(ctx context.Context, info dto.CreateAppealInfo) error {
@@ -210,4 +213,28 @@ func (r *Repository) GetUserRole(ctx context.Context, userLink uuid.UUID) (commo
 	}
 
 	return role, nil
+}
+
+func (r *Repository) UploadAttachment(ctx context.Context, source io.Reader, filename, contentType string) (string, error) {
+	key, err := r.attachments.Put(ctx, source, filename, contentType)
+	if err != nil {
+		return "", fmt.Errorf("s3 cannot upload attachment: %w", err)
+	}
+
+	return key, nil
+}
+
+func (r *Repository) UpdateAttachmentKey(ctx context.Context, key string, appealLink uuid.UUID) error {
+	query := `UPDATE appeal SET attachment_key = $1 WHERE appeal_link = $2`
+
+	tag, err := r.pool.Exec(ctx, query, key, appealLink)
+	if err != nil {
+		return fmt.Errorf("update appeal attachment_key: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrorAppealNotFound
+	}
+
+	return nil
 }

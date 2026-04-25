@@ -50,3 +50,9 @@ type AppealStats struct {
 	InWork int `json:"in_work" example:"4"`
 	Close  int `json:"close" example:"42"`
 }
+
+// UploadAttachmentResponse содержит URL загруженного вложения
+// @Description Ответ после загрузки вложения
+type UploadAttachmentResponse struct {
+	AttachmentURL string `json:"attachment_url" example:"https://bucket.endpoint/attachments/uuid.png"`
+}

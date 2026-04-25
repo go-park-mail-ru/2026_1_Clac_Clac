@@ -9,15 +9,17 @@ const (
 )
 
 type S3 struct {
-	Region                  string `mapstructure:"region"`
-	Endpoint                string `mapstructure:"endpoint"`
-	AccessKey               string `mapstructure:"access_key"`
-	SecretKey               string `mapstructure:"secret_key"`
-	AvatarsBucket           string `mapstructure:"avatars_bucket"`
-	AvatarsPrefix           string `mapstructure:"avatars_prefix"`
-	BoardsBackgroundsBucket string `mapstructure:"boards_backgrounds_bucket"`
-	BoardsBackgroundsPrefix string `mapstructure:"boards_backgrounds_prefix"`
-	ConnectTimeout          string `mapstructure:"connect_timeout"`
+	Region                   string `mapstructure:"region"`
+	Endpoint                 string `mapstructure:"endpoint"`
+	AccessKey                string `mapstructure:"access_key"`
+	SecretKey                string `mapstructure:"secret_key"`
+	AvatarsBucket            string `mapstructure:"avatars_bucket"`
+	AvatarsPrefix            string `mapstructure:"avatars_prefix"`
+	BoardsBackgroundsBucket  string `mapstructure:"boards_backgrounds_bucket"`
+	BoardsBackgroundsPrefix  string `mapstructure:"boards_backgrounds_prefix"`
+	SupportAttachmentsBucket string `mapstructure:"support_attachments_bucket"`
+	SupportAttachmentsPrefix string `mapstructure:"support_attachments_prefix"`
+	ConnectTimeout           string `mapstructure:"connect_timeout"`
 }
 
 func DefaultS3Config() S3 {
@@ -33,6 +35,8 @@ func SetupEnvS3(v *viper.Viper) {
 	v.SetDefault("s3.avatars_prefix", defaultS3Value)
 	v.SetDefault("s3.boards_backgrounds_bucket", defaultS3Value)
 	v.SetDefault("s3.boards_backgrounds_prefix", defaultS3Value)
+	v.SetDefault("s3.support_attachments_bucket", defaultS3Value)
+	v.SetDefault("s3.support_attachments_prefix", defaultS3Value)
 	v.SetDefault("s3.connect_timeout", defaultS3Value)
 
 	v.RegisterAlias("s3.region", "s3_region")
@@ -43,5 +47,7 @@ func SetupEnvS3(v *viper.Viper) {
 	v.RegisterAlias("s3.avatars_prefix", "s3_avatars_prefix")
 	v.RegisterAlias("s3.boards_backgrounds_bucket", "s3_boards_backgrounds_bucket")
 	v.RegisterAlias("s3.boards_backgrounds_prefix", "s3_boards_backgrounds_prefix")
+	v.RegisterAlias("s3.support_attachments_bucket", "s3_support_attachments_bucket")
+	v.RegisterAlias("s3.support_attachments_prefix", "s3_support_attachments_prefix")
 	v.RegisterAlias("s3.connect_timeout", "s3_connect_timeout")
 }

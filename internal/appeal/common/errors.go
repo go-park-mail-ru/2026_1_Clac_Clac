@@ -8,6 +8,7 @@ var (
 	ErrorPermissionDenied = errors.New("role is incorrect for this action")
 	ErrInvalidCategory    = errors.New("get invalid category")
 
-	IncorrectRequest = "get incorrect format of request"
-	IncorrectPath    = "get incorrect format of path"
+	IncorrectRequest    = "get incorrect format of request"
+	IncorrectPath       = "get incorrect format of path"
+	ErrorAppealNotFound = errors.New("appeal not found")
 )

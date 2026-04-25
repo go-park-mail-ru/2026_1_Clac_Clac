@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/repository/dto"
@@ -19,6 +20,8 @@ type AppealRepository interface {
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 	ChangeAppealStatus(ctx context.Context, info repositoryDto.ChangeAppealStatusInfo) error
 	GetStats(ctx context.Context) (repositoryDto.AppealStats, error)
+	UploadAttachment(ctx context.Context, source io.Reader, filename, contentType string) (string, error)
+	UpdateAttachmentKey(ctx context.Context, key string, appealLink uuid.UUID) error
 }
 
 type Service struct {
@@ -96,6 +99,21 @@ func (s *Service) GetStats(ctx context.Context, userLink uuid.UUID) (dto.AppealS
 		InWork: stats.InWork,
 		Close:  stats.Close,
 	}, nil
+}
+
+func (s *Service) UploadAttachment(ctx context.Context, file io.Reader, contentType, extension string, appealLink uuid.UUID) (string, error) {
+	filename := uuid.New().String() + extension
+
+	key, err := s.rep.UploadAttachment(ctx, file, filename, contentType)
+	if err != nil {
+		return "", fmt.Errorf("rep.UploadAttachment: %w", err)
+	}
+
+	if err := s.rep.UpdateAttachmentKey(ctx, key, appealLink); err != nil {
+		return "", fmt.Errorf("rep.UpdateAttachmentKey: %w", err)
+	}
+
+	return key, nil
 }
 
 func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appeals, error) {

@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/internal/appeal/common"
@@ -18,11 +21,17 @@ import (
 )
 
 var (
-	ErrInvalidRequestSchema = errors.New("invalid schema")
-	ErrInvalidEmailOrName   = errors.New("incorrect email or name")
-	ErrInvalidActions       = errors.New("this role can not do it")
+	ErrInvalidActions = errors.New("this role can not do it")
 
-	msgInternalError = "server error internal"
+	msgInternalError         = "server error internal"
+	ErrInvalidRequestSchema  = errors.New("invalid schema")
+	ErrInvalidEmailOrName    = errors.New("incorrect email or name")
+	ErrParseMultipartForm    = errors.New("file too large or invalid form")
+	ErrCannotFindAttachment  = errors.New("cannot find 'attachment' key")
+	ErrCannotReadFile        = errors.New("cannot read file")
+	ErrInvalidContentType    = errors.New("invalid content type")
+	ErrCannotOperateWithFile = errors.New("cannot operate with file")
+	ErrCannotUploadFile      = errors.New("cannot upload attachment")
 )
 
 type AppealService interface {
@@ -31,15 +40,24 @@ type AppealService interface {
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 	GetStats(ctx context.Context, userLink uuid.UUID) (serviceDto.AppealStats, error)
 	ChangeAppealStatus(ctx context.Context, info serviceDto.ChangeAppealStatusInfo) error
+	UploadAttachment(ctx context.Context, file io.Reader, contentType, extension string, appealLink uuid.UUID) (string, error)
+}
+
+type Config struct {
+	MultipartAttachmentFileKey string
+	MaxAttachmentSize          int64
+	AttachmentBaseURL          string
 }
 
 type Handler struct {
-	srv AppealService
+	srv  AppealService
+	conf Config
 }
 
-func NewHandler(srv AppealService) *Handler {
+func NewHandler(srv AppealService, conf Config) *Handler {
 	return &Handler{
-		srv: srv,
+		srv:  srv,
+		conf: conf,
 	}
 }
 
@@ -145,6 +163,11 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, a := range appeals.Appeals {
+		attachmentKey := a.AttachmentKey
+		if attachmentKey != "" {
+			attachmentKey = fmt.Sprintf("%s/%s", h.conf.AttachmentBaseURL, attachmentKey)
+		}
+
 		response.Appeals = append(response.Appeals, dto.Appeal{
 			AppealID:      a.AppealID,
 			AppealLink:    a.AppealLink,
@@ -153,12 +176,105 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 			Category:      a.Category,
 			Status:        a.Status,
 			Description:   a.Description,
-			AttachmentKey: a.AttachmentKey,
+			AttachmentKey: attachmentKey,
 			CreatedAt:     a.CreatedAt,
 		})
 	}
 
 	api.HandleError(api.RespondOk(w, response))
+}
+
+// UploadAttachment godoc
+// @Summary      Загрузить вложение к обращению
+// @Description  Загружает изображение (multipart/form-data) и прикрепляет его к обращению
+// @Tags         appeals
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        link        path      string  true  "UUID обращения"  format(uuid)
+// @Param        attachment  formData  file    true  "Файл вложения (PNG/JPEG)"
+// @Success      200  {object} api.OkResponse[dto.UploadAttachmentResponse]
+// @Failure      400  {string} string "Bad Request"
+// @Failure      401  {string} string "Unauthorized"
+// @Failure      500  {string} string "Internal Server Error"
+// @Security     BearerAuth
+// @Router       /appeals/{link}/attachment [put]
+func (h *Handler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+	_, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, "unauthorised")
+		return
+	}
+
+	vars := mux.Vars(r)
+	rawAppealLink, ok := vars["link"]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, "appeal link missing")
+		return
+	}
+
+	appealLink, err := uuid.Parse(rawAppealLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, "invalid appeal link format")
+		return
+	}
+
+	if err := r.ParseMultipartForm(h.conf.MaxAttachmentSize); err != nil {
+		logger.Error().Err(err).Msg("parse multipart form")
+		api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		return
+	}
+
+	file, header, err := r.FormFile(h.conf.MultipartAttachmentFileKey)
+	if err != nil {
+		logger.Error().Err(err).Msg("cannot find attachment key")
+		api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
+		return
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Error().Err(err).Msg("Handler.UploadAttachment close file")
+		}
+	}()
+
+	buf := make([]byte, 512)
+	_, err = file.Read(buf)
+	if err != nil && err != io.EOF {
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotReadFile.Error())
+		return
+	}
+
+	contentType := http.DetectContentType(buf)
+	if !strings.HasPrefix(contentType, "image/") {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidContentType.Error())
+		return
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotOperateWithFile.Error())
+		return
+	}
+
+	extension := filepath.Ext(header.Filename)
+
+	key, err := h.srv.UploadAttachment(r.Context(), file, contentType, extension, appealLink)
+	if err != nil {
+		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
+
+		if errors.Is(err, common.ErrorAppealNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, dto.UploadAttachmentResponse{
+		AttachmentURL: fmt.Sprintf("%s/%s", h.conf.AttachmentBaseURL, key),
+	}))
 }
 
 // DeleteAppeal godoc

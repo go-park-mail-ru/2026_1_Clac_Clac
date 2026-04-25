@@ -168,7 +168,11 @@ func setupRouter(dilivery *Dilivery, manager *Manager, conf *config.Config, logg
 	withTextLimit.HandleFunc("/appeals/{link}", appealHandler.DeleteAppeal).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/appeals/{link}", appealHandler.ChangeAppealStatus).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/appeals", appealHandler.GetAppeals).Methods(http.MethodGet)
+<<<<<<< HEAD
 	withTextLimit.HandleFunc("/stats", appealHandler.GetStats).Methods(http.MethodGet)
+=======
+	withImageLimit.HandleFunc("/appeals/{link}/attachment", appealHandler.UploadAttachment).Methods(http.MethodPut)
+>>>>>>> da27a94 (feat: add s3 attachments)
 	return router
 }
 

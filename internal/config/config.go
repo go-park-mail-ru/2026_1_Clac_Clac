@@ -23,6 +23,7 @@ type Config struct {
 	Section         Section              `mapstructure:"section"`
 	Profile         Profile              `mapstructure:"profile"`
 	Card            Card                 `mapstructture:"card"`
+	Appeal          Appeal               `mapstructure:"appeal"`
 }
 
 func DefaultConfig() Config {
@@ -42,6 +43,7 @@ func DefaultConfig() Config {
 		Profile:         DefaultProfileConfig(),
 		Section:         DefaultSectionConfig(),
 		Card:            DefaultCardConfig(),
+		Appeal:          DefaultAppealConfig(),
 	}
 }
 
