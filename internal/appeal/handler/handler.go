@@ -146,7 +146,7 @@ func (h *Handler) GetAppeals(w http.ResponseWriter, r *http.Request) {
 
 	for _, a := range appeals.Appeals {
 		response.Appeals = append(response.Appeals, dto.Appeal{
-			AppealID:      a.AppelID,
+			AppealID:      a.AppealID,
 			AppealLink:    a.AppealLink,
 			Email:         a.Email,
 			DisplayName:   a.DisplayName,
