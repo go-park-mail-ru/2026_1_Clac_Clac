@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
+<<<<<<< HEAD
 type AppealEntry struct {
 	AppealLink    uuid.UUID
 	Email         string
@@ -25,6 +26,16 @@ type CreateAppealInfo struct {
 	Category      common.Category
 	Description   string
 	AttachmentKey string
+=======
+type AppealEntry struct{}
+
+type CreateAppealInfo struct {
+	UserLink    uuid.UUID
+	Mail        string
+	Category    string
+	Description string
+	DisplayName string
+>>>>>>> 66ebeec (feat/update rep)
 }
 
 type ChangeAppealStatusInfo struct {
