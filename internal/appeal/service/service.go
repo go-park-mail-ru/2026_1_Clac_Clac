@@ -16,7 +16,7 @@ type AppealRepository interface {
 	GetUserRole(ctx context.Context, userLink uuid.UUID) (common.Role, error)
 	CreateAppeal(ctx context.Context, info repositoryDto.CreateAppealInfo) error
 	GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]repositoryDto.AppealEntry, error)
-	GetOpenAppeals(ctx context.Context) ([]repositoryDto.AppealEntry, error)
+	GetOpenAppeals(ctx context.Context, supportLink uuid.UUID) ([]repositoryDto.AppealEntry, error)
 	DeleteAppeal(ctx context.Context, appealLink uuid.UUID) error
 	ChangeAppealStatus(ctx context.Context, info repositoryDto.ChangeAppealStatusInfo) error
 	GetStats(ctx context.Context) (repositoryDto.AppealStats, error)
@@ -125,7 +125,7 @@ func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appea
 	var rawAppeals = make([]repositoryDto.AppealEntry, 0)
 	switch userRole {
 	case common.Roles.Support, common.Roles.Admin:
-		rawAppeals, err = s.rep.GetOpenAppeals(ctx)
+		rawAppeals, err = s.rep.GetOpenAppeals(ctx, userLink)
 		if err != nil {
 			return dto.Appeals{}, fmt.Errorf("ServiceAppeal.GetOpenAppeals: %w", err)
 		}

@@ -101,15 +101,16 @@ func (r *Repository) GetUserAppeals(ctx context.Context, userLink uuid.UUID) ([]
 	return appeals, nil
 }
 
-func (r *Repository) GetOpenAppeals(ctx context.Context) ([]dto.AppealEntry, error) {
+func (r *Repository) GetOpenAppeals(ctx context.Context, supportLink uuid.UUID) ([]dto.AppealEntry, error) {
 	query := `
 		SELECT appeal_id, appeal_link, mail, display_name, status, category, description, attachment_key, created_at
 		FROM appeal
 		WHERE status = $1
-		ORDER BY created_at ASC; -- Сортировка по возрастанию, чтобы первыми шли самые старые открытые тикеты
+		   OR supporter_link = $2
+		ORDER BY created_at ASC;
 	`
 
-	rows, err := r.pool.Query(ctx, query, common.Statuses.Open)
+	rows, err := r.pool.Query(ctx, query, common.Statuses.Open, supportLink)
 	if err != nil {
 		return nil, fmt.Errorf("query open appeals: %w", err)
 	}
