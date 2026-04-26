@@ -220,8 +220,8 @@ func TestResetPassword(t *testing.T) {
 		tokenID := "reset-token"
 		newPass := "newpass1"
 		m.On("ExchangeTokenForUser", context.Background(), domain.ResetToken{Token: tokenID}).Return(fixedUserLink, nil)
-		u.On("RessetPassword", context.Background(), domain.UpdatedPassoword{
-			UserLink: fixedUserLink, Password: newPass, RepeatedPassword: newPass,
+		u.On("ResetPassword", context.Background(), domain.UpdatedPassword{
+			UserLink: fixedUserLink, Password: newPass,
 		}).Return(nil)
 
 		err := newTestAuthUser(u, a, m).ResetPassword(context.Background(), tokenID, newPass)

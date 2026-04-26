@@ -41,7 +41,6 @@ func RateLimiterMiddleware(client CheckLimit, configRateLimiter domain.RateLimit
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userIP := GetUserIP(r)
-			// TODO config rate
 			isFull, err := client.UpdateCountRequests(r.Context(), domain.RateLimitCheck{
 				Limit:   configRateLimiter.Limit,
 				WindowS: configRateLimiter.WindowS,

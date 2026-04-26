@@ -5,23 +5,43 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
-type RouterDeps struct {
-	Auth        *handlers.Auth
-	Profile     *handlers.Profile
+type AuthHandler interface {
+	MeHandler(w http.ResponseWriter, r *http.Request)
+	LogInUser(w http.ResponseWriter, r *http.Request)
+	RegisterUser(w http.ResponseWriter, r *http.Request)
+	LogOutUser(w http.ResponseWriter, r *http.Request)
+	SendRecoveryEmail(w http.ResponseWriter, r *http.Request)
+	CheckRecoveryCode(w http.ResponseWriter, r *http.Request)
+	ResetUserPassword(w http.ResponseWriter, r *http.Request)
+	VkOAuthCallback(w http.ResponseWriter, r *http.Request)
+	SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request)
+}
+
+type ProfileHandler interface {
+	GetProfile(w http.ResponseWriter, r *http.Request)
+	GetProfileByLink(w http.ResponseWriter, r *http.Request)
+	UpdateProfile(w http.ResponseWriter, r *http.Request)
+	UpdateAvatar(w http.ResponseWriter, r *http.Request)
+	DeleteAvatar(w http.ResponseWriter, r *http.Request)
+}
+
+type Tools struct {
+	Auth        AuthHandler
+	Profile     ProfileHandler
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
 }
 
-func NewRouter(deps RouterDeps, conf *config.Config, logger *zerolog.Logger) *mux.Router {
+func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	r.Use(middleware.RecoveryMiddleware(logger))
@@ -84,6 +104,6 @@ func NewRouter(deps RouterDeps, conf *config.Config, logger *zerolog.Logger) *mu
 	return r
 }
 
-func healthcheck(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
+func healthcheck(w http.ResponseWriter, r *http.Request) {
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

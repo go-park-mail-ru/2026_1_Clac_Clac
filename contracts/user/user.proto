@@ -59,7 +59,7 @@ message UserResponse {
 message CreateRequest {
     string display_name = 1;
     string password = 2;
-    string email = 4;
+    string email = 3;
 }
 
 message GetUserLinkRequest {
@@ -73,8 +73,7 @@ message GetUserLinkResponse {
 
 message ResetPasswordRequest {
     string password = 1;
-    string repeated_password = 2;
-    string user_link = 3;
+    string user_link = 2;
 }
 
 message ResetPasswordResponse {}

@@ -12,13 +12,15 @@ engine:
 
 cors:
   credentials: "true"
-  origin: "http://localhost:3000"
   methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
   headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
   max_age: "864000"
 
 csrf:
-  secret: "change-me-in-production"
+  ttl: 24h
+  expire_time_convertation_base: 10
+  expire_time_convertation_type_size: 64
+  parts_count: 2
 
 services:
   user:
@@ -31,6 +33,11 @@ services:
       max_read_bytes: 5242880
       max_len_name_user: 128
       max_len_description_user: 500
+      valid_extensions:
+        image/png:
+        image/jpg:
+        image/jpeg:
+        image/webp:
 
   auth:
     client:
@@ -41,7 +48,6 @@ services:
       max_len_password: 128
       min_len_password: 8
       session_life_time: 24h
-      vk_oauth_redirect_to: "http://localhost:3000"
 
   mail_sender:
     addr: "localhost:50053"

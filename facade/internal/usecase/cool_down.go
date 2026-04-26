@@ -7,6 +7,9 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 )
 
+type RateLimiterClient interface {
+	SetCooldown(ctx context.Context, cooldown domain.Cooldown) (domain.CooldownResult, error)
+}
 type CoolDown struct {
 	client RateLimiterClient
 }

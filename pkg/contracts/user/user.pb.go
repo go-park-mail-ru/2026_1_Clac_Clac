@@ -509,7 +509,7 @@ type CreateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DisplayName   string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -654,12 +654,11 @@ func (x *GetUserLinkResponse) GetUserLink() string {
 }
 
 type ResetPasswordRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Password         string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
-	RepeatedPassword string                 `protobuf:"bytes,2,opt,name=repeated_password,json=repeatedPassword,proto3" json:"repeated_password,omitempty"`
-	UserLink         string                 `protobuf:"bytes,3,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	UserLink      string                 `protobuf:"bytes,2,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResetPasswordRequest) Reset() {
@@ -695,13 +694,6 @@ func (*ResetPasswordRequest) Descriptor() ([]byte, []int) {
 func (x *ResetPasswordRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
-	}
-	return ""
-}
-
-func (x *ResetPasswordRequest) GetRepeatedPassword() string {
-	if x != nil {
-		return x.RepeatedPassword
 	}
 	return ""
 }
@@ -884,15 +876,14 @@ const file_contracts_user_user_proto_rawDesc = "" +
 	"\rCreateRequest\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
-	"\x05email\x18\x04 \x01(\tR\x05email\"*\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\"*\n" +
 	"\x12GetUserLinkRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"2\n" +
 	"\x13GetUserLinkResponse\x12\x1b\n" +
-	"\tuser_link\x18\x01 \x01(\tR\buserLink\"|\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\"O\n" +
 	"\x14ResetPasswordRequest\x12\x1a\n" +
-	"\bpassword\x18\x01 \x01(\tR\bpassword\x12+\n" +
-	"\x11repeated_password\x18\x02 \x01(\tR\x10repeatedPassword\x12\x1b\n" +
-	"\tuser_link\x18\x03 \x01(\tR\buserLink\"\x17\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\x12\x1b\n" +
+	"\tuser_link\x18\x02 \x01(\tR\buserLink\"\x17\n" +
 	"\x15ResetPasswordResponse\"O\n" +
 	"\x14ProcessUserVKRequest\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x14\n" +

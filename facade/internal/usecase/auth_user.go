@@ -12,7 +12,7 @@ type UserClient interface {
 	GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error)
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
 	ProcessUserWithVK(ctx context.Context, accessToken string, email string) (uuid.UUID, error)
-	RessetPassword(ctx context.Context, updatedPassword domain.UpdatedPassoword) error
+	ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 }
 
@@ -26,10 +26,6 @@ type MailSenderClient interface {
 	SendRecoveryCode(ctx context.Context, recoveryInfo domain.RecoveryCode) error
 	CheckRecoveryCode(ctx context.Context, check domain.RecoveryCodeCheck) error
 	ExchangeTokenForUser(ctx context.Context, resetToken domain.ResetToken) (uuid.UUID, error)
-}
-
-type RateLimiterClient interface {
-	SetCooldown(ctx context.Context, cooldown domain.Cooldown) (domain.CooldownResult, error)
 }
 
 type AuthUser struct {
@@ -149,13 +145,12 @@ func (au *AuthUser) ResetPassword(ctx context.Context, tokenID, newPassword stri
 		return fmt.Errorf("mail.ExchangeTokenForUser: %w", err)
 	}
 
-	err = au.user.RessetPassword(ctx, domain.UpdatedPassoword{
-		UserLink:         userLink,
-		Password:         newPassword,
-		RepeatedPassword: newPassword,
+	err = au.user.ResetPassword(ctx, domain.UpdatedPassword{
+		UserLink: userLink,
+		Password: newPassword,
 	})
 	if err != nil {
-		return fmt.Errorf("user.RessetPassword: %w", err)
+		return fmt.Errorf("user.ResetPassword: %w", err)
 	}
 
 	return nil

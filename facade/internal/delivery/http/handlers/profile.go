@@ -22,16 +22,16 @@ import (
 const (
 	nameAvatarBlock = "avatar"
 
-	msgUnauthorized     = "unauthorized"
-	msgUserNotFound     = "user not found"
-	msgFailGetProfile   = "cannot get user profile"
+	msgUnauthorized      = "unauthorized"
+	msgUserNotFound      = "user not found"
+	msgFailGetProfile    = "cannot get user profile"
 	msgFailUpdateProfile = "cannot update profile"
-	msgTooLargeAvatar   = "avatar file too large"
-	msgInvalidFile      = "file is invalid"
-	msgIncorrectType    = "avatar must be jpeg/png/jpg/webp"
-	msgFailProcessFile  = "cannot process file"
-	msgFailUpdateAvatar = "cannot update avatar"
-	msgFailDeleteAvatar = "cannot delete avatar"
+	msgTooLargeAvatar    = "avatar file too large"
+	msgInvalidFile       = "file is invalid"
+	msgIncorrectType     = "avatar must be jpeg/png/jpg/webp"
+	msgFailProcessFile   = "cannot process file"
+	msgFailUpdateAvatar  = "cannot update avatar"
+	msgFailDeleteAvatar  = "cannot delete avatar"
 )
 
 type ProfileUseCase interface {
@@ -43,7 +43,7 @@ type ProfileUseCase interface {
 
 type ProfileConfig struct {
 	ValidExtensions       map[string]struct{}
-	SignatureTypeBytes     int
+	SignatureTypeBytes    int
 	MaxLenNameUser        int
 	MaxLenDescriptionUser int
 	MaxReadBytes          int64
@@ -58,6 +58,18 @@ func NewProfileHandler(usecase ProfileUseCase, cfg ProfileConfig) *Profile {
 	return &Profile{usecase: usecase, cfg: cfg}
 }
 
+// GetProfile возвращает профиль текущего пользователя
+//
+//	@Summary		Получить свой профиль
+//	@Tags			Profile
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Success		200	{object}	dto.ProfileResponse
+//	@Failure		401	{object}	api.ErrorResponse	"unauthorized"
+//	@Failure		404	{object}	api.ErrorResponse	"user not found"
+//	@Failure		500	{object}	api.ErrorResponse	"cannot get user profile"
+//	@Router			/api/profiles [get]
 func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
@@ -76,9 +88,22 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, toProfileResponse(user)))
+	api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
 }
 
+// GetProfileByLink возвращает профиль пользователя по UUID
+//
+//	@Summary		Получить профиль по ссылке
+//	@Tags			Profile
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Param			user_link	path		string	true	"UUID пользователя"
+//	@Success		200			{object}	dto.ProfileResponse
+//	@Failure		400			{object}	api.ErrorResponse	"invalid user link"
+//	@Failure		404			{object}	api.ErrorResponse	"user not found"
+//	@Failure		500			{object}	api.ErrorResponse	"cannot get user profile"
+//	@Router			/api/profiles/{user_link} [get]
 func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -100,9 +125,23 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, toProfileResponse(user)))
+	api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
 }
 
+// UpdateProfile обновляет текстовые данные профиля (имя, описание)
+//
+//	@Summary		Обновить профиль
+//	@Tags			Profile
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.UpdateProfileRequest	true	"Новые данные"
+//	@Success		200		{string}	string						"OK"
+//	@Failure		400		{object}	api.ErrorResponse			"incorrect name/description"
+//	@Failure		401		{object}	api.ErrorResponse			"unauthorized"
+//	@Failure		500		{object}	api.ErrorResponse			"cannot update profile"
+//	@Router			/api/profiles/info [post]
 func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
@@ -148,14 +187,38 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
+// UpdateAvatar загружает новый аватар
+//
+//	@Summary		Обновить аватар
+//	@Tags			Profile
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			avatar	formData	file	true	"Файл изображения (jpeg/png/webp)"
+//	@Success		200		{object}	dto.AvatarResponse
+//	@Failure		400		{object}	api.ErrorResponse	"avatar file too large or invalid"
+//	@Failure		401		{object}	api.ErrorResponse	"unauthorized"
+//	@Failure		415		{object}	api.ErrorResponse	"avatar must be jpeg/png/jpg/webp"
+//	@Failure		500		{object}	api.ErrorResponse	"cannot update avatar"
+//	@Router			/api/profiles/avatar [put]
 func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
+
+	value := r.Context().Value(middleware.UserContextLink{})
+	userLink, ok := value.(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		return
+	}
 
 	if err := r.ParseMultipartForm(p.cfg.MaxReadBytes); err != nil {
 		logger.Error().Err(err).Msg(msgTooLargeAvatar)
 		api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
 		return
 	}
+
+	defer r.MultipartForm.RemoveAll()
 
 	file, header, err := r.FormFile(nameAvatarBlock)
 	if err != nil {
@@ -177,7 +240,7 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	mimeType := http.DetectContentType(sigBuf[:n])
 	if _, ok := p.cfg.ValidExtensions[mimeType]; !ok {
-		api.RespondError(w, http.StatusBadRequest, msgIncorrectType)
+		api.RespondError(w, http.StatusUnsupportedMediaType, msgIncorrectType)
 		return
 	}
 
@@ -189,13 +252,6 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	fileData, err := io.ReadAll(file)
 	if err != nil {
 		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
-		return
-	}
-
-	value := r.Context().Value(middleware.UserContextLink{})
-	userLink, ok := value.(uuid.UUID)
-	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return
 	}
 
@@ -223,6 +279,18 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, dto.AvatarResponse{AvatarURL: avatarURL}))
 }
 
+// DeleteAvatar удаляет аватар пользователя
+//
+//	@Summary		Удалить аватар
+//	@Tags			Profile
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Success		200	{string}	string				"OK"
+//	@Failure		401	{object}	api.ErrorResponse	"unauthorized"
+//	@Failure		404	{object}	api.ErrorResponse	"user not found"
+//	@Failure		500	{object}	api.ErrorResponse	"cannot delete avatar"
+//	@Router			/api/profiles/avatar [delete]
 func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -246,7 +314,7 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
-func toProfileResponse(u domain.FullInfoUser) dto.ProfileResponse {
+func convertToProfileResponse(u domain.FullInfoUser) dto.ProfileResponse {
 	return dto.ProfileResponse{
 		Link:        u.UserLink,
 		DisplayName: u.DisplayName,

@@ -5,78 +5,53 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/router"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/usecase"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
+	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
 type App struct {
-	Config *config.Config
-	Logger *zerolog.Logger
-	Engine *engine.Engine
+	Config    *config.Config
+	Logger    *zerolog.Logger
+	Engine    *engine.Engine
+	Connector *Connector
 }
 
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	connector, err := NewConnector(&conf.Services)
+	connector, err := setupConnector(&conf.Services, logger)
 	if err != nil {
 		return nil, fmt.Errorf("NewConnector: %w", err)
 	}
 
-	manager := NewManager(connector)
+	manager := setupManager(connector, conf)
 
-	csrfSvc := usecase.NewCSRF(usecase.CSRFConfig{
-		Secret: conf.CSRF.Secret,
-		TTL:    24 * time.Hour,
-	})
+	delivery := setupDelivery(manager, conf)
 
-	authH := handlers.NewAuthHandler(
-		manager.AuthUser,
-		manager.CoolDown,
-		csrfSvc,
-		handlers.AuthConfig{
-			MaxLenPassword:    conf.Services.Auth.Handler.MaxLenPassword,
-			MinLenPassword:    conf.Services.Auth.Handler.MinLenPassword,
-			SessionLifetime:   conf.Services.Auth.Handler.SessionLifetime,
-			VKOAuthRedirectTo: conf.Services.Auth.Handler.VKOAuthRedirectTo,
-		},
-	)
-
-	profileH := handlers.NewProfileHandler(
-		manager.Profile,
-		handlers.ProfileConfig{
-			ValidExtensions:       config.DefaultValidExtensions(),
-			SignatureTypeBytes:    conf.Services.User.Handler.SiganatureTypeBytes,
-			MaxLenNameUser:        conf.Services.User.Handler.MaxLenNameUser,
-			MaxLenDescriptionUser: conf.Services.User.Handler.MaxLenDescriptionUser,
-			MaxReadBytes:          conf.Services.User.Handler.MaxReadBytes,
-		},
-	)
-
-	r := router.NewRouter(router.RouterDeps{
-		Auth:        authH,
-		Profile:     profileH,
-		AuthChecker: connector.Auth,
-		RateLimiter: connector.RateLimiter,
-		CSRFChecker: csrfSvc.Check,
-	}, conf, logger)
+	r := setupRouter(delivery, manager, connector, conf, logger)
 
 	e := engine.New(&conf.Engine, logger, r)
 
 	return &App{
-		Config: conf,
-		Logger: logger,
-		Engine: e,
+		Config:    conf,
+		Logger:    logger,
+		Engine:    e,
+		Connector: connector,
 	}, nil
 }
 
 func (a *App) Run() {
+	defer func() {
+		a.Logger.Info().Msg("Closing gRPC connections...")
+		if a.Connector != nil {
+			a.Connector.Close()
+		}
+	}()
+
 	if err := a.Engine.Start(context.Background()); err != nil {
 		a.Logger.Err(err).Msg("engine error")
 	}
@@ -95,3 +70,27 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 	return &logger
 }
 
+func setupConnector(config *config.Services, logger *zerolog.Logger) (*Connector, error) {
+	return NewConnector(config, logger)
+}
+
+func setupManager(connector *Connector, config *config.Config) *Manager {
+	return NewManager(connector, config)
+}
+
+func setupDelivery(manager *Manager, conf *config.Config) *Delivery {
+	return NewDelivery(manager, conf)
+}
+
+func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
+	conf *config.Config, logger *zerolog.Logger) *mux.Router {
+	tools := router.Tools{
+		Auth:        delivery.Auth,
+		Profile:     delivery.Profile,
+		AuthChecker: connector.Auth,
+		RateLimiter: connector.RateLimiter,
+		CSRFChecker: manager.CSRF.Check,
+	}
+
+	return router.NewRouter(tools, conf, logger)
+}

@@ -5,12 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestCSRF() *CSRF {
-	return NewCSRF(CSRFConfig{Secret: "test-secret", TTL: time.Hour})
+	return NewCSRF(CSRFConfig{
+		Secret:                         "test-secret",
+		TTL:                            time.Hour,
+		ExpireTimeConvertationBase:     10,
+		ExpireTimeConvertationTypeSize: 64,
+		PartsCount:                     2,
+	})
 }
 
 func TestCSRFGenerateAndCheck(t *testing.T) {
@@ -36,7 +43,7 @@ func TestCSRFCheckWrongSession(t *testing.T) {
 	require.NoError(t, err)
 
 	err = svc.Check(ctx, "session-wrong", token)
-	assert.ErrorIs(t, err, ErrInvalidCSRFToken)
+	assert.ErrorIs(t, err, common.ErrCSRFTokensDoNotEqual)
 }
 
 func TestCSRFCheckExpired(t *testing.T) {
@@ -48,7 +55,7 @@ func TestCSRFCheckExpired(t *testing.T) {
 	require.NoError(t, err)
 
 	err = svc.Check(ctx, "session-abc", token)
-	assert.ErrorIs(t, err, ErrCSRFTokenExpired)
+	assert.ErrorIs(t, err, common.ErrCSRFTokenExpired)
 }
 
 func TestCSRFCheckInvalidFormat(t *testing.T) {
@@ -56,7 +63,7 @@ func TestCSRFCheckInvalidFormat(t *testing.T) {
 	ctx := context.Background()
 
 	err := svc.Check(ctx, "session", "no-colon-here")
-	assert.ErrorIs(t, err, ErrInvalidCSRFToken)
+	assert.ErrorIs(t, err, common.ErrInvalidCSRFToken)
 }
 
 func TestCSRFCheckBadExpireAt(t *testing.T) {
@@ -64,13 +71,13 @@ func TestCSRFCheckBadExpireAt(t *testing.T) {
 	ctx := context.Background()
 
 	err := svc.Check(ctx, "session", "notanumber:abc")
-	assert.ErrorIs(t, err, ErrInvalidCSRFToken)
+	assert.ErrorIs(t, err, common.ErrCannotParseExpireTimeCSRFToken)
 }
 
 func TestCSRFGetExpireTime(t *testing.T) {
 	svc := newTestCSRF()
 	before := time.Now()
-	exp := svc.GetExpireTime()
+	exp := svc.GetExpireTime(context.Background())
 	assert.True(t, exp.After(before))
 	assert.True(t, exp.Before(before.Add(2*time.Hour)))
 }

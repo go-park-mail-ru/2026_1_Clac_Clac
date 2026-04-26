@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"strings"
+
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
@@ -16,7 +18,6 @@ import (
 	mockProfileUC "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/mock_profile_use_case"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
-	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ var defaultProfileCfg = ProfileConfig{
 		"image/png":  {},
 		"image/webp": {},
 	},
-	SignatureTypeBytes:     512,
+	SignatureTypeBytes:    512,
 	MaxLenNameUser:        128,
 	MaxLenDescriptionUser: 500,
 	MaxReadBytes:          5 << 20,
@@ -53,7 +54,7 @@ func TestGetProfile(t *testing.T) {
 
 		newProfileHandler(m).GetProfile(rr, req)
 
-		expected, _ := json.Marshal(newOkResponse(api.StatusOK, toProfileResponse(user)))
+		expected, _ := json.Marshal(newOkResponse(api.StatusOK, convertToProfileResponse(user)))
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, string(expected), rr.Body.String())
 	})
@@ -92,7 +93,7 @@ func TestGetProfileByLink(t *testing.T) {
 
 		newProfileHandler(m).GetProfileByLink(rr, req)
 
-		expected, _ := json.Marshal(newOkResponse(api.StatusOK, toProfileResponse(user)))
+		expected, _ := json.Marshal(newOkResponse(api.StatusOK, convertToProfileResponse(user)))
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, string(expected), rr.Body.String())
 	})

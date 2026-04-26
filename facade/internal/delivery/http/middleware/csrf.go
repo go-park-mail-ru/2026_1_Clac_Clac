@@ -45,7 +45,7 @@ func CSRFMiddleware(tokenChecker func(ctx context.Context, sessionId string, tok
 
 				headerToken := r.Header.Get(xCsrfHeader)
 
-				if csrfCookie == nil || headerToken == "" || headerToken != csrfCookie.Value {
+				if headerToken == "" || headerToken != csrfCookie.Value {
 					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
 					return
 				}

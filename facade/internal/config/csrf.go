@@ -1,18 +1,34 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 const (
-	defaultCSRFSecret = ""
+	defaultCSRFSecret                              = ""
+	defaultTTL                                     = 24 * time.Hour
+	defaultCSRFTokenExpireTimeConvertationBase     = 10
+	defaultCSRFTokenExpireTimeConvertationTypeSize = 64
+	defaultPartsCount                              = 2
 )
 
 type CSRF struct {
-	Secret string `mapstructure:"secret"`
+	TTL                            time.Duration `mapstructure:"ttl"`
+	Secret                         string        `mapstructure:"secret"`
+	ExpireTimeConvertationBase     int           `mapstructure:"expire_time_convertation_base"`
+	ExpireTimeConvertationTypeSize int           `mapstructure:"expire_time_convertation_type_size"`
+	PartsCount                     int           `mapstructure:"parts_count"`
 }
 
 func DefaultCSRFConfig() CSRF {
 	return CSRF{
-		Secret: defaultCSRFSecret,
+		TTL:                            defaultTTL,
+		Secret:                         defaultCSRFSecret,
+		ExpireTimeConvertationBase:     defaultCSRFTokenExpireTimeConvertationBase,
+		ExpireTimeConvertationTypeSize: defaultCSRFTokenExpireTimeConvertationTypeSize,
+		PartsCount:                     defaultPartsCount,
 	}
 }
 

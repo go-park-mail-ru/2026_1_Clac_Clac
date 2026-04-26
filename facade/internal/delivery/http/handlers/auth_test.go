@@ -488,7 +488,7 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 		cs := mockCSRFUC.NewCSRFUseCase(t)
 
 		expTime := time.Now().Add(time.Hour)
-		cs.On("GetExpireTime").Return(expTime)
+		cs.On("GetExpireTime", mock.Anything).Return(expTime)
 		cs.On("Generate", mock.Anything, fixedSession, expTime.Unix()).Return("csrf-token-value", nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/csrf", nil)
@@ -670,7 +670,7 @@ func TestSetCSRFCookieHandlerGenerateError(t *testing.T) {
 		cs := mockCSRFUC.NewCSRFUseCase(t)
 
 		expTime := fixedTime()
-		cs.On("GetExpireTime").Return(expTime)
+		cs.On("GetExpireTime", mock.Anything).Return(expTime)
 		cs.On("Generate", mock.Anything, fixedSession, expTime.Unix()).Return("", common.ErrorInvalidInput)
 
 		req := httptest.NewRequest(http.MethodGet, "/csrf", nil)

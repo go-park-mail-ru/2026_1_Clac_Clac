@@ -61,17 +61,17 @@ func (_m *CSRFUseCase) Generate(ctx context.Context, sessionID string, expireAt 
 	return r0, r1
 }
 
-// GetExpireTime provides a mock function with no fields
-func (_m *CSRFUseCase) GetExpireTime() time.Time {
-	ret := _m.Called()
+// GetExpireTime provides a mock function with given fields: ctx
+func (_m *CSRFUseCase) GetExpireTime(ctx context.Context) time.Time {
+	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetExpireTime")
 	}
 
 	var r0 time.Time
-	if rf, ok := ret.Get(0).(func() time.Time); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) time.Time); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Get(0).(time.Time)
 	}

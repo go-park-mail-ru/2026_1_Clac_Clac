@@ -23,10 +23,9 @@ type AvatarInfo struct {
 	FileExtension string
 }
 
-type UpdatedPassoword struct {
-	UserLink         uuid.UUID
-	Password         string
-	RepeatedPassword string
+type UpdatedPassword struct {
+	UserLink uuid.UUID
+	Password string
 }
 
 type NewCredentialsUser struct {

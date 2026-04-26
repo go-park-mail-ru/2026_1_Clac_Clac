@@ -26,7 +26,6 @@ const (
 	coolDownExpirationSec   = 60
 )
 
-// AuthUseCase covers auth-related operations delegated to the usecase layer.
 type AuthUseCase interface {
 	Login(ctx context.Context, cred domain.Credentials) (domain.UserInfo, string, error)
 	Register(ctx context.Context, cred domain.NewCredentialsUser) (domain.UserInfo, string, error)
@@ -37,27 +36,22 @@ type AuthUseCase interface {
 	ResetPassword(ctx context.Context, tokenID, newPassword string) error
 }
 
-// CoolDownUseCase wraps rate-limiting / cooldown logic.
 type CoolDownUseCase interface {
 	CheckCoolDown(ctx context.Context, cooldown domain.Cooldown) (domain.CooldownResult, error)
 }
 
-// CSRFUseCase generates and verifies CSRF tokens.
 type CSRFUseCase interface {
-	GetExpireTime() time.Time
+	GetExpireTime(ctx context.Context) time.Time
 	Generate(ctx context.Context, sessionID string, expireAt int64) (string, error)
 	Check(ctx context.Context, sessionID string, token string) error
 }
 
-// AuthConfig holds handler-level configuration.
 type AuthConfig struct {
 	MaxLenPassword    int
 	MinLenPassword    int
 	SessionLifetime   time.Duration
 	VKOAuthRedirectTo string
 }
-
-// Auth handles authentication HTTP endpoints.
 type Auth struct {
 	usecase  AuthUseCase
 	cooldown CoolDownUseCase
@@ -74,7 +68,16 @@ func NewAuthHandler(usecase AuthUseCase, cooldown CoolDownUseCase, csrf CSRFUseC
 	}
 }
 
-// MeHandler returns 200 when the request passes the auth middleware.
+// MeHandler проверяет текущую сессию пользователя
+//
+//	@Summary		Проверка авторизации (Me)
+//	@Tags			Auth
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Success		200	{string}	string				"OK"
+//	@Failure		401	{object}	api.ErrorResponse	"User not authorized"
+//	@Router			/api/me [get]
 func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
@@ -86,7 +89,19 @@ func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
-// LogInUser authenticates a user by email + password and sets a session cookie.
+// LogInUser выполняет вход пользователя
+//
+//	@Summary		Вход (Login)
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.LogInRequest	true	"Данные для входа"
+//	@Success		200		{object}	dto.UserInfoResponse
+//	@Failure		400		{object}	api.ErrorResponse	"Invalid email or password"
+//	@Failure		401		{object}	api.ErrorResponse	"Wrong credentials"
+//	@Failure		429		{object}	api.ErrorResponse	"Too many requests"
+//	@Failure		500		{object}	api.ErrorResponse	"Internal server error"
+//	@Router			/api/login [post]
 func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -130,7 +145,19 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, handlerUser))
 }
 
-// RegisterUser creates a new account and returns a session cookie.
+// RegisterUser регистрирует нового пользователя
+//
+//	@Summary		Регистрация
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RegisterRequest	true	"Данные для регистрации"
+//	@Success		201		{object}	dto.UserInfoResponse
+//	@Failure		400		{object}	api.ErrorResponse	"Invalid email or password"
+//	@Failure		409		{object}	api.ErrorResponse	"User already exists"
+//	@Failure		429		{object}	api.ErrorResponse	"Too many requests"
+//	@Failure		500		{object}	api.ErrorResponse	"Internal server error"
+//	@Router			/api/register [post]
 func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -181,7 +208,13 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondCreated(w, handlerUser))
 }
 
-// LogOutUser deletes the session and clears the session cookie.
+// LogOutUser удаляет сессию пользователя
+//
+//	@Summary		Выход (Logout)
+//	@Tags			Auth
+//	@Produce		json
+//	@Success		200	{string}	string	"OK"
+//	@Router			/api/logout [post]
 func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -196,13 +229,31 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
-// SendRecoveryEmail sends a password-recovery code to the user's email.
+// SendRecoveryEmail отправляет код восстановления пароля
+//
+//	@Summary		Отправить код восстановления
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.PasswordRecoveryRequest	true	"Email пользователя"
+//	@Success		200		{string}	string						"OK"
+//	@Failure		400		{object}	api.ErrorResponse			"Invalid email"
+//	@Failure		404		{object}	api.ErrorResponse			"User does not exist"
+//	@Failure		429		{object}	api.ErrorResponse			"Too many requests"
+//	@Failure		500		{object}	api.ErrorResponse			"Cannot send recovery code"
+//	@Router			/api/forgot-password [post]
 func (a *Auth) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	var request dto.PasswordRecoveryRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	ok := ValidateEmail(request.Email)
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -236,7 +287,17 @@ func (a *Auth) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
-// CheckRecoveryCode verifies the code sent to the user's email.
+// CheckRecoveryCode проверяет отправленный на почту код
+//
+//	@Summary		Проверить код восстановления
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RecoveryCodeRequest	true	"Код из письма"
+//	@Success		200		{string}	string					"OK"
+//	@Failure		400		{object}	api.ErrorResponse		"Invalid request schema"
+//	@Failure		500		{object}	api.ErrorResponse		"Internal server error"
+//	@Router			/api/check-code [post]
 func (a *Auth) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -255,7 +316,18 @@ func (a *Auth) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
-// ResetUserPassword sets a new password using a previously verified reset token.
+// ResetUserPassword устанавливает новый пароль
+//
+//	@Summary		Сброс пароля
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.NewPasswordRequest	true	"Новый пароль и токен"
+//	@Success		200		{string}	string					"OK"
+//	@Failure		400		{object}	api.ErrorResponse		"Invalid password or token not found"
+//	@Failure		404		{object}	api.ErrorResponse		"User not found"
+//	@Failure		500		{object}	api.ErrorResponse		"Cannot reset password"
+//	@Router			/api/reset-password [post]
 func (a *Auth) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -293,8 +365,15 @@ func (a *Auth) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
-// VkOAuthCallback handles the redirect from VK OAuth.
-// It delegates all VK API interaction to the auth usecase.
+// VkOAuthCallback обрабатывает коллбэк от VK
+//
+//	@Summary		VK OAuth Коллбэк
+//	@Tags			Auth
+//	@Param			code	query	string	true	"Временный код от VK"
+//	@Success		302		"Редирект на фронтенд с успешной авторизацией"
+//	@Failure		400		"Редирект с ошибкой: code пустой"
+//	@Failure		502		"Редирект с ошибкой: VK недоступен"
+//	@Router			/api/oauth/vk [get]
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -308,11 +387,11 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	userInfo, sessionID, err := a.usecase.LoginWithVK(r.Context(), code)
 	if err != nil {
 		logger.Err(err).Msg("usecase.LoginWithVK failed")
-		code := http.StatusInternalServerError
+		statusCode := http.StatusInternalServerError
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
-			code = http.StatusBadGateway
+			statusCode = http.StatusBadGateway
 		}
-		Redirect(w, r, a.cfg.VKOAuthRedirectTo, code, handlerCommon.ErrOAuthInternalServerError.Error())
+		Redirect(w, r, a.cfg.VKOAuthRedirectTo, statusCode, handlerCommon.ErrOAuthInternalServerError.Error())
 		return
 	}
 
@@ -325,7 +404,16 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusOK, oauthSuccessAuthMessage)
 }
 
-// SetCSRFCookieHandler generates a CSRF token and sets it as a cookie.
+// SetCSRFCookieHandler генерирует и устанавливает CSRF токен
+//
+//	@Summary		Получить CSRF токен
+//	@Tags			Auth
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Success		200	{string}	string				"OK"
+//	@Failure		401	{object}	api.ErrorResponse	"User not authorized"
+//	@Failure		500	{object}	api.ErrorResponse	"Cannot create CSRF token"
+//	@Router			/api/csrf [get]
 func (a *Auth) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -336,7 +424,7 @@ func (a *Auth) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := cookie.Value
 
-	expireTime := a.csrf.GetExpireTime()
+	expireTime := a.csrf.GetExpireTime(r.Context())
 
 	token, err := a.csrf.Generate(r.Context(), sessionID, expireTime.Unix())
 	if err != nil {

@@ -156,11 +156,10 @@ func (u *User) GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 	return userLink, nil
 }
 
-func (u *User) RessetPassword(ctx context.Context, updatedPassword domain.UpdatedPassoword) error {
+func (u *User) ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error {
 	req := &pb.ResetPasswordRequest{
-		UserLink:         updatedPassword.UserLink.String(),
-		Password:         updatedPassword.Password,
-		RepeatedPassword: updatedPassword.RepeatedPassword,
+		UserLink: updatedPassword.UserLink.String(),
+		Password: updatedPassword.Password,
 	}
 
 	_, err := u.client.ResetPassword(ctx, req)

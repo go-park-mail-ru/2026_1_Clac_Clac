@@ -132,16 +132,16 @@ func (_m *UserClient) ProcessUserWithVK(ctx context.Context, accessToken string,
 	return r0, r1
 }
 
-// RessetPassword provides a mock function with given fields: ctx, updatedPassword
-func (_m *UserClient) RessetPassword(ctx context.Context, updatedPassword domain.UpdatedPassoword) error {
+// ResetPassword provides a mock function with given fields: ctx, updatedPassword
+func (_m *UserClient) ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error {
 	ret := _m.Called(ctx, updatedPassword)
 
 	if len(ret) == 0 {
-		panic("no return value specified for RessetPassword")
+		panic("no return value specified for ResetPassword")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdatedPassoword) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdatedPassword) error); ok {
 		r0 = rf(ctx, updatedPassword)
 	} else {
 		r0 = ret.Error(0)

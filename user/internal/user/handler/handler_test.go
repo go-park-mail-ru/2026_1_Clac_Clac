@@ -204,9 +204,8 @@ func TestResetPassword(t *testing.T) {
 		}).Return(nil)
 
 		resp, err := newHandler(m).ResetPassword(context.Background(), &pb.ResetPasswordRequest{
-			UserLink:         fixedUUID.String(),
-			Password:         "newpassword1",
-			RepeatedPassword: "newpassword1",
+			UserLink: fixedUUID.String(),
+			Password: "newpassword1",
 		})
 
 		assert.NoError(t, err)

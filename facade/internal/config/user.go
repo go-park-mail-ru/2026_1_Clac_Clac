@@ -8,10 +8,11 @@ const (
 )
 
 type UserHandler struct {
-	SiganatureTypeBytes   int   `mapstructure:"signature_type_bytes"`
-	MaxReadBytes          int64 `mapstructure:"max_read_bytes"`
-	MaxLenNameUser        int   `mapstructure:"max_len_name_user"`
-	MaxLenDescriptionUser int   `mapstructure:"max_len_description_user"`
+	SiganatureTypeBytes   int                 `mapstructure:"signature_type_bytes"`
+	MaxReadBytes          int64               `mapstructure:"max_read_bytes"`
+	MaxLenNameUser        int                 `mapstructure:"max_len_name_user"`
+	MaxLenDescriptionUser int                 `mapstructure:"max_len_description_user"`
+	ValidExtensions       map[string]struct{} `mapstructure:"valid_extensions"`
 }
 
 type UserClient struct {
@@ -30,6 +31,7 @@ func DefaultUserConfig() User {
 			MaxReadBytes:          profileConfigDefaultMaxReadBytes,
 			MaxLenNameUser:        profileConfigDefaultMaxLenNameUser,
 			MaxLenDescriptionUser: profileConfigDefaultMaxLenDescriptionUser,
+			ValidExtensions:       DefaultValidExtensions(),
 		},
 		Client: UserClient{
 			ClientConfig: DefaultClientConfig(),
@@ -39,8 +41,9 @@ func DefaultUserConfig() User {
 
 func DefaultValidExtensions() map[string]struct{} {
 	return map[string]struct{}{
-		"image/jpeg": {},
 		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg":  {},
 		"image/webp": {},
 	}
 }

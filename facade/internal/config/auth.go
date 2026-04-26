@@ -1,12 +1,17 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 const (
-	authConfigDefaultMaxLenPassword   = 128
-	authConfigDefaultMinLenPassword   = 8
-	authConfigSessionLifeTime         = 24 * time.Hour
+	authConfigDefaultMaxLenPassword    = 128
+	authConfigDefaultMinLenPassword    = 8
+	authConfigSessionLifeTime          = 24 * time.Hour
 	authConfigDefaultVKOAuthRedirectTo = "/"
+	vkOAuthDefaultValue                = ""
 )
 
 type HandlerAuth struct {
@@ -37,4 +42,10 @@ func DefaultAuthConfig() Auth {
 			ClientConfig: DefaultClientConfig(),
 		},
 	}
+}
+
+func SetupEnvAuth(v *viper.Viper) {
+	v.SetDefault("services.auth.handler.vk_oauth_redirect_to", vkOAuthDefaultValue)
+
+	v.RegisterAlias("services.auth.handler.vk_oauth_redirect_to", "services_auth_handler_vk_oauth_redirect_to")
 }

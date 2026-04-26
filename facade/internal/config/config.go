@@ -9,11 +9,10 @@ import (
 )
 
 type Config struct {
-	App          Application   `mapstructure:"app"`
-	Engine       engine.Config `mapstructure:"engine"`
-	CORS         CORS          `mapstructure:"cors"`
-	CSRF         CSRF          `mapstructure:"csrf"`
-	RateLimiters RateLimiters  `mapstructure:"rate_limiters"`
+	App    Application   `mapstructure:"app"`
+	Engine engine.Config `mapstructure:"engine"`
+	CORS   CORS          `mapstructure:"cors"`
+	CSRF   CSRF          `mapstructure:"csrf"`
 
 	Services Services `mapstructure:"services"`
 }
@@ -47,6 +46,8 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
+	SetupEnvCORS(v)
+	SetupEnvAuth(v)
 	SetupEnvCSRFConfig(v)
 
 	return v, nil
