@@ -195,7 +195,7 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 //	@Security		csrfToken
 //	@Accept			multipart/form-data
 //	@Produce		json
-//	@Param			avatar	formData	file	true	"Файл изображения (jpeg/png/webp)"
+//	@Param			avatar	formData	file	true	"Файл изображения (jpg/jpeg/png/webp)"
 //	@Success		200		{object}	dto.AvatarResponse
 //	@Failure		400		{object}	api.ErrorResponse	"avatar file too large or invalid"
 //	@Failure		401		{object}	api.ErrorResponse	"unauthorized"
