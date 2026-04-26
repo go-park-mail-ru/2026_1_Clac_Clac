@@ -54,6 +54,8 @@ type NewPasswordRequest struct {
 	RepeatedPassword string `json:"repeated_password" example:"new_password_123"`
 }
 
+// RateLimitConfig содержит настройки для лимитера запросов.
+// Эта структура используется только внутри сервера (мидлвари) и не отдается наружу в API.
 type RateLimitConfig struct {
 	Limit  int64
 	Action string
