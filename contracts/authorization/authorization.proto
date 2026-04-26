@@ -17,6 +17,9 @@ service AuthService {
 
     // Продлить время жизни сессии
     rpc ExtendSession(ExtendSessionRequest) returns (ExtendSessionResponse);
+
+    // Обменивает VK OAuth code на access_token и email пользователя
+    rpc ExchangeVKCode(ExchangeVKCodeRequest) returns (ExchangeVKCodeResponse);
 }
 
 message ExtendSessionRequest {
@@ -45,3 +48,12 @@ message DeleteSessionRequest {
 }
 
 message DeleteSessionResponse {}
+
+message ExchangeVKCodeRequest {
+    string code = 1;
+}
+
+message ExchangeVKCodeResponse {
+    string access_token = 1;
+    string email = 2;
+}

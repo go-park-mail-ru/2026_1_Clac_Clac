@@ -7,6 +7,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/common"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -16,6 +18,9 @@ const (
 
 	msgErrorParseUserLink  = "can not parse to uuid user link"
 	msgDoesNotExistSession = "session does not exist"
+
+	msgVKExchangeFailed    = "vk oauth exchange failed"
+	msgVKNoEmailProvided   = "vk oauth: no email in token"
 )
 
 type AuthService interface {
@@ -25,14 +30,20 @@ type AuthService interface {
 	ExtendSession(ctx context.Context, sessionID string) error
 }
 
+type VkOAuth interface {
+	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
+}
+
 type Handler struct {
-	srv AuthService
+	srv     AuthService
+	vkOAuth VkOAuth
 	pb.UnimplementedAuthServiceServer
 }
 
-func NewHandler(srv AuthService) *Handler {
+func NewHandler(srv AuthService, vkOAuth VkOAuth) *Handler {
 	return &Handler{
-		srv: srv,
+		srv:     srv,
+		vkOAuth: vkOAuth,
 	}
 }
 
@@ -87,4 +98,29 @@ func (h *Handler) ExtendSession(ctx context.Context, req *pb.ExtendSessionReques
 	}
 
 	return &pb.ExtendSessionResponse{}, nil
+}
+
+func (h *Handler) ExchangeVKCode(ctx context.Context, req *pb.ExchangeVKCodeRequest) (*pb.ExchangeVKCodeResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	token, err := h.vkOAuth.Exchange(ctx, req.Code)
+	if err != nil {
+		logger.Err(err).Msg("vk oauth exchange failed")
+		return nil, status.Error(codes.Unavailable, msgVKExchangeFailed)
+	}
+
+	rawEmail := token.Extra("email")
+	if rawEmail == nil {
+		return nil, status.Error(codes.Unavailable, msgVKNoEmailProvided)
+	}
+
+	email, ok := rawEmail.(string)
+	if !ok || email == "" {
+		return nil, status.Error(codes.Unavailable, msgVKNoEmailProvided)
+	}
+
+	return &pb.ExchangeVKCodeResponse{
+		AccessToken: token.AccessToken,
+		Email:       email,
+	}, nil
 }

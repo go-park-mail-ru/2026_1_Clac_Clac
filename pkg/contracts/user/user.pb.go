@@ -506,13 +506,12 @@ func (x *UserResponse) GetAvatar() string {
 }
 
 type CreateRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	DisplayName      string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Password         string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	RepeatedPassword string                 `protobuf:"bytes,3,opt,name=repeated_password,json=repeatedPassword,proto3" json:"repeated_password,omitempty"`
-	Email            string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DisplayName   string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateRequest) Reset() {
@@ -555,13 +554,6 @@ func (x *CreateRequest) GetDisplayName() string {
 func (x *CreateRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
-	}
-	return ""
-}
-
-func (x *CreateRequest) GetRepeatedPassword() string {
-	if x != nil {
-		return x.RepeatedPassword
 	}
 	return ""
 }
@@ -759,7 +751,8 @@ func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
 
 type ProcessUserVKRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -794,9 +787,16 @@ func (*ProcessUserVKRequest) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *ProcessUserVKRequest) GetCode() string {
+func (x *ProcessUserVKRequest) GetAccessToken() string {
 	if x != nil {
-		return x.Code
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *ProcessUserVKRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
 	}
 	return ""
 }
@@ -880,11 +880,10 @@ const file_contracts_user_user_proto_rawDesc = "" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x16\n" +
-	"\x06avatar\x18\x04 \x01(\tR\x06avatar\"\x91\x01\n" +
+	"\x06avatar\x18\x04 \x01(\tR\x06avatar\"d\n" +
 	"\rCreateRequest\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\x12+\n" +
-	"\x11repeated_password\x18\x03 \x01(\tR\x10repeatedPassword\x12\x14\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\"*\n" +
 	"\x12GetUserLinkRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"2\n" +
@@ -894,9 +893,10 @@ const file_contracts_user_user_proto_rawDesc = "" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\x12+\n" +
 	"\x11repeated_password\x18\x02 \x01(\tR\x10repeatedPassword\x12\x1b\n" +
 	"\tuser_link\x18\x03 \x01(\tR\buserLink\"\x17\n" +
-	"\x15ResetPasswordResponse\"*\n" +
-	"\x14ProcessUserVKRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\"4\n" +
+	"\x15ResetPasswordResponse\"O\n" +
+	"\x14ProcessUserVKRequest\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"4\n" +
 	"\x15ProcessUserVKResponse\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink2\xdf\x04\n" +
 	"\vUserService\x12:\n" +

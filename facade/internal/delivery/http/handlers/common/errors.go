@@ -1,0 +1,26 @@
+package common
+
+import "errors"
+
+var (
+	ErrInvalidRequestSchema   = errors.New("invalid schema")
+	ErrInvalidEmailOrPassword = errors.New("invalid email or password")
+	ErrWrongEmailOrPassword   = errors.New("wrong email or password")
+	ErrCannotSendRecoveryCode = errors.New("cannot send recovery code")
+	ErrCannotResetPassword    = errors.New("cannot reset password")
+	ErrInternalServerError    = errors.New("something went wrong")
+	ErrUserNotAuthorized      = errors.New("user not authorized")
+	ErrUserDoesNotExists      = errors.New("user does not exists")
+
+	ErrOAuthCodeEmpty              = errors.New("oauth_code_empty")
+	ErrOAuthExchangeFailed         = errors.New("oauth_error")
+	ErrOAuthNoEmailProvided        = errors.New("oauth_no_email")
+	ErrOAuthInvalidEmail           = errors.New("oauth_invalid_email")
+	ErrOAuthCannotRequestUserData  = errors.New("oauth_cannot_request_user_data")
+	ErrOAuthEmptyUserData          = errors.New("oauth_no_user_data")
+	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
+	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
+
+	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
+	ErrCannotGetCSRFTokenExpireTime = errors.New("cannot get csrf token expire time")
+)

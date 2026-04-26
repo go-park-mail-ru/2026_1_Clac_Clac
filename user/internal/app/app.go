@@ -14,7 +14,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
-	"golang.org/x/oauth2"
 )
 
 type App struct {
@@ -38,9 +37,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	manager := setupManager(store, conf)
 
-	vkOAuth := setupVKOAuth(&conf.VkOAuth)
-	delivery := setupDelivery(manager, conf, vkOAuth)
-
+	delivery := setupDelivery(manager, conf)
 	delivery.Register(engine.Server)
 
 	return &App{
@@ -152,10 +149,6 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
 }
 
-func setupDelivery(m *Manager, conf *config.Config, vkOAuth *oauth2.Config) *Delivery {
-	return NewDelivery(m, conf, vkOAuth)
-}
-
-func setupVKOAuth(conf *config.VkOAuth) *oauth2.Config {
-	return NewVKOAuth(conf)
+func setupDelivery(m *Manager, conf *config.Config) *Delivery {
+	return NewDelivery(m, conf)
 }

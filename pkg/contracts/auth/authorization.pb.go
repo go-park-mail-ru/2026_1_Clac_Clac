@@ -357,6 +357,102 @@ func (*DeleteSessionResponse) Descriptor() ([]byte, []int) {
 	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{7}
 }
 
+type ExchangeVKCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeVKCodeRequest) Reset() {
+	*x = ExchangeVKCodeRequest{}
+	mi := &file_contracts_authorization_authorization_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeVKCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeVKCodeRequest) ProtoMessage() {}
+
+func (x *ExchangeVKCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_contracts_authorization_authorization_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeVKCodeRequest.ProtoReflect.Descriptor instead.
+func (*ExchangeVKCodeRequest) Descriptor() ([]byte, []int) {
+	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ExchangeVKCodeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type ExchangeVKCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExchangeVKCodeResponse) Reset() {
+	*x = ExchangeVKCodeResponse{}
+	mi := &file_contracts_authorization_authorization_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExchangeVKCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExchangeVKCodeResponse) ProtoMessage() {}
+
+func (x *ExchangeVKCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_contracts_authorization_authorization_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExchangeVKCodeResponse.ProtoReflect.Descriptor instead.
+func (*ExchangeVKCodeResponse) Descriptor() ([]byte, []int) {
+	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ExchangeVKCodeResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *ExchangeVKCodeResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
 var File_contracts_authorization_authorization_proto protoreflect.FileDescriptor
 
 const file_contracts_authorization_authorization_proto_rawDesc = "" +
@@ -379,12 +475,18 @@ const file_contracts_authorization_authorization_proto_rawDesc = "" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15DeleteSessionResponse2\xaf\x02\n" +
+	"\x15DeleteSessionResponse\"+\n" +
+	"\x15ExchangeVKCodeRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"Q\n" +
+	"\x16ExchangeVKCodeResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email2\xfc\x02\n" +
 	"\vAuthService\x12H\n" +
 	"\rCreateSession\x12\x1a.auth.CreateSessionRequest\x1a\x1b.auth.CreateSessionResponse\x12B\n" +
 	"\vGetUserLink\x12\x18.auth.GetUserLinkRequest\x1a\x19.auth.GetUserLinkResponse\x12H\n" +
 	"\rDeleteSession\x12\x1a.auth.DeleteSessionRequest\x1a\x1b.auth.DeleteSessionResponse\x12H\n" +
-	"\rExtendSession\x12\x1a.auth.ExtendSessionRequest\x1a\x1b.auth.ExtendSessionResponseB\x1bZ\x19./pkg/contracts/auth;authb\x06proto3"
+	"\rExtendSession\x12\x1a.auth.ExtendSessionRequest\x1a\x1b.auth.ExtendSessionResponse\x12K\n" +
+	"\x0eExchangeVKCode\x12\x1b.auth.ExchangeVKCodeRequest\x1a\x1c.auth.ExchangeVKCodeResponseB\x1bZ\x19./pkg/contracts/auth;authb\x06proto3"
 
 var (
 	file_contracts_authorization_authorization_proto_rawDescOnce sync.Once
@@ -398,28 +500,32 @@ func file_contracts_authorization_authorization_proto_rawDescGZIP() []byte {
 	return file_contracts_authorization_authorization_proto_rawDescData
 }
 
-var file_contracts_authorization_authorization_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_contracts_authorization_authorization_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_contracts_authorization_authorization_proto_goTypes = []any{
-	(*ExtendSessionRequest)(nil),  // 0: auth.ExtendSessionRequest
-	(*ExtendSessionResponse)(nil), // 1: auth.ExtendSessionResponse
-	(*CreateSessionRequest)(nil),  // 2: auth.CreateSessionRequest
-	(*CreateSessionResponse)(nil), // 3: auth.CreateSessionResponse
-	(*GetUserLinkRequest)(nil),    // 4: auth.GetUserLinkRequest
-	(*GetUserLinkResponse)(nil),   // 5: auth.GetUserLinkResponse
-	(*DeleteSessionRequest)(nil),  // 6: auth.DeleteSessionRequest
-	(*DeleteSessionResponse)(nil), // 7: auth.DeleteSessionResponse
+	(*ExtendSessionRequest)(nil),   // 0: auth.ExtendSessionRequest
+	(*ExtendSessionResponse)(nil),  // 1: auth.ExtendSessionResponse
+	(*CreateSessionRequest)(nil),   // 2: auth.CreateSessionRequest
+	(*CreateSessionResponse)(nil),  // 3: auth.CreateSessionResponse
+	(*GetUserLinkRequest)(nil),     // 4: auth.GetUserLinkRequest
+	(*GetUserLinkResponse)(nil),    // 5: auth.GetUserLinkResponse
+	(*DeleteSessionRequest)(nil),   // 6: auth.DeleteSessionRequest
+	(*DeleteSessionResponse)(nil),  // 7: auth.DeleteSessionResponse
+	(*ExchangeVKCodeRequest)(nil),  // 8: auth.ExchangeVKCodeRequest
+	(*ExchangeVKCodeResponse)(nil), // 9: auth.ExchangeVKCodeResponse
 }
 var file_contracts_authorization_authorization_proto_depIdxs = []int32{
 	2, // 0: auth.AuthService.CreateSession:input_type -> auth.CreateSessionRequest
 	4, // 1: auth.AuthService.GetUserLink:input_type -> auth.GetUserLinkRequest
 	6, // 2: auth.AuthService.DeleteSession:input_type -> auth.DeleteSessionRequest
 	0, // 3: auth.AuthService.ExtendSession:input_type -> auth.ExtendSessionRequest
-	3, // 4: auth.AuthService.CreateSession:output_type -> auth.CreateSessionResponse
-	5, // 5: auth.AuthService.GetUserLink:output_type -> auth.GetUserLinkResponse
-	7, // 6: auth.AuthService.DeleteSession:output_type -> auth.DeleteSessionResponse
-	1, // 7: auth.AuthService.ExtendSession:output_type -> auth.ExtendSessionResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	8, // 4: auth.AuthService.ExchangeVKCode:input_type -> auth.ExchangeVKCodeRequest
+	3, // 5: auth.AuthService.CreateSession:output_type -> auth.CreateSessionResponse
+	5, // 6: auth.AuthService.GetUserLink:output_type -> auth.GetUserLinkResponse
+	7, // 7: auth.AuthService.DeleteSession:output_type -> auth.DeleteSessionResponse
+	1, // 8: auth.AuthService.ExtendSession:output_type -> auth.ExtendSessionResponse
+	9, // 9: auth.AuthService.ExchangeVKCode:output_type -> auth.ExchangeVKCodeResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -436,7 +542,7 @@ func file_contracts_authorization_authorization_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_contracts_authorization_authorization_proto_rawDesc), len(file_contracts_authorization_authorization_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -15,8 +15,6 @@ type Config struct {
 	DBConnection DatabaseConnection `mapstructure:"database"`
 	S3           S3                 `mapstructure:"s3"`
 	S3Avatars    S3Avatars          `mapstructure:"s3_avatars"`
-
-	User User `mapstructure:"user"`
 }
 
 func DefaultConfig() Config {
@@ -27,8 +25,6 @@ func DefaultConfig() Config {
 		DBConnection: DefaultDBConnectionConfog(),
 		S3Avatars:    DefaultS3AvatarsConfig(),
 		S3:           DefaultS3Config(),
-
-		User: DefaultUserConfig(),
 	}
 }
 

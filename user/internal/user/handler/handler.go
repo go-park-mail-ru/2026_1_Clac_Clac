@@ -3,11 +3,11 @@ package handler
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
+
+	"encoding/json"
 
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/user"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/api"
@@ -15,40 +15,28 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service/dto"
 	"github.com/google/uuid"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog"
-	"golang.org/x/oauth2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const (
-	oauthEmailKey = "email"
-
 	msgInternalError = "something went wrong"
-	msgInvalidInput  = "invalid input parameters"
 
-	msgInvalidEmailOrPassword  = "invalid email or password"
-	msgWrongEmailOrPassword    = "wrong email or password"
-	msgInvalidNewPassword      = "invalid password or repeated password"
-	msgResetTokenDoesNotExists = "reset token does not exist"
-	msgUserDoesNotExists       = "user does not exist"
-	msgEmailDoesNotExists      = "user with this email does not exist"
-	msgUserAlreadyExists       = "user already exists"
-	msgNullInNotNullField      = "put null value in not null field"
+	msgWrongEmailOrPassword = "wrong email or password"
+	msgUserDoesNotExists    = "user does not exist"
+	msgEmailDoesNotExists   = "user with this email does not exist"
+	msgUserAlreadyExists    = "user already exists"
+	msgNullInNotNullField   = "put null value in not null field"
 
-	msgOAuthNoEmailProvided       = "oauth_no_email"
-	msgOAuthInvalidEmail          = "oauth_invalid_email"
 	msgOAuthCannotRequestUserData = "oauth_cannot_request_user_data"
 	msgOAuthEmptyUserData         = "oauth_no_user_data"
 
-	msgFailParseUserLink   = "user link can not convert to uuid"
-	msgTooLargeAvatar      = "size avatar too large"
-	msgEmptyFile           = "empty file provided"
-	msgIncorrectTypeAvatar = "avatar can be only jpeg/png/jpg/webp"
-	msgFailFoundUser       = "user not found"
-	msgFailNullValue       = "get null, but wait not null"
-	msgInvalidProfileData  = "invalid profile data"
+	msgFailParseUserLink  = "user link can not convert to uuid"
+	msgEmptyFile         = "empty file provided"
+	msgFailFoundUser     = "user not found"
+	msgFailNullValue     = "get null, but wait not null"
+	msgInvalidProfileData = "invalid profile data"
 )
 
 type AuthService interface {
@@ -64,48 +52,31 @@ type AuthService interface {
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
 }
 
-type VkOAuth interface {
-	Exchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
-	Client(ctx context.Context, t *oauth2.Token) *http.Client
+type HTTPClient interface {
+	Get(url string) (*http.Response, error)
 }
 
 type Config struct {
-	MaxLenPassword int
-	MinLenPassword int
-
-	ValidExtensions       map[string]struct{}
-	SignatureTypeBytes    int
-	MaxLenNameUser        int
-	MaxLenDescriptionUser int
-	MaxReadBytes          int64
-
 	APIMethod string
 }
 
 type Handler struct {
-	srv       AuthService
-	cfg       Config
-	vkOAuth   VkOAuth
-	sanitizer *bluemonday.Policy
+	srv        AuthService
+	cfg        Config
+	httpClient HTTPClient
 	pb.UnimplementedUserServiceServer
 }
 
-func NewHandler(srv AuthService, cfg Config, vkOAuth VkOAuth) *Handler {
+func NewHandler(srv AuthService, cfg Config, httpClient HTTPClient) *Handler {
 	return &Handler{
-		srv:       srv,
-		cfg:       cfg,
-		sanitizer: bluemonday.StrictPolicy(),
-		vkOAuth:   vkOAuth,
+		srv:        srv,
+		cfg:        cfg,
+		httpClient: httpClient,
 	}
 }
 
 func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
-
-	err := ValidatorRequestAuth(req.Email, req.Password, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgInvalidEmailOrPassword)
-	}
 
 	serviceUser, err := h.srv.GetUser(ctx, serviceDto.GetUserInfo{
 		Email:    req.Email,
@@ -115,8 +86,7 @@ func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User
 		if errors.Is(err, service.ErrorWrongPassword) {
 			return nil, status.Error(codes.InvalidArgument, msgWrongEmailOrPassword)
 		}
-
-		logger.Err(fmt.Errorf("auth.Login: %w", err)).Msg("auth handler log in user")
+		logger.Err(fmt.Errorf("GetUser: %w", err)).Msg("login user")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -131,34 +101,19 @@ func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User
 func (h *Handler) CreateUser(ctx context.Context, req *pb.CreateRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	sanitizedUser := serviceDto.EntityUser{
-		DisplayName: req.DisplayName,
-		Password:    req.Password,
-		Email:       req.Email,
-	}
-
-	sanitizedUser.Sanitize(h.sanitizer)
-
-	err := ValidatorWithCheckPassword(sanitizedUser.Email, req.Password, req.RepeatedPassword, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgInvalidEmailOrPassword)
-	}
-
 	serviceUser, err := h.srv.CreateUser(ctx, serviceDto.EntityUser{
-		DisplayName: sanitizedUser.DisplayName,
-		Email:       sanitizedUser.Email,
+		DisplayName: req.DisplayName,
+		Email:       req.Email,
 		Password:    req.Password,
 	})
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.Register: %w", err)).Msg("register user")
-
+		logger.Err(fmt.Errorf("CreateUser: %w", err)).Msg("register user")
 		if errors.Is(err, common.ErrorExistingUser) {
 			return nil, status.Error(codes.AlreadyExists, msgUserAlreadyExists)
 		}
 		if errors.Is(err, common.ErrorNotNullValue) {
 			return nil, status.Error(codes.InvalidArgument, msgNullInNotNullField)
 		}
-
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -179,79 +134,47 @@ func (h *Handler) GetUserLink(ctx context.Context, req *pb.GetUserLinkRequest) (
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
-	return &pb.GetUserLinkResponse{
-		UserLink: userLink,
-	}, nil
+	return &pb.GetUserLinkResponse{UserLink: userLink}, nil
 }
 
 func (h *Handler) ResetPassword(ctx context.Context, req *pb.ResetPasswordRequest) (*pb.ResetPasswordResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	err := ValidatorRequestNewPassword(req.Password, req.RepeatedPassword, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgInvalidNewPassword)
-	}
-
-	err = h.srv.ResetPassword(ctx, serviceDto.ResetPasswordInfo{
+	err := h.srv.ResetPassword(ctx, serviceDto.ResetPasswordInfo{
 		UserLink:    req.UserLink,
 		NewPassword: req.Password,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("auth.ResetPassword failed")
-
+		logger.Error().Err(err).Msg("ResetPassword failed")
 		if errors.Is(err, common.ErrorNotNullValue) {
 			return nil, status.Error(codes.InvalidArgument, msgNullInNotNullField)
 		}
-
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgUserDoesNotExists)
 		}
-
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
 	return &pb.ResetPasswordResponse{}, nil
 }
 
-func (h *Handler) ProcessUserVK(ctx context.Context, req *pb.ProcessUserVKRequest) (*pb.ProcessUserVKResponse, error) {
+func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRequest) (*pb.ProcessUserVKResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	token, err := h.vkOAuth.Exchange(ctx, req.Code)
+	res, err := h.httpClient.Get(fmt.Sprintf(h.cfg.APIMethod, req.AccessToken))
 	if err != nil {
-		logger.Err(err).Msg("vk oauth exchange failed")
-		return nil, status.Error(codes.Unavailable, "vk oauth exchange")
-	}
-
-	rawEmail := token.Extra(oauthEmailKey)
-	if rawEmail == nil {
-		return nil, status.Error(codes.Unavailable, msgOAuthNoEmailProvided)
-	}
-
-	userEmail, ok := rawEmail.(string)
-	if !ok {
-		return nil, status.Error(codes.Unavailable, msgOAuthNoEmailProvided)
-	}
-
-	if !ValidateEmail(userEmail) {
-		return nil, status.Error(codes.Unavailable, msgOAuthInvalidEmail)
-	}
-
-	client := h.vkOAuth.Client(ctx, token)
-	res, err := client.Get(fmt.Sprintf(h.cfg.APIMethod, token.AccessToken))
-	if err != nil {
-		logger.Err(err).Msg("vk api cannot request data")
+		logger.Err(err).Msg("vk api request failed")
 		return nil, status.Error(codes.Unavailable, msgOAuthCannotRequestUserData)
 	}
-
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			logger.Err(err).Msg("close response body")
+			logger.Err(err).Msg("close vk api response body")
 		}
 	}()
 
 	usersData := &api.VkAPIUsersData{}
 	if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
-		logger.Err(err).Msg("vk api cannot read response body")
+		logger.Err(err).Msg("vk api decode response")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -260,20 +183,16 @@ func (h *Handler) ProcessUserVK(ctx context.Context, req *pb.ProcessUserVKReques
 		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
 	}
 
-	userData := usersData.Response[0]
-
 	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.EntityUser{
-		DisplayName: userData.FirstName,
-		Email:       userEmail,
+		DisplayName: usersData.Response[0].FirstName,
+		Email:       req.Email,
 	})
 	if err != nil {
-		logger.Err(err).Msg("authService.EnsureUserByEmail")
+		logger.Err(err).Msg("EnsureUserByEmail failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
-	return &pb.ProcessUserVKResponse{
-		UserLink: userLink,
-	}, nil
+	return &pb.ProcessUserVKResponse{UserLink: userLink}, nil
 }
 
 func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.ProfileResponse, error) {
@@ -287,7 +206,6 @@ func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgFailFoundUser)
 		}
-
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -306,21 +224,10 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *pb.UpdateProfileReques
 		return nil, status.Error(codes.InvalidArgument, msgFailParseUserLink)
 	}
 
-	cleanDisplayName := h.sanitizer.Sanitize(strings.TrimSpace(req.DisplayName))
-	cleanDescription := h.sanitizer.Sanitize(strings.TrimSpace(req.Description))
-
-	if err = common.ValidateTextInfo(cleanDisplayName, h.cfg.MaxLenNameUser); err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
-	}
-
-	if err = common.ValidateTextInfo(cleanDescription, h.cfg.MaxLenDescriptionUser); err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
-	}
-
 	err = h.srv.UpdateProfile(ctx, serviceDto.UpdatedUserInfo{
 		Link:        parseUserLink,
-		DisplayName: cleanDisplayName,
-		Description: cleanDescription,
+		DisplayName: req.DisplayName,
+		Description: req.Description,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorMissingRequiredField) {
@@ -329,7 +236,6 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *pb.UpdateProfileReques
 		if errors.Is(err, common.ErrorInvalidProfileData) {
 			return nil, status.Error(codes.InvalidArgument, msgInvalidProfileData)
 		}
-
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -348,43 +254,20 @@ func (h *Handler) UpdateAvatar(ctx context.Context, req *pb.UpdateAvatarRequest)
 		return nil, status.Error(codes.InvalidArgument, msgEmptyFile)
 	}
 
-	if int64(len(req.FileData)) > h.cfg.MaxReadBytes {
-		logger.Error().
-			Int("size", len(req.FileData)).
-			Int64("max_size", h.cfg.MaxReadBytes).
-			Msg("avatar file is too large")
-		return nil, status.Error(codes.InvalidArgument, msgTooLargeAvatar)
-	}
-
-	signatureSize := h.cfg.SignatureTypeBytes
-	if len(req.FileData) < signatureSize {
-		signatureSize = len(req.FileData)
-	}
-
-	mimeType := http.DetectContentType(req.FileData[:signatureSize])
-
-	if _, ok := h.cfg.ValidExtensions[mimeType]; !ok {
-		logger.Error().Str("mime_type", mimeType).Msg("incorrect avatar type")
-		return nil, status.Error(codes.InvalidArgument, msgIncorrectTypeAvatar)
-	}
-
 	avatarUrl, err := h.srv.UpdateAvatar(ctx, serviceDto.UpdatedAvatar{
 		UserLink: parseUserLink,
-		MimeType: mimeType,
+		MimeType: req.ContentType,
 		File:     bytes.NewReader(req.FileData),
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgFailFoundUser)
 		}
-
-		logger.Error().Err(err).Msg("failed to update avatar in service")
+		logger.Error().Err(err).Msg("UpdateAvatar failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
-	return &pb.AvatarResponse{
-		AvatarUrl: avatarUrl,
-	}, nil
+	return &pb.AvatarResponse{AvatarUrl: avatarUrl}, nil
 }
 
 func (h *Handler) DeleteAvatar(ctx context.Context, req *pb.UserLinkRequest) (*pb.DeleteAvatarResponse, error) {
@@ -400,7 +283,6 @@ func (h *Handler) DeleteAvatar(ctx context.Context, req *pb.UserLinkRequest) (*p
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgFailFoundUser)
 		}
-
 		logger.Error().Err(err).Msg("DeleteAvatar failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}

@@ -16,21 +16,21 @@ service RateLimiterService {
 message CheckRateLimitRequest {
     string user_ip   = 1;
     string action    = 2;
-    int64  window_ms = 3; // Размер окна в миллисекундах
-    int64  limit     = 4; // Максимальное число запросов в окне
+    int64  window_s = 3;
+    int64  limit     = 4;
 }
 
 message CheckRateLimitResponse {
-    bool exceeded = 1; // true — лимит превышен
+    bool exceeded = 1;
 }
 
 message SetCooldownRequest {
-    string name          = 1; // Название cooldown-а (например, "send_recovery_code")
-    string email         = 2; // Email пользователя
-    int64  expiration_ms = 3; // Время жизни cooldown-а в миллисекундах
+    string name          = 1;
+    string email         = 2;
+    int64  expiration_s = 3;
 }
 
 message SetCooldownResponse {
-    bool  allowed = 1; // true — действие разрешено (первый запрос в окне)
-    int64 wait_ms = 2; // Оставшееся время ожидания в миллисекундах (если не разрешено)
+    bool  allowed = 1;
+    int64 wait_s = 2;
 }

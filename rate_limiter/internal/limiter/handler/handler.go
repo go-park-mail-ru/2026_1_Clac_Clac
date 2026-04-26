@@ -32,14 +32,14 @@ func NewHandler(srv ServiceLimiter) *Handler {
 }
 
 func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequest) (*pb.CheckRateLimitResponse, error) {
-	if req.UserIp == "" || req.Action == "" || req.WindowMs <= 0 || req.Limit <= 0 {
+	if req.UserIp == "" || req.Action == "" || req.WindowS <= 0 || req.Limit <= 0 {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
 
 	exceeded, err := h.srv.CheckRateLimit(ctx, serviceDto.RateLimiterConfig{
 		UserIP: req.UserIp,
 		Action: req.Action,
-		Window: time.Duration(req.WindowMs) * time.Millisecond,
+		Window: time.Duration(req.WindowS) * time.Second,
 		Limit:  req.Limit,
 	})
 	if err != nil {
@@ -52,14 +52,14 @@ func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequ
 }
 
 func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (*pb.SetCooldownResponse, error) {
-	if req.Name == "" || req.Email == "" || req.ExpirationMs <= 0 {
+	if req.Name == "" || req.Email == "" || req.ExpirationS <= 0 {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
 
 	allowed, waitTime, err := h.srv.SetCooldown(ctx, serviceDto.CooldownConfig{
 		Name:       req.Name,
 		Email:      req.Email,
-		Expiration: time.Duration(req.ExpirationMs) * time.Millisecond,
+		Expiration: time.Duration(req.ExpirationS) * time.Second,
 	})
 	if err != nil {
 		return nil, status.Error(codes.Internal, msgInternalError)
@@ -67,6 +67,6 @@ func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (
 
 	return &pb.SetCooldownResponse{
 		Allowed: allowed,
-		WaitMs:  waitTime.Milliseconds(),
+		WaitS:   int64(waitTime.Seconds()),
 	}, nil
 }

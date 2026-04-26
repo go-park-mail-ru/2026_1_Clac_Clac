@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	App    Application   `mapstructure:"app"`
-	Engine engine.Config `mapstructure:"engine"`
-	CORS   CORS          `mapstructure:"cors"`
-	CSRF   CSRF          `mapstructure:"csrf"`
+	App          Application   `mapstructure:"app"`
+	Engine       engine.Config `mapstructure:"engine"`
+	CORS         CORS          `mapstructure:"cors"`
+	CSRF         CSRF          `mapstructure:"csrf"`
+	RateLimiters RateLimiters  `mapstructure:"rate_limiters"`
 
 	Services Services `mapstructure:"services"`
 }

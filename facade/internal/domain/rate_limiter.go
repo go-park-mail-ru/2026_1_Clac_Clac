@@ -1,10 +1,10 @@
 package domain
 
 type RateLimitCheck struct {
-	UserIp   string
-	Action   string
-	WindowMs int64
-	Limit    int64
+	UserIP  string
+	Action  string
+	WindowS int64
+	Limit   int64
 }
 
 type Cooldown struct {
@@ -15,5 +15,11 @@ type Cooldown struct {
 
 type CooldownResult struct {
 	Allowed bool
-	WaitMs  int64
+	WaitS   int64
+}
+
+type RateLimitConfig struct {
+	Limit   int64
+	Action  string
+	WindowS int64
 }

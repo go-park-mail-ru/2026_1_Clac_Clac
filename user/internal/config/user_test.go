@@ -10,8 +10,6 @@ func TestUserConfig(t *testing.T) {
 	t.Run("default config", func(t *testing.T) {
 		want := User{
 			Handler: UserHandler{
-				MaxLenPassword:        128,
-				MinLenPassword:        8,
 				SiganatureTypeBytes:   512,
 				MaxReadBytes:          5 << 20,
 				MaxLenNameUser:        128,

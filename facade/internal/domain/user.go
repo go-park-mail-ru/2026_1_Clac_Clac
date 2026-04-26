@@ -2,7 +2,7 @@ package domain
 
 import "github.com/google/uuid"
 
-type User struct {
+type FullInfoUser struct {
 	UserLink    uuid.UUID
 	Email       string
 	DisplayName string
@@ -29,14 +29,20 @@ type UpdatedPassoword struct {
 	RepeatedPassword string
 }
 
-type NewUser struct {
-	DisplayName      string
-	Email            string
-	Password         string
-	RepeatedPassword string
+type NewCredentialsUser struct {
+	DisplayName string
+	Email       string
+	Password    string
 }
 
-type EntryUserInfo struct {
+type Credentials struct {
 	Email    string
 	Password string
+}
+
+type UserInfo struct {
+	Link        uuid.UUID
+	DisplayName string
+	Email       string
+	Avatar      string
 }

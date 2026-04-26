@@ -1,19 +1,19 @@
 package config
 
 type Services struct {
-	MailSender    ClientConfig `mapstructure:"mail_sender"`
-	User          ClientConfig `mapstructure:"user"`
-	Authorization ClientConfig `mapstructure:"authorization"`
-	Board         ClientConfig `mapstructure:"board"`
-	RateLimiters  RateLimiters `mapstructure:"rate_limiters"`
+	MailSender   ClientConfig `mapstructure:"mail_sender"`
+	User         User         `mapstructure:"user"`
+	Auth         Auth         `mapstructure:"auth"`
+	Board        ClientConfig `mapstructure:"board"`
+	RateLimiters RateLimiters `mapstructure:"rate_limiters"`
 }
 
 func DefaultServicesConfig() Services {
 	return Services{
-		MailSender:    DefaultClientConfig(),
-		User:          DefaultClientConfig(),
-		Authorization: DefaultClientConfig(),
-		Board:         DefaultClientConfig(),
-		RateLimiters:  DefaultActionsRateLimiters(),
+		MailSender:   DefaultClientConfig(),
+		User:         DefaultUserConfig(),
+		Auth:         DefaultAuthConfig(),
+		Board:        DefaultClientConfig(),
+		RateLimiters: DefaultActionsRateLimiters(),
 	}
 }

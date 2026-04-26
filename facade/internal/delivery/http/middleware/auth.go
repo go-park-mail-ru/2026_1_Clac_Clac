@@ -3,42 +3,62 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"time"
 
-	authv1 "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
-
-	grpcclient "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/clients/grpc"
 )
 
-type contextKey string
+const (
+	SessiondIdKey = "session_id"
 
-const UserLinkKey contextKey = "user_link"
+	unauthorizedMessage = "unauthorized"
+)
 
-type AuthMiddleware struct {
-	auth   *grpcclient.AuthClient
-	logger *zerolog.Logger
+type UserContextLink struct{}
+
+// mockery --name=SessionCheker --output=mock_session_checker --outpkg=SessionCheker
+type SessionCheker interface {
+	CheckSession(ctx context.Context, sessionID string) (uuid.UUID, error)
+	RefreshSession(ctx context.Context, sessionID string) error
 }
 
-func NewAuthMiddleware(auth *grpcclient.AuthClient, logger *zerolog.Logger) *AuthMiddleware {
-	return &AuthMiddleware{auth: auth, logger: logger}
-}
+func AuthMiddleware(client SessionCheker, logger *zerolog.Logger, sessionLifeTime time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie(SessiondIdKey)
+			if err != nil {
+				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+				return
+			}
 
-func (m *AuthMiddleware) Handle(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session_id")
-		if err != nil {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
+			tokenID := cookie.Value
 
-		resp, err := m.auth.GetUserLink(r.Context(), &authv1.GetUserLinkRequest{SessionId: cookie.Value})
-		if err != nil {
-			m.logger.Warn().Err(err).Msg("auth.GetUserLink")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
+			userLink, err := client.CheckSession(r.Context(), tokenID)
+			if err != nil {
+				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+				return
+			}
 
-		ctx := context.WithValue(r.Context(), UserLinkKey, resp.UserLink)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			err = client.RefreshSession(r.Context(), cookie.Value)
+			if err != nil {
+				logger.Warn().Err(err).Msg("failed to refresh session")
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     SessiondIdKey,
+				Value:    tokenID,
+				Path:     "/",
+				Expires:  time.Now().Add(sessionLifeTime),
+				Secure:   true,
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+
+			ctx := context.WithValue(r.Context(), UserContextLink{}, userLink)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

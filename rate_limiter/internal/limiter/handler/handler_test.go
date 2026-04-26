@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/rate_limiter"
 	mockServiceLimiter "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/handler/mock_service_limiter"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/rate_limiter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
@@ -34,10 +34,10 @@ func TestHandlerCheckRateLimit(t *testing.T) {
 		{
 			nameTest: "Success not exceeded",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "login",
-				WindowMs: 60000,
-				Limit:    5,
+				UserIp:  "192.168.1.1",
+				Action:  "login",
+				WindowS: 60,
+				Limit:   5,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("CheckRateLimit", mock.Anything, serviceDto.RateLimiterConfig{
@@ -53,10 +53,10 @@ func TestHandlerCheckRateLimit(t *testing.T) {
 		{
 			nameTest: "Success exceeded",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "login",
-				WindowMs: 60000,
-				Limit:    5,
+				UserIp:  "192.168.1.1",
+				Action:  "login",
+				WindowS: 60,
+				Limit:   5,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("CheckRateLimit", mock.Anything, mock.Anything).Return(true, nil)
@@ -67,50 +67,49 @@ func TestHandlerCheckRateLimit(t *testing.T) {
 		{
 			nameTest: "Invalid input: empty user_ip",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "",
-				Action:   "login",
-				WindowMs: 60000,
-				Limit:    5,
+				UserIp:  "",
+				Action:  "login",
+				WindowS: 60,
+				Limit:   5,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Invalid input: empty action",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "",
-				WindowMs: 60000,
-				Limit:    5,
+				UserIp:  "192.168.1.1",
+				Action:  "",
+				WindowS: 60,
+				Limit:   5,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Invalid input: window_ms <= 0",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "login",
-				WindowMs: 0,
-				Limit:    5,
+				UserIp:  "192.168.1.1",
+				Action:  "login",
+				WindowS: 0, Limit: 5,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Invalid input: limit <= 0",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "login",
-				WindowMs: 60000,
-				Limit:    0,
+				UserIp:  "192.168.1.1",
+				Action:  "login",
+				WindowS: 60,
+				Limit:   0,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Service error",
 			req: &pb.CheckRateLimitRequest{
-				UserIp:   "192.168.1.1",
-				Action:   "login",
-				WindowMs: 60000,
-				Limit:    5,
+				UserIp:  "192.168.1.1",
+				Action:  "login",
+				WindowS: 60,
+				Limit:   5,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("CheckRateLimit", mock.Anything, mock.Anything).Return(false, errors.New("internal"))
@@ -144,9 +143,9 @@ func TestHandlerCheckRateLimit(t *testing.T) {
 
 func TestHandlerSetCooldown(t *testing.T) {
 	tests := []struct {
-		nameTest     string
-		req          *pb.SetCooldownRequest
-		mockBehavior func(m *mockServiceLimiter.ServiceLimiter)
+		nameTest        string
+		req             *pb.SetCooldownRequest
+		mockBehavior    func(m *mockServiceLimiter.ServiceLimiter)
 		expectedAllowed bool
 		expectedWaitMs  int64
 		expectedCode    codes.Code
@@ -154,9 +153,9 @@ func TestHandlerSetCooldown(t *testing.T) {
 		{
 			nameTest: "Success cooldown allowed",
 			req: &pb.SetCooldownRequest{
-				Name:         "login",
-				Email:        "test@mail.ru",
-				ExpirationMs: 60000,
+				Name:        "login",
+				Email:       "test@mail.ru",
+				ExpirationS: 60,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("SetCooldown", mock.Anything, serviceDto.CooldownConfig{
@@ -172,9 +171,9 @@ func TestHandlerSetCooldown(t *testing.T) {
 		{
 			nameTest: "Cooldown active",
 			req: &pb.SetCooldownRequest{
-				Name:         "login",
-				Email:        "test@mail.ru",
-				ExpirationMs: 60000,
+				Name:        "login",
+				Email:       "test@mail.ru",
+				ExpirationS: 60,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("SetCooldown", mock.Anything, mock.Anything).Return(false, 30*time.Second, nil)
@@ -186,36 +185,35 @@ func TestHandlerSetCooldown(t *testing.T) {
 		{
 			nameTest: "Invalid input: empty name",
 			req: &pb.SetCooldownRequest{
-				Name:         "",
-				Email:        "test@mail.ru",
-				ExpirationMs: 60000,
+				Name:        "",
+				Email:       "test@mail.ru",
+				ExpirationS: 60,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Invalid input: empty email",
 			req: &pb.SetCooldownRequest{
-				Name:         "login",
-				Email:        "",
-				ExpirationMs: 60000,
+				Name:        "login",
+				Email:       "",
+				ExpirationS: 60,
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Invalid input: expiration <= 0",
 			req: &pb.SetCooldownRequest{
-				Name:         "login",
-				Email:        "test@mail.ru",
-				ExpirationMs: 0,
-			},
+				Name:        "login",
+				Email:       "test@mail.ru",
+				ExpirationS: 0},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Service error",
 			req: &pb.SetCooldownRequest{
-				Name:         "login",
-				Email:        "test@mail.ru",
-				ExpirationMs: 60000,
+				Name:        "login",
+				Email:       "test@mail.ru",
+				ExpirationS: 60,
 			},
 			mockBehavior: func(m *mockServiceLimiter.ServiceLimiter) {
 				m.On("SetCooldown", mock.Anything, mock.Anything).Return(false, time.Duration(0), errors.New("internal"))
@@ -242,7 +240,7 @@ func TestHandlerSetCooldown(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expectedAllowed, resp.Allowed)
-				assert.Equal(t, test.expectedWaitMs, resp.WaitMs)
+				assert.Equal(t, test.expectedWaitMs, resp.WaitS)
 			}
 		})
 	}

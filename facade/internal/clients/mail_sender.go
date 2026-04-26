@@ -9,8 +9,6 @@ import (
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/mail_sender"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type MailSender struct {
@@ -23,17 +21,6 @@ func NewMailSenderClient(conn *grpc.ClientConn) *MailSender {
 	}
 }
 
-func convertMailSenderGRPCError(err error) error {
-	st, ok := status.FromError(err)
-	if !ok {
-		return err
-	}
-	if st.Code() == codes.NotFound {
-		return ErrResetTokenNotFound
-	}
-	return err
-}
-
 func (m *MailSender) SendRecoveryCode(ctx context.Context, recoveryInfo domain.RecoveryCode) error {
 	req := &pb.SendRecoveryCodeRequest{
 		Email:    recoveryInfo.Email,
@@ -42,7 +29,7 @@ func (m *MailSender) SendRecoveryCode(ctx context.Context, recoveryInfo domain.R
 
 	_, err := m.client.SendRecoveryCode(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.SendRecoveryCode: %w", convertMailSenderGRPCError(err))
+		return fmt.Errorf("client.SendRecoveryCode: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -55,7 +42,7 @@ func (m *MailSender) CheckRecoveryCode(ctx context.Context, check domain.Recover
 
 	_, err := m.client.CheckRecoveryCode(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.CheckRecoveryCode: %w", convertMailSenderGRPCError(err))
+		return fmt.Errorf("client.CheckRecoveryCode: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -68,7 +55,7 @@ func (m *MailSender) ExchangeTokenForUser(ctx context.Context, resetToken domain
 
 	resp, err := m.client.ExchangeTokenForUser(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("client.ExchangeTokenForUser: %w", convertMailSenderGRPCError(err))
+		return uuid.Nil, fmt.Errorf("client.ExchangeTokenForUser: %w", convertGRPCError(err))
 	}
 
 	userLink, err := uuid.Parse(resp.UserLink)

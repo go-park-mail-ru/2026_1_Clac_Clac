@@ -20,12 +20,3 @@ database:
   ping_sleep_time: 2s
   time_out: 5s
   max_retries: 5
-
-user:
-  handler:
-    max_len_password: 128
-    min_len_password: 8
-    signature_type_bytes: 512
-    max_read_bytes: 5242880
-    max_len_name_user: 128
-    max_len_description_user: 500

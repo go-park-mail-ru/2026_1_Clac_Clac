@@ -12,6 +12,7 @@ type Config struct {
 	App             Application     `mapstructure:"app"`
 	Engine          engine.Config   `mapstructure:"engine"`
 	RedisConnection RedisConnection `mapstructure:"redis"`
+	VkOAuth         VkOAuth         `mapstructure:"vk_oauth"`
 
 	Auth Auth `mapstructure:"auth"`
 }
@@ -21,6 +22,7 @@ func DefaultConfig() Config {
 		App:             DefaultApplicationConfig(),
 		Engine:          DefaultEngineConfig(),
 		RedisConnection: DefaultRedisConnection(),
+		VkOAuth:         DefaultVkOAuthConfig(),
 
 		Auth: DefaultAuthConfig(),
 	}
@@ -41,6 +43,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.AutomaticEnv()
 
 	SetupEnvRedisConnection(v)
+	SetupEnvVkOAuth(v)
 
 	return v, nil
 }

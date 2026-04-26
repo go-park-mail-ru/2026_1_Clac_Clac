@@ -11,6 +11,7 @@ import (
 	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+	"golang.org/x/oauth2"
 )
 
 type App struct {
@@ -21,7 +22,6 @@ type App struct {
 	Engine  *engine.Engine
 }
 
-// Создает приложение, настраивает его компоненты
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
@@ -34,7 +34,8 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	manager := setupManager(store, conf)
 
-	delivery := setupDelivery(manager, conf)
+	vkOAuth := NewVKOAuth(&conf.VkOAuth)
+	delivery := setupDelivery(manager, conf, vkOAuth)
 	delivery.Register(engine.Server)
 
 	return &App{
@@ -66,7 +67,6 @@ func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
 func setupLogger(conf *config.Application) *zerolog.Logger {
 	var loggerOutput io.Writer
 
-	// В зависимости от режима работы разные форматы вывода
 	if config.IsDebug(conf.LogLevel) {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
@@ -114,6 +114,6 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
 }
 
-func setupDelivery(m *Manager, conf *config.Config) *Delivery {
-	return NewDelivery(m, conf)
+func setupDelivery(m *Manager, conf *config.Config, vkOAuth *oauth2.Config) *Delivery {
+	return NewDelivery(m, conf, vkOAuth)
 }

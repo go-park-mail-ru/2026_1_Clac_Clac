@@ -25,8 +25,8 @@ type CheckRateLimitRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserIp        string                 `protobuf:"bytes,1,opt,name=user_ip,json=userIp,proto3" json:"user_ip,omitempty"`
 	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
-	WindowMs      int64                  `protobuf:"varint,3,opt,name=window_ms,json=windowMs,proto3" json:"window_ms,omitempty"` // Размер окна в миллисекундах
-	Limit         int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`                       // Максимальное число запросов в окне
+	WindowS       int64                  `protobuf:"varint,3,opt,name=window_s,json=windowS,proto3" json:"window_s,omitempty"`
+	Limit         int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -75,9 +75,9 @@ func (x *CheckRateLimitRequest) GetAction() string {
 	return ""
 }
 
-func (x *CheckRateLimitRequest) GetWindowMs() int64 {
+func (x *CheckRateLimitRequest) GetWindowS() int64 {
 	if x != nil {
-		return x.WindowMs
+		return x.WindowS
 	}
 	return 0
 }
@@ -91,7 +91,7 @@ func (x *CheckRateLimitRequest) GetLimit() int64 {
 
 type CheckRateLimitResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Exceeded      bool                   `protobuf:"varint,1,opt,name=exceeded,proto3" json:"exceeded,omitempty"` // true — лимит превышен
+	Exceeded      bool                   `protobuf:"varint,1,opt,name=exceeded,proto3" json:"exceeded,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -135,9 +135,9 @@ func (x *CheckRateLimitResponse) GetExceeded() bool {
 
 type SetCooldownRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                      // Название cooldown-а (например, "send_recovery_code")
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`                                    // Email пользователя
-	ExpirationMs  int64                  `protobuf:"varint,3,opt,name=expiration_ms,json=expirationMs,proto3" json:"expiration_ms,omitempty"` // Время жизни cooldown-а в миллисекундах
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	ExpirationS   int64                  `protobuf:"varint,3,opt,name=expiration_s,json=expirationS,proto3" json:"expiration_s,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -186,17 +186,17 @@ func (x *SetCooldownRequest) GetEmail() string {
 	return ""
 }
 
-func (x *SetCooldownRequest) GetExpirationMs() int64 {
+func (x *SetCooldownRequest) GetExpirationS() int64 {
 	if x != nil {
-		return x.ExpirationMs
+		return x.ExpirationS
 	}
 	return 0
 }
 
 type SetCooldownResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Allowed       bool                   `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`             // true — действие разрешено (первый запрос в окне)
-	WaitMs        int64                  `protobuf:"varint,2,opt,name=wait_ms,json=waitMs,proto3" json:"wait_ms,omitempty"` // Оставшееся время ожидания в миллисекундах (если не разрешено)
+	Allowed       bool                   `protobuf:"varint,1,opt,name=allowed,proto3" json:"allowed,omitempty"`
+	WaitS         int64                  `protobuf:"varint,2,opt,name=wait_s,json=waitS,proto3" json:"wait_s,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -238,9 +238,9 @@ func (x *SetCooldownResponse) GetAllowed() bool {
 	return false
 }
 
-func (x *SetCooldownResponse) GetWaitMs() int64 {
+func (x *SetCooldownResponse) GetWaitS() int64 {
 	if x != nil {
-		return x.WaitMs
+		return x.WaitS
 	}
 	return 0
 }
@@ -249,21 +249,21 @@ var File_contracts_rate_limiter_rate_limiter_proto protoreflect.FileDescriptor
 
 const file_contracts_rate_limiter_rate_limiter_proto_rawDesc = "" +
 	"\n" +
-	")contracts/rate_limiter/rate_limiter.proto\x12\frate_limiter\"{\n" +
+	")contracts/rate_limiter/rate_limiter.proto\x12\frate_limiter\"y\n" +
 	"\x15CheckRateLimitRequest\x12\x17\n" +
 	"\auser_ip\x18\x01 \x01(\tR\x06userIp\x12\x16\n" +
-	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1b\n" +
-	"\twindow_ms\x18\x03 \x01(\x03R\bwindowMs\x12\x14\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x19\n" +
+	"\bwindow_s\x18\x03 \x01(\x03R\awindowS\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x03R\x05limit\"4\n" +
 	"\x16CheckRateLimitResponse\x12\x1a\n" +
-	"\bexceeded\x18\x01 \x01(\bR\bexceeded\"c\n" +
+	"\bexceeded\x18\x01 \x01(\bR\bexceeded\"a\n" +
 	"\x12SetCooldownRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12#\n" +
-	"\rexpiration_ms\x18\x03 \x01(\x03R\fexpirationMs\"H\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
+	"\fexpiration_s\x18\x03 \x01(\x03R\vexpirationS\"F\n" +
 	"\x13SetCooldownResponse\x12\x18\n" +
-	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x17\n" +
-	"\await_ms\x18\x02 \x01(\x03R\x06waitMs2\xc5\x01\n" +
+	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x15\n" +
+	"\x06wait_s\x18\x02 \x01(\x03R\x05waitS2\xc5\x01\n" +
 	"\x12RateLimiterService\x12[\n" +
 	"\x0eCheckRateLimit\x12#.rate_limiter.CheckRateLimitRequest\x1a$.rate_limiter.CheckRateLimitResponse\x12R\n" +
 	"\vSetCooldown\x12 .rate_limiter.SetCooldownRequest\x1a!.rate_limiter.SetCooldownResponseB+Z)./pkg/contracts/rate_limiter;rate_limiterb\x06proto3"
