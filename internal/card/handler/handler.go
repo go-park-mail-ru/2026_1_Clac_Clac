@@ -291,7 +291,7 @@ func (h *Handler) ReorderCard(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if errors.Is(err, common.ErrorRichLimitTasks) {
-			api.RespondError(w, http.StatusBadRequest, failRichLimitTask)
+			api.RespondError(w, http.StatusConflict, failRichLimitTask)
 			return
 		}
 
