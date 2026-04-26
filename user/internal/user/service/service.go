@@ -59,7 +59,7 @@ func NewService(rep AuthRepository, cfg Config, tools Tools) *Service {
 	}
 }
 
-func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, error) {
+func (s *Service) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto.UserInfo, error) {
 	user, err := s.rep.GetUser(ctx, requestUser.Email)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
@@ -78,7 +78,7 @@ func (s *Service) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.Use
 	}, nil
 }
 
-func (s *Service) Register(ctx context.Context, userInfo dto.RegistrationUser) (dto.UserInfo, error) {
+func (s *Service) CreateUser(ctx context.Context, userInfo dto.EntityUser) (dto.UserInfo, error) {
 	hashedPassword, err := s.tools.Hasher(userInfo.Password)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("HashPassword: %w", err)
@@ -147,7 +147,7 @@ func (s *Service) GetUserByEmail(ctx context.Context, email string) (dto.UserInf
 	return user, nil
 }
 
-func (s *Service) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUser) (string, error) {
+func (s *Service) EnsureUserByEmail(ctx context.Context, info dto.EntityUser) (string, error) {
 	const randomPasswordLength = 32
 
 	user, err := s.GetUserByEmail(ctx, info.Email)
@@ -160,12 +160,12 @@ func (s *Service) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUs
 
 			password := base64.URLEncoding.EncodeToString(b)
 
-			registerUserInfo := dto.RegistrationUser{
+			registerUserInfo := dto.EntityUser{
 				DisplayName: info.DisplayName,
 				Email:       info.Email,
 				Password:    password,
 			}
-			newUser, err := s.Register(ctx, registerUserInfo)
+			newUser, err := s.CreateUser(ctx, registerUserInfo)
 			if err != nil {
 				return "", fmt.Errorf("authService.Register: %w", err)
 			}

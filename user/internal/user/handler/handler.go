@@ -52,10 +52,10 @@ const (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, requestUser serviceDto.RegistrationUser) (serviceDto.UserInfo, error)
-	LogIn(ctx context.Context, requestUser serviceDto.LogInUser) (serviceDto.UserInfo, error)
+	CreateUser(ctx context.Context, requestUser serviceDto.EntityUser) (serviceDto.UserInfo, error)
+	GetUser(ctx context.Context, requestUser serviceDto.GetUserInfo) (serviceDto.UserInfo, error)
 	GetUserLink(ctx context.Context, email string) (string, error)
-	EnsureUserByEmail(ctx context.Context, info serviceDto.RegistrationUser) (string, error)
+	EnsureUserByEmail(ctx context.Context, info serviceDto.EntityUser) (string, error)
 	ResetPassword(ctx context.Context, passwordInfo serviceDto.ResetPasswordInfo) error
 
 	GetProfile(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
@@ -99,7 +99,7 @@ func NewHandler(srv AuthService, cfg Config, vkOAuth VkOAuth) *Handler {
 	}
 }
 
-func (h *Handler) LogInUser(ctx context.Context, req *pb.LogInRequest) (*pb.UserResponse, error) {
+func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
 	err := ValidatorRequestAuth(req.Email, req.Password, h.cfg.MaxLenPassword, h.cfg.MinLenPassword)
@@ -107,7 +107,7 @@ func (h *Handler) LogInUser(ctx context.Context, req *pb.LogInRequest) (*pb.User
 		return nil, status.Error(codes.InvalidArgument, msgInvalidEmailOrPassword)
 	}
 
-	serviceUser, err := h.srv.LogIn(ctx, serviceDto.LogInUser{
+	serviceUser, err := h.srv.GetUser(ctx, serviceDto.GetUserInfo{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -128,10 +128,10 @@ func (h *Handler) LogInUser(ctx context.Context, req *pb.LogInRequest) (*pb.User
 	}, nil
 }
 
-func (h *Handler) RegisterUser(ctx context.Context, req *pb.RegisterRequest) (*pb.UserResponse, error) {
+func (h *Handler) CreateUser(ctx context.Context, req *pb.CreateRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	sanitizedUser := serviceDto.RegistrationUser{
+	sanitizedUser := serviceDto.EntityUser{
 		DisplayName: req.DisplayName,
 		Password:    req.Password,
 		Email:       req.Email,
@@ -144,7 +144,7 @@ func (h *Handler) RegisterUser(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, status.Error(codes.InvalidArgument, msgInvalidEmailOrPassword)
 	}
 
-	serviceUser, err := h.srv.Register(ctx, serviceDto.RegistrationUser{
+	serviceUser, err := h.srv.CreateUser(ctx, serviceDto.EntityUser{
 		DisplayName: sanitizedUser.DisplayName,
 		Email:       sanitizedUser.Email,
 		Password:    req.Password,
@@ -202,9 +202,7 @@ func (h *Handler) ResetPassword(ctx context.Context, req *pb.ResetPasswordReques
 		if errors.Is(err, common.ErrorNotNullValue) {
 			return nil, status.Error(codes.InvalidArgument, msgNullInNotNullField)
 		}
-		if errors.Is(err, common.ErrorNotExistingResetToken) {
-			return nil, status.Error(codes.NotFound, msgResetTokenDoesNotExists)
-		}
+
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgUserDoesNotExists)
 		}
@@ -215,7 +213,7 @@ func (h *Handler) ResetPassword(ctx context.Context, req *pb.ResetPasswordReques
 	return &pb.ResetPasswordResponse{}, nil
 }
 
-func (h *Handler) LoginWithVK(ctx context.Context, req *pb.VKLoginRequest) (*pb.VKLoginResponse, error) {
+func (h *Handler) ProcessUserVK(ctx context.Context, req *pb.ProcessUserVKRequest) (*pb.ProcessUserVKResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
 	token, err := h.vkOAuth.Exchange(ctx, req.Code)
@@ -264,7 +262,7 @@ func (h *Handler) LoginWithVK(ctx context.Context, req *pb.VKLoginRequest) (*pb.
 
 	userData := usersData.Response[0]
 
-	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.RegistrationUser{
+	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.EntityUser{
 		DisplayName: userData.FirstName,
 		Email:       userEmail,
 	})
@@ -273,7 +271,7 @@ func (h *Handler) LoginWithVK(ctx context.Context, req *pb.VKLoginRequest) (*pb.
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
-	return &pb.VKLoginResponse{
+	return &pb.ProcessUserVKResponse{
 		UserLink: userLink,
 	}, nil
 }

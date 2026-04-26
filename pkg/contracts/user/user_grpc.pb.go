@@ -19,15 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_GetProfile_FullMethodName    = "/user.UserService/GetProfile"
-	UserService_UpdateProfile_FullMethodName = "/user.UserService/UpdateProfile"
-	UserService_UpdateAvatar_FullMethodName  = "/user.UserService/UpdateAvatar"
-	UserService_DeleteAvatar_FullMethodName  = "/user.UserService/DeleteAvatar"
-	UserService_LogInUser_FullMethodName     = "/user.UserService/LogInUser"
-	UserService_RegisterUser_FullMethodName  = "/user.UserService/RegisterUser"
-	UserService_GetUserLink_FullMethodName   = "/user.UserService/GetUserLink"
-	UserService_ResetPassword_FullMethodName = "/user.UserService/ResetPassword"
-	UserService_LoginWithVK_FullMethodName   = "/user.UserService/LoginWithVK"
+	UserService_GetProfile_FullMethodName        = "/user.UserService/GetProfile"
+	UserService_UpdateProfile_FullMethodName     = "/user.UserService/UpdateProfile"
+	UserService_UpdateAvatar_FullMethodName      = "/user.UserService/UpdateAvatar"
+	UserService_DeleteAvatar_FullMethodName      = "/user.UserService/DeleteAvatar"
+	UserService_GetUser_FullMethodName           = "/user.UserService/GetUser"
+	UserService_CreateUser_FullMethodName        = "/user.UserService/CreateUser"
+	UserService_GetUserLink_FullMethodName       = "/user.UserService/GetUserLink"
+	UserService_ResetPassword_FullMethodName     = "/user.UserService/ResetPassword"
+	UserService_ProcessUserWithVK_FullMethodName = "/user.UserService/ProcessUserWithVK"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -38,11 +38,11 @@ type UserServiceClient interface {
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
 	UpdateAvatar(ctx context.Context, in *UpdateAvatarRequest, opts ...grpc.CallOption) (*AvatarResponse, error)
 	DeleteAvatar(ctx context.Context, in *UserLinkRequest, opts ...grpc.CallOption) (*DeleteAvatarResponse, error)
-	LogInUser(ctx context.Context, in *LogInRequest, opts ...grpc.CallOption) (*UserResponse, error)
-	RegisterUser(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserResponse, error)
+	CreateUser(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetUserLink(ctx context.Context, in *GetUserLinkRequest, opts ...grpc.CallOption) (*GetUserLinkResponse, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
-	LoginWithVK(ctx context.Context, in *VKLoginRequest, opts ...grpc.CallOption) (*VKLoginResponse, error)
+	ProcessUserWithVK(ctx context.Context, in *ProcessUserVKRequest, opts ...grpc.CallOption) (*ProcessUserVKResponse, error)
 }
 
 type userServiceClient struct {
@@ -93,20 +93,20 @@ func (c *userServiceClient) DeleteAvatar(ctx context.Context, in *UserLinkReques
 	return out, nil
 }
 
-func (c *userServiceClient) LogInUser(ctx context.Context, in *LogInRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+func (c *userServiceClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*UserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserResponse)
-	err := c.cc.Invoke(ctx, UserService_LogInUser_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, UserService_GetUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) RegisterUser(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*UserResponse, error) {
+func (c *userServiceClient) CreateUser(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*UserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserResponse)
-	err := c.cc.Invoke(ctx, UserService_RegisterUser_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, UserService_CreateUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +133,10 @@ func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPassword
 	return out, nil
 }
 
-func (c *userServiceClient) LoginWithVK(ctx context.Context, in *VKLoginRequest, opts ...grpc.CallOption) (*VKLoginResponse, error) {
+func (c *userServiceClient) ProcessUserWithVK(ctx context.Context, in *ProcessUserVKRequest, opts ...grpc.CallOption) (*ProcessUserVKResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(VKLoginResponse)
-	err := c.cc.Invoke(ctx, UserService_LoginWithVK_FullMethodName, in, out, cOpts...)
+	out := new(ProcessUserVKResponse)
+	err := c.cc.Invoke(ctx, UserService_ProcessUserWithVK_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -151,11 +151,11 @@ type UserServiceServer interface {
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*UpdateProfileResponse, error)
 	UpdateAvatar(context.Context, *UpdateAvatarRequest) (*AvatarResponse, error)
 	DeleteAvatar(context.Context, *UserLinkRequest) (*DeleteAvatarResponse, error)
-	LogInUser(context.Context, *LogInRequest) (*UserResponse, error)
-	RegisterUser(context.Context, *RegisterRequest) (*UserResponse, error)
+	GetUser(context.Context, *GetUserRequest) (*UserResponse, error)
+	CreateUser(context.Context, *CreateRequest) (*UserResponse, error)
 	GetUserLink(context.Context, *GetUserLinkRequest) (*GetUserLinkResponse, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
-	LoginWithVK(context.Context, *VKLoginRequest) (*VKLoginResponse, error)
+	ProcessUserWithVK(context.Context, *ProcessUserVKRequest) (*ProcessUserVKResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -178,11 +178,11 @@ func (UnimplementedUserServiceServer) UpdateAvatar(context.Context, *UpdateAvata
 func (UnimplementedUserServiceServer) DeleteAvatar(context.Context, *UserLinkRequest) (*DeleteAvatarResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteAvatar not implemented")
 }
-func (UnimplementedUserServiceServer) LogInUser(context.Context, *LogInRequest) (*UserResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method LogInUser not implemented")
+func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) (*UserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUser not implemented")
 }
-func (UnimplementedUserServiceServer) RegisterUser(context.Context, *RegisterRequest) (*UserResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RegisterUser not implemented")
+func (UnimplementedUserServiceServer) CreateUser(context.Context, *CreateRequest) (*UserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
 }
 func (UnimplementedUserServiceServer) GetUserLink(context.Context, *GetUserLinkRequest) (*GetUserLinkResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserLink not implemented")
@@ -190,8 +190,8 @@ func (UnimplementedUserServiceServer) GetUserLink(context.Context, *GetUserLinkR
 func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetPassword not implemented")
 }
-func (UnimplementedUserServiceServer) LoginWithVK(context.Context, *VKLoginRequest) (*VKLoginResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method LoginWithVK not implemented")
+func (UnimplementedUserServiceServer) ProcessUserWithVK(context.Context, *ProcessUserVKRequest) (*ProcessUserVKResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProcessUserWithVK not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -286,38 +286,38 @@ func _UserService_DeleteAvatar_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_LogInUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogInRequest)
+func _UserService_GetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).LogInUser(ctx, in)
+		return srv.(UserServiceServer).GetUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_LogInUser_FullMethodName,
+		FullMethod: UserService_GetUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).LogInUser(ctx, req.(*LogInRequest))
+		return srv.(UserServiceServer).GetUser(ctx, req.(*GetUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_RegisterUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterRequest)
+func _UserService_CreateUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).RegisterUser(ctx, in)
+		return srv.(UserServiceServer).CreateUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_RegisterUser_FullMethodName,
+		FullMethod: UserService_CreateUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).RegisterUser(ctx, req.(*RegisterRequest))
+		return srv.(UserServiceServer).CreateUser(ctx, req.(*CreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -358,20 +358,20 @@ func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_LoginWithVK_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VKLoginRequest)
+func _UserService_ProcessUserWithVK_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessUserVKRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).LoginWithVK(ctx, in)
+		return srv.(UserServiceServer).ProcessUserWithVK(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_LoginWithVK_FullMethodName,
+		FullMethod: UserService_ProcessUserWithVK_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).LoginWithVK(ctx, req.(*VKLoginRequest))
+		return srv.(UserServiceServer).ProcessUserWithVK(ctx, req.(*ProcessUserVKRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -400,12 +400,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_DeleteAvatar_Handler,
 		},
 		{
-			MethodName: "LogInUser",
-			Handler:    _UserService_LogInUser_Handler,
+			MethodName: "GetUser",
+			Handler:    _UserService_GetUser_Handler,
 		},
 		{
-			MethodName: "RegisterUser",
-			Handler:    _UserService_RegisterUser_Handler,
+			MethodName: "CreateUser",
+			Handler:    _UserService_CreateUser_Handler,
 		},
 		{
 			MethodName: "GetUserLink",
@@ -416,8 +416,8 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_ResetPassword_Handler,
 		},
 		{
-			MethodName: "LoginWithVK",
-			Handler:    _UserService_LoginWithVK_Handler,
+			MethodName: "ProcessUserWithVK",
+			Handler:    _UserService_ProcessUserWithVK_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

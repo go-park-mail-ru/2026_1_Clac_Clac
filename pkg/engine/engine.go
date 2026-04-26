@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -44,9 +43,9 @@ func (e *Engine) Start(ctx context.Context) error {
 
 	e.server = &http.Server{
 		Addr:         actualAddr,
-		WriteTimeout: time.Duration(e.config.WriteTimeout) * time.Second,
-		ReadTimeout:  time.Duration(e.config.ReadTimeout) * time.Second,
-		IdleTimeout:  time.Duration(e.config.IdleTimeout) * time.Second,
+		WriteTimeout: e.config.WriteTimeout,
+		ReadTimeout:  e.config.ReadTimeout,
+		IdleTimeout:  e.config.IdleTimeout,
 		Handler:      e.router,
 	}
 
@@ -89,7 +88,7 @@ func (e *Engine) gracefulShutdown(errgroupCtx context.Context) func() error {
 
 		e.logger.Info().Msg("shutdown, wait...")
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.config.GracefulShutdownTimeout)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), e.config.GracefulShutdownTimeout)
 		defer cancel()
 
 		if err := e.server.Shutdown(ctx); err != nil {

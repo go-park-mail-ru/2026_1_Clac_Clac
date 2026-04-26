@@ -385,7 +385,7 @@ func (x *AvatarResponse) GetAvatarUrl() string {
 	return ""
 }
 
-type LogInRequest struct {
+type GetUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
@@ -393,20 +393,20 @@ type LogInRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LogInRequest) Reset() {
-	*x = LogInRequest{}
+func (x *GetUserRequest) Reset() {
+	*x = GetUserRequest{}
 	mi := &file_contracts_user_user_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LogInRequest) String() string {
+func (x *GetUserRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LogInRequest) ProtoMessage() {}
+func (*GetUserRequest) ProtoMessage() {}
 
-func (x *LogInRequest) ProtoReflect() protoreflect.Message {
+func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_contracts_user_user_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -418,19 +418,19 @@ func (x *LogInRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LogInRequest.ProtoReflect.Descriptor instead.
-func (*LogInRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
+func (*GetUserRequest) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *LogInRequest) GetEmail() string {
+func (x *GetUserRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
 	}
 	return ""
 }
 
-func (x *LogInRequest) GetPassword() string {
+func (x *GetUserRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
 	}
@@ -505,7 +505,7 @@ func (x *UserResponse) GetAvatar() string {
 	return ""
 }
 
-type RegisterRequest struct {
+type CreateRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	DisplayName      string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	Password         string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
@@ -515,20 +515,20 @@ type RegisterRequest struct {
 	sizeCache        protoimpl.SizeCache
 }
 
-func (x *RegisterRequest) Reset() {
-	*x = RegisterRequest{}
+func (x *CreateRequest) Reset() {
+	*x = CreateRequest{}
 	mi := &file_contracts_user_user_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RegisterRequest) String() string {
+func (x *CreateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RegisterRequest) ProtoMessage() {}
+func (*CreateRequest) ProtoMessage() {}
 
-func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
+func (x *CreateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_contracts_user_user_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -540,33 +540,33 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
-func (*RegisterRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use CreateRequest.ProtoReflect.Descriptor instead.
+func (*CreateRequest) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *RegisterRequest) GetDisplayName() string {
+func (x *CreateRequest) GetDisplayName() string {
 	if x != nil {
 		return x.DisplayName
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetPassword() string {
+func (x *CreateRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetRepeatedPassword() string {
+func (x *CreateRequest) GetRepeatedPassword() string {
 	if x != nil {
 		return x.RepeatedPassword
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetEmail() string {
+func (x *CreateRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
 	}
@@ -757,27 +757,27 @@ func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{13}
 }
 
-type VKLoginRequest struct {
+type ProcessUserVKRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *VKLoginRequest) Reset() {
-	*x = VKLoginRequest{}
+func (x *ProcessUserVKRequest) Reset() {
+	*x = ProcessUserVKRequest{}
 	mi := &file_contracts_user_user_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *VKLoginRequest) String() string {
+func (x *ProcessUserVKRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*VKLoginRequest) ProtoMessage() {}
+func (*ProcessUserVKRequest) ProtoMessage() {}
 
-func (x *VKLoginRequest) ProtoReflect() protoreflect.Message {
+func (x *ProcessUserVKRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_contracts_user_user_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -789,39 +789,39 @@ func (x *VKLoginRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use VKLoginRequest.ProtoReflect.Descriptor instead.
-func (*VKLoginRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProcessUserVKRequest.ProtoReflect.Descriptor instead.
+func (*ProcessUserVKRequest) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{14}
 }
 
-func (x *VKLoginRequest) GetCode() string {
+func (x *ProcessUserVKRequest) GetCode() string {
 	if x != nil {
 		return x.Code
 	}
 	return ""
 }
 
-type VKLoginResponse struct {
+type ProcessUserVKResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *VKLoginResponse) Reset() {
-	*x = VKLoginResponse{}
+func (x *ProcessUserVKResponse) Reset() {
+	*x = ProcessUserVKResponse{}
 	mi := &file_contracts_user_user_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *VKLoginResponse) String() string {
+func (x *ProcessUserVKResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*VKLoginResponse) ProtoMessage() {}
+func (*ProcessUserVKResponse) ProtoMessage() {}
 
-func (x *VKLoginResponse) ProtoReflect() protoreflect.Message {
+func (x *ProcessUserVKResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_contracts_user_user_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -833,12 +833,12 @@ func (x *VKLoginResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use VKLoginResponse.ProtoReflect.Descriptor instead.
-func (*VKLoginResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProcessUserVKResponse.ProtoReflect.Descriptor instead.
+func (*ProcessUserVKResponse) Descriptor() ([]byte, []int) {
 	return file_contracts_user_user_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *VKLoginResponse) GetUserLink() string {
+func (x *ProcessUserVKResponse) GetUserLink() string {
 	if x != nil {
 		return x.UserLink
 	}
@@ -872,16 +872,16 @@ const file_contracts_user_user_proto_rawDesc = "" +
 	"\x0efile_extension\x18\x04 \x01(\tR\rfileExtension\"/\n" +
 	"\x0eAvatarResponse\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x01 \x01(\tR\tavatarUrl\"@\n" +
-	"\fLogInRequest\x12\x14\n" +
+	"avatar_url\x18\x01 \x01(\tR\tavatarUrl\"B\n" +
+	"\x0eGetUserRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"|\n" +
 	"\fUserResponse\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x16\n" +
-	"\x06avatar\x18\x04 \x01(\tR\x06avatar\"\x93\x01\n" +
-	"\x0fRegisterRequest\x12!\n" +
+	"\x06avatar\x18\x04 \x01(\tR\x06avatar\"\x91\x01\n" +
+	"\rCreateRequest\x12!\n" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12+\n" +
 	"\x11repeated_password\x18\x03 \x01(\tR\x10repeatedPassword\x12\x14\n" +
@@ -894,22 +894,23 @@ const file_contracts_user_user_proto_rawDesc = "" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\x12+\n" +
 	"\x11repeated_password\x18\x02 \x01(\tR\x10repeatedPassword\x12\x1b\n" +
 	"\tuser_link\x18\x03 \x01(\tR\buserLink\"\x17\n" +
-	"\x15ResetPasswordResponse\"$\n" +
-	"\x0eVKLoginRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\".\n" +
-	"\x0fVKLoginResponse\x12\x1b\n" +
-	"\tuser_link\x18\x01 \x01(\tR\buserLink2\xd1\x04\n" +
+	"\x15ResetPasswordResponse\"*\n" +
+	"\x14ProcessUserVKRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"4\n" +
+	"\x15ProcessUserVKResponse\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink2\xdf\x04\n" +
 	"\vUserService\x12:\n" +
 	"\n" +
 	"GetProfile\x12\x15.user.UserLinkRequest\x1a\x15.user.ProfileResponse\x12H\n" +
 	"\rUpdateProfile\x12\x1a.user.UpdateProfileRequest\x1a\x1b.user.UpdateProfileResponse\x12?\n" +
 	"\fUpdateAvatar\x12\x19.user.UpdateAvatarRequest\x1a\x14.user.AvatarResponse\x12A\n" +
 	"\fDeleteAvatar\x12\x15.user.UserLinkRequest\x1a\x1a.user.DeleteAvatarResponse\x123\n" +
-	"\tLogInUser\x12\x12.user.LogInRequest\x1a\x12.user.UserResponse\x129\n" +
-	"\fRegisterUser\x12\x15.user.RegisterRequest\x1a\x12.user.UserResponse\x12B\n" +
+	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x12.user.UserResponse\x125\n" +
+	"\n" +
+	"CreateUser\x12\x13.user.CreateRequest\x1a\x12.user.UserResponse\x12B\n" +
 	"\vGetUserLink\x12\x18.user.GetUserLinkRequest\x1a\x19.user.GetUserLinkResponse\x12H\n" +
-	"\rResetPassword\x12\x1a.user.ResetPasswordRequest\x1a\x1b.user.ResetPasswordResponse\x12:\n" +
-	"\vLoginWithVK\x12\x14.user.VKLoginRequest\x1a\x15.user.VKLoginResponseB\x1bZ\x19./pkg/contracts/user;userb\x06proto3"
+	"\rResetPassword\x12\x1a.user.ResetPasswordRequest\x1a\x1b.user.ResetPasswordResponse\x12L\n" +
+	"\x11ProcessUserWithVK\x12\x1a.user.ProcessUserVKRequest\x1a\x1b.user.ProcessUserVKResponseB\x1bZ\x19./pkg/contracts/user;userb\x06proto3"
 
 var (
 	file_contracts_user_user_proto_rawDescOnce sync.Once
@@ -932,35 +933,35 @@ var file_contracts_user_user_proto_goTypes = []any{
 	(*UpdateProfileRequest)(nil),  // 4: user.UpdateProfileRequest
 	(*UpdateAvatarRequest)(nil),   // 5: user.UpdateAvatarRequest
 	(*AvatarResponse)(nil),        // 6: user.AvatarResponse
-	(*LogInRequest)(nil),          // 7: user.LogInRequest
+	(*GetUserRequest)(nil),        // 7: user.GetUserRequest
 	(*UserResponse)(nil),          // 8: user.UserResponse
-	(*RegisterRequest)(nil),       // 9: user.RegisterRequest
+	(*CreateRequest)(nil),         // 9: user.CreateRequest
 	(*GetUserLinkRequest)(nil),    // 10: user.GetUserLinkRequest
 	(*GetUserLinkResponse)(nil),   // 11: user.GetUserLinkResponse
 	(*ResetPasswordRequest)(nil),  // 12: user.ResetPasswordRequest
 	(*ResetPasswordResponse)(nil), // 13: user.ResetPasswordResponse
-	(*VKLoginRequest)(nil),        // 14: user.VKLoginRequest
-	(*VKLoginResponse)(nil),       // 15: user.VKLoginResponse
+	(*ProcessUserVKRequest)(nil),  // 14: user.ProcessUserVKRequest
+	(*ProcessUserVKResponse)(nil), // 15: user.ProcessUserVKResponse
 }
 var file_contracts_user_user_proto_depIdxs = []int32{
 	2,  // 0: user.UserService.GetProfile:input_type -> user.UserLinkRequest
 	4,  // 1: user.UserService.UpdateProfile:input_type -> user.UpdateProfileRequest
 	5,  // 2: user.UserService.UpdateAvatar:input_type -> user.UpdateAvatarRequest
 	2,  // 3: user.UserService.DeleteAvatar:input_type -> user.UserLinkRequest
-	7,  // 4: user.UserService.LogInUser:input_type -> user.LogInRequest
-	9,  // 5: user.UserService.RegisterUser:input_type -> user.RegisterRequest
+	7,  // 4: user.UserService.GetUser:input_type -> user.GetUserRequest
+	9,  // 5: user.UserService.CreateUser:input_type -> user.CreateRequest
 	10, // 6: user.UserService.GetUserLink:input_type -> user.GetUserLinkRequest
 	12, // 7: user.UserService.ResetPassword:input_type -> user.ResetPasswordRequest
-	14, // 8: user.UserService.LoginWithVK:input_type -> user.VKLoginRequest
+	14, // 8: user.UserService.ProcessUserWithVK:input_type -> user.ProcessUserVKRequest
 	3,  // 9: user.UserService.GetProfile:output_type -> user.ProfileResponse
 	0,  // 10: user.UserService.UpdateProfile:output_type -> user.UpdateProfileResponse
 	6,  // 11: user.UserService.UpdateAvatar:output_type -> user.AvatarResponse
 	1,  // 12: user.UserService.DeleteAvatar:output_type -> user.DeleteAvatarResponse
-	8,  // 13: user.UserService.LogInUser:output_type -> user.UserResponse
-	8,  // 14: user.UserService.RegisterUser:output_type -> user.UserResponse
+	8,  // 13: user.UserService.GetUser:output_type -> user.UserResponse
+	8,  // 14: user.UserService.CreateUser:output_type -> user.UserResponse
 	11, // 15: user.UserService.GetUserLink:output_type -> user.GetUserLinkResponse
 	13, // 16: user.UserService.ResetPassword:output_type -> user.ResetPasswordResponse
-	15, // 17: user.UserService.LoginWithVK:output_type -> user.VKLoginResponse
+	15, // 17: user.UserService.ProcessUserWithVK:output_type -> user.ProcessUserVKResponse
 	9,  // [9:18] is the sub-list for method output_type
 	0,  // [0:9] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name

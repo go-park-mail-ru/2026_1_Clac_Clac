@@ -8,11 +8,11 @@ service UserService {
     rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
     rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
 
-    rpc LogInUser(LogInRequest) returns (UserResponse);
-    rpc RegisterUser(RegisterRequest) returns (UserResponse);
+    rpc GetUser(GetUserRequest) returns (UserResponse);
+    rpc CreateUser(CreateRequest) returns (UserResponse);
     rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
     rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
-    rpc LoginWithVK(VKLoginRequest) returns (VKLoginResponse);
+    rpc ProcessUserWithVK(ProcessUserVKRequest) returns (ProcessUserVKResponse);
 }
 
 message UpdateProfileResponse {}
@@ -44,7 +44,7 @@ message AvatarResponse {
     string avatar_url = 1;
 }
 
-message LogInRequest {
+message GetUserRequest {
     string email = 1;
     string password = 2;
 }
@@ -56,7 +56,7 @@ message UserResponse {
     string avatar = 4;
 }
 
-message RegisterRequest {
+message CreateRequest {
     string display_name = 1;
     string password = 2;
     string repeated_password = 3;
@@ -80,10 +80,10 @@ message ResetPasswordRequest {
 
 message ResetPasswordResponse {}
 
-message VKLoginRequest  {
+message ProcessUserVKRequest  {
     string code = 1;
 }
 
-message VKLoginResponse  {
+message ProcessUserVKResponse  {
     string user_link = 1;
 }

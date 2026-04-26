@@ -60,7 +60,7 @@ func TestLogIn(t *testing.T) {
 			m := mockAuthRep.NewAuthRepository(t)
 			test.mockBehavior(m)
 
-			user, err := newService(m).LogIn(context.Background(), dto.LogInUser{
+			user, err := newService(m).GetUser(context.Background(), dto.GetUserInfo{
 				Email:    test.email,
 				Password: test.password,
 			})
@@ -106,7 +106,7 @@ func TestLogInError(t *testing.T) {
 			m := mockAuthRep.NewAuthRepository(t)
 			test.mockBehavior(m)
 
-			_, err := newService(m).LogIn(context.Background(), dto.LogInUser{
+			_, err := newService(m).GetUser(context.Background(), dto.GetUserInfo{
 				Email:    test.email,
 				Password: test.password,
 			})
@@ -140,7 +140,7 @@ func TestRegister(t *testing.T) {
 			m := mockAuthRep.NewAuthRepository(t)
 			test.mockBehavior(m)
 
-			user, err := newService(m).Register(context.Background(), dto.RegistrationUser{
+			user, err := newService(m).CreateUser(context.Background(), dto.EntityUser{
 				DisplayName: test.displayName,
 				Email:       test.email,
 				Password:    test.password,
@@ -182,7 +182,7 @@ func TestRegisterError(t *testing.T) {
 			test.mockBehavior(m)
 
 			svc := NewService(m, Config{}, test.tools)
-			_, err := svc.Register(context.Background(), dto.RegistrationUser{
+			_, err := svc.CreateUser(context.Background(), dto.EntityUser{
 				DisplayName: "Artem",
 				Email:       "test@mail.ru",
 				Password:    "password123",
@@ -304,7 +304,7 @@ func TestGetUserByEmail(t *testing.T) {
 }
 
 func TestEnsureUserByEmail(t *testing.T) {
-	info := dto.RegistrationUser{DisplayName: "Artem", Email: "user@mail.ru"}
+	info := dto.EntityUser{DisplayName: "Artem", Email: "user@mail.ru"}
 
 	tests := []struct {
 		nameTest     string

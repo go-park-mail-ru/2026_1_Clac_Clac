@@ -1,0 +1,46 @@
+app:
+  log_level: info
+
+engine:
+  addr: 0.0.0.0:8081
+  write_timeout: 15s
+  read_timeout: 15s
+  idle_timeout: 60s
+  graceful_shutdown_timeout: 15s
+
+cors:
+  credentials: "true"
+  methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
+  max_age: 864000
+
+services:
+  user:
+    addr: "localhost:50051"
+    timeout: 3s
+    retries: 5
+  board:
+    addr: "localhost:50052"
+    timeout: 5s
+    retries: 5
+  mail_sender:
+    addr: "localhost:50053"
+    timeout: 10s
+    retries: 5
+  authorization:
+    addr: "localhost:50054"
+    timeout: 2s
+    retries: 5
+  rate_limiters:
+    addr: "localhost:50055"
+    timeout: 2s
+    retries: 5
+    actions:
+      login:
+        limit: 5
+        action: "login"
+        window: 1m
+      register:
+        limit: 5
+        action: "register"
+        window: 1h

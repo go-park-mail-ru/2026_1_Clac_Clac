@@ -47,7 +47,7 @@ func newHandler(srv *mockAuthSrv.AuthService) *Handler {
 func TestLogInUser(t *testing.T) {
 	t.Run("Success login", func(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
-		m.On("LogIn", mock.Anything, serviceDto.LogInUser{
+		m.On("LogIn", mock.Anything, serviceDto.GetUserInfo{
 			Email:    "user@mail.ru",
 			Password: "password1",
 		}).Return(serviceDto.UserInfo{
@@ -56,7 +56,7 @@ func TestLogInUser(t *testing.T) {
 			Email:       "user@mail.ru",
 		}, nil)
 
-		resp, err := newHandler(m).LogInUser(context.Background(), &pb.LogInRequest{
+		resp, err := newHandler(m).GetUser(context.Background(), &pb.GetUserRequest{
 			Email:    "user@mail.ru",
 			Password: "password1",
 		})
@@ -67,7 +67,7 @@ func TestLogInUser(t *testing.T) {
 	})
 
 	t.Run("Error invalid email format", func(t *testing.T) {
-		_, err := newHandler(mockAuthSrv.NewAuthService(t)).LogInUser(context.Background(), &pb.LogInRequest{
+		_, err := newHandler(mockAuthSrv.NewAuthService(t)).GetUser(context.Background(), &pb.GetUserRequest{
 			Email:    "not-email",
 			Password: "password1",
 		})
@@ -79,7 +79,7 @@ func TestLogInUser(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("LogIn", mock.Anything, mock.Anything).Return(serviceDto.UserInfo{}, service.ErrorWrongPassword)
 
-		_, err := newHandler(m).LogInUser(context.Background(), &pb.LogInRequest{
+		_, err := newHandler(m).GetUser(context.Background(), &pb.GetUserRequest{
 			Email:    "user@mail.ru",
 			Password: "password1",
 		})
@@ -91,7 +91,7 @@ func TestLogInUser(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("LogIn", mock.Anything, mock.Anything).Return(serviceDto.UserInfo{}, errors.New("db error"))
 
-		_, err := newHandler(m).LogInUser(context.Background(), &pb.LogInRequest{
+		_, err := newHandler(m).GetUser(context.Background(), &pb.GetUserRequest{
 			Email:    "user@mail.ru",
 			Password: "password1",
 		})
@@ -109,7 +109,7 @@ func TestRegisterUser(t *testing.T) {
 			Email:       "user@mail.ru",
 		}, nil)
 
-		resp, err := newHandler(m).RegisterUser(context.Background(), &pb.RegisterRequest{
+		resp, err := newHandler(m).CreateUser(context.Background(), &pb.CreateRequest{
 			Email:            "user@mail.ru",
 			Password:         "password1",
 			RepeatedPassword: "password1",
@@ -121,7 +121,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("Error passwords do not match", func(t *testing.T) {
-		_, err := newHandler(mockAuthSrv.NewAuthService(t)).RegisterUser(context.Background(), &pb.RegisterRequest{
+		_, err := newHandler(mockAuthSrv.NewAuthService(t)).CreateUser(context.Background(), &pb.CreateRequest{
 			Email:            "user@mail.ru",
 			Password:         "password1",
 			RepeatedPassword: "different1",
@@ -134,7 +134,7 @@ func TestRegisterUser(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("Register", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).Return(serviceDto.UserInfo{}, common.ErrorExistingUser)
 
-		_, err := newHandler(m).RegisterUser(context.Background(), &pb.RegisterRequest{
+		_, err := newHandler(m).CreateUser(context.Background(), &pb.CreateRequest{
 			Email:            "user@mail.ru",
 			Password:         "password1",
 			RepeatedPassword: "password1",
@@ -147,7 +147,7 @@ func TestRegisterUser(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("Register", mock.Anything, mock.AnythingOfType("dto.RegistrationUser")).Return(serviceDto.UserInfo{}, errors.New("db error"))
 
-		_, err := newHandler(m).RegisterUser(context.Background(), &pb.RegisterRequest{
+		_, err := newHandler(m).CreateUser(context.Background(), &pb.CreateRequest{
 			Email:            "user@mail.ru",
 			Password:         "password1",
 			RepeatedPassword: "password1",

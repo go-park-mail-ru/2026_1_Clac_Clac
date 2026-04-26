@@ -16,18 +16,18 @@ type UserInfo struct {
 	AvatarURL   string
 }
 
-type RegistrationUser struct {
+type EntityUser struct {
 	DisplayName string
 	Email       string
 	Password    string
 }
 
-func (r *RegistrationUser) Sanitize(sanitizer *bluemonday.Policy) {
+func (r *EntityUser) Sanitize(sanitizer *bluemonday.Policy) {
 	r.DisplayName = sanitizer.Sanitize(strings.TrimSpace(r.DisplayName))
 	r.Email = sanitizer.Sanitize(strings.TrimSpace(r.Email))
 }
 
-type LogInUser struct {
+type GetUserInfo struct {
 	Email    string
 	Password string
 }

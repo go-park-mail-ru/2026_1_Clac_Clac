@@ -17,6 +17,34 @@ type AuthService struct {
 	mock.Mock
 }
 
+// CreateUser provides a mock function with given fields: ctx, requestUser
+func (_m *AuthService) CreateUser(ctx context.Context, requestUser dto.EntityUser) (dto.UserInfo, error) {
+	ret := _m.Called(ctx, requestUser)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUser")
+	}
+
+	var r0 dto.UserInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.EntityUser) (dto.UserInfo, error)); ok {
+		return rf(ctx, requestUser)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.EntityUser) dto.UserInfo); ok {
+		r0 = rf(ctx, requestUser)
+	} else {
+		r0 = ret.Get(0).(dto.UserInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.EntityUser) error); ok {
+		r1 = rf(ctx, requestUser)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteAvatar provides a mock function with given fields: ctx, userLink
 func (_m *AuthService) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
 	ret := _m.Called(ctx, userLink)
@@ -36,7 +64,7 @@ func (_m *AuthService) DeleteAvatar(ctx context.Context, userLink uuid.UUID) err
 }
 
 // EnsureUserByEmail provides a mock function with given fields: ctx, info
-func (_m *AuthService) EnsureUserByEmail(ctx context.Context, info dto.RegistrationUser) (string, error) {
+func (_m *AuthService) EnsureUserByEmail(ctx context.Context, info dto.EntityUser) (string, error) {
 	ret := _m.Called(ctx, info)
 
 	if len(ret) == 0 {
@@ -45,16 +73,16 @@ func (_m *AuthService) EnsureUserByEmail(ctx context.Context, info dto.Registrat
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) (string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.EntityUser) (string, error)); ok {
 		return rf(ctx, info)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, dto.EntityUser) string); ok {
 		r0 = rf(ctx, info)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, dto.RegistrationUser) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, dto.EntityUser) error); ok {
 		r1 = rf(ctx, info)
 	} else {
 		r1 = ret.Error(1)
@@ -91,6 +119,34 @@ func (_m *AuthService) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.
 	return r0, r1
 }
 
+// GetUser provides a mock function with given fields: ctx, requestUser
+func (_m *AuthService) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto.UserInfo, error) {
+	ret := _m.Called(ctx, requestUser)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUser")
+	}
+
+	var r0 dto.UserInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.GetUserInfo) (dto.UserInfo, error)); ok {
+		return rf(ctx, requestUser)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.GetUserInfo) dto.UserInfo); ok {
+		r0 = rf(ctx, requestUser)
+	} else {
+		r0 = ret.Get(0).(dto.UserInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.GetUserInfo) error); ok {
+		r1 = rf(ctx, requestUser)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUserLink provides a mock function with given fields: ctx, email
 func (_m *AuthService) GetUserLink(ctx context.Context, email string) (string, error) {
 	ret := _m.Called(ctx, email)
@@ -112,62 +168,6 @@ func (_m *AuthService) GetUserLink(ctx context.Context, email string) (string, e
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = rf(ctx, email)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// LogIn provides a mock function with given fields: ctx, requestUser
-func (_m *AuthService) LogIn(ctx context.Context, requestUser dto.LogInUser) (dto.UserInfo, error) {
-	ret := _m.Called(ctx, requestUser)
-
-	if len(ret) == 0 {
-		panic("no return value specified for LogIn")
-	}
-
-	var r0 dto.UserInfo
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.LogInUser) (dto.UserInfo, error)); ok {
-		return rf(ctx, requestUser)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.LogInUser) dto.UserInfo); ok {
-		r0 = rf(ctx, requestUser)
-	} else {
-		r0 = ret.Get(0).(dto.UserInfo)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, dto.LogInUser) error); ok {
-		r1 = rf(ctx, requestUser)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Register provides a mock function with given fields: ctx, requestUser
-func (_m *AuthService) Register(ctx context.Context, requestUser dto.RegistrationUser) (dto.UserInfo, error) {
-	ret := _m.Called(ctx, requestUser)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Register")
-	}
-
-	var r0 dto.UserInfo
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) (dto.UserInfo, error)); ok {
-		return rf(ctx, requestUser)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.RegistrationUser) dto.UserInfo); ok {
-		r0 = rf(ctx, requestUser)
-	} else {
-		r0 = ret.Get(0).(dto.UserInfo)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, dto.RegistrationUser) error); ok {
-		r1 = rf(ctx, requestUser)
 	} else {
 		r1 = ret.Error(1)
 	}
