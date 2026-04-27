@@ -10,7 +10,7 @@ import (
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpc_engine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	boardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	cardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	sectionPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
@@ -21,7 +21,7 @@ import (
 type App struct {
 	Config  config.Config
 	Logger  zerolog.Logger
-	Engine  *grpc_engine.Engine
+	Engine  *grpcEngine.Engine
 	Store   *Store
 	Manager *Manager
 }
@@ -85,7 +85,7 @@ func (a *App) setupManager(store *Store) {
 	a.Manager = NewManager(store)
 }
 
-func (a *App) registerServices(engine *grpc_engine.Engine, manager *Manager) {
+func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 	boardPB.RegisterBoardServiceServer(
 		engine.Server,
 		board.NewHandler(manager.Board, board.Config(a.Config.Board.Handler)),
@@ -103,5 +103,5 @@ func (a *App) registerServices(engine *grpc_engine.Engine, manager *Manager) {
 }
 
 func (a *App) setupEngine(logger *zerolog.Logger) {
-	a.Engine = grpc_engine.New(a.Config.Engine, logger)
+	a.Engine = grpcEngine.New(a.Config.Engine, logger)
 }

@@ -1,4 +1,4 @@
-package grpc_engine
+package grpcEngine
 
 import (
 	"bytes"
@@ -6,14 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
-	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
 func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second
-	cfg := engine.Config{
+	cfg := Config{
 		Addr:                    ":0",
 		WriteTimeout:            15,
 		ReadTimeout:             15,
@@ -23,9 +21,8 @@ func TestGracefulShutdown(t *testing.T) {
 
 	buf := &bytes.Buffer{}
 	logger := zerolog.New(buf)
-	router := mux.NewRouter()
 
-	e := engine.New(cfg, &logger, router)
+	e := New(cfg, &logger)
 
 	serverReady := make(chan struct{})
 	e.OnListen = func(_ string) {
