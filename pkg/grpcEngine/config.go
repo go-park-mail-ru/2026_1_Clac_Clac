@@ -1,4 +1,4 @@
-package grpc_engine
+package grpcEngine
 
 type Config struct {
 	Addr                    string `mapstructure:"addr"`
