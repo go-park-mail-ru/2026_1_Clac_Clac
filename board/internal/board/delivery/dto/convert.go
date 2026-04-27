@@ -1,7 +1,11 @@
 package dto
 
 import (
+<<<<<<<< HEAD:board/internal/board/delivery/dto/convert.go
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
+========
+	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service/dto"
+>>>>>>>> feat/add-facade:monolith/internal/board/handler/dto/convert.go
 	"github.com/google/uuid"
 )
 

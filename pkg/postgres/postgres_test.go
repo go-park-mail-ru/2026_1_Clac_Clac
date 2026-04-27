@@ -4,6 +4,10 @@ import (
 	"testing"
 	"time"
 
+<<<<<<<< HEAD:pkg/postgres/postgres_test.go
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+>>>>>>>> feat/add-facade:monolith/internal/db/postgres_test.go
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

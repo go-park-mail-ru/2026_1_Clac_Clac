@@ -1,0 +1,74 @@
+app:
+  log_level: info
+  max_text_request_size: 10240
+  max_upload_image_size: 10485760
+
+engine:
+  addr: 0.0.0.0:8081
+  write_timeout: 15s
+  read_timeout: 15s
+  idle_timeout: 60s
+  graceful_shutdown_timeout: 15s
+
+cors:
+  credentials: "true"
+  methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-CSRF-Token"
+  max_age: "864000"
+
+csrf:
+  ttl: 24h
+  expire_time_convertation_base: 10
+  expire_time_convertation_type_size: 64
+  parts_count: 2
+
+services:
+  user:
+    client:
+      addr: "localhost:50051"
+      timeout: 3s
+      retries: 5
+    handler:
+      signature_type_bytes: 512
+      max_read_bytes: 5242880
+      max_len_name_user: 128
+      max_len_description_user: 500
+      valid_extensions:
+        image/png:
+        image/jpg:
+        image/jpeg:
+        image/webp:
+
+  auth:
+    client:
+      addr: "localhost:50054"
+      timeout: 2s
+      retries: 5
+    handler:
+      max_len_password: 128
+      min_len_password: 8
+      session_life_time: 24h
+
+  mail_sender:
+    addr: "localhost:50053"
+    timeout: 10s
+    retries: 5
+
+  board:
+    addr: "localhost:50052"
+    timeout: 5s
+    retries: 5
+
+  rate_limiters:
+    addr: "localhost:50055"
+    timeout: 2s
+    retries: 5
+    actions:
+      login:
+        limit: 5
+        action: "login"
+        window: 1m
+      register:
+        limit: 3
+        action: "register"
+        window: 1h

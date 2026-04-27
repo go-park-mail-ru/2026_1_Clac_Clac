@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"testing"
 
+<<<<<<<< HEAD:board/internal/config/board_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+>>>>>>>> feat/add-facade:monolith/internal/config/board_test.go
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"time"
 
+<<<<<<<< HEAD:pkg/postgres/postgres.go
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+>>>>>>>> feat/add-facade:monolith/internal/db/postgres.go
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"

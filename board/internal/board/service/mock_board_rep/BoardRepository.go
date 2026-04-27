@@ -5,9 +5,15 @@ package mocks
 import (
 	context "context"
 
+<<<<<<<< HEAD:board/internal/board/service/mock_board_rep/BoardRepository.go
 	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
+========
+	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/common"
+
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
+>>>>>>>> feat/add-facade:monolith/internal/board/service/mock_board_rep/BoardRepository.go
 
 	io "io"
 

@@ -5,8 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+<<<<<<<< HEAD:board/internal/section/repository/repository.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/repository/dto"
+>>>>>>>> feat/add-facade:monolith/internal/section/repository/repository.go
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"

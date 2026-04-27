@@ -19,11 +19,19 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+<<<<<<<< HEAD:board/internal/board/repository/repository_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/s3"
+>>>>>>>> feat/add-facade:monolith/internal/board/repository/repository_test.go
 )
 
 type MockS3Bucket struct {

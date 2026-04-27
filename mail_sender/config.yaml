@@ -1,0 +1,19 @@
+app:
+  log_level: info
+
+engine:
+  addr: ":50052"
+  graceful_shutdown_timeout: 15
+
+redis:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
+
+sender:
+  service:
+    count_retries: 5
+    life_time_reset_token: 15m
+    sleep_time: 2s

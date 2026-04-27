@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"io"
 
+<<<<<<<< HEAD:board/internal/board/service/service.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/common"
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service/dto"
+>>>>>>>> feat/add-facade:monolith/internal/board/service/service.go
 
 	"github.com/google/uuid"
 )

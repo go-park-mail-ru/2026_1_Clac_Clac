@@ -1,0 +1,83 @@
+package usecase
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func newTestCSRF() *CSRF {
+	return NewCSRF(CSRFConfig{
+		Secret:                         "test-secret",
+		TTL:                            time.Hour,
+		ExpireTimeConvertationBase:     10,
+		ExpireTimeConvertationTypeSize: 64,
+		PartsCount:                     2,
+	})
+}
+
+func TestCSRFGenerateAndCheck(t *testing.T) {
+	svc := newTestCSRF()
+	ctx := context.Background()
+	sessionID := "session-abc"
+
+	expireAt := time.Now().Add(time.Hour).Unix()
+	token, err := svc.Generate(ctx, sessionID, expireAt)
+	require.NoError(t, err)
+	assert.NotEmpty(t, token)
+
+	err = svc.Check(ctx, sessionID, token)
+	assert.NoError(t, err)
+}
+
+func TestCSRFCheckWrongSession(t *testing.T) {
+	svc := newTestCSRF()
+	ctx := context.Background()
+
+	expireAt := time.Now().Add(time.Hour).Unix()
+	token, err := svc.Generate(ctx, "session-correct", expireAt)
+	require.NoError(t, err)
+
+	err = svc.Check(ctx, "session-wrong", token)
+	assert.ErrorIs(t, err, common.ErrCSRFTokensDoNotEqual)
+}
+
+func TestCSRFCheckExpired(t *testing.T) {
+	svc := newTestCSRF()
+	ctx := context.Background()
+
+	expireAt := time.Now().Add(-time.Hour).Unix()
+	token, err := svc.Generate(ctx, "session-abc", expireAt)
+	require.NoError(t, err)
+
+	err = svc.Check(ctx, "session-abc", token)
+	assert.ErrorIs(t, err, common.ErrCSRFTokenExpired)
+}
+
+func TestCSRFCheckInvalidFormat(t *testing.T) {
+	svc := newTestCSRF()
+	ctx := context.Background()
+
+	err := svc.Check(ctx, "session", "no-colon-here")
+	assert.ErrorIs(t, err, common.ErrInvalidCSRFToken)
+}
+
+func TestCSRFCheckBadExpireAt(t *testing.T) {
+	svc := newTestCSRF()
+	ctx := context.Background()
+
+	err := svc.Check(ctx, "session", "notanumber:abc")
+	assert.ErrorIs(t, err, common.ErrCannotParseExpireTimeCSRFToken)
+}
+
+func TestCSRFGetExpireTime(t *testing.T) {
+	svc := newTestCSRF()
+	before := time.Now()
+	exp := svc.GetExpireTime(context.Background())
+	assert.True(t, exp.After(before))
+	assert.True(t, exp.Before(before.Add(2*time.Hour)))
+}

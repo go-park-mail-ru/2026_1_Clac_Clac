@@ -4,6 +4,10 @@ import (
 	"testing"
 	"time"
 
+<<<<<<<< HEAD:pkg/redis/redis_test.go
+========
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
+>>>>>>>> feat/add-facade:monolith/internal/db/redis_test.go
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"

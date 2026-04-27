@@ -1,7 +1,11 @@
 package dto
 
 import (
+<<<<<<<< HEAD:board/internal/board/service/dto/convert.go
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
+========
+	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
+>>>>>>>> feat/add-facade:monolith/internal/board/service/dto/convert.go
 )
 
 func BoardInfoFromEntry(entry repositoryDto.BoardEntry) BoardInfo {
