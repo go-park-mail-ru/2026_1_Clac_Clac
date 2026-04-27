@@ -6,19 +6,12 @@ import (
 	"testing"
 	"time"
 
-<<<<<<<< HEAD:board/internal/section/service/service_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
 	mockRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/mock_section_rep"
 	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/mock_section_rep"
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/common"
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/service/dto"
-	mockRepo "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/service/mock_section_rep"
-	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/service/mock_section_rep"
->>>>>>>> feat/add-facade:monolith/internal/section/service/service_test.go
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

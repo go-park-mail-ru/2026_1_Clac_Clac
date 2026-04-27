@@ -7,15 +7,10 @@ import (
 	"io"
 	"time"
 
-<<<<<<<< HEAD:board/internal/board/repository/repository.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/s3"
->>>>>>>> feat/add-facade:monolith/internal/board/repository/repository.go
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"

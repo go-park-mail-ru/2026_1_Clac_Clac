@@ -5,12 +5,7 @@ package mocks
 import (
 	context "context"
 
-<<<<<<<< HEAD:board/internal/card/delivery/mock_card_srv/CardService.go
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
-========
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/card/service/dto"
->>>>>>>> feat/add-facade:monolith/internal/card/handler/mock_card_srv/CardService.go
-
 	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"

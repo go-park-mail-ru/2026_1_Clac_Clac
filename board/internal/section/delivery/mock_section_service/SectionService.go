@@ -5,11 +5,7 @@ package mockSectionService
 import (
 	context "context"
 
-<<<<<<<< HEAD:board/internal/section/delivery/mock_section_service/SectionService.go
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
-========
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/service/dto"
->>>>>>>> feat/add-facade:monolith/internal/section/handler/mock_section_service/SectionService.go
 
 	mock "github.com/stretchr/testify/mock"
 

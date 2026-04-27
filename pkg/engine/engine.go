@@ -9,27 +9,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-<<<<<<< HEAD
-	"time"
 
-<<<<<<<< HEAD:pkg/engine/engine.go
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
->>>>>>>> feat/add-facade:monolith/internal/engine/engine.go
-=======
-
->>>>>>> feat/add-facade
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
 
 type Engine struct {
-<<<<<<< HEAD
-	config Config
-=======
 	config *Config
->>>>>>> feat/add-facade
 	server *http.Server
 	router *mux.Router
 	logger *zerolog.Logger
@@ -37,11 +24,7 @@ type Engine struct {
 	OnListen func(addr string)
 }
 
-<<<<<<< HEAD
-func New(config Config, logger *zerolog.Logger, router *mux.Router) *Engine {
-=======
 func New(config *Config, logger *zerolog.Logger, router *mux.Router) *Engine {
->>>>>>> feat/add-facade
 	return &Engine{
 		config: config,
 		logger: logger,
@@ -60,15 +43,9 @@ func (e *Engine) Start(ctx context.Context) error {
 
 	e.server = &http.Server{
 		Addr:         actualAddr,
-<<<<<<< HEAD
-		WriteTimeout: time.Duration(e.config.WriteTimeout) * time.Second,
-		ReadTimeout:  time.Duration(e.config.ReadTimeout) * time.Second,
-		IdleTimeout:  time.Duration(e.config.IdleTimeout) * time.Second,
-=======
 		WriteTimeout: e.config.WriteTimeout,
 		ReadTimeout:  e.config.ReadTimeout,
 		IdleTimeout:  e.config.IdleTimeout,
->>>>>>> feat/add-facade
 		Handler:      e.router,
 	}
 
@@ -111,11 +88,7 @@ func (e *Engine) gracefulShutdown(errgroupCtx context.Context) func() error {
 
 		e.logger.Info().Msg("shutdown, wait...")
 
-<<<<<<< HEAD
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(e.config.GracefulShutdownTimeout)*time.Second)
-=======
 		ctx, cancel := context.WithTimeout(context.Background(), e.config.GracefulShutdownTimeout)
->>>>>>> feat/add-facade
 		defer cancel()
 
 		if err := e.server.Shutdown(ctx); err != nil {

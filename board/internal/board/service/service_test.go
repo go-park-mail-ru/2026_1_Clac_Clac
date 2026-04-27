@@ -10,19 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-<<<<<<<< HEAD:board/internal/board/service/service_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/mock_board_rep"
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/common"
-	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/repository/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service/dto"
-	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service/mock_board_rep"
->>>>>>>> feat/add-facade:monolith/internal/board/service/service_test.go
 )
 
 func TestGetBoards(t *testing.T) {

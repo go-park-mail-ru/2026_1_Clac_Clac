@@ -7,13 +7,9 @@ import (
 	"testing"
 	"time"
 
-<<<<<<<< HEAD:board/internal/section/repository/repository_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/section/repository/dto"
->>>>>>>> feat/add-facade:monolith/internal/section/repository/repository_test.go
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"

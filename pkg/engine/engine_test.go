@@ -1,5 +1,4 @@
 package engine_test
-<<<<<<< HEAD
 
 import (
 	"bytes"
@@ -7,12 +6,8 @@ import (
 	"testing"
 	"time"
 
-<<<<<<<< HEAD:pkg/engine/engine_test.go
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
-========
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/config"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/engine"
->>>>>>>> feat/add-facade:monolith/internal/engine/engine_test.go
+
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
@@ -31,7 +26,7 @@ func TestGracefulShutdown(t *testing.T) {
 	logger := zerolog.New(buf)
 	router := mux.NewRouter()
 
-	e := engine.New(cfg, &logger, router)
+	e := engine.New(&cfg, &logger, router)
 
 	serverReady := make(chan struct{})
 	e.OnListen = func(_ string) {
@@ -56,5 +51,3 @@ func TestGracefulShutdown(t *testing.T) {
 		t.Fatal("server did not shutdown after timeout")
 	}
 }
-=======
->>>>>>> feat/add-facade

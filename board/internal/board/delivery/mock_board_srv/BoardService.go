@@ -5,11 +5,7 @@ package mocks
 import (
 	context "context"
 
-<<<<<<<< HEAD:board/internal/board/delivery/mock_board_srv/BoardService.go
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
-========
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/monolith/internal/board/service/dto"
->>>>>>>> feat/add-facade:monolith/internal/board/handler/mock_board_srv/BoardService.go
 
 	io "io"
 

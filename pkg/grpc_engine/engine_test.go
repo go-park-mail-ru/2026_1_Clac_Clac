@@ -25,7 +25,7 @@ func TestGracefulShutdown(t *testing.T) {
 	logger := zerolog.New(buf)
 	router := mux.NewRouter()
 
-	e := engine.New(cfg, &logger, router)
+	e := engine.New(&cfg, &logger, router)
 
 	serverReady := make(chan struct{})
 	e.OnListen = func(_ string) {
