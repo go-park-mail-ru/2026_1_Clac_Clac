@@ -17,14 +17,15 @@ message SectionInfo {
 
 message CardInfo {
   string link = 1;
-  optional string executer_name = 2;
+  optional string executor_name = 2;
   string title = 3;
   optional google.protobuf.Timestamp deadline = 4;
 }
 
 // GetSections
 message GetSectionsRequest {
-  string board_link = 1;
+  string user_link = 1;
+  string board_link = 2;
 }
 
 message GetSectionsResponse {
@@ -33,7 +34,8 @@ message GetSectionsResponse {
 
 // GetSection
 message GetSectionRequest {
-  string section_link = 1;
+  string user_link = 1;
+  string section_link = 2;
 }
 
 message GetSectionResponse {
@@ -42,7 +44,8 @@ message GetSectionResponse {
 
 // GetCards
 message GetCardsRequest {
-  string section_link = 1;
+  string user_link = 1;
+  string section_link = 2;
 }
 
 message GetCardsResponse {
@@ -51,11 +54,12 @@ message GetCardsResponse {
 
 // CreateSection
 message CreateSectionRequest {
-  string board_link = 1;
-  string name = 2;
-  bool is_mandatory = 3;
-  string color = 4;
-  optional int64 max_tasks = 5;
+  string user_link = 1;
+  string board_link = 2;
+  string name = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
 }
 
 message CreateSectionResponse {
@@ -64,26 +68,29 @@ message CreateSectionResponse {
 
 // DeleteSection
 message DeleteSectionRequest {
-  string section_link = 1;
+  string user_link = 1;
+  string section_link = 2;
 }
 
 message DeleteSectionResponse {}
 
 // ReorderSection
 message ReorderSectionRequest {
-  string board_link = 1;
-  repeated string links_list = 2;
+  string user_link = 1;
+  string board_link = 2;
+  repeated string links_list = 3;
 }
 
 message ReorderSectionResponse {}
 
 // UpdateSection
 message UpdateSectionRequest {
-  string section_link = 1;
-  string name = 2;
-  bool is_mandatory = 3;
-  string color = 4;
-  optional int64 max_tasks = 5;
+  string user_link = 1;
+  string section_link = 2;
+  string name = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
 }
 
 message UpdateSectionResponse {}

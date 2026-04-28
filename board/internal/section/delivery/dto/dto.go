@@ -43,7 +43,7 @@ type SectionsResponse struct {
 // @Description Краткая информация о карточке задачи
 type Card struct {
 	CardLink     uuid.UUID  `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	ExecuterName *string    `json:"executer_name" example:"Иван Иванов"`
+	ExecutorName *string    `json:"executor_name" example:"Иван Иванов"`
 	Title        string     `json:"title" example:"Починить баг на фронтенде"`
 	DeadLine     *time.Time `json:"dead_line" example:"2026-04-12T14:35:00Z"`
 }

@@ -109,7 +109,7 @@ func (x *SectionInfo) GetMaxTasks() int64 {
 type CardInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Link          string                 `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
-	ExecuterName  *string                `protobuf:"bytes,2,opt,name=executer_name,json=executerName,proto3,oneof" json:"executer_name,omitempty"`
+	ExecutorName  *string                `protobuf:"bytes,2,opt,name=executor_name,json=executorName,proto3,oneof" json:"executor_name,omitempty"`
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -153,9 +153,9 @@ func (x *CardInfo) GetLink() string {
 	return ""
 }
 
-func (x *CardInfo) GetExecuterName() string {
-	if x != nil && x.ExecuterName != nil {
-		return *x.ExecuterName
+func (x *CardInfo) GetExecutorName() string {
+	if x != nil && x.ExecutorName != nil {
+		return *x.ExecutorName
 	}
 	return ""
 }
@@ -177,7 +177,8 @@ func (x *CardInfo) GetDeadline() *timestamppb.Timestamp {
 // GetSections
 type GetSectionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BoardLink     string                 `protobuf:"bytes,1,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink     string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -210,6 +211,13 @@ func (x *GetSectionsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetSectionsRequest.ProtoReflect.Descriptor instead.
 func (*GetSectionsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetSectionsRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetSectionsRequest) GetBoardLink() string {
@@ -266,7 +274,8 @@ func (x *GetSectionsResponse) GetSectionsInfo() []*SectionInfo {
 // GetSection
 type GetSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SectionLink   string                 `protobuf:"bytes,1,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,2,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +308,13 @@ func (x *GetSectionRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetSectionRequest.ProtoReflect.Descriptor instead.
 func (*GetSectionRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetSectionRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetSectionRequest) GetSectionLink() string {
@@ -355,7 +371,8 @@ func (x *GetSectionResponse) GetSectionInfo() *SectionInfo {
 // GetCards
 type GetCardsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SectionLink   string                 `protobuf:"bytes,1,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,2,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -388,6 +405,13 @@ func (x *GetCardsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetCardsRequest.ProtoReflect.Descriptor instead.
 func (*GetCardsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetCardsRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetCardsRequest) GetSectionLink() string {
@@ -444,11 +468,12 @@ func (x *GetCardsResponse) GetCardsInfo() []*CardInfo {
 // CreateSection
 type CreateSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BoardLink     string                 `protobuf:"bytes,1,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IsMandatory   bool                   `protobuf:"varint,3,opt,name=is_mandatory,json=isMandatory,proto3" json:"is_mandatory,omitempty"`
-	Color         string                 `protobuf:"bytes,4,opt,name=color,proto3" json:"color,omitempty"`
-	MaxTasks      *int64                 `protobuf:"varint,5,opt,name=max_tasks,json=maxTasks,proto3,oneof" json:"max_tasks,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink     string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	IsMandatory   bool                   `protobuf:"varint,4,opt,name=is_mandatory,json=isMandatory,proto3" json:"is_mandatory,omitempty"`
+	Color         string                 `protobuf:"bytes,5,opt,name=color,proto3" json:"color,omitempty"`
+	MaxTasks      *int64                 `protobuf:"varint,6,opt,name=max_tasks,json=maxTasks,proto3,oneof" json:"max_tasks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -481,6 +506,13 @@ func (x *CreateSectionRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateSectionRequest.ProtoReflect.Descriptor instead.
 func (*CreateSectionRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CreateSectionRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *CreateSectionRequest) GetBoardLink() string {
@@ -565,7 +597,8 @@ func (x *CreateSectionResponse) GetSectionInfo() *SectionInfo {
 // DeleteSection
 type DeleteSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SectionLink   string                 `protobuf:"bytes,1,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,2,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,6 +631,13 @@ func (x *DeleteSectionRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteSectionRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSectionRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteSectionRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *DeleteSectionRequest) GetSectionLink() string {
@@ -646,8 +686,9 @@ func (*DeleteSectionResponse) Descriptor() ([]byte, []int) {
 // ReorderSection
 type ReorderSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BoardLink     string                 `protobuf:"bytes,1,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
-	LinksList     []string               `protobuf:"bytes,2,rep,name=links_list,json=linksList,proto3" json:"links_list,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink     string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	LinksList     []string               `protobuf:"bytes,3,rep,name=links_list,json=linksList,proto3" json:"links_list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -680,6 +721,13 @@ func (x *ReorderSectionRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ReorderSectionRequest.ProtoReflect.Descriptor instead.
 func (*ReorderSectionRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ReorderSectionRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *ReorderSectionRequest) GetBoardLink() string {
@@ -735,11 +783,12 @@ func (*ReorderSectionResponse) Descriptor() ([]byte, []int) {
 // UpdateSection
 type UpdateSectionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SectionLink   string                 `protobuf:"bytes,1,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IsMandatory   bool                   `protobuf:"varint,3,opt,name=is_mandatory,json=isMandatory,proto3" json:"is_mandatory,omitempty"`
-	Color         string                 `protobuf:"bytes,4,opt,name=color,proto3" json:"color,omitempty"`
-	MaxTasks      *int64                 `protobuf:"varint,5,opt,name=max_tasks,json=maxTasks,proto3,oneof" json:"max_tasks,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,2,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	IsMandatory   bool                   `protobuf:"varint,4,opt,name=is_mandatory,json=isMandatory,proto3" json:"is_mandatory,omitempty"`
+	Color         string                 `protobuf:"bytes,5,opt,name=color,proto3" json:"color,omitempty"`
+	MaxTasks      *int64                 `protobuf:"varint,6,opt,name=max_tasks,json=maxTasks,proto3,oneof" json:"max_tasks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -772,6 +821,13 @@ func (x *UpdateSectionRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateSectionRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSectionRequest) Descriptor() ([]byte, []int) {
 	return file_proto_section_v1_section_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateSectionRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *UpdateSectionRequest) GetSectionLink() string {
@@ -861,51 +917,58 @@ const file_proto_section_v1_section_proto_rawDesc = "" +
 	"_max_tasks\"\xba\x01\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
-	"\rexecuter_name\x18\x02 \x01(\tH\x00R\fexecuterName\x88\x01\x01\x12\x14\n" +
+	"\rexecutor_name\x18\x02 \x01(\tH\x00R\fexecutorName\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12;\n" +
 	"\bdeadline\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
-	"\x0e_executer_nameB\v\n" +
-	"\t_deadline\"3\n" +
-	"\x12GetSectionsRequest\x12\x1d\n" +
+	"\x0e_executor_nameB\v\n" +
+	"\t_deadline\"P\n" +
+	"\x12GetSectionsRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
-	"board_link\x18\x01 \x01(\tR\tboardLink\"Y\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\"Y\n" +
 	"\x13GetSectionsResponse\x12B\n" +
-	"\rsections_info\x18\x01 \x03(\v2\x1d.proto.section.v1.SectionInfoR\fsectionsInfo\"6\n" +
-	"\x11GetSectionRequest\x12!\n" +
-	"\fsection_link\x18\x01 \x01(\tR\vsectionLink\"V\n" +
+	"\rsections_info\x18\x01 \x03(\v2\x1d.proto.section.v1.SectionInfoR\fsectionsInfo\"S\n" +
+	"\x11GetSectionRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\"V\n" +
 	"\x12GetSectionResponse\x12@\n" +
-	"\fsection_info\x18\x01 \x01(\v2\x1d.proto.section.v1.SectionInfoR\vsectionInfo\"4\n" +
-	"\x0fGetCardsRequest\x12!\n" +
-	"\fsection_link\x18\x01 \x01(\tR\vsectionLink\"M\n" +
+	"\fsection_info\x18\x01 \x01(\v2\x1d.proto.section.v1.SectionInfoR\vsectionInfo\"Q\n" +
+	"\x0fGetCardsRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\"M\n" +
 	"\x10GetCardsResponse\x129\n" +
 	"\n" +
-	"cards_info\x18\x01 \x03(\v2\x1a.proto.section.v1.CardInfoR\tcardsInfo\"\xb2\x01\n" +
-	"\x14CreateSectionRequest\x12\x1d\n" +
+	"cards_info\x18\x01 \x03(\v2\x1a.proto.section.v1.CardInfoR\tcardsInfo\"\xcf\x01\n" +
+	"\x14CreateSectionRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
-	"board_link\x18\x01 \x01(\tR\tboardLink\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
-	"\fis_mandatory\x18\x03 \x01(\bR\visMandatory\x12\x14\n" +
-	"\x05color\x18\x04 \x01(\tR\x05color\x12 \n" +
-	"\tmax_tasks\x18\x05 \x01(\x03H\x00R\bmaxTasks\x88\x01\x01B\f\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\fis_mandatory\x18\x04 \x01(\bR\visMandatory\x12\x14\n" +
+	"\x05color\x18\x05 \x01(\tR\x05color\x12 \n" +
+	"\tmax_tasks\x18\x06 \x01(\x03H\x00R\bmaxTasks\x88\x01\x01B\f\n" +
 	"\n" +
 	"_max_tasks\"Y\n" +
 	"\x15CreateSectionResponse\x12@\n" +
-	"\fsection_info\x18\x01 \x01(\v2\x1d.proto.section.v1.SectionInfoR\vsectionInfo\"9\n" +
-	"\x14DeleteSectionRequest\x12!\n" +
-	"\fsection_link\x18\x01 \x01(\tR\vsectionLink\"\x17\n" +
-	"\x15DeleteSectionResponse\"U\n" +
-	"\x15ReorderSectionRequest\x12\x1d\n" +
+	"\fsection_info\x18\x01 \x01(\v2\x1d.proto.section.v1.SectionInfoR\vsectionInfo\"V\n" +
+	"\x14DeleteSectionRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\"\x17\n" +
+	"\x15DeleteSectionResponse\"r\n" +
+	"\x15ReorderSectionRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
-	"board_link\x18\x01 \x01(\tR\tboardLink\x12\x1d\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\x12\x1d\n" +
 	"\n" +
-	"links_list\x18\x02 \x03(\tR\tlinksList\"\x18\n" +
-	"\x16ReorderSectionResponse\"\xb6\x01\n" +
-	"\x14UpdateSectionRequest\x12!\n" +
-	"\fsection_link\x18\x01 \x01(\tR\vsectionLink\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
-	"\fis_mandatory\x18\x03 \x01(\bR\visMandatory\x12\x14\n" +
-	"\x05color\x18\x04 \x01(\tR\x05color\x12 \n" +
-	"\tmax_tasks\x18\x05 \x01(\x03H\x00R\bmaxTasks\x88\x01\x01B\f\n" +
+	"links_list\x18\x03 \x03(\tR\tlinksList\"\x18\n" +
+	"\x16ReorderSectionResponse\"\xd3\x01\n" +
+	"\x14UpdateSectionRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\fis_mandatory\x18\x04 \x01(\bR\visMandatory\x12\x14\n" +
+	"\x05color\x18\x05 \x01(\tR\x05color\x12 \n" +
+	"\tmax_tasks\x18\x06 \x01(\x03H\x00R\bmaxTasks\x88\x01\x01B\f\n" +
 	"\n" +
 	"_max_tasks\"\x17\n" +
 	"\x15UpdateSectionResponse2\xa3\x05\n" +

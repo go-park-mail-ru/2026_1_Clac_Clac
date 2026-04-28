@@ -51,7 +51,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
-		&infoCard.NameExecuter,
+		&infoCard.NameExecutor,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -124,7 +124,7 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	_, err = tx.Exec(ctx, queryInsert,
 		updatingCard.LinkCard,
 		oldSectionLink,
-		updatingCard.LinkExecuter,
+		updatingCard.LinkExecutor,
 		updatingCard.Title,
 		updatingCard.Description,
 		oldPosition,
@@ -179,11 +179,11 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 	var oldSectionLink uuid.UUID
 	var position int
 	var title, description string
-	var executerLink *uuid.UUID
+	var executorLink *uuid.UUID
 	var dueDate *time.Time
 
 	err = tx.QueryRow(ctx, queryClose, updatingPlaceCard.LinkCard).Scan(
-		&oldSectionLink, &position, &title, &description, &executerLink, &dueDate,
+		&oldSectionLink, &position, &title, &description, &executorLink, &dueDate,
 	)
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		position,
 		title,
 		description,
-		executerLink,
+		executorLink,
 		dueDate,
 	)
 	if err != nil {
@@ -345,7 +345,7 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	_, err = tx.Exec(ctx, queryVersion,
 		newCard.LinkCard,
 		newCard.LinkSection,
-		newCard.LinkExecuter,
+		newCard.LinkExecutor,
 		newCard.Title,
 		newCard.Description,
 		position,
@@ -380,4 +380,137 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	}
 
 	return position, nil
+}
+
+func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
+	getCommentsQuery := `
+		SELECT
+			c.link AS comment_link,
+			c.author_link,
+			p.link AS parent_link,
+			c.text
+		FROM comment_task c
+		LEFT JOIN comment_task p ON p.comment_id = c.parent_id
+		JOIN task t ON t.task_id = c.task_id
+		WHERE t.task_link = $1
+	`
+
+	rows, err := r.pool.Query(ctx, getCommentsQuery, cardLink)
+	if err != nil {
+		return []dto.CommentInfo{}, fmt.Errorf("pool.Query: %w", err)
+	}
+
+	defer rows.Close()
+
+	comments := make([]dto.CommentInfo, 0)
+	for rows.Next() {
+		var comment dto.CommentInfo
+
+		err := rows.Scan(&comment.Link, &comment.AuthorLink, &comment.ParentLink, &comment.Text)
+		if err != nil {
+			return []dto.CommentInfo{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		comments = append(comments, comment)
+	}
+
+	return comments, nil
+}
+
+func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.CreateCommentInfo) (dto.CommentInfo, error) {
+	newCommentLink := uuid.New()
+
+	createCommentQuery := `
+		INSERT INTO comment_task (task_id, parent_id, author_link, text)
+		VALUES (
+			$1,
+			(SELECT task_id FROM task WHERE task_link = $2),
+			(SELECT comment_id FROM comment_task WHERE link = $3),
+			$4,
+			$5
+		)
+	`
+
+	_, err := r.pool.Exec(ctx, createCommentQuery,
+		newCommentLink,
+		createCardInfo.CardLink,
+		createCardInfo.ParentLink,
+		createCardInfo.AuthorLink,
+		createCardInfo.Text,
+	)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.NotNullViolation:
+				return dto.CommentInfo{}, common.ErrMissingRequiredField
+			case pgerrcode.ForeignKeyViolation:
+				return dto.CommentInfo{}, common.ErrInvalidReferenceCardData
+			}
+		}
+		return dto.CommentInfo{}, fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	return dto.CommentInfo{
+		Link:       newCommentLink,
+		ParentLink: createCardInfo.ParentLink,
+		AuthorLink: createCardInfo.AuthorLink,
+		Text:       createCardInfo.Text,
+	}, nil
+}
+
+func (r *Repository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1
+			FROM comment_task
+			WHERE link = $1 AND author_link = $2
+		)
+	`
+
+	var isAuthor bool
+	err := r.pool.QueryRow(ctx, query, commentLink, userLink).Scan(&isAuthor)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, common.ErrCommentNotFound
+		}
+
+		return false, fmt.Errorf("pool.QueryRow: %w", err)
+	}
+
+	return isAuthor, nil
+}
+
+func (r *Repository) DeleteComment(ctx context.Context, commentLink uuid.UUID) error {
+	query := `DELETE FROM comment_task WHERE link = $1`
+
+	commandTag, err := r.pool.Exec(ctx, query, commentLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return common.ErrCommentNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
+	query := `
+		UPDATE comment_task
+		SET text = $1
+		WHERE link = $2
+	`
+
+	commandTag, err := r.pool.Exec(ctx, query, updateCommentInfo.Text, updateCommentInfo.CommentLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return common.ErrCommentNotFound
+	}
+
+	return nil
 }

@@ -11,4 +11,6 @@ var (
 	ErrSectionNotFound            = errors.New("section not found")
 	ErrCardAlreadyExists          = errors.New("card already exists")
 	ErrTaskLimitReached           = errors.New("task limit reached")
+	ErrCommentNotFound            = errors.New("comment not found")
+	ErrPermissionDenied           = errors.New("permission denied")
 )

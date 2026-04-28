@@ -19,11 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CardService_GetCard_FullMethodName      = "/proto.card.v1.CardService/GetCard"
-	CardService_DeleteCard_FullMethodName   = "/proto.card.v1.CardService/DeleteCard"
-	CardService_UpdateCard_FullMethodName   = "/proto.card.v1.CardService/UpdateCard"
-	CardService_ReorderCards_FullMethodName = "/proto.card.v1.CardService/ReorderCards"
-	CardService_CreateCard_FullMethodName   = "/proto.card.v1.CardService/CreateCard"
+	CardService_GetCard_FullMethodName       = "/proto.card.v1.CardService/GetCard"
+	CardService_DeleteCard_FullMethodName    = "/proto.card.v1.CardService/DeleteCard"
+	CardService_UpdateCard_FullMethodName    = "/proto.card.v1.CardService/UpdateCard"
+	CardService_ReorderCards_FullMethodName  = "/proto.card.v1.CardService/ReorderCards"
+	CardService_CreateCard_FullMethodName    = "/proto.card.v1.CardService/CreateCard"
+	CardService_GetComments_FullMethodName   = "/proto.card.v1.CardService/GetComments"
+	CardService_CreateComment_FullMethodName = "/proto.card.v1.CardService/CreateComment"
+	CardService_DeleteComment_FullMethodName = "/proto.card.v1.CardService/DeleteComment"
+	CardService_UpdateComment_FullMethodName = "/proto.card.v1.CardService/UpdateComment"
 )
 
 // CardServiceClient is the client API for CardService service.
@@ -35,6 +39,10 @@ type CardServiceClient interface {
 	UpdateCard(ctx context.Context, in *UpdateCardRequest, opts ...grpc.CallOption) (*UpdateCardResponse, error)
 	ReorderCards(ctx context.Context, in *ReorderCardsRequest, opts ...grpc.CallOption) (*ReorderCardsResponse, error)
 	CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*CreateCardResponse, error)
+	GetComments(ctx context.Context, in *GetCommentsRequest, opts ...grpc.CallOption) (*GetCommentsResponse, error)
+	CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error)
+	DeleteComment(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*DeleteCommentResponse, error)
+	UpdateComment(ctx context.Context, in *UpdateCommentRequest, opts ...grpc.CallOption) (*UpdateCommentResponse, error)
 }
 
 type cardServiceClient struct {
@@ -95,6 +103,46 @@ func (c *cardServiceClient) CreateCard(ctx context.Context, in *CreateCardReques
 	return out, nil
 }
 
+func (c *cardServiceClient) GetComments(ctx context.Context, in *GetCommentsRequest, opts ...grpc.CallOption) (*GetCommentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCommentsResponse)
+	err := c.cc.Invoke(ctx, CardService_GetComments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cardServiceClient) CreateComment(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateCommentResponse)
+	err := c.cc.Invoke(ctx, CardService_CreateComment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cardServiceClient) DeleteComment(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*DeleteCommentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteCommentResponse)
+	err := c.cc.Invoke(ctx, CardService_DeleteComment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cardServiceClient) UpdateComment(ctx context.Context, in *UpdateCommentRequest, opts ...grpc.CallOption) (*UpdateCommentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCommentResponse)
+	err := c.cc.Invoke(ctx, CardService_UpdateComment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CardServiceServer is the server API for CardService service.
 // All implementations must embed UnimplementedCardServiceServer
 // for forward compatibility.
@@ -104,6 +152,10 @@ type CardServiceServer interface {
 	UpdateCard(context.Context, *UpdateCardRequest) (*UpdateCardResponse, error)
 	ReorderCards(context.Context, *ReorderCardsRequest) (*ReorderCardsResponse, error)
 	CreateCard(context.Context, *CreateCardRequest) (*CreateCardResponse, error)
+	GetComments(context.Context, *GetCommentsRequest) (*GetCommentsResponse, error)
+	CreateComment(context.Context, *CreateCommentRequest) (*CreateCommentResponse, error)
+	DeleteComment(context.Context, *DeleteCommentRequest) (*DeleteCommentResponse, error)
+	UpdateComment(context.Context, *UpdateCommentRequest) (*UpdateCommentResponse, error)
 	mustEmbedUnimplementedCardServiceServer()
 }
 
@@ -128,6 +180,18 @@ func (UnimplementedCardServiceServer) ReorderCards(context.Context, *ReorderCard
 }
 func (UnimplementedCardServiceServer) CreateCard(context.Context, *CreateCardRequest) (*CreateCardResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateCard not implemented")
+}
+func (UnimplementedCardServiceServer) GetComments(context.Context, *GetCommentsRequest) (*GetCommentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetComments not implemented")
+}
+func (UnimplementedCardServiceServer) CreateComment(context.Context, *CreateCommentRequest) (*CreateCommentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateComment not implemented")
+}
+func (UnimplementedCardServiceServer) DeleteComment(context.Context, *DeleteCommentRequest) (*DeleteCommentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteComment not implemented")
+}
+func (UnimplementedCardServiceServer) UpdateComment(context.Context, *UpdateCommentRequest) (*UpdateCommentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateComment not implemented")
 }
 func (UnimplementedCardServiceServer) mustEmbedUnimplementedCardServiceServer() {}
 func (UnimplementedCardServiceServer) testEmbeddedByValue()                     {}
@@ -240,6 +304,78 @@ func _CardService_CreateCard_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CardService_GetComments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCommentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).GetComments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_GetComments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).GetComments(ctx, req.(*GetCommentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CardService_CreateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).CreateComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_CreateComment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).CreateComment(ctx, req.(*CreateCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CardService_DeleteComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).DeleteComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_DeleteComment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).DeleteComment(ctx, req.(*DeleteCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CardService_UpdateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCommentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).UpdateComment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_UpdateComment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).UpdateComment(ctx, req.(*UpdateCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CardService_ServiceDesc is the grpc.ServiceDesc for CardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +402,22 @@ var CardService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateCard",
 			Handler:    _CardService_CreateCard_Handler,
+		},
+		{
+			MethodName: "GetComments",
+			Handler:    _CardService_GetComments_Handler,
+		},
+		{
+			MethodName: "CreateComment",
+			Handler:    _CardService_CreateComment_Handler,
+		},
+		{
+			MethodName: "DeleteComment",
+			Handler:    _CardService_DeleteComment_Handler,
+		},
+		{
+			MethodName: "UpdateComment",
+			Handler:    _CardService_UpdateComment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

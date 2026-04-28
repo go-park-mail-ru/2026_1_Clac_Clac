@@ -12,7 +12,7 @@ type InfoCard struct {
 	LinkCard     uuid.UUID  `json:"link_card" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Title        string     `json:"title" example:"Написать отчет"`
 	Description  string     `json:"description" example:"Собрать метрики за Q3 и подготовить презентацию"`
-	NameExecuter *string    `json:"name_executer" example:"Иван Иванов"`
+	NameExecutor *string    `json:"name_executor" example:"Иван Иванов"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-04-15T15:04:05Z"`
 }
 
@@ -22,7 +22,7 @@ type NewCard struct {
 	LinkAuthor   uuid.UUID  `json:"link_author" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Title        string     `json:"title" example:"Новая задача"`
 	Description  string     `json:"description" example:"Описание для новой задачи"`
-	LinkExecuter *uuid.UUID `json:"link_executer" example:"123e4567-e89b-12d3-a456-426614174000"`
+	LinkExecutor *uuid.UUID `json:"link_executor" example:"123e4567-e89b-12d3-a456-426614174000"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-05-01T12:00:00Z"`
 	LinkSection  uuid.UUID  `json:"link_section" example:"987e6543-e21b-12d3-a456-426614174111"`
 }
@@ -33,7 +33,7 @@ type UpdatingCardDetails struct {
 	LinkCard     uuid.UUID  `json:"link_card" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Title        string     `json:"title" example:"Обновленный заголовок"`
 	Description  string     `json:"description" example:"Дополненное описание задачи"`
-	LinkExecuter *uuid.UUID `json:"link_executer" example:"550e8400-e29b-41d4-a716-446655440000"`
+	LinkExecutor *uuid.UUID `json:"link_executor" example:"550e8400-e29b-41d4-a716-446655440000"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-06-01T18:30:00Z"`
 }
 

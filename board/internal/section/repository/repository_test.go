@@ -84,7 +84,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 			}
 
 			repo := NewRepository(mockDB)
-			result, err := repo.GetSectionInfo(ctx, targetLink)
+			result, err := repo.GetSection(ctx, targetLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -799,7 +799,7 @@ func TestRepositoryGetAllSections(t *testing.T) {
 			}
 
 			repo := NewRepository(mockDB)
-			result, err := repo.GetAllSections(ctx, boardLink)
+			result, err := repo.GetSections(ctx, boardLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -827,13 +827,13 @@ func TestRepositoryGetCards(t *testing.T) {
 	expectedCards := []dto.Card{
 		{
 			CardLink:     targetCardLink1,
-			ExecuterName: &targetExecuter,
+			ExecutorName: &targetExecuter,
 			Title:        "Task 1",
 			DeadLine:     &targetDeadLine,
 		},
 		{
 			CardLink:     targetCardLink2,
-			ExecuterName: nil,
+			ExecutorName: nil,
 			Title:        "Task 2",
 			DeadLine:     nil,
 		},
@@ -849,8 +849,8 @@ func TestRepositoryGetCards(t *testing.T) {
 			nameTest: "Success get cards",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"}).
-					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecuterName, expectedCards[0].Title, expectedCards[0].DeadLine).
-					AddRow(expectedCards[1].CardLink, expectedCards[1].ExecuterName, expectedCards[1].Title, expectedCards[1].DeadLine)
+					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecutorName, expectedCards[0].Title, expectedCards[0].DeadLine).
+					AddRow(expectedCards[1].CardLink, expectedCards[1].ExecutorName, expectedCards[1].Title, expectedCards[1].DeadLine)
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
 					WithArgs(targetSectionLink).
@@ -898,7 +898,7 @@ func TestRepositoryGetCards(t *testing.T) {
 			nameTest: "Error rows iteration",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date"}).
-					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecuterName, expectedCards[0].Title, expectedCards[0].DeadLine).
+					AddRow(expectedCards[0].CardLink, expectedCards[0].ExecutorName, expectedCards[0].Title, expectedCards[0].DeadLine).
 					RowError(0, errors.New("iteration error"))
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).

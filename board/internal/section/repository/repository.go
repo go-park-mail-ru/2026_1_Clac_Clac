@@ -30,7 +30,7 @@ func NewRepository(pool DBEngine) *Repository {
 	}
 }
 
-func (r *Repository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.FullSectionInfo, error) {
+func (r *Repository) GetSection(ctx context.Context, link uuid.UUID) (dto.FullSectionInfo, error) {
 	query := `
 	SELECT
         section_name,
@@ -87,7 +87,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 		var card dto.Card
 		err := rows.Scan(
 			&card.CardLink,
-			&card.ExecuterName,
+			&card.ExecutorName,
 			&card.Title,
 			&card.DeadLine,
 		)
@@ -100,7 +100,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 	}
 
 	if rows.Err() != nil {
-		return []dto.Card{}, fmt.Errorf("rows iteration: %w", err)
+		return []dto.Card{}, rows.Err()
 	}
 
 	return cards, nil
@@ -396,7 +396,7 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 	return nil
 }
 
-func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
+func (r *Repository) GetSections(ctx context.Context, boardLink uuid.UUID) ([]dto.FullSectionInfo, error) {
 	query := `
 		SELECT
 			section_link,
@@ -410,7 +410,7 @@ func (r *Repository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) 
 		ORDER BY position ASC;
 	`
 
-	rows, err := r.pool.Query(ctx, query, boarderLink)
+	rows, err := r.pool.Query(ctx, query, boardLink)
 	if err != nil {
 		return nil, fmt.Errorf("pool.Query: %w", err)
 	}

@@ -14,10 +14,14 @@ services:
     environment:
       - DATABASE_HOST=board-db
       - DATABASE_PORT=5432
+      - REDIS_HOST=board-redis
+      - REDIS_PORT=6379
     restart: unless-stopped
     depends_on:
       board-migrate:
         condition: service_completed_successfully
+      board-redis:
+        condition: service_healthy
 
   board-db:
     image: postgres:17-alpine
@@ -49,5 +53,21 @@ services:
       board-db:
         condition: service_healthy
 
+  board-redis:
+    image: redis:7-alpine
+    container_name: nexus-board-redis
+    volumes:
+      - board_redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    ports:
+      - "127.0.0.1:${REDIS_PORT}:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   board_db_data:
+  board_redis_data:
