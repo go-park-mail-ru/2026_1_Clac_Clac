@@ -111,6 +111,25 @@ message UpdateCommentRequest {
 
 message UpdateCommentResponse {}
 
+message CreateSubtaskRequest {
+  string description = 1;
+}
+
+message CreateSubtaskResponse {
+  string subtask_link = 1;
+}
+
+message UpdateSubtaskRequest {
+  bool ready = 1;
+  string description = 2;
+}
+
+message UpdateSubtaskResponse {}
+
+message DeleteSubtaskRequest {}
+
+message DeleteSubtaskResponse {}
+
 service CardService {
   rpc GetCard(GetCardRequest) returns (GetCardResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
@@ -121,4 +140,7 @@ service CardService {
   rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
   rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
   rpc UpdateComment(UpdateCommentRequest) returns (UpdateCommentResponse);
+  rpc CreateSubtask(CreateSubtaskRequest) returns (CreateSubtaskResponse);
+  rpc UpdateSubtask(UpdateSubtaskRequest) returns (UpdateSubtaskResponse);
+  rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
 }

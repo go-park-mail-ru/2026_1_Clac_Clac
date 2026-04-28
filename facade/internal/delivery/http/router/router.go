@@ -101,6 +101,10 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
 	withText.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
 
+	withText.HandleFunc("/cards/{card_link}/subtasks").Methods(http.MethodPost)
+	withText.HandleFunc("/cards/{card_link}/subtasks").Methods(http.MethodGet)
+	withText.HandleFunc("/cards/{card_link}/subtasks/{link}").Methods(http.MethodPut)
+	withText.HandleFunc("/cards/{card_link}/subtasks/{link}").Methods(http.MethodDelete)
 	return r
 }
 

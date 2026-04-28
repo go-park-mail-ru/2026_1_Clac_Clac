@@ -218,7 +218,7 @@ func TestUpdateAvatar(t *testing.T) {
 		req := buildAvatarRequest(t, []byte("not-an-image-bytes"), true)
 		rr := httptest.NewRecorder()
 		newProfileHandler(m).UpdateAvatar(rr, req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
 	})
 
 	t.Run("Success", func(t *testing.T) {

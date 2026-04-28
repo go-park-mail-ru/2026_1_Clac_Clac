@@ -182,18 +182,18 @@ JOIN task_version v
 
 CREATE TABLE subtask (
     subtask_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    task_id INT NOT NULL,
+    task_link UUID NOT NULL,
     link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
-    description TEXT NOT NULL,
+    "description" TEXT NOT NULL,
     is_done BOOLEAN DEFAULT false NOT NULL,
     position INT NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT check_description_length CHECK (char_length(description) <= 500),
-    CONSTRAINT fk_subtask_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE
+    CONSTRAINT check_description_length CHECK (char_length("description") <= 500),
+    CONSTRAINT fk_subtask_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE
 );
 
 CREATE TRIGGER set_subtask_updated_at
