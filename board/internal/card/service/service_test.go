@@ -6,16 +6,47 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	mockCardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/mock_card_rep"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
+// --- MOCK RBAC SERVICE ---
+
+type MockRbacService struct {
+	mock.Mock
+}
+
+func (m *MockRbacService) CheckPermissionOnBoard(ctx context.Context, itemLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, itemLink, userLink, action)
+	return args.Error(0)
+}
+
+func (m *MockRbacService) CheckPermissionOnSection(ctx context.Context, itemLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, itemLink, userLink, action)
+	return args.Error(0)
+}
+
+func (m *MockRbacService) CheckPermissionOnCard(ctx context.Context, itemLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, itemLink, userLink, action)
+	return args.Error(0)
+}
+
+func (m *MockRbacService) CheckPermissionOnComment(ctx context.Context, itemLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, itemLink, userLink, action)
+	return args.Error(0)
+}
+
+// --- TESTS ---
+
 func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()
+	targetUserLink := uuid.New()
 	targetExecuterName := "John Doe"
 	targetDataDeadLine := time.Now()
 
@@ -28,16 +59,17 @@ func TestGetCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 		expectedRes   dto.InfoCard
 	}{
 		{
 			nameTest: "Success get card",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repResponse, nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 			expectedRes: dto.InfoCard{
 				Title:        "Title",
 				Description:  "Desc",
@@ -46,11 +78,20 @@ func TestGetCard(t *testing.T) {
 			},
 		},
 		{
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
+			},
+			expectedError: rbac.ErrActionDenied,
+			expectedRes:   dto.InfoCard{},
+		},
+		{
 			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{}, errors.New("db error"))
 			},
-			expectedError: true,
+			expectedError: errors.New("rep.GetCard: db error"),
 			expectedRes:   dto.InfoCard{},
 		},
 	}
@@ -58,13 +99,14 @@ func TestGetCard(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
-			res, err := service.GetCard(context.Background(), targetCardLink)
+			service := NewService(mockRep, mockPerm)
+			res, err := service.GetCard(context.Background(), targetCardLink, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorContains(t, err, test.expectedError.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expectedRes, res)
@@ -75,38 +117,41 @@ func TestGetCard(t *testing.T) {
 
 func TestDeleteCard(t *testing.T) {
 	targetCardLink := uuid.New()
+	targetUserLink := uuid.New()
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success delete card",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("DeleteCard", mock.Anything, targetCardLink).Return(nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("DeleteCard", mock.Anything, targetCardLink).Return(errors.New("db error"))
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
-			err := service.DeleteCard(context.Background(), targetCardLink)
+			service := NewService(mockRep, mockPerm)
+			err := service.DeleteCard(context.Background(), targetCardLink, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -116,6 +161,7 @@ func TestDeleteCard(t *testing.T) {
 
 func TestUpdateCardDetails(t *testing.T) {
 	targetCardLink := uuid.New()
+	targetUserLink := uuid.New()
 	targetExecuterLink := uuid.New()
 	targetDataDeadLine := time.Now()
 
@@ -137,35 +183,37 @@ func TestUpdateCardDetails(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success update card",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("UpdateCardDetails", mock.Anything, repUpdateDto).Return(nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("UpdateCardDetails", mock.Anything, repUpdateDto).Return(errors.New("db error"))
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
-			err := service.UpdateCardDetails(context.Background(), updateDto)
+			service := NewService(mockRep, mockPerm)
+			err := service.UpdateCardDetails(context.Background(), updateDto, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -173,9 +221,10 @@ func TestUpdateCardDetails(t *testing.T) {
 	}
 }
 
-func TestReordredCard(t *testing.T) {
+func TestReorderCard(t *testing.T) {
 	targetCardLink := uuid.New()
 	targetSectionLink := uuid.New()
+	targetUserLink := uuid.New()
 
 	placeDto := dto.PlaceCard{
 		LinkCard:    targetCardLink,
@@ -191,35 +240,37 @@ func TestReordredCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success reorder card",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnSection", mock.Anything, targetSectionLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("ReorderCard", mock.Anything, repPlaceDto).Return(nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("ReorderCard", mock.Anything, repPlaceDto).Return(errors.New("db error"))
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnSection", mock.Anything, targetSectionLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
-			err := service.ReorderCard(context.Background(), placeDto)
+			service := NewService(mockRep, mockPerm)
+			err := service.ReorderCard(context.Background(), placeDto, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -244,35 +295,37 @@ func TestCreateCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success create card",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnSection", mock.Anything, targetSectionLink, targetAuthorLink, mock.Anything).Return(nil)
 				m.On("CreateCard", mock.Anything, mock.AnythingOfType("dto.NewCard")).Return(5, nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("CreateCard", mock.Anything, mock.AnythingOfType("dto.NewCard")).Return(-1, errors.New("db error"))
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnSection", mock.Anything, targetSectionLink, targetAuthorLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
+			service := NewService(mockRep, mockPerm)
 			res, err := service.CreateCard(context.Background(), newCardDto)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, 5, res.Position)
@@ -285,6 +338,7 @@ func TestCreateCard(t *testing.T) {
 
 func TestGetComments(t *testing.T) {
 	targetCardLink := uuid.New()
+	targetUserLink := uuid.New()
 	commentLink := uuid.New()
 	authorLink := uuid.New()
 	parentLink := uuid.New()
@@ -295,45 +349,40 @@ func TestGetComments(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 		expectedLen   int
 	}{
 		{
 			nameTest: "Success get comments",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetComments", mock.Anything, targetCardLink).Return(repComments, nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 			expectedLen:   1,
 		},
 		{
-			nameTest: "Success empty comments",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("GetComments", mock.Anything, targetCardLink).Return([]repositoryDto.CommentInfo{}, nil)
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: false,
+			expectedError: rbac.ErrActionDenied,
 			expectedLen:   0,
-		},
-		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("GetComments", mock.Anything, targetCardLink).Return([]repositoryDto.CommentInfo{}, errors.New("db error"))
-			},
-			expectedError: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
-			res, err := service.GetComments(context.Background(), targetCardLink)
+			service := NewService(mockRep, mockPerm)
+			res, err := service.GetComments(context.Background(), targetCardLink, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, res, test.expectedLen)
@@ -361,35 +410,37 @@ func TestCreateComment(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success create comment",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetAuthorLink, mock.Anything).Return(nil)
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(repResult, nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("CreateComment", mock.Anything, mock.Anything).Return(repositoryDto.CommentInfo{}, errors.New("db error"))
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetAuthorLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
+			service := NewService(mockRep, mockPerm)
 			res, err := service.CreateComment(context.Background(), createDto)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, targetCommentLink, res.Link)
@@ -405,44 +456,47 @@ func TestDeleteComment(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success delete comment",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true, nil)
 				m.On("DeleteComment", mock.Anything, targetCommentLink).Return(nil)
 			},
-			expectedError: false,
+			expectedError: nil,
 		},
 		{
-			nameTest: "Error permission denied",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false)
+			nameTest: "Error not comment author",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false, nil)
 			},
-			expectedError: true,
+			expectedError: common.ErrPermissionDenied,
 		},
 		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
-				m.On("DeleteComment", mock.Anything, targetCommentLink).Return(errors.New("db error"))
+			nameTest: "Error comment not found",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false, common.ErrCommentNotFound)
 			},
-			expectedError: true,
+			expectedError: common.ErrCommentNotFound,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
+			service := NewService(mockRep, mockPerm)
 			err := service.DeleteComment(context.Background(), targetCommentLink, targetUserLink)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -462,44 +516,46 @@ func TestUpdateComment(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *mockCardRep.CardRepository)
-		expectedError bool
+		mockBehavior  func(m *mockCardRep.CardRepository, r *MockRbacService)
+		expectedError error
 	}{
 		{
 			nameTest: "Success update comment",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true, nil)
 				m.On("UpdateComment", mock.Anything, mock.Anything).Return(nil)
 			},
-			expectedError: false,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error not comment author",
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false, nil)
+			},
+			expectedError: common.ErrPermissionDenied,
 		},
 		{
 			nameTest: "Error permission denied",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(false)
+			mockBehavior: func(m *mockCardRep.CardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnComment", mock.Anything, targetCommentLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
-			expectedError: true,
-		},
-		{
-			nameTest: "Error from repository",
-			mockBehavior: func(m *mockCardRep.CardRepository) {
-				m.On("IsCommentAuthor", mock.Anything, targetCommentLink, targetUserLink).Return(true)
-				m.On("UpdateComment", mock.Anything, mock.Anything).Return(errors.New("db error"))
-			},
-			expectedError: true,
+			expectedError: rbac.ErrActionDenied,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
 			mockRep := mockCardRep.NewCardRepository(t)
-			test.mockBehavior(mockRep)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep)
+			service := NewService(mockRep, mockPerm)
 			err := service.UpdateComment(context.Background(), updateDto)
 
-			if test.expectedError {
-				assert.Error(t, err)
+			if test.expectedError != nil {
+				assert.ErrorIs(t, err, test.expectedError)
 			} else {
 				assert.NoError(t, err)
 			}
