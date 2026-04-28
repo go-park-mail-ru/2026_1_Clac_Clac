@@ -5,19 +5,21 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpc_engine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
+	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      Application        `mapstructure:"app"`
-	Engine   grpc_engine.Config `mapstructure:"engine"`
-	Database postgres.Config    `mapstructure:"database"`
-	S3       S3                 `mapstructure:"s3"`
-	Board    Board              `mapstructure:"board"`
-	Section  Section            `mapstructure:"section"`
-	Card     Card               `mapstructure:"card"`
+	App      Application       `mapstructure:"app"`
+	Engine   grpcEngine.Config `mapstructure:"engine"`
+	Database postgres.Config   `mapstructure:"database"`
+	Redis    pkgredis.Config   `mapstructure:"redis"`
+	S3       S3                `mapstructure:"s3"`
+	Board    Board             `mapstructure:"board"`
+	Section  Section           `mapstructure:"section"`
+	Card     Card              `mapstructure:"card"`
 }
 
 func DefaultConfig() Config {

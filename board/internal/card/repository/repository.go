@@ -51,7 +51,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
-		&infoCard.NameExecuter,
+		&infoCard.NameExecutor,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -124,7 +124,7 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	_, err = tx.Exec(ctx, queryInsert,
 		updatingCard.LinkCard,
 		oldSectionLink,
-		updatingCard.LinkExecuter,
+		updatingCard.LinkExecutor,
 		updatingCard.Title,
 		updatingCard.Description,
 		oldPosition,
@@ -179,11 +179,11 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 	var oldSectionLink uuid.UUID
 	var position int
 	var title, description string
-	var executerLink *uuid.UUID
+	var executorLink *uuid.UUID
 	var dueDate *time.Time
 
 	err = tx.QueryRow(ctx, queryClose, updatingPlaceCard.LinkCard).Scan(
-		&oldSectionLink, &position, &title, &description, &executerLink, &dueDate,
+		&oldSectionLink, &position, &title, &description, &executorLink, &dueDate,
 	)
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		position,
 		title,
 		description,
-		executerLink,
+		executorLink,
 		dueDate,
 	)
 	if err != nil {
@@ -345,7 +345,7 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	_, err = tx.Exec(ctx, queryVersion,
 		newCard.LinkCard,
 		newCard.LinkSection,
-		newCard.LinkExecuter,
+		newCard.LinkExecutor,
 		newCard.Title,
 		newCard.Description,
 		position,
@@ -459,7 +459,7 @@ func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.Creat
 	}, nil
 }
 
-func (r *Repository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) bool {
+func (r *Repository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error) {
 	query := `
 		SELECT EXISTS (
 			SELECT 1
@@ -471,10 +471,14 @@ func (r *Repository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID,
 	var isAuthor bool
 	err := r.pool.QueryRow(ctx, query, commentLink, userLink).Scan(&isAuthor)
 	if err != nil {
-		return false
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, common.ErrCommentNotFound
+		}
+
+		return false, fmt.Errorf("pool.QueryRow: %w", err)
 	}
 
-	return isAuthor
+	return isAuthor, nil
 }
 
 func (r *Repository) DeleteComment(ctx context.Context, commentLink uuid.UUID) error {

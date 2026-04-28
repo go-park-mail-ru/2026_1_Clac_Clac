@@ -16,6 +16,7 @@ import (
 	handler "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/mock_board_srv"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 )
 
@@ -42,8 +43,8 @@ func TestGetBoards(t *testing.T) {
 		expectedCode codes.Code
 	}{
 		{
-			name:      "Success get boards",
-			req:       &pb.GetBoardsRequest{UserLink: userLink.String()},
+			name: "Success get boards",
+			req:  &pb.GetBoardsRequest{UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
 				m.On("GetBoards", mock.Anything, userLink).Return(boardsInfo, nil).Once()
 			},
@@ -199,7 +200,7 @@ func TestDeleteBoard(t *testing.T) {
 			name: "Error forbidden",
 			req:  &pb.DeleteBoardRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(common.ErrActionDenied).Once()
+				m.On("DeleteBoard", mock.Anything, boardLink, userLink).Return(rbac.ErrActionDenied).Once()
 			},
 			expectedCode: codes.PermissionDenied,
 		},
@@ -269,7 +270,7 @@ func TestUpdateBoard(t *testing.T) {
 			name: "Error forbidden",
 			req:  &pb.UpdateBoardRequest{UserLink: userLink.String(), BoardLink: boardLink.String(), Name: "Name"},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("UpdateBoard", mock.Anything, mock.Anything, userLink).Return(common.ErrActionDenied).Once()
+				m.On("UpdateBoard", mock.Anything, mock.Anything, userLink).Return(rbac.ErrActionDenied).Once()
 			},
 			expectedCode: codes.PermissionDenied,
 		},
@@ -359,7 +360,7 @@ func TestGetBoard(t *testing.T) {
 			name: "Error forbidden",
 			req:  &pb.GetBoardRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(serviceDto.BoardInfo{}, common.ErrActionDenied).Once()
+				m.On("GetBoard", mock.Anything, boardLink, userLink).Return(serviceDto.BoardInfo{}, rbac.ErrActionDenied).Once()
 			},
 			expectedCode: codes.PermissionDenied,
 		},
@@ -499,6 +500,7 @@ func TestUploadBackground(t *testing.T) {
 
 func TestGetMembers(t *testing.T) {
 	boardLink := uuid.New()
+	userLink := uuid.New()
 	usersLinks := []uuid.UUID{uuid.New(), uuid.New()}
 
 	tests := []struct {
@@ -509,31 +511,37 @@ func TestGetMembers(t *testing.T) {
 	}{
 		{
 			name: "Success get members",
-			req:  &pb.GetMembersRequest{BoardLink: boardLink.String()},
+			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(usersLinks, nil).Once()
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(usersLinks, nil).Once()
 			},
 			expectedCode: codes.OK,
 		},
 		{
 			name:         "Error invalid board link",
-			req:          &pb.GetMembersRequest{BoardLink: "bad-uuid"},
+			req:          &pb.GetMembersRequest{BoardLink: "bad-uuid", UserLink: userLink.String()},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "Error invalid user link",
+			req:          &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: "bad-uuid"},
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error board not found",
-			req:  &pb.GetMembersRequest{BoardLink: boardLink.String()},
+			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(nil, common.ErrBoardNotFound).Once()
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(nil, common.ErrBoardNotFound).Once()
 			},
 			expectedCode: codes.NotFound,
 		},
 		{
 			name: "Error internal server",
-			req:  &pb.GetMembersRequest{BoardLink: boardLink.String()},
+			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetUsersOfBoard", mock.Anything, boardLink).Return(nil, errors.New("db error")).Once()
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(nil, errors.New("db error")).Once()
 			},
 			expectedCode: codes.Internal,
 		},

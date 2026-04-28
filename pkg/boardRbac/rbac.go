@@ -1,4 +1,10 @@
-package common
+package rbac
+
+import "errors"
+
+var (
+	ErrActionDenied = errors.New("action denied")
+)
 
 type Action string
 

@@ -167,7 +167,7 @@ func (_m *CardRepository) GetComments(ctx context.Context, cardLink uuid.UUID) (
 }
 
 // IsCommentAuthor provides a mock function with given fields: ctx, commentLink, userLink
-func (_m *CardRepository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) bool {
+func (_m *CardRepository) IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error) {
 	ret := _m.Called(ctx, commentLink, userLink)
 
 	if len(ret) == 0 {
@@ -175,13 +175,23 @@ func (_m *CardRepository) IsCommentAuthor(ctx context.Context, commentLink uuid.
 	}
 
 	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (bool, error)); ok {
+		return rf(ctx, commentLink, userLink)
+	}
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) bool); ok {
 		r0 = rf(ctx, commentLink, userLink)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, commentLink, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // ReorderCard provides a mock function with given fields: ctx, updatingPlaceCard

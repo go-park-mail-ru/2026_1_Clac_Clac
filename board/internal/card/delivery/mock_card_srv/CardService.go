@@ -72,17 +72,17 @@ func (_m *CardService) CreateComment(ctx context.Context, createCardInfo dto.Cre
 	return r0, r1
 }
 
-// DeleteCard provides a mock function with given fields: ctx, linkCard
-func (_m *CardService) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
-	ret := _m.Called(ctx, linkCard)
+// DeleteCard provides a mock function with given fields: ctx, linkCard, userLink
+func (_m *CardService) DeleteCard(ctx context.Context, linkCard uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, linkCard, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteCard")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
-		r0 = rf(ctx, linkCard)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, linkCard, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -108,9 +108,9 @@ func (_m *CardService) DeleteComment(ctx context.Context, commentLink uuid.UUID,
 	return r0
 }
 
-// GetCard provides a mock function with given fields: ctx, linkCard
-func (_m *CardService) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
-	ret := _m.Called(ctx, linkCard)
+// GetCard provides a mock function with given fields: ctx, linkCard, userLink
+func (_m *CardService) GetCard(ctx context.Context, linkCard uuid.UUID, userLink uuid.UUID) (dto.InfoCard, error) {
+	ret := _m.Called(ctx, linkCard, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetCard")
@@ -118,17 +118,17 @@ func (_m *CardService) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.Inf
 
 	var r0 dto.InfoCard
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.InfoCard, error)); ok {
-		return rf(ctx, linkCard)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (dto.InfoCard, error)); ok {
+		return rf(ctx, linkCard, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.InfoCard); ok {
-		r0 = rf(ctx, linkCard)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) dto.InfoCard); ok {
+		r0 = rf(ctx, linkCard, userLink)
 	} else {
 		r0 = ret.Get(0).(dto.InfoCard)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, linkCard)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, linkCard, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -136,9 +136,9 @@ func (_m *CardService) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.Inf
 	return r0, r1
 }
 
-// GetComments provides a mock function with given fields: ctx, cardLink
-func (_m *CardService) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
-	ret := _m.Called(ctx, cardLink)
+// GetComments provides a mock function with given fields: ctx, cardLink, userLink
+func (_m *CardService) GetComments(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) ([]dto.CommentInfo, error) {
+	ret := _m.Called(ctx, cardLink, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetComments")
@@ -146,19 +146,19 @@ func (_m *CardService) GetComments(ctx context.Context, cardLink uuid.UUID) ([]d
 
 	var r0 []dto.CommentInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.CommentInfo, error)); ok {
-		return rf(ctx, cardLink)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]dto.CommentInfo, error)); ok {
+		return rf(ctx, cardLink, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.CommentInfo); ok {
-		r0 = rf(ctx, cardLink)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []dto.CommentInfo); ok {
+		r0 = rf(ctx, cardLink, userLink)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]dto.CommentInfo)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, cardLink)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, cardLink, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -166,17 +166,17 @@ func (_m *CardService) GetComments(ctx context.Context, cardLink uuid.UUID) ([]d
 	return r0, r1
 }
 
-// ReorderCard provides a mock function with given fields: ctx, updatingPlaceCard
-func (_m *CardService) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard) error {
-	ret := _m.Called(ctx, updatingPlaceCard)
+// ReorderCard provides a mock function with given fields: ctx, updatingPlaceCard, userLink
+func (_m *CardService) ReorderCard(ctx context.Context, updatingPlaceCard dto.PlaceCard, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, updatingPlaceCard, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReorderCard")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.PlaceCard) error); ok {
-		r0 = rf(ctx, updatingPlaceCard)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.PlaceCard, uuid.UUID) error); ok {
+		r0 = rf(ctx, updatingPlaceCard, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -184,17 +184,17 @@ func (_m *CardService) ReorderCard(ctx context.Context, updatingPlaceCard dto.Pl
 	return r0
 }
 
-// UpdateCardDetails provides a mock function with given fields: ctx, updatedCard
-func (_m *CardService) UpdateCardDetails(ctx context.Context, updatedCard dto.UpdatingCardDetails) error {
-	ret := _m.Called(ctx, updatedCard)
+// UpdateCardDetails provides a mock function with given fields: ctx, updatedCard, userLink
+func (_m *CardService) UpdateCardDetails(ctx context.Context, updatedCard dto.UpdatingCardDetails, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, updatedCard, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateCardDetails")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatingCardDetails) error); ok {
-		r0 = rf(ctx, updatedCard)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdatingCardDetails, uuid.UUID) error); ok {
+		r0 = rf(ctx, updatedCard, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}

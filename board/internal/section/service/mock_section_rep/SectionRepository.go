@@ -63,36 +63,6 @@ func (_m *SectionRepository) DeleteSection(ctx context.Context, linkSection uuid
 	return r0
 }
 
-// GetAllSections provides a mock function with given fields: ctx, boarderLink
-func (_m *SectionRepository) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
-	ret := _m.Called(ctx, boarderLink)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetAllSections")
-	}
-
-	var r0 []dto.FullSectionInfo
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.FullSectionInfo, error)); ok {
-		return rf(ctx, boarderLink)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.FullSectionInfo); ok {
-		r0 = rf(ctx, boarderLink)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]dto.FullSectionInfo)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, boarderLink)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetCards provides a mock function with given fields: ctx, linkSection
 func (_m *SectionRepository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
 	ret := _m.Called(ctx, linkSection)
@@ -123,12 +93,12 @@ func (_m *SectionRepository) GetCards(ctx context.Context, linkSection uuid.UUID
 	return r0, r1
 }
 
-// GetSectionInfo provides a mock function with given fields: ctx, link
-func (_m *SectionRepository) GetSectionInfo(ctx context.Context, link uuid.UUID) (dto.FullSectionInfo, error) {
+// GetSection provides a mock function with given fields: ctx, link
+func (_m *SectionRepository) GetSection(ctx context.Context, link uuid.UUID) (dto.FullSectionInfo, error) {
 	ret := _m.Called(ctx, link)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetSectionInfo")
+		panic("no return value specified for GetSection")
 	}
 
 	var r0 dto.FullSectionInfo
@@ -144,6 +114,36 @@ func (_m *SectionRepository) GetSectionInfo(ctx context.Context, link uuid.UUID)
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
 		r1 = rf(ctx, link)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetSections provides a mock function with given fields: ctx, boardLink
+func (_m *SectionRepository) GetSections(ctx context.Context, boardLink uuid.UUID) ([]dto.FullSectionInfo, error) {
+	ret := _m.Called(ctx, boardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSections")
+	}
+
+	var r0 []dto.FullSectionInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.FullSectionInfo, error)); ok {
+		return rf(ctx, boardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.FullSectionInfo); ok {
+		r0 = rf(ctx, boardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.FullSectionInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink)
 	} else {
 		r1 = ret.Error(1)
 	}

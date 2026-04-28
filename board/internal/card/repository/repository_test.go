@@ -27,7 +27,7 @@ func TestRepositoryGetCard(t *testing.T) {
 		Title:        "Test Task",
 		Description:  "Description",
 		DataDeadLine: &targetDeadLine,
-		NameExecuter: &targetExecuter,
+		NameExecutor: &targetExecuter,
 	}
 
 	tests := []struct {
@@ -40,7 +40,7 @@ func TestRepositoryGetCard(t *testing.T) {
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "display_name"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.NameExecuter)
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.NameExecutor)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -186,7 +186,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 		LinkCard:     targetLink,
 		Title:        "Updated Title",
 		Description:  "Updated Desc",
-		LinkExecuter: &targetExecuter,
+		LinkExecutor: &targetExecuter,
 		DataDeadLine: &targetDeadLine,
 	}
 
@@ -534,7 +534,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 		LinkSection:  targetSectionLink,
 		Title:        "New Task",
 		Description:  "Desc",
-		LinkExecuter: &targetExecuterLink,
+		LinkExecutor: &targetExecuterLink,
 		DataDeadLine: &targetDeadLine,
 	}
 

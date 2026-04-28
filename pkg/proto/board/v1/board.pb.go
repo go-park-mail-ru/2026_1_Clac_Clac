@@ -715,7 +715,8 @@ func (x *UploadBackgroundResponse) GetBackgroundKey() string {
 // GetMembers
 type GetMembersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BoardLink     string                 `protobuf:"bytes,1,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink     string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -748,6 +749,13 @@ func (x *GetMembersRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetMembersRequest.ProtoReflect.Descriptor instead.
 func (*GetMembersRequest) Descriptor() ([]byte, []int) {
 	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetMembersRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetMembersRequest) GetBoardLink() string {
@@ -859,10 +867,11 @@ const file_proto_board_v1_board_proto_rawDesc = "" +
 	"\x05image\x18\x03 \x01(\fR\x05image\x12\x1a\n" +
 	"\bfilename\x18\x04 \x01(\tR\bfilename\"A\n" +
 	"\x18UploadBackgroundResponse\x12%\n" +
-	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"2\n" +
-	"\x11GetMembersRequest\x12\x1d\n" +
+	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"O\n" +
+	"\x11GetMembersRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
-	"board_link\x18\x01 \x01(\tR\tboardLink\"5\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\"5\n" +
 	"\x12GetMembersResponse\x12\x1f\n" +
 	"\vusers_links\x18\x01 \x03(\tR\n" +
 	"usersLinks2\xf3\x04\n" +

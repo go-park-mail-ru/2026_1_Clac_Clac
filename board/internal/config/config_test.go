@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpc_engine"
-
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +21,7 @@ const (
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
 		App: config.DefaultApplicationConfig(),
-		Engine: grpc_engine.Config{
+		Engine: grpcEngine.Config{
 			Addr:                    ":8080",
 			WriteTimeout:            30,
 			ReadTimeout:             30,

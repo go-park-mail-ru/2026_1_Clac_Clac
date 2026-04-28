@@ -25,7 +25,7 @@ const (
 type CardInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Link          string                 `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
-	ExecuterName  *string                `protobuf:"bytes,2,opt,name=executer_name,json=executerName,proto3,oneof" json:"executer_name,omitempty"`
+	ExecutorName  *string                `protobuf:"bytes,2,opt,name=executor_name,json=executorName,proto3,oneof" json:"executor_name,omitempty"`
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
@@ -70,9 +70,9 @@ func (x *CardInfo) GetLink() string {
 	return ""
 }
 
-func (x *CardInfo) GetExecuterName() string {
-	if x != nil && x.ExecuterName != nil {
-		return *x.ExecuterName
+func (x *CardInfo) GetExecutorName() string {
+	if x != nil && x.ExecutorName != nil {
+		return *x.ExecutorName
 	}
 	return ""
 }
@@ -169,7 +169,8 @@ func (x *CommentInfo) GetText() string {
 // GetCard
 type GetCardRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CardLink      string                 `protobuf:"bytes,1,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -202,6 +203,13 @@ func (x *GetCardRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetCardRequest.ProtoReflect.Descriptor instead.
 func (*GetCardRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetCardRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetCardRequest) GetCardLink() string {
@@ -258,7 +266,8 @@ func (x *GetCardResponse) GetCardInfo() *CardInfo {
 // DeleteCard
 type DeleteCardRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CardLink      string                 `protobuf:"bytes,1,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -291,6 +300,13 @@ func (x *DeleteCardRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeleteCardRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCardRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeleteCardRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *DeleteCardRequest) GetCardLink() string {
@@ -339,11 +355,12 @@ func (*DeleteCardResponse) Descriptor() ([]byte, []int) {
 // UpdateCard
 type UpdateCardRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CardLink      string                 `protobuf:"bytes,1,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
-	ExecutorLink  *string                `protobuf:"bytes,2,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	ExecutorLink  *string                `protobuf:"bytes,3,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
+	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	Deadline      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -376,6 +393,13 @@ func (x *UpdateCardRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateCardRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCardRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateCardRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *UpdateCardRequest) GetCardLink() string {
@@ -452,9 +476,10 @@ func (*UpdateCardResponse) Descriptor() ([]byte, []int) {
 // ReorderCard
 type ReorderCardsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SectionLink   string                 `protobuf:"bytes,1,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
-	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
-	Position      int64                  `protobuf:"varint,3,opt,name=position,proto3" json:"position,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,2,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,3,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	Position      int64                  `protobuf:"varint,4,opt,name=position,proto3" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -487,6 +512,13 @@ func (x *ReorderCardsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ReorderCardsRequest.ProtoReflect.Descriptor instead.
 func (*ReorderCardsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ReorderCardsRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *ReorderCardsRequest) GetSectionLink() string {
@@ -549,7 +581,7 @@ func (*ReorderCardsResponse) Descriptor() ([]byte, []int) {
 // CreateCard
 type CreateCardRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AuthorLink    string                 `protobuf:"bytes,1,opt,name=author_link,json=authorLink,proto3" json:"author_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	ExecutorLink  *string                `protobuf:"bytes,4,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
@@ -589,9 +621,9 @@ func (*CreateCardRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{10}
 }
 
-func (x *CreateCardRequest) GetAuthorLink() string {
+func (x *CreateCardRequest) GetUserLink() string {
 	if x != nil {
-		return x.AuthorLink
+		return x.UserLink
 	}
 	return ""
 }
@@ -694,7 +726,8 @@ func (x *CreateCardResponse) GetPosition() int64 {
 // GetComments
 type GetCommentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CardLink      string                 `protobuf:"bytes,1,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -727,6 +760,13 @@ func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetCommentsRequest.ProtoReflect.Descriptor instead.
 func (*GetCommentsRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetCommentsRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
 }
 
 func (x *GetCommentsRequest) GetCardLink() string {
@@ -783,9 +823,9 @@ func (x *GetCommentsResponse) GetCommentsInfo() []*CommentInfo {
 // CreateComment
 type CreateCommentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CardLink      string                 `protobuf:"bytes,1,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
-	ParentLink    *string                `protobuf:"bytes,2,opt,name=parent_link,json=parentLink,proto3,oneof" json:"parent_link,omitempty"`
-	AuthorLink    string                 `protobuf:"bytes,3,opt,name=author_link,json=authorLink,proto3" json:"author_link,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	ParentLink    *string                `protobuf:"bytes,3,opt,name=parent_link,json=parentLink,proto3,oneof" json:"parent_link,omitempty"`
 	Text          string                 `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -821,6 +861,13 @@ func (*CreateCommentRequest) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{14}
 }
 
+func (x *CreateCommentRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
 func (x *CreateCommentRequest) GetCardLink() string {
 	if x != nil {
 		return x.CardLink
@@ -831,13 +878,6 @@ func (x *CreateCommentRequest) GetCardLink() string {
 func (x *CreateCommentRequest) GetParentLink() string {
 	if x != nil && x.ParentLink != nil {
 		return *x.ParentLink
-	}
-	return ""
-}
-
-func (x *CreateCommentRequest) GetAuthorLink() string {
-	if x != nil {
-		return x.AuthorLink
 	}
 	return ""
 }
@@ -1334,11 +1374,11 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdc\x01\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
-	"\rexecuter_name\x18\x02 \x01(\tH\x00R\fexecuterName\x88\x01\x01\x12\x14\n" +
+	"\rexecutor_name\x18\x02 \x01(\tH\x00R\fexecutorName\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
 	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
-	"\x0e_executer_nameB\v\n" +
+	"\x0e_executor_nameB\v\n" +
 	"\t_deadline\"\x9b\x01\n" +
 	"\vCommentInfo\x12!\n" +
 	"\fcomment_link\x18\x01 \x01(\tR\vcommentLink\x12$\n" +
@@ -1347,31 +1387,34 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\vauthor_link\x18\x03 \x01(\tR\n" +
 	"authorLink\x12\x12\n" +
 	"\x04text\x18\x04 \x01(\tR\x04textB\x0e\n" +
-	"\f_parent_link\"-\n" +
+	"\f_parent_link\"J\n" +
 	"\x0eGetCardRequest\x12\x1b\n" +
-	"\tcard_link\x18\x01 \x01(\tR\bcardLink\"G\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\"G\n" +
 	"\x0fGetCardResponse\x124\n" +
-	"\tcard_info\x18\x01 \x01(\v2\x17.proto.card.v1.CardInfoR\bcardInfo\"0\n" +
+	"\tcard_info\x18\x01 \x01(\v2\x17.proto.card.v1.CardInfoR\bcardInfo\"M\n" +
 	"\x11DeleteCardRequest\x12\x1b\n" +
-	"\tcard_link\x18\x01 \x01(\tR\bcardLink\"\x14\n" +
-	"\x12DeleteCardResponse\"\xee\x01\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\"\x14\n" +
+	"\x12DeleteCardResponse\"\x8b\x02\n" +
 	"\x11UpdateCardRequest\x12\x1b\n" +
-	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12(\n" +
-	"\rexecutor_link\x18\x02 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
-	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12(\n" +
+	"\rexecutor_link\x18\x03 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12;\n" +
+	"\bdeadline\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
 	"\x0e_executor_linkB\v\n" +
 	"\t_deadline\"\x14\n" +
-	"\x12UpdateCardResponse\"q\n" +
-	"\x13ReorderCardsRequest\x12!\n" +
-	"\fsection_link\x18\x01 \x01(\tR\vsectionLink\x12\x1b\n" +
-	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12\x1a\n" +
-	"\bposition\x18\x03 \x01(\x03R\bposition\"\x16\n" +
-	"\x14ReorderCardsResponse\"\x95\x02\n" +
-	"\x11CreateCardRequest\x12\x1f\n" +
-	"\vauthor_link\x18\x01 \x01(\tR\n" +
-	"authorLink\x12\x14\n" +
+	"\x12UpdateCardResponse\"\x8e\x01\n" +
+	"\x13ReorderCardsRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1b\n" +
+	"\tcard_link\x18\x03 \x01(\tR\bcardLink\x12\x1a\n" +
+	"\bposition\x18\x04 \x01(\x03R\bposition\"\x16\n" +
+	"\x14ReorderCardsResponse\"\x91\x02\n" +
+	"\x11CreateCardRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12(\n" +
 	"\rexecutor_link\x18\x04 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12;\n" +
@@ -1382,17 +1425,17 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\x12CreateCardResponse\x12\x1b\n" +
 	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12!\n" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1a\n" +
-	"\bposition\x18\x03 \x01(\x03R\bposition\"1\n" +
+	"\bposition\x18\x03 \x01(\x03R\bposition\"N\n" +
 	"\x12GetCommentsRequest\x12\x1b\n" +
-	"\tcard_link\x18\x01 \x01(\tR\bcardLink\"V\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\"V\n" +
 	"\x13GetCommentsResponse\x12?\n" +
-	"\rcomments_info\x18\x01 \x03(\v2\x1a.proto.card.v1.CommentInfoR\fcommentsInfo\"\x9e\x01\n" +
+	"\rcomments_info\x18\x01 \x03(\v2\x1a.proto.card.v1.CommentInfoR\fcommentsInfo\"\x9a\x01\n" +
 	"\x14CreateCommentRequest\x12\x1b\n" +
-	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12$\n" +
-	"\vparent_link\x18\x02 \x01(\tH\x00R\n" +
-	"parentLink\x88\x01\x01\x12\x1f\n" +
-	"\vauthor_link\x18\x03 \x01(\tR\n" +
-	"authorLink\x12\x12\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12$\n" +
+	"\vparent_link\x18\x03 \x01(\tH\x00R\n" +
+	"parentLink\x88\x01\x01\x12\x12\n" +
 	"\x04text\x18\x04 \x01(\tR\x04textB\x0e\n" +
 	"\f_parent_link\":\n" +
 	"\x15CreateCommentResponse\x12!\n" +

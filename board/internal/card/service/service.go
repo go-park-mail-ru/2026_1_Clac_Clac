@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/google/uuid"
 )
 
@@ -19,23 +21,34 @@ type CardRepository interface {
 	CreateCard(ctx context.Context, newCard repositoryDto.NewCard) (int, error)
 	GetComments(ctx context.Context, cardLink uuid.UUID) ([]repositoryDto.CommentInfo, error)
 	CreateComment(ctx context.Context, createCardInfo repositoryDto.CreateCommentInfo) (repositoryDto.CommentInfo, error)
-	IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) bool
+	IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error)
 	DeleteComment(ctx context.Context, commentLink uuid.UUID) error
 	UpdateComment(ctx context.Context, updateCommentInfo repositoryDto.UpdateCommentInfo) error
 }
 
 type Service struct {
-	rep CardRepository
+	rep               CardRepository
+	permissionChecker rbac.Service
 }
 
-func NewService(rep CardRepository) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service) *Service {
 	return &Service{
-		rep: rep,
+		rep:               rep,
+		permissionChecker: permissionChecker,
 	}
 }
 
-func (s *Service) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
-	card, err := s.rep.GetCard(ctx, linkCard)
+func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) (dto.InfoCard, error) {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, cardLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return dto.InfoCard{}, rbac.ErrActionDenied
+		}
+
+		return dto.InfoCard{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	card, err := s.rep.GetCard(ctx, cardLink)
 	if err != nil {
 		return dto.InfoCard{}, fmt.Errorf("rep.GetCard: %w", err)
 	}
@@ -43,13 +56,22 @@ func (s *Service) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard
 	return dto.InfoCard{
 		Description:  card.Description,
 		Title:        card.Title,
-		NameExecuter: card.NameExecuter,
+		NameExecutor: card.NameExecutor,
 		DataDeadLine: card.DataDeadLine,
 	}, nil
 }
 
-func (s *Service) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
-	err := s.rep.DeleteCard(ctx, linkCard)
+func (s *Service) DeleteCard(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, cardLink, userLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.DeleteCard(ctx, cardLink)
 	if err != nil {
 		return fmt.Errorf("rep.DeleteCard: %w", err)
 	}
@@ -57,12 +79,21 @@ func (s *Service) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.UpdatingCardDetails) error {
-	err := s.rep.UpdateCardDetails(ctx, repositoryDto.UpdatingCardDetails{
+func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.UpdatingCardDetails, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, updatingCard.LinkCard, userLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.UpdateCardDetails(ctx, repositoryDto.UpdatingCardDetails{
 		LinkCard:     updatingCard.LinkCard,
 		Description:  updatingCard.Description,
 		Title:        updatingCard.Title,
-		LinkExecuter: updatingCard.LinkExecuter,
+		LinkExecutor: updatingCard.LinkExecutor,
 		DataDeadLine: updatingCard.DataDeadLine,
 	})
 	if err != nil {
@@ -72,29 +103,47 @@ func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.Updati
 	return nil
 }
 
-func (s *Service) ReorderCard(ctx context.Context, updatedCard dto.PlaceCard) error {
-	err := s.rep.ReorderCard(ctx, repositoryDto.PlaceCard{
+func (s *Service) ReorderCard(ctx context.Context, updatedCard dto.PlaceCard, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnSection(ctx, updatedCard.LinkSection, userLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+
+		return fmt.Errorf("CardService.CheckPermissionOnSection: %w", err)
+	}
+
+	err = s.rep.ReorderCard(ctx, repositoryDto.PlaceCard{
 		LinkCard:    updatedCard.LinkCard,
 		LinkSection: updatedCard.LinkSection,
 		Position:    updatedCard.Position,
 	})
 	if err != nil {
-		return fmt.Errorf("rep.ReordredCard: %w", err)
+		return fmt.Errorf("rep.ReoorderCard: %w", err)
 	}
 
 	return nil
 }
 
 func (s *Service) CreateCard(ctx context.Context, newCard dto.NewCard) (dto.PlaceCard, error) {
-	linkCard := uuid.New()
+	err := s.permissionChecker.CheckPermissionOnSection(ctx, newCard.LinkSection, newCard.LinkAuthor, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return dto.PlaceCard{}, rbac.ErrActionDenied
+		}
+
+		return dto.PlaceCard{}, fmt.Errorf("CardService.CheckPermissionOnSection: %w", err)
+	}
+
+	cardLink := uuid.New()
 
 	position, err := s.rep.CreateCard(ctx, repositoryDto.NewCard{
 		LinkAuthor:   newCard.LinkAuthor,
-		LinkCard:     linkCard,
+		LinkCard:     cardLink,
 		LinkSection:  newCard.LinkSection,
 		Description:  newCard.Description,
 		Title:        newCard.Title,
-		LinkExecuter: newCard.LinkExecuter,
+		LinkExecutor: newCard.LinkExecutor,
 		DataDeadLine: newCard.DataDeadLine,
 	})
 	if err != nil {
@@ -102,13 +151,22 @@ func (s *Service) CreateCard(ctx context.Context, newCard dto.NewCard) (dto.Plac
 	}
 
 	return dto.PlaceCard{
-		LinkCard:    linkCard,
+		LinkCard:    cardLink,
 		LinkSection: newCard.LinkSection,
 		Position:    position,
 	}, nil
 }
 
-func (s *Service) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
+func (s *Service) GetComments(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) ([]dto.CommentInfo, error) {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, cardLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return []dto.CommentInfo{}, rbac.ErrActionDenied
+		}
+
+		return []dto.CommentInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
 	comments, err := s.rep.GetComments(ctx, cardLink)
 	if err != nil {
 		return []dto.CommentInfo{}, fmt.Errorf("CardRepository.GetComments: %w", err)
@@ -127,12 +185,22 @@ func (s *Service) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.Co
 	return commentsInfo, nil
 }
 
-func (s *Service) CreateComment(ctx context.Context, createCardInfo dto.CreateCommentInfo) (dto.CommentInfo, error) {
+func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.CreateCommentInfo) (dto.CommentInfo, error) {
+	// Чтобы оставить комментарий, надо иметь права на чтение доски
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, createCommentInfo.CardLink, createCommentInfo.AuthorLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return dto.CommentInfo{}, rbac.ErrActionDenied
+		}
+
+		return dto.CommentInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
 	comment, err := s.rep.CreateComment(ctx, repositoryDto.CreateCommentInfo{
-		CardLink:   createCardInfo.CardLink,
-		ParentLink: createCardInfo.ParentLink,
-		AuthorLink: createCardInfo.AuthorLink,
-		Text:       createCardInfo.Text,
+		CardLink:   createCommentInfo.CardLink,
+		ParentLink: createCommentInfo.ParentLink,
+		AuthorLink: createCommentInfo.AuthorLink,
+		Text:       createCommentInfo.Text,
 	})
 	if err != nil {
 		return dto.CommentInfo{}, fmt.Errorf("CardRepository.CreateComment: %w", err)
@@ -147,26 +215,60 @@ func (s *Service) CreateComment(ctx context.Context, createCardInfo dto.CreateCo
 }
 
 func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) error {
-	isCommentAuthor := s.rep.IsCommentAuthor(ctx, commentLink, userLink)
+	err := s.permissionChecker.CheckPermissionOnComment(ctx, commentLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnComment: %w", err)
+	}
+
+	isCommentAuthor, err := s.rep.IsCommentAuthor(ctx, commentLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrCommentNotFound):
+			return common.ErrCommentNotFound
+		}
+
+		return fmt.Errorf("CardRepository.IsCommentAuthor: %w", err)
+	}
+
 	if !isCommentAuthor {
 		return common.ErrPermissionDenied
 	}
 
-	err := s.rep.DeleteComment(ctx, commentLink)
+	err = s.rep.DeleteComment(ctx, commentLink)
 	if err != nil {
-		return fmt.Errorf("CardService.DeleteCommend: %w", err)
+		return fmt.Errorf("CardService.DeleteComment: %w", err)
 	}
 
 	return nil
 }
 
 func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
-	isCommentAuthor := s.rep.IsCommentAuthor(ctx, updateCommentInfo.CommentLink, updateCommentInfo.UserLink)
+	err := s.permissionChecker.CheckPermissionOnComment(ctx, updateCommentInfo.CommentLink, updateCommentInfo.UserLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnComment: %w", err)
+	}
+
+	isCommentAuthor, err := s.rep.IsCommentAuthor(ctx, updateCommentInfo.CommentLink, updateCommentInfo.UserLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrCommentNotFound):
+			return common.ErrCommentNotFound
+		}
+
+		return fmt.Errorf("CardRepository.IsCommentAuthor: %w", err)
+	}
+
 	if !isCommentAuthor {
 		return common.ErrPermissionDenied
 	}
 
-	err := s.rep.UpdateComment(ctx, repositoryDto.UpdateCommentInfo{
+	err = s.rep.UpdateComment(ctx, repositoryDto.UpdateCommentInfo{
 		CommentLink: updateCommentInfo.CommentLink,
 		Text:        updateCommentInfo.Text,
 	})

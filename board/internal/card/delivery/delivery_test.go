@@ -35,7 +35,7 @@ func TestGetCard(t *testing.T) {
 	serviceCardInfo := serviceDto.InfoCard{
 		Title:        "TestTitle",
 		Description:  "Test Desc",
-		NameExecuter: &execName,
+		NameExecutor: &execName,
 		DataDeadLine: &targetDeadline,
 	}
 
@@ -58,7 +58,7 @@ func TestGetCard(t *testing.T) {
 				assert.Equal(t, targetCardLink.String(), resp.CardInfo.Link)
 				assert.Equal(t, "TestTitle", resp.CardInfo.Title)
 				assert.Equal(t, "Test Desc", resp.CardInfo.Description)
-				assert.Equal(t, execName, resp.CardInfo.GetExecuterName())
+				assert.Equal(t, execName, resp.CardInfo.GetExecutorName())
 			},
 		},
 		{
@@ -376,7 +376,7 @@ func TestCreateCard(t *testing.T) {
 	}
 
 	validReq := &pb.CreateCardRequest{
-		AuthorLink:  targetAuthorLink.String(),
+		UserLink:    targetAuthorLink.String(),
 		Title:       "New Task",
 		Description: "Task desc",
 		SectionLink: targetSectionLink.String(),
@@ -405,20 +405,20 @@ func TestCreateCard(t *testing.T) {
 		},
 		{
 			nameTest:     "Error invalid author uuid",
-			req:          &pb.CreateCardRequest{AuthorLink: "invalid", SectionLink: targetSectionLink.String()},
+			req:          &pb.CreateCardRequest{UserLink: "invalid", SectionLink: targetSectionLink.String()},
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest:     "Error invalid section uuid",
-			req:          &pb.CreateCardRequest{AuthorLink: targetAuthorLink.String(), SectionLink: "invalid"},
+			req:          &pb.CreateCardRequest{UserLink: targetAuthorLink.String(), SectionLink: "invalid"},
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Error max len title",
 			req: &pb.CreateCardRequest{
-				AuthorLink:  targetAuthorLink.String(),
+				UserLink:    targetAuthorLink.String(),
 				Title:       "very long title exceeding the limit",
 				Description: "Task desc",
 				SectionLink: targetSectionLink.String(),
@@ -588,9 +588,9 @@ func TestCreateComment(t *testing.T) {
 	newCommentLink := uuid.New()
 
 	validReq := &pb.CreateCommentRequest{
-		CardLink:   targetCardLink.String(),
-		AuthorLink: targetAuthorLink.String(),
-		Text:       "test comment",
+		CardLink: targetCardLink.String(),
+		UserLink: targetAuthorLink.String(),
+		Text:     "test comment",
 	}
 
 	tests := []struct {
@@ -618,13 +618,13 @@ func TestCreateComment(t *testing.T) {
 		},
 		{
 			nameTest:     "Error invalid card uuid",
-			req:          &pb.CreateCommentRequest{CardLink: "invalid", AuthorLink: targetAuthorLink.String()},
+			req:          &pb.CreateCommentRequest{CardLink: "invalid", UserLink: targetAuthorLink.String()},
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest:     "Error invalid author uuid",
-			req:          &pb.CreateCommentRequest{CardLink: targetCardLink.String(), AuthorLink: "invalid"},
+			req:          &pb.CreateCommentRequest{CardLink: targetCardLink.String(), UserLink: "invalid"},
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
@@ -632,7 +632,7 @@ func TestCreateComment(t *testing.T) {
 			nameTest: "Error invalid parent uuid",
 			req: &pb.CreateCommentRequest{
 				CardLink:   targetCardLink.String(),
-				AuthorLink: targetAuthorLink.String(),
+				UserLink:   targetAuthorLink.String(),
 				ParentLink: func() *string { s := "invalid"; return &s }(),
 			},
 			mockBehavior: nil,
@@ -642,7 +642,7 @@ func TestCreateComment(t *testing.T) {
 			nameTest: "Success create comment with parent",
 			req: &pb.CreateCommentRequest{
 				CardLink:   targetCardLink.String(),
-				AuthorLink: targetAuthorLink.String(),
+				UserLink:   targetAuthorLink.String(),
 				ParentLink: &parentLinkStr,
 				Text:       "reply",
 			},

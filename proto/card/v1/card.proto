@@ -8,7 +8,7 @@ option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/
 
 message CardInfo {
   string link = 1;
-  optional string executer_name = 2;
+  optional string executor_name = 2;
   string title = 3;
   string description = 4;
   optional google.protobuf.Timestamp deadline = 5;
@@ -23,7 +23,8 @@ message CommentInfo {
 
 // GetCard
 message GetCardRequest {
-  string card_link = 1;
+  string user_link = 1;
+  string card_link = 2;
 }
 
 message GetCardResponse {
@@ -32,34 +33,37 @@ message GetCardResponse {
 
 // DeleteCard
 message DeleteCardRequest {
-  string card_link = 1;
+  string user_link = 1;
+  string card_link = 2;
 }
 
 message DeleteCardResponse {}
 
 // UpdateCard
 message UpdateCardRequest {
-  string card_link = 1;
-  optional string executor_link = 2;
-  string title = 3;
-  string description = 4;
-  optional google.protobuf.Timestamp deadline = 5;
+  string user_link = 1;
+  string card_link = 2;
+  optional string executor_link = 3;
+  string title = 4;
+  string description = 5;
+  optional google.protobuf.Timestamp deadline = 6;
 }
 
 message UpdateCardResponse {}
 
 // ReorderCard
 message ReorderCardsRequest {
-  string section_link = 1;
-  string card_link = 2;
-  int64 position = 3;
+  string user_link = 1;
+  string section_link = 2;
+  string card_link = 3;
+  int64 position = 4;
 }
 
 message ReorderCardsResponse {}
 
 // CreateCard
 message CreateCardRequest {
-  string author_link = 1;
+  string user_link = 1;
   string title = 2;
   string description = 3;
   optional string executor_link = 4;
@@ -75,7 +79,8 @@ message CreateCardResponse {
 
 // GetComments
 message GetCommentsRequest {
-  string card_link = 1;
+  string user_link = 1;
+  string card_link = 2;
 }
 
 message GetCommentsResponse {
@@ -84,9 +89,9 @@ message GetCommentsResponse {
 
 // CreateComment
 message CreateCommentRequest {
-  string card_link = 1;
-  optional string parent_link = 2;
-  string author_link = 3;
+  string user_link = 1;
+  string card_link = 2;
+  optional string parent_link = 3;
   string text = 4;
 }
 

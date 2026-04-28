@@ -1,4 +1,4 @@
-package grpc_engine
+package enginegrpc
 
 import (
 	"bytes"
@@ -6,26 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
-	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
 
 func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second
-	cfg := engine.Config{
+	cfg := Config{
 		Addr:                    ":0",
-		WriteTimeout:            15,
-		ReadTimeout:             15,
-		IdleTimeout:             60,
 		GracefulShutdownTimeout: 15,
 	}
 
 	buf := &bytes.Buffer{}
 	logger := zerolog.New(buf)
-	router := mux.NewRouter()
 
-	e := engine.New(&cfg, &logger, router)
+	e := New(cfg, &logger)
 
 	serverReady := make(chan struct{})
 	e.OnListen = func(_ string) {
@@ -35,12 +29,11 @@ func TestGracefulShutdown(t *testing.T) {
 	serverStopped := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		e.Start(ctx)
+		_ = e.Start(ctx)
 		close(serverStopped)
 	}()
 
 	<-serverReady
-	// Сервер запущен, можно делать shutdown
 
 	cancel()
 
