@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/rate_limiter"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/rate_limiter/v1"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

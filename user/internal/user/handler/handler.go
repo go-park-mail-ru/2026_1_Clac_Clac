@@ -9,7 +9,7 @@ import (
 
 	"encoding/json"
 
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/user"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service"
@@ -33,9 +33,9 @@ const (
 	msgOAuthEmptyUserData         = "oauth_no_user_data"
 
 	msgFailParseUserLink  = "user link can not convert to uuid"
-	msgEmptyFile         = "empty file provided"
-	msgFailFoundUser     = "user not found"
-	msgFailNullValue     = "get null, but wait not null"
+	msgEmptyFile          = "empty file provided"
+	msgFailFoundUser      = "user not found"
+	msgFailNullValue      = "get null, but wait not null"
 	msgInvalidProfileData = "invalid profile data"
 )
 

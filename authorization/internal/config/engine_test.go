@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/config"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/common"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
@@ -19,8 +19,8 @@ const (
 	msgErrorParseUserLink  = "can not parse to uuid user link"
 	msgDoesNotExistSession = "session does not exist"
 
-	msgVKExchangeFailed    = "vk oauth exchange failed"
-	msgVKNoEmailProvided   = "vk oauth: no email in token"
+	msgVKExchangeFailed  = "vk oauth exchange failed"
+	msgVKNoEmailProvided = "vk oauth: no email in token"
 )
 
 type AuthService interface {

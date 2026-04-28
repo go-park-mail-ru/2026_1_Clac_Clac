@@ -9,7 +9,7 @@ import (
 	"time"
 
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"

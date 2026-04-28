@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )

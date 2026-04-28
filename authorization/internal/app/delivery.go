@@ -3,7 +3,7 @@ package app
 import (
 	auth "github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/auth/handler"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/config"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 )

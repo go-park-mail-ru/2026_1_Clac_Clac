@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/common"
 	mockServiceSender "github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/sender/handler/mock_service_sender"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/mail_sender"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/mail_sender/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

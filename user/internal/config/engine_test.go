@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

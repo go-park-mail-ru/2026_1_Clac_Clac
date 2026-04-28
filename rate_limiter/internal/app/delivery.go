@@ -1,8 +1,8 @@
 package app
 
 import (
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/rate_limiter/v1"
 	limiter "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/handler"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/rate_limiter"
 	"google.golang.org/grpc"
 )
 

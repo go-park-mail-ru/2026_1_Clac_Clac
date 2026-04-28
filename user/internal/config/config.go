@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/spf13/viper"
 )
 

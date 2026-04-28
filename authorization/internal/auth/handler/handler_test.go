@@ -8,7 +8,7 @@ import (
 	mockAuthSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/auth/handler/mock_auth_srv"
 	mockVkOAuth "github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/auth/handler/mock_vk_oauth"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/common"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/auth"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -265,12 +265,12 @@ func TestHandlerExchangeVKCode(t *testing.T) {
 	})
 
 	tests := []struct {
-		nameTest        string
-		req             *pb.ExchangeVKCodeRequest
-		mockBehavior    func(vk *mockVkOAuth.VkOAuth)
-		expectedCode    codes.Code
-		expectedToken   string
-		expectedEmail   string
+		nameTest      string
+		req           *pb.ExchangeVKCodeRequest
+		mockBehavior  func(vk *mockVkOAuth.VkOAuth)
+		expectedCode  codes.Code
+		expectedToken string
+		expectedEmail string
 	}{
 		{
 			nameTest: "Success exchange code",

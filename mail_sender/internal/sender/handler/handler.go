@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/common"
-	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/contracts/mail_sender"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/mail_sender/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"

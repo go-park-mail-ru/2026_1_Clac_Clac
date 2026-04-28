@@ -1,6 +1,6 @@
 package config
 
-import engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+import engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 
 const (
 	defaultAddr                    = ":50053"

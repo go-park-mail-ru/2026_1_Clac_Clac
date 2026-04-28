@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/config"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine_grpc"
+	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
