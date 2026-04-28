@@ -78,7 +78,8 @@ message UploadBackgroundResponse {
 
 // GetMembers
 message GetMembersRequest {
-  string board_link = 1;
+  string user_link = 1;
+  string board_link = 2;
 }
 
 message GetMembersResponse {

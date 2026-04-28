@@ -22,7 +22,7 @@ func TestGetCard(t *testing.T) {
 	repResponse := repositoryDto.InfoCard{
 		Title:        "Title",
 		Description:  "Desc",
-		NameExecuter: &targetExecuterName,
+		NameExecutor: &targetExecuterName,
 		DataDeadLine: &targetDataDeadLine,
 	}
 
@@ -41,7 +41,7 @@ func TestGetCard(t *testing.T) {
 			expectedRes: dto.InfoCard{
 				Title:        "Title",
 				Description:  "Desc",
-				NameExecuter: &targetExecuterName,
+				NameExecutor: &targetExecuterName,
 				DataDeadLine: &targetDataDeadLine,
 			},
 		},
@@ -123,7 +123,7 @@ func TestUpdateCardDetails(t *testing.T) {
 		LinkCard:     targetCardLink,
 		Title:        "Upd Title",
 		Description:  "Upd Desc",
-		LinkExecuter: &targetExecuterLink,
+		LinkExecutor: &targetExecuterLink,
 		DataDeadLine: &targetDataDeadLine,
 	}
 
@@ -131,7 +131,7 @@ func TestUpdateCardDetails(t *testing.T) {
 		LinkCard:     targetCardLink,
 		Title:        "Upd Title",
 		Description:  "Upd Desc",
-		LinkExecuter: &targetExecuterLink,
+		LinkExecutor: &targetExecuterLink,
 		DataDeadLine: &targetDataDeadLine,
 	}
 
@@ -238,7 +238,7 @@ func TestCreateCard(t *testing.T) {
 		LinkSection:  targetSectionLink,
 		Title:        "Title",
 		Description:  "Desc",
-		LinkExecuter: &targetExecuterLink,
+		LinkExecutor: &targetExecuterLink,
 		DataDeadLine: &targetDataDeadLine,
 	}
 

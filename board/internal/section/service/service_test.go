@@ -18,6 +18,7 @@ import (
 
 func TestServiceGetSectionInfo(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	targetLink := common.FixedUserUUID
 	maxTasks := 50
 
@@ -70,7 +71,7 @@ func TestServiceGetSectionInfo(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			result, err := service.GetSectionInfo(ctx, targetLink)
+			result, err := service.GetSection(ctx, targetLink, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -87,6 +88,7 @@ func TestServiceGetSectionInfo(t *testing.T) {
 
 func TestServiceCreateSection(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	boardLink := common.FixedBoardUUID
 	maxTasks := 20
 
@@ -141,7 +143,7 @@ func TestServiceCreateSection(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			result, err := service.CreateSection(ctx, inputDto)
+			result, err := service.CreateSection(ctx, inputDto, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -163,6 +165,7 @@ func TestServiceCreateSection(t *testing.T) {
 
 func TestServiceDeleteSection(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	targetLink := common.FixedUserUUID
 
 	tests := []struct {
@@ -203,7 +206,7 @@ func TestServiceDeleteSection(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			err := service.DeleteSection(ctx, targetLink)
+			err := service.DeleteSection(ctx, targetLink, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -222,6 +225,7 @@ func TestServiceDeleteSection(t *testing.T) {
 
 func TestServiceReorderSection(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	boardLink := common.FixedBoardUUID
 	section1 := common.FixedSectionUUID
 	section2 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
@@ -264,7 +268,7 @@ func TestServiceReorderSection(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			err := service.ReorderSection(ctx, boardLink, test.sectionLinks)
+			err := service.ReorderSection(ctx, boardLink, test.sectionLinks, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -279,6 +283,7 @@ func TestServiceReorderSection(t *testing.T) {
 
 func TestServiceUpdateSection(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	targetLink := common.FixedSectionUUID
 	maxTasks := 50
 
@@ -337,7 +342,7 @@ func TestServiceUpdateSection(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			err := service.UpdateSection(ctx, updateDto)
+			err := service.UpdateSection(ctx, updateDto, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -356,6 +361,7 @@ func TestServiceUpdateSection(t *testing.T) {
 
 func TestServiceGetAllSections(t *testing.T) {
 	ctx := context.Background()
+	userLink := uuid.New()
 	boardLink := common.FixedBoardUUID
 	sectionLink := common.FixedSectionUUID
 	maxTasks := 50
@@ -422,7 +428,7 @@ func TestServiceGetAllSections(t *testing.T) {
 			}
 
 			service := NewService(mockRepository)
-			result, err := service.GetAllSections(ctx, boardLink)
+			result, err := service.GetSections(ctx, boardLink, userLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -438,6 +444,7 @@ func TestServiceGetAllSections(t *testing.T) {
 }
 
 func TestGetCards(t *testing.T) {
+	userLink := uuid.New()
 	targetSectionLink := uuid.New()
 	targetExecuterName := "John Doe"
 	targetDeadLine := time.Now()
@@ -490,7 +497,7 @@ func TestGetCards(t *testing.T) {
 			test.mockBehavior(mockRep)
 
 			service := NewService(mockRep)
-			res, err := service.GetCards(context.Background(), targetSectionLink)
+			res, err := service.GetCards(context.Background(), targetSectionLink, userLink)
 
 			if test.expectedError {
 				assert.Error(t, err)

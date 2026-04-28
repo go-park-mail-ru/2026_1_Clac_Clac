@@ -42,7 +42,7 @@ type SectionsInfo struct {
 
 type Card struct {
 	CardLink     uuid.UUID
-	ExecuterName *string
+	ExecutorName *string
 	Title        string
 	DeadLine     *time.Time
 }

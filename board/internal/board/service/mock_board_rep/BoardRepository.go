@@ -4,12 +4,9 @@ package mocks
 
 import (
 	context "context"
-
-	common "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
+	io "io"
 
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
-
-	io "io"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -118,34 +115,6 @@ func (_m *BoardRepository) GetBoards(ctx context.Context, userLink uuid.UUID) ([
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
 		r1 = rf(ctx, userLink)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetUserRoleOnBoard provides a mock function with given fields: ctx, userLink, boardLink
-func (_m *BoardRepository) GetUserRoleOnBoard(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) (common.Role, error) {
-	ret := _m.Called(ctx, userLink, boardLink)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetUserRoleOnBoard")
-	}
-
-	var r0 common.Role
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (common.Role, error)); ok {
-		return rf(ctx, userLink, boardLink)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) common.Role); ok {
-		r0 = rf(ctx, userLink, boardLink)
-	} else {
-		r0 = ret.Get(0).(common.Role)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
-		r1 = rf(ctx, userLink, boardLink)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -19,6 +19,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/google/uuid"
@@ -53,7 +54,7 @@ type BoardService interface {
 	DeleteBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 	UpdateBoard(ctx context.Context, boardInfo serviceDto.UpdateBoardInfo, userLink uuid.UUID) error
 	UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error)
-	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
+	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]uuid.UUID, error)
 }
 
 type Config struct {
@@ -79,7 +80,6 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 	logger := zerolog.Ctx(ctx)
 
 	rawUserLink := req.GetUserLink()
-
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
@@ -97,6 +97,7 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 			Link:        board.Link.String(),
 			Name:        board.Name,
 			Description: board.Description,
+			Background:  board.Background,
 			CreatedAt:   timestamppb.New(board.CreatedAt),
 		}
 
@@ -124,16 +125,15 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 	rawBoardLink := req.GetBoardLink()
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
 	board, err := h.srv.GetBoard(ctx, boardLink, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrActionDenied) {
-			return nil, status.Error(codes.PermissionDenied, common.ErrActionDenied.Error())
-		}
-
-		if errors.Is(err, common.ErrBoardNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
@@ -175,23 +175,18 @@ func (h *BoardHandler) CreateBoard(ctx context.Context, req *pb.CreateBoardReque
 
 	board, err := h.srv.CreateBoard(ctx, dto.ToNewBoardInfo(createBoardRequest), userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrNotNullValue) {
+		switch {
+		case errors.Is(err, common.ErrNotNullValue):
 			return nil, status.Error(codes.InvalidArgument, common.ErrNotNullValue.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidBoardData) {
+		case errors.Is(err, common.ErrInvalidBoardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidBoardData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidBoardReference) {
+		case errors.Is(err, common.ErrInvalidBoardReference):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidBoardReference.Error())
-		}
-
-		if errors.Is(err, common.ErrUserAlreadyMember) {
+		case errors.Is(err, common.ErrUserAlreadyMember):
 			return nil, status.Error(codes.InvalidArgument, common.ErrUserAlreadyMember.Error())
 		}
 
-		logger.Error().Err(ErrCannotCreateBoard).Msg("board service CreateBoard")
+		logger.Error().Err(err).Msg("board service CreateBoard")
 		return nil, status.Error(codes.Internal, ErrCannotCreateBoard.Error())
 	}
 
@@ -218,20 +213,19 @@ func (h *BoardHandler) DeleteBoard(ctx context.Context, req *pb.DeleteBoardReque
 	rawBoardLink := req.GetBoardLink()
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
 	err = h.srv.DeleteBoard(ctx, boardLink, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrActionDenied) {
-			return nil, status.Error(codes.PermissionDenied, common.ErrActionDenied.Error())
-		}
-
-		if errors.Is(err, common.ErrBoardNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
-		logger.Error().Err(ErrCannotDeleteBoard).Msg("board service DeleteBoard")
+		logger.Error().Err(err).Msg("board service DeleteBoard")
 		return nil, status.Error(codes.Internal, ErrCannotDeleteBoard.Error())
 	}
 
@@ -250,7 +244,7 @@ func (h *BoardHandler) UpdateBoard(ctx context.Context, req *pb.UpdateBoardReque
 	rawBoardLink := req.GetBoardLink()
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
 	var updateBoardRequest = dto.UpdateBoardRequest{
@@ -262,23 +256,18 @@ func (h *BoardHandler) UpdateBoard(ctx context.Context, req *pb.UpdateBoardReque
 
 	err = h.srv.UpdateBoard(ctx, dto.ToUpdateBoardInfo(updateBoardRequest, boardLink), userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrActionDenied) {
-			return nil, status.Error(codes.PermissionDenied, common.ErrActionDenied.Error())
-		}
-
-		if errors.Is(err, common.ErrBoardNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidBoardData) {
+		case errors.Is(err, common.ErrInvalidBoardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidBoardData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidBoardReference) {
+		case errors.Is(err, common.ErrInvalidBoardReference):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidBoardReference.Error())
 		}
 
-		logger.Error().Err(ErrCannotUpdateBoard).Msg("board service UpdateBoard")
+		logger.Error().Err(err).Msg("board service UpdateBoard")
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
 
@@ -297,7 +286,7 @@ func (h *BoardHandler) UploadBackground(ctx context.Context, req *pb.UploadBackg
 	rawBoardLink := req.GetBoardLink()
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
 	image := req.GetImage()
@@ -331,10 +320,16 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 	rawBoardLink := req.GetBoardLink()
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
 	}
 
-	usersLinks, err := h.srv.GetUsersOfBoard(ctx, boardLink)
+	usersLinks, err := h.srv.GetUsersOfBoard(ctx, boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrBoardNotFound) {
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())

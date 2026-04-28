@@ -84,7 +84,7 @@ func TestRepositoryGetSectionInfo(t *testing.T) {
 			}
 
 			repo := NewRepository(mockDB)
-			result, err := repo.GetSectionInfo(ctx, targetLink)
+			result, err := repo.GetSection(ctx, targetLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {
@@ -799,7 +799,7 @@ func TestRepositoryGetAllSections(t *testing.T) {
 			}
 
 			repo := NewRepository(mockDB)
-			result, err := repo.GetAllSections(ctx, boardLink)
+			result, err := repo.GetSections(ctx, boardLink)
 
 			if test.expectedError != nil {
 				if assert.Error(t, err) {

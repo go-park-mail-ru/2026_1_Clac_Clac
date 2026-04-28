@@ -123,9 +123,9 @@ func (_m *BoardService) GetBoards(ctx context.Context, userLink uuid.UUID) ([]dt
 	return r0, r1
 }
 
-// GetUsersOfBoard provides a mock function with given fields: ctx, boardLink
-func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
-	ret := _m.Called(ctx, boardLink)
+// GetUsersOfBoard provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]uuid.UUID, error) {
+	ret := _m.Called(ctx, boardLink, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUsersOfBoard")
@@ -133,19 +133,19 @@ func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID
 
 	var r0 []uuid.UUID
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]uuid.UUID, error)); ok {
-		return rf(ctx, boardLink)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]uuid.UUID, error)); ok {
+		return rf(ctx, boardLink, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []uuid.UUID); ok {
-		r0 = rf(ctx, boardLink)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []uuid.UUID); ok {
+		r0 = rf(ctx, boardLink, userLink)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]uuid.UUID)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, boardLink)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}

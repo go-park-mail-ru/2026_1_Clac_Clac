@@ -496,60 +496,6 @@ func TestUpdateBoard(t *testing.T) {
 	}
 }
 
-func TestGetUserRoleOnBoard(t *testing.T) {
-	userLink := uuid.New()
-	boardLink := uuid.New()
-
-	tests := []struct {
-		Name         string
-		MockSetup    func(dbMock pgxmock.PgxPoolIface)
-		ExpectedRole common.Role
-		ExpectError  bool
-	}{
-		{
-			Name: "success get role",
-			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"level_member"}).AddRow(common.Role("creator"))
-				dbMock.ExpectQuery(`(?s)SELECT level_member FROM member_board.*`).
-					WithArgs(boardLink, userLink).
-					WillReturnRows(rows)
-			},
-			ExpectedRole: common.Role("creator"),
-			ExpectError:  false,
-		},
-		{
-			Name: "role not found (no rows)",
-			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
-				dbMock.ExpectQuery(`(?s)SELECT level_member FROM member_board.*`).
-					WithArgs(boardLink, userLink).
-					WillReturnError(pgx.ErrNoRows)
-			},
-			ExpectedRole: common.Roles.None,
-			ExpectError:  false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			dbMock, err := pgxmock.NewPool()
-			require.NoError(t, err)
-			defer dbMock.Close()
-
-			test.MockSetup(dbMock)
-
-			repo := setupRepo(dbMock, new(MockS3Bucket))
-			role, err := repo.GetUserRoleOnBoard(context.Background(), userLink, boardLink)
-
-			if test.ExpectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.ExpectedRole, role)
-			}
-			assert.NoError(t, dbMock.ExpectationsWereMet())
-		})
-	}
-}
 
 func TestUploadBackground(t *testing.T) {
 	tests := []struct {

@@ -9,7 +9,7 @@ import (
 type InfoCard struct {
 	Description  string
 	Title        string
-	NameExecuter *string
+	NameExecutor *string
 	DataDeadLine *time.Time
 }
 
@@ -17,7 +17,7 @@ type UpdatingCardDetails struct {
 	LinkCard     uuid.UUID
 	Title        string
 	Description  string
-	LinkExecuter *uuid.UUID
+	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
 }
 
@@ -32,7 +32,7 @@ type NewCard struct {
 	LinkAuthor   uuid.UUID
 	Title        string
 	Description  string
-	LinkExecuter *uuid.UUID
+	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
 	LinkSection  uuid.UUID
 }

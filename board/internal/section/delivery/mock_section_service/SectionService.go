@@ -17,9 +17,9 @@ type SectionService struct {
 	mock.Mock
 }
 
-// CreateSection provides a mock function with given fields: ctx, newSection
-func (_m *SectionService) CreateSection(ctx context.Context, newSection dto.CreatingSection) (dto.EntitySection, error) {
-	ret := _m.Called(ctx, newSection)
+// CreateSection provides a mock function with given fields: ctx, newSection, userLink
+func (_m *SectionService) CreateSection(ctx context.Context, newSection dto.CreatingSection, userLink uuid.UUID) (dto.EntitySection, error) {
+	ret := _m.Called(ctx, newSection, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateSection")
@@ -27,17 +27,17 @@ func (_m *SectionService) CreateSection(ctx context.Context, newSection dto.Crea
 
 	var r0 dto.EntitySection
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.CreatingSection) (dto.EntitySection, error)); ok {
-		return rf(ctx, newSection)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreatingSection, uuid.UUID) (dto.EntitySection, error)); ok {
+		return rf(ctx, newSection, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, dto.CreatingSection) dto.EntitySection); ok {
-		r0 = rf(ctx, newSection)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreatingSection, uuid.UUID) dto.EntitySection); ok {
+		r0 = rf(ctx, newSection, userLink)
 	} else {
 		r0 = ret.Get(0).(dto.EntitySection)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, dto.CreatingSection) error); ok {
-		r1 = rf(ctx, newSection)
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CreatingSection, uuid.UUID) error); ok {
+		r1 = rf(ctx, newSection, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -45,17 +45,17 @@ func (_m *SectionService) CreateSection(ctx context.Context, newSection dto.Crea
 	return r0, r1
 }
 
-// DeleteSection provides a mock function with given fields: ctx, linkSection
-func (_m *SectionService) DeleteSection(ctx context.Context, linkSection uuid.UUID) error {
-	ret := _m.Called(ctx, linkSection)
+// DeleteSection provides a mock function with given fields: ctx, linkSection, userLink
+func (_m *SectionService) DeleteSection(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, linkSection, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteSection")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
-		r0 = rf(ctx, linkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, linkSection, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -63,39 +63,9 @@ func (_m *SectionService) DeleteSection(ctx context.Context, linkSection uuid.UU
 	return r0
 }
 
-// GetAllSections provides a mock function with given fields: ctx, boarderLink
-func (_m *SectionService) GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]dto.FullSectionInfo, error) {
-	ret := _m.Called(ctx, boarderLink)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetAllSections")
-	}
-
-	var r0 []dto.FullSectionInfo
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.FullSectionInfo, error)); ok {
-		return rf(ctx, boarderLink)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.FullSectionInfo); ok {
-		r0 = rf(ctx, boarderLink)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]dto.FullSectionInfo)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, boarderLink)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetCards provides a mock function with given fields: ctx, linkSection
-func (_m *SectionService) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
-	ret := _m.Called(ctx, linkSection)
+// GetCards provides a mock function with given fields: ctx, linkSection, userLink
+func (_m *SectionService) GetCards(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) ([]dto.Card, error) {
+	ret := _m.Called(ctx, linkSection, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetCards")
@@ -103,19 +73,19 @@ func (_m *SectionService) GetCards(ctx context.Context, linkSection uuid.UUID) (
 
 	var r0 []dto.Card
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.Card, error)); ok {
-		return rf(ctx, linkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]dto.Card, error)); ok {
+		return rf(ctx, linkSection, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.Card); ok {
-		r0 = rf(ctx, linkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []dto.Card); ok {
+		r0 = rf(ctx, linkSection, userLink)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]dto.Card)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, linkSection)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, linkSection, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -123,27 +93,27 @@ func (_m *SectionService) GetCards(ctx context.Context, linkSection uuid.UUID) (
 	return r0, r1
 }
 
-// GetSectionInfo provides a mock function with given fields: ctx, linkSection
-func (_m *SectionService) GetSectionInfo(ctx context.Context, linkSection uuid.UUID) (dto.FullSectionInfo, error) {
-	ret := _m.Called(ctx, linkSection)
+// GetSection provides a mock function with given fields: ctx, linkSection, userLink
+func (_m *SectionService) GetSection(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) (dto.FullSectionInfo, error) {
+	ret := _m.Called(ctx, linkSection, userLink)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetSectionInfo")
+		panic("no return value specified for GetSection")
 	}
 
 	var r0 dto.FullSectionInfo
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (dto.FullSectionInfo, error)); ok {
-		return rf(ctx, linkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (dto.FullSectionInfo, error)); ok {
+		return rf(ctx, linkSection, userLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) dto.FullSectionInfo); ok {
-		r0 = rf(ctx, linkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) dto.FullSectionInfo); ok {
+		r0 = rf(ctx, linkSection, userLink)
 	} else {
 		r0 = ret.Get(0).(dto.FullSectionInfo)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = rf(ctx, linkSection)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, linkSection, userLink)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -151,17 +121,47 @@ func (_m *SectionService) GetSectionInfo(ctx context.Context, linkSection uuid.U
 	return r0, r1
 }
 
-// ReorderSection provides a mock function with given fields: ctx, linkBoard, listLinkSection
-func (_m *SectionService) ReorderSection(ctx context.Context, linkBoard uuid.UUID, listLinkSection []uuid.UUID) error {
-	ret := _m.Called(ctx, linkBoard, listLinkSection)
+// GetSections provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *SectionService) GetSections(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]dto.FullSectionInfo, error) {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSections")
+	}
+
+	var r0 []dto.FullSectionInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]dto.FullSectionInfo, error)); ok {
+		return rf(ctx, boardLink, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []dto.FullSectionInfo); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.FullSectionInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ReorderSection provides a mock function with given fields: ctx, linkBoard, listLinkSection, userLink
+func (_m *SectionService) ReorderSection(ctx context.Context, linkBoard uuid.UUID, listLinkSection []uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, linkBoard, listLinkSection, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReorderSection")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, []uuid.UUID) error); ok {
-		r0 = rf(ctx, linkBoard, listLinkSection)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, []uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, linkBoard, listLinkSection, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -169,17 +169,17 @@ func (_m *SectionService) ReorderSection(ctx context.Context, linkBoard uuid.UUI
 	return r0
 }
 
-// UpdateSection provides a mock function with given fields: ctx, updatingSection
-func (_m *SectionService) UpdateSection(ctx context.Context, updatingSection dto.FullSectionInfo) error {
-	ret := _m.Called(ctx, updatingSection)
+// UpdateSection provides a mock function with given fields: ctx, updatingSection, userLink
+func (_m *SectionService) UpdateSection(ctx context.Context, updatingSection dto.FullSectionInfo, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, updatingSection, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateSection")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, dto.FullSectionInfo) error); ok {
-		r0 = rf(ctx, updatingSection)
+	if rf, ok := ret.Get(0).(func(context.Context, dto.FullSectionInfo, uuid.UUID) error); ok {
+		r0 = rf(ctx, updatingSection, userLink)
 	} else {
 		r0 = ret.Error(0)
 	}

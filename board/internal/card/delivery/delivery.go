@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -39,12 +40,12 @@ var (
 
 //go:generate mockery --name=CardService --output mock_card_srv
 type CardService interface {
-	GetCard(ctx context.Context, linkCard uuid.UUID) (serviceDto.InfoCard, error)
-	DeleteCard(ctx context.Context, linkCard uuid.UUID) error
-	UpdateCardDetails(ctx context.Context, updatedCard serviceDto.UpdatingCardDetails) error
-	ReorderCard(ctx context.Context, updatingPlaceCard serviceDto.PlaceCard) error
+	GetCard(ctx context.Context, linkCard uuid.UUID, userLink uuid.UUID) (serviceDto.InfoCard, error)
+	DeleteCard(ctx context.Context, linkCard uuid.UUID, userLink uuid.UUID) error
+	UpdateCardDetails(ctx context.Context, updatedCard serviceDto.UpdatingCardDetails, userLink uuid.UUID) error
+	ReorderCard(ctx context.Context, updatingPlaceCard serviceDto.PlaceCard, userLink uuid.UUID) error
 	CreateCard(ctx context.Context, newCard serviceDto.NewCard) (serviceDto.PlaceCard, error)
-	GetComments(ctx context.Context, cardLink uuid.UUID) ([]serviceDto.CommentInfo, error)
+	GetComments(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.CommentInfo, error)
 	CreateComment(ctx context.Context, createCardInfo serviceDto.CreateCommentInfo) (serviceDto.CommentInfo, error)
 	DeleteComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) error
 	UpdateComment(ctx context.Context, updateCommentInfo serviceDto.UpdateCommentInfo) error
@@ -78,9 +79,18 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
 	}
 
-	card, err := h.srv.GetCard(ctx, cardLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		if errors.Is(err, common.ErrCardNotFound) {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	card, err := h.srv.GetCard(ctx, cardLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
@@ -88,13 +98,18 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		return nil, status.Error(codes.Internal, ErrCannotGetCard.Error())
 	}
 
+	var deadline timestamppb.Timestamp
+	if card.DataDeadLine != nil {
+		deadline = *timestamppb.New(*card.DataDeadLine)
+	}
+
 	return &pb.GetCardResponse{
 		CardInfo: &pb.CardInfo{
 			Link:         cardLink.String(),
 			Title:        card.Title,
 			Description:  card.Description,
-			ExecuterName: card.NameExecuter,
-			Deadline:     timestamppb.New(*card.DataDeadLine),
+			ExecutorName: card.NameExecutor,
+			Deadline:     &deadline,
 		},
 	}, nil
 }
@@ -108,9 +123,18 @@ func (h *CardHandler) DeleteCard(ctx context.Context, req *pb.DeleteCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
 	}
 
-	err = h.srv.DeleteCard(ctx, cardLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		if errors.Is(err, common.ErrCardNotFound) {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.DeleteCard(ctx, cardLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
@@ -128,6 +152,12 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 	cardLink, err := uuid.Parse(rawCardLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	var executorLink uuid.UUID
@@ -148,7 +178,7 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		LinkCard:     cardLink,
 		Title:        req.GetTitle(),
 		Description:  req.GetDescription(),
-		LinkExecuter: &executorLink,
+		LinkExecutor: &executorLink,
 		DataDeadLine: &deadline,
 	}
 
@@ -164,23 +194,20 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		LinkCard:     cardLink,
 		Description:  updatingInfo.Description,
 		Title:        updatingInfo.Title,
-		LinkExecuter: updatingInfo.LinkExecuter,
+		LinkExecutor: updatingInfo.LinkExecutor,
 		DataDeadLine: updatingInfo.DataDeadLine,
-	})
+	}, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrCardNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceCardData) {
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidCardData) {
+		case errors.Is(err, common.ErrInvalidCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
@@ -206,33 +233,32 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSectionLink.Error())
 	}
 
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
 	err = h.srv.ReorderCard(ctx, serviceDto.PlaceCard{
 		LinkCard:    cardLink,
 		LinkSection: sectionLink,
 		Position:    int(req.GetPosition()),
-	})
+	}, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrCannotSkipMandatorySection) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCannotSkipMandatorySection):
 			return nil, status.Error(codes.InvalidArgument, common.ErrCannotSkipMandatorySection.Error())
-		}
-
-		if errors.Is(err, common.ErrCardNotFound) {
+		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceCardData) {
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidCardData) {
+		case errors.Is(err, common.ErrInvalidCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
-		}
-
-		if errors.Is(err, common.ErrTaskLimitReached) {
+		case errors.Is(err, common.ErrTaskLimitReached):
 			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
 		}
 
@@ -246,10 +272,10 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest) (*pb.CreateCardResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	rawAuthorLink := req.GetAuthorLink()
-	authorLink, err := uuid.Parse(rawAuthorLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidAuthorLink.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	rawSectionLink := req.GetSectionLink()
@@ -283,35 +309,28 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 	}
 
 	card, err := h.srv.CreateCard(ctx, serviceDto.NewCard{
-		LinkAuthor:   authorLink,
+		LinkAuthor:   userLink,
 		Title:        title,
 		Description:  description,
-		LinkExecuter: &executorLink,
+		LinkExecutor: &executorLink,
 		DataDeadLine: &deadline,
 		LinkSection:  sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrSectionNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrCardAlreadyExists) {
+		case errors.Is(err, common.ErrCardAlreadyExists):
 			return nil, status.Error(codes.AlreadyExists, common.ErrCardAlreadyExists.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceCardData) {
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidCardData) {
+		case errors.Is(err, common.ErrInvalidCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCardData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
-		}
-
-		if errors.Is(err, common.ErrTaskLimitReached) {
+		case errors.Is(err, common.ErrTaskLimitReached):
 			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
 		}
 
@@ -335,15 +354,23 @@ func (h *CardHandler) GetComments(ctx context.Context, req *pb.GetCommentsReques
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
 	}
 
-	comments, err := h.srv.GetComments(ctx, cardLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	comments, err := h.srv.GetComments(ctx, cardLink, userLink)
 	if err != nil {
 		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
-		default:
-			logger.Error().Err(err).Msg("CardService.GetComments")
-			return nil, status.Error(codes.Internal, ErrCannotGetComments.Error())
 		}
+
+		logger.Error().Err(err).Msg("CardService.GetComments")
+		return nil, status.Error(codes.Internal, ErrCannotGetComments.Error())
 	}
 
 	commentsInfo := make([]*pb.CommentInfo, 0)
@@ -375,29 +402,31 @@ func (h *CardHandler) CreateComment(ctx context.Context, req *pb.CreateCommentRe
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
 	}
 
-	rawAuthorLink := req.GetAuthorLink()
-	authorLink, err := uuid.Parse(rawAuthorLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidAuthorLink.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	var parentLink uuid.UUID
+	var parentLink *uuid.UUID
 	if req.ParentLink != nil {
-		rawParentLink := req.GetParentLink()
-		parentLink, err = uuid.Parse(rawParentLink)
+		p, err := uuid.Parse(req.GetParentLink())
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ErrInvalidParentLink.Error())
 		}
+		parentLink = &p
 	}
 
 	comment, err := h.srv.CreateComment(ctx, serviceDto.CreateCommentInfo{
 		CardLink:   cardLink,
-		ParentLink: &parentLink,
-		AuthorLink: authorLink,
+		ParentLink: parentLink,
+		AuthorLink: userLink,
 		Text:       req.GetText(),
 	})
 	if err != nil {
 		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		case errors.Is(err, common.ErrInvalidReferenceCardData):
@@ -431,6 +460,8 @@ func (h *CardHandler) DeleteComment(ctx context.Context, req *pb.DeleteCommentRe
 	err = h.srv.DeleteComment(ctx, commentLink, userLink)
 	if err != nil {
 		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrCommentNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
 		case errors.Is(err, common.ErrPermissionDenied):
@@ -466,6 +497,8 @@ func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRe
 	})
 	if err != nil {
 		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrCommentNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCommentNotFound.Error())
 		case errors.Is(err, common.ErrPermissionDenied):

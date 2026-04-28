@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -29,17 +30,18 @@ var (
 	ErrIncorrectSectionNameLength = errors.New("incorrect section name length")
 	ErrIncorrectColor             = errors.New("incorrect color value")
 	ErrCannotUpdateSection        = errors.New("cannot update section")
+	ErrInvalidUserLink            = errors.New("invalid user link")
 )
 
 //go:generate mockery --name=SectionService --output=mock_section_service --outpkg=mockSectionService
 type SectionService interface {
-	GetSectionInfo(ctx context.Context, linkSection uuid.UUID) (serviceDto.FullSectionInfo, error)
-	GetAllSections(ctx context.Context, boarderLink uuid.UUID) ([]serviceDto.FullSectionInfo, error)
-	GetCards(ctx context.Context, linkSection uuid.UUID) ([]serviceDto.Card, error)
-	CreateSection(ctx context.Context, newSection serviceDto.CreatingSection) (serviceDto.EntitySection, error)
-	DeleteSection(ctx context.Context, linkSection uuid.UUID) error
-	ReorderSection(ctx context.Context, linkBoard uuid.UUID, listLinkSection []uuid.UUID) error
-	UpdateSection(ctx context.Context, updatingSection serviceDto.FullSectionInfo) error
+	GetSections(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.FullSectionInfo, error)
+	GetSection(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) (serviceDto.FullSectionInfo, error)
+	GetCards(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) ([]serviceDto.Card, error)
+	CreateSection(ctx context.Context, newSection serviceDto.CreatingSection, userLink uuid.UUID) (serviceDto.EntitySection, error)
+	DeleteSection(ctx context.Context, linkSection uuid.UUID, userLink uuid.UUID) error
+	UpdateSection(ctx context.Context, updatingSection serviceDto.FullSectionInfo, userLink uuid.UUID) error
+	ReorderSection(ctx context.Context, linkBoard uuid.UUID, listLinkSection []uuid.UUID, userLink uuid.UUID) error
 }
 
 type Config struct {
@@ -71,8 +73,19 @@ func (h *SectionHandler) GetSections(ctx context.Context, req *pb.GetSectionsReq
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidBoardLink.Error())
 	}
 
-	sections, err := h.srv.GetAllSections(ctx, boardLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	sections, err := h.srv.GetSections(ctx, boardLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+
 		logger.Error().Err(err).Msg("SectionService.GetAllSections")
 		return nil, status.Error(codes.Internal, ErrCannotGetSections.Error())
 	}
@@ -109,9 +122,18 @@ func (h *SectionHandler) GetSection(ctx context.Context, req *pb.GetSectionReque
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSectionLink.Error())
 	}
 
-	section, err := h.srv.GetSectionInfo(ctx, sectionLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		if errors.Is(err, common.ErrSectionNotFound) {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	section, err := h.srv.GetSection(ctx, sectionLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
 		}
 
@@ -148,9 +170,18 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSectionLink.Error())
 	}
 
-	cards, err := h.srv.GetCards(ctx, sectionLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		if errors.Is(err, common.ErrSectionNotFound) {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	cards, err := h.srv.GetCards(ctx, sectionLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
 		}
 
@@ -160,11 +191,16 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 
 	cardsResponse := make([]*pb.CardInfo, 0)
 	for _, card := range cards {
+		var deadline timestamppb.Timestamp
+		if card.DeadLine != nil {
+			deadline = *timestamppb.New(*card.DeadLine)
+		}
+
 		cardsResponse = append(cardsResponse, &pb.CardInfo{
 			Link:         card.CardLink.String(),
-			ExecuterName: card.ExecuterName,
+			ExecutorName: card.ExecutorName,
 			Title:        card.Title,
-			Deadline:     timestamppb.New(*card.DeadLine),
+			Deadline:     &deadline,
 		})
 	}
 
@@ -180,6 +216,12 @@ func (h *SectionHandler) CreateSection(ctx context.Context, req *pb.CreateSectio
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidBoardLink.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	var maxTasks int
@@ -206,22 +248,19 @@ func (h *SectionHandler) CreateSection(ctx context.Context, req *pb.CreateSectio
 		IsMandatory: newSection.IsMandatory,
 		Color:       newSection.Color,
 		MaxTasks:    newSection.MaxTasks,
-	})
+	}, userLink)
 
 	if err != nil {
-		if errors.Is(err, common.ErrSectionAlreadyExists) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionAlreadyExists):
 			return nil, status.Error(codes.AlreadyExists, common.ErrSectionAlreadyExists.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceSectionData) {
+		case errors.Is(err, common.ErrInvalidReferenceSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidSectionData) {
+		case errors.Is(err, common.ErrInvalidSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
@@ -255,25 +294,26 @@ func (h *SectionHandler) DeleteSection(ctx context.Context, req *pb.DeleteSectio
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSectionLink.Error())
 	}
 
-	err = h.srv.DeleteSection(ctx, sectionLink)
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		if errors.Is(err, common.ErrSectionNotFound) {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.DeleteSection(ctx, sectionLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrCannotDeleteBacklog) {
+		case errors.Is(err, common.ErrCannotDeleteBacklog):
 			return nil, status.Error(codes.PermissionDenied, common.ErrCannotDeleteBacklog.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceSectionData) {
+		case errors.Is(err, common.ErrInvalidReferenceSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidSectionData) {
+		case errors.Is(err, common.ErrInvalidSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
@@ -293,6 +333,12 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSectionLink.Error())
 	}
 
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
 	var maxTasks int
 	if req.MaxTasks != nil {
 		maxTasks = int(req.GetMaxTasks())
@@ -307,7 +353,7 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 	}
 
 	if !common.CheckSectionNameLength(sectionInfo.SectionName, h.cnf.MaxLenNameSection) {
-		return nil, status.Error(codes.InvalidArgument, ErrIncorrectMaxTasksValue.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrIncorrectSectionNameLength.Error())
 	}
 
 	if !common.CheckColor(sectionInfo.Color) {
@@ -327,25 +373,20 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 		IsMandatory: sectionInfo.IsMandatory,
 		Color:       sectionInfo.Color,
 		MaxTasks:    sectionInfo.MaxTasks,
-	})
+	}, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrSectionNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrSectionNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
-		}
-
-		if errors.Is(err, common.ErrCannotUpdateBacklog) {
+		case errors.Is(err, common.ErrCannotUpdateBacklog):
 			return nil, status.Error(codes.PermissionDenied, common.ErrCannotUpdateBacklog.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceSectionData) {
+		case errors.Is(err, common.ErrInvalidReferenceSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidSectionData) {
+		case errors.Is(err, common.ErrInvalidSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
@@ -365,6 +406,12 @@ func (h *SectionHandler) ReorderSection(ctx context.Context, req *pb.ReorderSect
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidBoardLink.Error())
 	}
 
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
 	sectionsLinks := make([]uuid.UUID, 0)
 	for _, rawLink := range req.GetLinksList() {
 		link, err := uuid.Parse(rawLink)
@@ -375,21 +422,18 @@ func (h *SectionHandler) ReorderSection(ctx context.Context, req *pb.ReorderSect
 		sectionsLinks = append(sectionsLinks, link)
 	}
 
-	err = h.srv.ReorderSection(ctx, boardLink, sectionsLinks)
+	err = h.srv.ReorderSection(ctx, boardLink, sectionsLinks, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrNotFindAllLinks) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrNotFindAllLinks):
 			return nil, status.Error(codes.NotFound, common.ErrNotFindAllLinks.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidReferenceSectionData) {
+		case errors.Is(err, common.ErrInvalidReferenceSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrInvalidSectionData) {
+		case errors.Is(err, common.ErrInvalidSectionData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidSectionData.Error())
-		}
-
-		if errors.Is(err, common.ErrMissingRequiredField) {
+		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 

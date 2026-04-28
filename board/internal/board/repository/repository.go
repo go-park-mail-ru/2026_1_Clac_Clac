@@ -165,7 +165,7 @@ func (r *Repository) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo
 		return dto.BoardEntry{}, fmt.Errorf("create board member: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		return dto.BoardEntry{}, fmt.Errorf("create board commit transaction: %w", err)
 	}
 
@@ -220,27 +220,6 @@ func (r *Repository) UpdateBoard(ctx context.Context, boardInfo dto.UpdateBoardI
 	}
 
 	return nil
-}
-
-func (r *Repository) GetUserRoleOnBoard(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) (common.Role, error) {
-	getUserRoleQuery := `
-		SELECT level_member FROM member_board
-		WHERE board_link = $1 AND user_link = $2;
-	`
-
-	row := r.pool.QueryRow(ctx, getUserRoleQuery, boardLink, userLink)
-
-	var role common.Role
-	err := row.Scan(&role)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return common.Roles.None, nil
-		}
-
-		return common.Roles.None, fmt.Errorf("get user role on board: %w", err)
-	}
-
-	return role, nil
 }
 
 func (r *Repository) UploadBackground(ctx context.Context, source io.Reader, filename string, contentType string) (string, error) {
