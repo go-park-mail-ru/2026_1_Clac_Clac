@@ -25,6 +25,7 @@ func grpcCode(err error) codes.Code {
 
 func TestGetSection(t *testing.T) {
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	targetUserLink := uuid.New()
 	maxTasks := 50
 	maxTasks64 := int64(maxTasks)
 
@@ -46,9 +47,9 @@ func TestGetSection(t *testing.T) {
 	}{
 		{
 			name: "success",
-			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceSectionInfo, nil)
+				m.On("GetSection", mock.Anything, sectionLink, mock.Anything).Return(serviceSectionInfo, nil)
 			},
 			expectedCode: codes.OK,
 			checkResp: func(t *testing.T, resp *pb.GetSectionResponse) {
@@ -68,17 +69,17 @@ func TestGetSection(t *testing.T) {
 		},
 		{
 			name: "section not found",
-			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceDto.FullSectionInfo{}, common.ErrSectionNotFound)
+				m.On("GetSection", mock.Anything, sectionLink, mock.Anything).Return(serviceDto.FullSectionInfo{}, common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
 		},
 		{
 			name: "internal error",
-			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetSectionInfo", mock.Anything, sectionLink).Return(serviceDto.FullSectionInfo{}, errors.New("db error"))
+				m.On("GetSection", mock.Anything, sectionLink, mock.Anything).Return(serviceDto.FullSectionInfo{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -103,6 +104,7 @@ func TestGetSection(t *testing.T) {
 func TestGetSections(t *testing.T) {
 	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	targetUserLink := uuid.New()
 	maxTasks := 50
 
 	serviceSections := []serviceDto.FullSectionInfo{
@@ -125,9 +127,9 @@ func TestGetSections(t *testing.T) {
 	}{
 		{
 			name: "success",
-			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String()},
+			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetAllSections", mock.Anything, boardLink).Return(serviceSections, nil)
+				m.On("GetSections", mock.Anything, boardLink, mock.Anything).Return(serviceSections, nil)
 			},
 			expectedCode: codes.OK,
 			checkResp: func(t *testing.T, resp *pb.GetSectionsResponse) {
@@ -144,9 +146,9 @@ func TestGetSections(t *testing.T) {
 		},
 		{
 			name: "internal error",
-			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String()},
+			req:  &pb.GetSectionsRequest{BoardLink: boardLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetAllSections", mock.Anything, boardLink).Return(nil, errors.New("db error"))
+				m.On("GetSections", mock.Anything, boardLink, mock.Anything).Return(nil, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -171,6 +173,7 @@ func TestGetSections(t *testing.T) {
 func TestGetCards(t *testing.T) {
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	cardLink := uuid.New()
+	targetUserLink := uuid.New()
 	executer := "John Doe"
 	deadline := time.Now().Add(24 * time.Hour)
 
@@ -192,9 +195,9 @@ func TestGetCards(t *testing.T) {
 	}{
 		{
 			name: "success",
-			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink).Return(serviceCards, nil)
+				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return(serviceCards, nil)
 			},
 			expectedCode: codes.OK,
 			checkResp: func(t *testing.T, resp *pb.GetCardsResponse) {
@@ -211,17 +214,17 @@ func TestGetCards(t *testing.T) {
 		},
 		{
 			name: "section not found",
-			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink).Return([]serviceDto.Card{}, common.ErrSectionNotFound)
+				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return([]serviceDto.Card{}, common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
 		},
 		{
 			name: "internal error",
-			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String()},
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink).Return([]serviceDto.Card{}, errors.New("db error"))
+				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return([]serviceDto.Card{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -246,6 +249,7 @@ func TestGetCards(t *testing.T) {
 func TestCreateSection(t *testing.T) {
 	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	targetUserLink := uuid.New()
 	validMaxTasks := 50
 	validMaxTasks64 := int64(validMaxTasks)
 	invalidMaxTasks64 := int64(101)
@@ -262,6 +266,7 @@ func TestCreateSection(t *testing.T) {
 	makeReq := func(maxTasks *int64) *pb.CreateSectionRequest {
 		return &pb.CreateSectionRequest{
 			BoardLink:   boardLink.String(),
+			UserLink:    targetUserLink.String(),
 			Name:        "In Progress",
 			IsMandatory: false,
 			Color:       "blue",
@@ -287,7 +292,7 @@ func TestCreateSection(t *testing.T) {
 			name: "success",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceResult, nil)
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceResult, nil)
 			},
 			expectedCode: codes.OK,
 		},
@@ -307,7 +312,7 @@ func TestCreateSection(t *testing.T) {
 			name: "section already exists",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrSectionAlreadyExists)
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceDto.EntitySection{}, common.ErrSectionAlreadyExists)
 			},
 			expectedCode: codes.AlreadyExists,
 		},
@@ -315,7 +320,7 @@ func TestCreateSection(t *testing.T) {
 			name: "invalid reference data",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrInvalidReferenceSectionData)
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceDto.EntitySection{}, common.ErrInvalidReferenceSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -323,7 +328,7 @@ func TestCreateSection(t *testing.T) {
 			name: "invalid section data",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrInvalidSectionData)
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceDto.EntitySection{}, common.ErrInvalidSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -331,7 +336,7 @@ func TestCreateSection(t *testing.T) {
 			name: "missing required field",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, common.ErrMissingRequiredField)
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceDto.EntitySection{}, common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -339,7 +344,7 @@ func TestCreateSection(t *testing.T) {
 			name: "internal error",
 			req:  makeReq(&validMaxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("CreateSection", mock.Anything, serviceInput).Return(serviceDto.EntitySection{}, errors.New("db error"))
+				m.On("CreateSection", mock.Anything, serviceInput, mock.Anything).Return(serviceDto.EntitySection{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -363,6 +368,7 @@ func TestCreateSection(t *testing.T) {
 
 func TestDeleteSection(t *testing.T) {
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	targetUserLink := uuid.New()
 
 	tests := []struct {
 		name         string
@@ -372,9 +378,9 @@ func TestDeleteSection(t *testing.T) {
 	}{
 		{
 			name: "success",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(nil)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
 		},
@@ -386,49 +392,49 @@ func TestDeleteSection(t *testing.T) {
 		},
 		{
 			name: "section not found",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrSectionNotFound)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
 		},
 		{
 			name: "cannot delete backlog",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrCannotDeleteBacklog)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(common.ErrCannotDeleteBacklog)
 			},
 			expectedCode: codes.PermissionDenied,
 		},
 		{
 			name: "invalid reference data",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrInvalidReferenceSectionData)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(common.ErrInvalidReferenceSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "invalid section data",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrInvalidSectionData)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(common.ErrInvalidSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "missing required field",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(common.ErrMissingRequiredField)
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "internal error",
-			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String()},
+			req:  &pb.DeleteSectionRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("DeleteSection", mock.Anything, sectionLink).Return(errors.New("db error"))
+				m.On("DeleteSection", mock.Anything, sectionLink, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -449,6 +455,7 @@ func TestDeleteSection(t *testing.T) {
 
 func TestUpdateSection(t *testing.T) {
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	targetUserLink := uuid.New()
 	maxTasks := 50
 	maxTasks64 := int64(maxTasks)
 	invalidMaxTasks64 := int64(101)
@@ -465,6 +472,7 @@ func TestUpdateSection(t *testing.T) {
 	makeReq := func(name, color string, maxT *int64) *pb.UpdateSectionRequest {
 		return &pb.UpdateSectionRequest{
 			SectionLink: sectionLink.String(),
+			UserLink:    targetUserLink.String(),
 			Name:        name,
 			IsMandatory: true,
 			Color:       color,
@@ -482,7 +490,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "success",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(nil)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
 		},
@@ -514,7 +522,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "section not found",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrSectionNotFound)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
 		},
@@ -522,7 +530,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "cannot update backlog",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrCannotUpdateBacklog)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(common.ErrCannotUpdateBacklog)
 			},
 			expectedCode: codes.PermissionDenied,
 		},
@@ -530,7 +538,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "invalid reference data",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrInvalidReferenceSectionData)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(common.ErrInvalidReferenceSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -538,7 +546,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "invalid section data",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrInvalidSectionData)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(common.ErrInvalidSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -546,7 +554,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "missing required field",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(common.ErrMissingRequiredField)
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -554,7 +562,7 @@ func TestUpdateSection(t *testing.T) {
 			name: "internal error",
 			req:  makeReq("Updated Name", "red", &maxTasks64),
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("UpdateSection", mock.Anything, serviceUpdateInfo).Return(errors.New("db error"))
+				m.On("UpdateSection", mock.Anything, serviceUpdateInfo, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -581,6 +589,7 @@ func TestReorderSection(t *testing.T) {
 	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	section1 := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	section2 := uuid.MustParse("33333333-3333-3333-3333-333333333333")
+	targetUserLink := uuid.New()
 	linksList := []uuid.UUID{section1, section2}
 
 	tests := []struct {
@@ -593,10 +602,11 @@ func TestReorderSection(t *testing.T) {
 			name: "success",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(nil)
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
 		},
@@ -610,6 +620,7 @@ func TestReorderSection(t *testing.T) {
 			name: "invalid section uuid in list",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{"bad-uuid"},
 			},
 			mockBehavior: nil,
@@ -619,10 +630,11 @@ func TestReorderSection(t *testing.T) {
 			name: "not find all links",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrNotFindAllLinks)
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(common.ErrNotFindAllLinks)
 			},
 			expectedCode: codes.NotFound,
 		},
@@ -630,10 +642,11 @@ func TestReorderSection(t *testing.T) {
 			name: "invalid reference data",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrInvalidReferenceSectionData)
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(common.ErrInvalidReferenceSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -641,10 +654,11 @@ func TestReorderSection(t *testing.T) {
 			name: "invalid section data",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrInvalidSectionData)
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(common.ErrInvalidSectionData)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -652,10 +666,11 @@ func TestReorderSection(t *testing.T) {
 			name: "missing required field",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(common.ErrMissingRequiredField)
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
 		},
@@ -663,10 +678,11 @@ func TestReorderSection(t *testing.T) {
 			name: "internal error",
 			req: &pb.ReorderSectionRequest{
 				BoardLink: boardLink.String(),
+				UserLink:  targetUserLink.String(),
 				LinksList: []string{section1.String(), section2.String()},
 			},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("ReorderSection", mock.Anything, boardLink, linksList).Return(errors.New("db error"))
+				m.On("ReorderSection", mock.Anything, boardLink, linksList, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},

@@ -511,7 +511,3 @@ func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRe
 
 	return &pb.UpdateCommentResponse{}, nil
 }
-
-func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRequest) (*pb.CreateSubtaskResponse, error) {
-
-}

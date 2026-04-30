@@ -199,28 +199,30 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Success update card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
+			nameTest: "Error begin tx fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
+			},
+			expectedError: errors.New("pool.Begin: begin error"),
+		},
+		{
 			nameTest: "Error not found",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnError(pgx.ErrNoRows)
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrCardNotFound,
@@ -229,15 +231,12 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error invalid reference data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidReferenceCardData,
@@ -246,15 +245,12 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error check violation data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidCardData,
@@ -263,35 +259,29 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrMissingRequiredField,
 		},
 		{
-			nameTest: "Error insert fail",
+			nameTest: "Error commit tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
 					WithArgs(targetLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
-					WillReturnError(errors.New("db insert err"))
-
-				m.ExpectRollback()
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectCommit().WillReturnError(errors.New("commit error"))
 			},
-			expectedError: errors.New("tx.Exec: db insert err"),
+			expectedError: errors.New("tx.Commit: commit error"),
 		},
 	}
 
@@ -359,28 +349,22 @@ func TestRepositoryReorderCard(t *testing.T) {
 			nameTest: "Success reorder different section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
-
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(2))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, newSectionLink, 2, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectCommit()
 			},
 			expectedError: nil,
@@ -389,69 +373,118 @@ func TestRepositoryReorderCard(t *testing.T) {
 			nameTest: "Success reorder same section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
-			nameTest: "Error skip mandatory",
+			nameTest: "Error begin tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectBegin()
-
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
-					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
-
-				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
-					WithArgs(newSectionLink).
-					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
-				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
-					WithArgs(oldSectionLink, newSectionLink).
-					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
-
-				m.ExpectRollback()
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
 			},
-			expectedError: common.ErrCannotSkipMandatorySection,
+			expectedError: errors.New("pool.Begin: begin error"),
 		},
 		{
 			nameTest: "Error not found",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
 					WillReturnError(pgx.ErrNoRows)
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrCardNotFound,
 		},
 		{
-			nameTest: "Error check violation data",
+			nameTest: "Error CheckTaskLimit fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
-
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnError(errors.New("limit error"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("CheckTaskLimit: tx.QueryRow: limit error"),
+		},
+		{
+			nameTest: "Error check mandatory query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
+					WithArgs(oldSectionLink, newSectionLink).
+					WillReturnError(errors.New("mandatory query failed"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("tx.QueryRow: mandatory query failed"),
+		},
+		{
+			nameTest: "Error skip mandatory",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
+					WithArgs(oldSectionLink, newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrCannotSkipMandatorySection,
+		},
+		{
+			nameTest: "Error query max position fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
+					WithArgs(oldSectionLink, newSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(newSectionLink).
+					WillReturnError(errors.New("position query failed"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("tx.QueryRow: position query failed"),
+		},
+		{
+			nameTest: "Error check violation data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidCardData,
@@ -460,19 +493,31 @@ func TestRepositoryReorderCard(t *testing.T) {
 			nameTest: "Error missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrMissingRequiredField,
+		},
+		{
+			nameTest: "Error commit tx fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
+					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectCommit().WillReturnError(errors.New("commit error"))
+			},
+			expectedError: errors.New("tx.Commit: commit error"),
 		},
 	}
 
@@ -491,7 +536,10 @@ func TestRepositoryReorderCard(t *testing.T) {
 			repo := NewRepository(mockDB)
 
 			var updateDto dto.PlaceCard
-			if test.nameTest == "Success reorder same section" || test.nameTest == "Error check violation data" || test.nameTest == "Error missing required field" {
+			if test.nameTest == "Success reorder same section" ||
+				test.nameTest == "Error commit tx fail" ||
+				test.nameTest == "Error check violation data" ||
+				test.nameTest == "Error missing required field" {
 				updateDto = updatingPlaceCardSameSection
 			} else {
 				updateDto = updatingPlaceCardNewSection
@@ -548,45 +596,56 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Success create card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnResult(pgxmock.NewResult("SELECT", 0))
-
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectCommit()
 			},
 			expectedError: nil,
 			expectedData:  1,
 		},
 		{
+			nameTest: "Error begin tx fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
+			},
+			expectedError: errors.New("pool.Begin: begin error"),
+			expectedData:  -1,
+		},
+		{
+			nameTest: "Error CheckTaskLimit fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnError(errors.New("limit error"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("CheckTaskLimit: tx.QueryRow: limit error"),
+			expectedData:  -1,
+		},
+		{
 			nameTest: "Error card already exist",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrCardAlreadyExists,
@@ -596,15 +655,12 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error task missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrMissingRequiredField,
@@ -614,60 +670,69 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error not existing section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnResult(pgxmock.NewResult("SELECT", 0))
-
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{
 						Code:           pgerrcode.ForeignKeyViolation,
 						ConstraintName: "fk_version_section",
 					})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrSectionNotFound,
 			expectedData:  -1,
 		},
 		{
-			nameTest: "Error version check violation",
+			nameTest: "Error query max position fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnResult(pgxmock.NewResult("SELECT", 0))
-
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnError(errors.New("query position failed"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("tx.QueryRow: query position failed"),
+			expectedData:  -1,
+		},
+		{
+			nameTest: "Error version check violation",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
+				m.ExpectExec(`(?s)INSERT INTO task.*`).
+					WithArgs(targetCardLink, targetAuthorLink).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidCardData,
@@ -677,48 +742,48 @@ func TestRepositoryCreateCard(t *testing.T) {
 			nameTest: "Error version missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-
 				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnResult(pgxmock.NewResult("SELECT", 0))
-
 				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
-
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
-
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrMissingRequiredField,
 			expectedData:  -1,
 		},
 		{
-			nameTest: "Error exec fail",
+			nameTest: "Error commit tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
-
 				m.ExpectExec(`(?s)INSERT INTO task.*`).
 					WithArgs(targetCardLink, targetAuthorLink).
-					WillReturnError(errors.New("db disconnect"))
-
-				m.ExpectRollback()
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectExec(`(?s)SELECT 1.*FROM task_version.*FOR NO KEY UPDATE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnResult(pgxmock.NewResult("SELECT", 0))
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(targetSectionLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectCommit().WillReturnError(errors.New("commit error"))
 			},
-			expectedError: errors.New("tx.Exec insert task: db disconnect"),
+			expectedError: errors.New("tx.Commit: commit error"),
 			expectedData:  -1,
 		},
 	}
@@ -937,9 +1002,10 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 	targetUserLink := uuid.New()
 
 	tests := []struct {
-		nameTest     string
-		mockBehavior func(m pgxmock.PgxPoolIface)
-		expected     bool
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expected      bool
+		expectedError error
 	}{
 		{
 			nameTest: "Returns true when author",
@@ -948,7 +1014,8 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 					WithArgs(targetCommentLink, targetUserLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
 			},
-			expected: true,
+			expected:      true,
+			expectedError: nil,
 		},
 		{
 			nameTest: "Returns false when not author",
@@ -957,7 +1024,18 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 					WithArgs(targetCommentLink, targetUserLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 			},
-			expected: false,
+			expected:      false,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error comment not found (pgx.ErrNoRows)",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT EXISTS.*FROM comment_task.*WHERE link = \$1 AND author_link = \$2`).
+					WithArgs(targetCommentLink, targetUserLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expected:      false,
+			expectedError: common.ErrCommentNotFound,
 		},
 		{
 			nameTest: "Returns false on query error",
@@ -966,7 +1044,8 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 					WithArgs(targetCommentLink, targetUserLink).
 					WillReturnError(errors.New("db disconnect"))
 			},
-			expected: false,
+			expected:      false,
+			expectedError: errors.New("pool.QueryRow: db disconnect"),
 		},
 	}
 
@@ -982,6 +1061,18 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 
 			repo := NewRepository(mockDB)
 			result, err := repo.IsCommentAuthor(ctx, targetCommentLink, targetUserLink)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrCommentNotFound) {
+						assert.ErrorIs(t, err, common.ErrCommentNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 
 			assert.Equal(t, test.expected, result)
 			assert.NoError(t, mockDB.ExpectationsWereMet())

@@ -214,6 +214,10 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 		return fmt.Errorf("tx.QueryRow check target section: %w", err)
 	}
 
+	if position == 1 {
+		return common.ErrCannotDeleteBacklog
+	}
+
 	var backlogLink uuid.UUID
 	queryBacklog := `
 		SELECT s.section_link

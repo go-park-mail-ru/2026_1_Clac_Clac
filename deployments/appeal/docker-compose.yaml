@@ -1,0 +1,54 @@
+services:
+  appeal:
+    build:
+      context: ../../
+      dockerfile: deployments/appeal/Dockerfile
+    image: nexus-appeal
+    container_name: nexus-appeal
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../../appeal/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../appeal/.env
+    environment:
+      - DATABASE_HOST=appeal-db
+      - DATABASE_PORT=5433
+    restart: unless-stopped
+    depends_on:
+      appeal-migrate:
+        condition: service_completed_successfully
+
+  appeal-db:
+    image: postgres:17-alpine
+    container_name: nexus-appeal-db
+    volumes:
+      - appeal_db_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    ports:
+      - "127.0.0.1:${DATABASE_PORT}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  appeal-migrate:
+    image: migrate/migrate
+    volumes:
+      - ../../appeal/db/migrations:/migrations
+    command:
+      - -path=/migrations
+      - -database=postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@appeal-db:5432/${DATABASE_NAME}?sslmode=disable
+      - up
+    depends_on:
+      appeal-db:
+        condition: service_healthy
+
+volumes:
+  appeal_db_data:
+  appeal_redis_data:

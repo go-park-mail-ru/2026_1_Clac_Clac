@@ -6,28 +6,21 @@ import (
 	"strconv"
 	"time"
 
-	board "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository"
-	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
-	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository"
-	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/config"
+	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/repository"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/appealRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
-	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/jackc/pgx/v5/pgxpool"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
 
 type Store struct {
-	Board             *board.Repository
-	Section           *section.Repository
-	Card              *card.Repository
+	Appeal            *appeal.Repository
 	PermissionChecker rbac.Repository
 
 	PostgresPool *pgxpool.Pool
 	S3Client     s3.S3Client
-	RedisClient  *goredis.Client
 }
 
 func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
@@ -37,27 +30,18 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 		return nil, fmt.Errorf("store.setupPostgresPool: %w", err)
 	}
 
-	if err := store.setupRedis(conf.Redis, logger); err != nil {
-		return nil, fmt.Errorf("store.setupRedis: %w", err)
-	}
-
 	if err := store.setupS3(&conf.S3); err != nil {
 		return nil, fmt.Errorf("store.setupS3: %w", err)
 	}
 
-	store.Board = board.NewRepository(
+	store.Appeal = appeal.NewRepository(
 		store.PostgresPool,
 		store.S3Client.NewBucket(
-			conf.S3.BoardsBackgroundsBucket,
-			conf.S3.BoardsBackgroundsPrefix,
+			conf.S3.AppealAttachmentBucket,
+			conf.S3.AppealAttachmentPrefix,
 			s3.ACL.PublicRead,
 		),
-		board.Config{
-			CreateBoardDefaultUserRole: conf.Board.Repository.CreateBoardDefaultUserRole,
-		},
 	)
-	store.Section = section.NewRepository(store.PostgresPool)
-	store.Card = card.NewRepository(store.PostgresPool)
 	store.PermissionChecker = rbac.NewRepository(store.PostgresPool)
 
 	return store, nil
@@ -65,20 +49,6 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 
 func (s *Store) Close() error {
 	s.PostgresPool.Close()
-	return s.RedisClient.Close()
-}
-
-func (s *Store) setupRedis(conf pkgredis.Config, logger *zerolog.Logger) error {
-	client, err := pkgredis.NewPoolRedis(&goredis.Options{
-		Addr:     fmt.Sprintf("%s:%s", conf.Host, conf.Port),
-		Password: conf.Password,
-		DB:       conf.NumberDB,
-	}, conf, logger)
-	if err != nil {
-		return fmt.Errorf("pkgredis.NewPoolRedis: %w", err)
-	}
-
-	s.RedisClient = client
 	return nil
 }
 
