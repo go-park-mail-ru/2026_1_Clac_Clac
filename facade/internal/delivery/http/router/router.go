@@ -60,7 +60,6 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
-	r.HandleFunc("/csrf", deps.CSRF.SetCSRFCookieHandler).Methods(http.MethodGet)
 	r.HandleFunc("/healthcheck", healthcheck).Methods(http.MethodGet)
 
 	loginRateConf := conf.Services.RateLimiters.GetParameters(config.LogInUser)
@@ -89,16 +88,18 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	public.HandleFunc("/check-code", deps.MailSender.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", deps.Profile.ResetUserPassword).Methods(http.MethodPost)
 
-	csrfProtected := r.PathPrefix("/").Subrouter()
-	csrfProtected.Use(middleware.CSRFMiddleware(deps.CSRFChecker))
-
-	protected := csrfProtected.PathPrefix("/").Subrouter()
+	protected := r.PathPrefix("/").Subrouter()
 	protected.Use(middleware.AuthMiddleware(deps.AuthChecker, logger, conf.Services.Auth.Handler.SessionLifetime))
 
-	withText := protected.PathPrefix("/").Subrouter()
+	protected.HandleFunc("/csrf", deps.CSRF.SetCSRFCookieHandler).Methods(http.MethodGet)
+
+	csrfProtected := protected.PathPrefix("/").Subrouter()
+	csrfProtected.Use(middleware.CSRFMiddleware(deps.CSRFChecker))
+
+	withText := csrfProtected.PathPrefix("/").Subrouter()
 	withText.Use(textLimit)
 
-	withImage := protected.PathPrefix("/").Subrouter()
+	withImage := csrfProtected.PathPrefix("/").Subrouter()
 	withImage.Use(imageLimit)
 
 	withText.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)

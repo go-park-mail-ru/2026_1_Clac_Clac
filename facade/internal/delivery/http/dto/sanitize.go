@@ -9,3 +9,7 @@ var (
 func (r *RegisterRequest) Sanitize() {
 	r.DisplayName = strictSanitizePolicy.Sanitize(r.DisplayName)
 }
+
+func (u *UpdateProfileRequest) Sanitize() {
+	u.DisplayName = strictSanitizePolicy.Sanitize(u.DisplayName)
+}

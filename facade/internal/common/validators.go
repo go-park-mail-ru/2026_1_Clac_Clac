@@ -1,6 +1,9 @@
 package common
 
-import "fmt"
+import (
+	"fmt"
+	"unicode/utf8"
+)
 
 const maxAsciiCode = 127
 
@@ -17,7 +20,7 @@ func CheckAsciiSymbol(strings ...string) bool {
 }
 
 func ValidateTextInfo(info string, maxLen int) error {
-	if len(info) > maxLen {
+	if utf8.RuneCountInString(info) > maxLen {
 		return fmt.Errorf("must contain maximum %d symbols", maxLen)
 	}
 	return nil

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
@@ -173,6 +174,8 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Sanitize()
+
 	if err := common.ValidateTextInfo(req.DisplayName, p.cfg.MaxLenNameUser); err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
@@ -280,7 +283,7 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	ext := ""
 	if header != nil {
-		ext = header.Filename
+		ext = filepath.Ext(header.Filename)
 	}
 
 	avatarURL, err := p.profile.UpdateAvatar(r.Context(), domain.AvatarInfo{

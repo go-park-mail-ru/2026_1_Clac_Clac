@@ -77,7 +77,7 @@ func TestLoggerLimitWriterUnderLimit(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, len(input), n)
-	assert.Greater(t, w.Remaning, 0)
+	assert.Greater(t, w.Remaining, 0)
 }
 
 func TestLoggerLimitWriterExceedsLimit(t *testing.T) {
@@ -91,7 +91,7 @@ func TestLoggerLimitWriterExceedsLimit(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, limit, n)
-	assert.Equal(t, 0, w.Remaning)
+	assert.Equal(t, 0, w.Remaining)
 }
 
 func TestLoggerLimitWriterAfterLimitReached(t *testing.T) {
@@ -106,7 +106,7 @@ func TestLoggerLimitWriterAfterLimitReached(t *testing.T) {
 	n, err := w.Write(input)
 	require.NoError(t, err)
 	assert.Equal(t, len(input), n)
-	assert.Equal(t, 0, w.Remaning)
+	assert.Equal(t, 0, w.Remaining)
 }
 
 func TestLoggerLimitWriterDestinationError(t *testing.T) {

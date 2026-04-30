@@ -32,10 +32,6 @@ func TestDefaultActionsRateLimiters(t *testing.T) {
 		assert.Equal(t, 1*time.Hour, action.Window)
 	})
 
-	t.Run("cooldown expiration sec matches default", func(t *testing.T) {
-		conf := DefaultActionsRateLimiters()
-		assert.Equal(t, defaultCoolDownExpiration, conf.CoolDownExpirationSec)
-	})
 }
 
 func TestRateLimitersGetParameters(t *testing.T) {

@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type RateLimitCheck struct {
 	UserIP  string
 	Action  string
@@ -22,4 +24,5 @@ type RateLimitConfig struct {
 	Limit   int64
 	Action  string
 	WindowS int64
+	TTL     time.Duration
 }

@@ -38,216 +38,291 @@ func newAuthHandler(auth AuthUsecase, user UserUsecase) *Auth {
 }
 
 func TestMeHandler(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/me", nil)
-		ctx := context.WithValue(req.Context(), middleware.UserContextLink{}, fixedLink)
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
+	tests := []struct {
+		name               string
+		setContext         bool
+		expectedStatusCode int
+		expectedContains   string
+	}{
+		{
+			name:               "Success",
+			setContext:         true,
+			expectedStatusCode: http.StatusOK,
+			expectedContains:   "",
+		},
+		{
+			name:               "Unauthorized",
+			setContext:         false,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedContains:   handlerCommon.ErrUserNotAuthorized.Error(),
+		},
+	}
 
-		newAuthHandler(nil, nil).MeHandler(rr, req)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/me", nil)
+			if tc.setContext {
+				ctx := context.WithValue(req.Context(), middleware.UserContextLink{}, fixedLink)
+				req = req.WithContext(ctx)
+			}
+			rr := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.NotEmpty(t, rr.Body.String())
-	})
+			newAuthHandler(nil, nil).MeHandler(rr, req)
 
-	t.Run("Unauthorized", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/me", nil)
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, nil).MeHandler(rr, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		assert.Contains(t, rr.Body.String(), handlerCommon.ErrUserNotAuthorized.Error()) // Проверяем наличие текста ошибки
-	})
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+			if tc.expectedContains != "" {
+				assert.Contains(t, rr.Body.String(), tc.expectedContains)
+			} else {
+				assert.NotEmpty(t, rr.Body.String())
+			}
+		})
+	}
 }
 
 func TestLogInUser(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		authMock := mockAuthUC.NewAuthUsecase(t)
-		userMock := mockUserUC.NewUserUsecase(t)
+	reqData := dto.LogInRequest{Email: "test@mail.ru", Password: "Password123"}
+	expectedUser := domain.FullInfoUser{UserLink: fixedLink, Email: reqData.Email, DisplayName: "Test User"}
 
-		reqData := dto.LogInRequest{Email: "test@mail.ru", Password: "Password123"}
-		expectedUser := domain.FullInfoUser{UserLink: fixedLink, Email: reqData.Email, DisplayName: "Test User"}
+	tests := []struct {
+		name               string
+		requestBody        any
+		mockBehavior       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase)
+		expectedStatusCode int
+		expectCookie       bool
+	}{
+		{
+			name:        "Success",
+			requestBody: reqData,
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				userMock.On("GetUser", mock.Anything, domain.Credentials{
+					Email:    reqData.Email,
+					Password: reqData.Password,
+				}).Return(expectedUser, nil)
+				authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectCookie:       true,
+		},
+		{
+			name:               "InvalidJSON",
+			requestBody:        "{bad json}",
+			mockBehavior:       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectCookie:       false,
+		},
+		{
+			name:        "WrongCredentials",
+			requestBody: reqData,
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				userMock.On("GetUser", mock.Anything, mock.Anything).Return(domain.FullInfoUser{}, common.ErrorWrongCredentials)
+			},
+			expectedStatusCode: http.StatusNotFound,
+			expectCookie:       false,
+		},
+	}
 
-		userMock.On("GetUser", mock.Anything, domain.Credentials{
-			Email:    reqData.Email,
-			Password: reqData.Password,
-		}).Return(expectedUser, nil)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			authMock := mockAuthUC.NewAuthUsecase(t)
+			userMock := mockUserUC.NewUserUsecase(t)
+			tc.mockBehavior(authMock, userMock)
 
-		authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.requestBody.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.requestBody)
+				bodyReader = bytes.NewReader(b)
+			}
 
-		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
-		rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/login", bodyReader)
+			rr := httptest.NewRecorder()
 
-		newAuthHandler(authMock, userMock).LogInUser(rr, req)
+			newAuthHandler(authMock, userMock).LogInUser(rr, req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		cookies := rr.Result().Cookies()
-		require.Len(t, cookies, 1)
-		assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
-		assert.Equal(t, "session_token", cookies[0].Value)
-	})
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 
-	t.Run("InvalidJSON", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader([]byte("{bad json}")))
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, nil).LogInUser(rr, req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("WrongCredentials", func(t *testing.T) {
-		userMock := mockUserUC.NewUserUsecase(t)
-		reqData := dto.LogInRequest{Email: "test@mail.ru", Password: "Password123"}
-
-		userMock.On("GetUser", mock.Anything, mock.Anything).Return(domain.FullInfoUser{}, common.ErrorWrongCredentials)
-
-		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewReader(body))
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, userMock).LogInUser(rr, req)
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-	})
+			cookies := rr.Result().Cookies()
+			if tc.expectCookie {
+				require.Len(t, cookies, 1)
+				assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
+				assert.Equal(t, "session_token", cookies[0].Value)
+			} else {
+				assert.Len(t, cookies, 0)
+			}
+		})
+	}
 }
 
 func TestRegisterUser(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		authMock := mockAuthUC.NewAuthUsecase(t)
-		userMock := mockUserUC.NewUserUsecase(t)
+	reqData := dto.RegisterRequest{
+		Email:            "test@mail.ru",
+		Password:         "Password123",
+		RepeatedPassword: "Password123",
+		DisplayName:      "Test User",
+	}
+	expectedUser := domain.FullInfoUser{UserLink: fixedLink, Email: reqData.Email, DisplayName: reqData.DisplayName}
 
-		reqData := dto.RegisterRequest{
-			Email:            "test@mail.ru",
-			Password:         "Password123",
-			RepeatedPassword: "Password123",
-			DisplayName:      "Test User",
-		}
-		expectedUser := domain.FullInfoUser{UserLink: fixedLink, Email: reqData.Email, DisplayName: reqData.DisplayName}
+	tests := []struct {
+		name               string
+		requestBody        any
+		mockBehavior       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase)
+		expectedStatusCode int
+		expectCookie       bool
+	}{
+		{
+			name:        "Success",
+			requestBody: reqData,
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				userMock.On("CreateUser", mock.Anything, mock.Anything).Return(expectedUser, nil)
+				authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+			},
+			expectedStatusCode: http.StatusCreated,
+			expectCookie:       true,
+		},
+		{
+			name:        "UserAlreadyExists",
+			requestBody: reqData,
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				userMock.On("CreateUser", mock.Anything, mock.Anything).Return(domain.FullInfoUser{}, common.ErrorExistingUser)
+			},
+			expectedStatusCode: http.StatusConflict,
+			expectCookie:       false,
+		},
+		{
+			name: "PasswordsMismatch",
+			requestBody: dto.RegisterRequest{
+				Email:            "test@mail.ru",
+				Password:         "Password123",
+				RepeatedPassword: "Password321",
+				DisplayName:      "Test User",
+			},
+			mockBehavior:       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectCookie:       false,
+		},
+	}
 
-		userMock.On("CreateUser", mock.Anything, mock.Anything).Return(expectedUser, nil)
-		authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			authMock := mockAuthUC.NewAuthUsecase(t)
+			userMock := mockUserUC.NewUserUsecase(t)
+			tc.mockBehavior(authMock, userMock)
 
-		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
-		rr := httptest.NewRecorder()
+			b, _ := json.Marshal(tc.requestBody)
+			req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(b))
+			rr := httptest.NewRecorder()
 
-		newAuthHandler(authMock, userMock).RegisterUser(rr, req)
+			newAuthHandler(authMock, userMock).RegisterUser(rr, req)
 
-		assert.Equal(t, http.StatusCreated, rr.Code)
-		cookies := rr.Result().Cookies()
-		require.Len(t, cookies, 1)
-		assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
-	})
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 
-	t.Run("UserAlreadyExists", func(t *testing.T) {
-		userMock := mockUserUC.NewUserUsecase(t)
-		reqData := dto.RegisterRequest{
-			Email:            "test@mail.ru",
-			Password:         "Password123",
-			RepeatedPassword: "Password123",
-			DisplayName:      "Test User",
-		}
-
-		userMock.On("CreateUser", mock.Anything, mock.Anything).Return(domain.FullInfoUser{}, common.ErrorExistingUser)
-
-		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, userMock).RegisterUser(rr, req)
-		assert.Equal(t, http.StatusConflict, rr.Code)
-	})
-
-	t.Run("PasswordsMismatch", func(t *testing.T) {
-		reqData := dto.RegisterRequest{
-			Email:            "test@mail.ru",
-			Password:         "Password123",
-			RepeatedPassword: "Password321",
-			DisplayName:      "Test User",
-		}
-
-		body, _ := json.Marshal(reqData)
-		req := httptest.NewRequest(http.MethodPost, "/register", bytes.NewReader(body))
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, nil).RegisterUser(rr, req)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
+			cookies := rr.Result().Cookies()
+			if tc.expectCookie {
+				require.Len(t, cookies, 1)
+				assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
+			} else {
+				assert.Len(t, cookies, 0)
+			}
+		})
+	}
 }
 
 func TestLogOutUser(t *testing.T) {
-	t.Run("SuccessWithCookie", func(t *testing.T) {
-		authMock := mockAuthUC.NewAuthUsecase(t)
-		authMock.On("DeleteSession", mock.Anything, "valid_session").Return(nil)
+	tests := []struct {
+		name         string
+		cookie       *http.Cookie
+		mockBehavior func(authMock *mockAuthUC.AuthUsecase)
+	}{
+		{
+			name:   "SuccessWithCookie",
+			cookie: &http.Cookie{Name: middleware.SessiondIdKey, Value: "valid_session"},
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase) {
+				authMock.On("DeleteSession", mock.Anything, "valid_session").Return(nil)
+			},
+		},
+		{
+			name:         "WithoutCookie",
+			cookie:       nil,
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase) {},
+		},
+	}
 
-		req := httptest.NewRequest(http.MethodPost, "/logout", nil)
-		req.AddCookie(&http.Cookie{Name: middleware.SessiondIdKey, Value: "valid_session"})
-		rr := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			authMock := mockAuthUC.NewAuthUsecase(t)
+			tc.mockBehavior(authMock)
 
-		newAuthHandler(authMock, nil).LogOutUser(rr, req)
+			req := httptest.NewRequest(http.MethodPost, "/logout", nil)
+			if tc.cookie != nil {
+				req.AddCookie(tc.cookie)
+			}
+			rr := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-		cookies := rr.Result().Cookies()
-		require.Len(t, cookies, 1)
-		// Проверяем, что кука инвалидирована (max-age < 0)
-		assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
-		assert.True(t, cookies[0].MaxAge < 0 || cookies[0].Expires.Before(time.Now()))
-	})
+			newAuthHandler(authMock, nil).LogOutUser(rr, req)
 
-	t.Run("WithoutCookie", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/logout", nil)
-		rr := httptest.NewRecorder()
+			assert.Equal(t, http.StatusOK, rr.Code)
 
-		newAuthHandler(nil, nil).LogOutUser(rr, req)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-	})
+			cookies := rr.Result().Cookies()
+			require.Len(t, cookies, 1)
+			assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
+			assert.True(t, cookies[0].MaxAge < 0 || cookies[0].Expires.Before(time.Now()))
+		})
+	}
 }
 
 func TestVkOAuthCallback(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		authMock := mockAuthUC.NewAuthUsecase(t)
-		userMock := mockUserUC.NewUserUsecase(t)
+	tests := []struct {
+		name         string
+		url          string
+		mockBehavior func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase)
+		expectCookie bool
+	}{
+		{
+			name: "Success",
+			url:  "/oauth/vk?code=valid_code",
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				authMock.On("ExchangeVKCode", mock.Anything, "valid_code").Return("vk_token", "test@vk.com", nil)
+				userMock.On("ProcessUserWithVK", mock.Anything, "vk_token", "test@vk.com").Return(fixedLink, nil)
+				authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+			},
+			expectCookie: true,
+		},
+		{
+			name:         "EmptyCode",
+			url:          "/oauth/vk",
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
+			expectCookie: false,
+		},
+		{
+			name: "ExchangeVKCodeFailed",
+			url:  "/oauth/vk?code=invalid_code",
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
+				authMock.On("ExchangeVKCode", mock.Anything, "invalid_code").Return("", "", common.ErrorVKOAuthUnavailable)
+			},
+			expectCookie: false,
+		},
+	}
 
-		authMock.On("ExchangeVKCode", mock.Anything, "valid_code").Return("vk_token", "test@vk.com", nil)
-		userMock.On("ProcessUserWithVK", mock.Anything, "vk_token", "test@vk.com").Return(fixedLink, nil)
-		authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			authMock := mockAuthUC.NewAuthUsecase(t)
+			userMock := mockUserUC.NewUserUsecase(t)
+			tc.mockBehavior(authMock, userMock)
 
-		req := httptest.NewRequest(http.MethodGet, "/oauth/vk?code=valid_code", nil)
-		rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, tc.url, nil)
+			rr := httptest.NewRecorder()
 
-		newAuthHandler(authMock, userMock).VkOAuthCallback(rr, req)
+			newAuthHandler(authMock, userMock).VkOAuthCallback(rr, req)
 
-		// Проверяем, что кука была установлена перед редиректом
-		cookies := rr.Result().Cookies()
-		require.Len(t, cookies, 1)
-		assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
-		assert.Equal(t, "session_token", cookies[0].Value)
-	})
-
-	t.Run("EmptyCode", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/oauth/vk", nil)
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(nil, nil).VkOAuthCallback(rr, req)
-
-		// Проверяем вызов внутренней ошибки (Redirect должен отработать, куки нет)
-		cookies := rr.Result().Cookies()
-		assert.Len(t, cookies, 0)
-	})
-
-	t.Run("ExchangeVKCodeFailed", func(t *testing.T) {
-		authMock := mockAuthUC.NewAuthUsecase(t)
-
-		authMock.On("ExchangeVKCode", mock.Anything, "invalid_code").Return("", "", common.ErrorVKOAuthUnavailable)
-
-		req := httptest.NewRequest(http.MethodGet, "/oauth/vk?code=invalid_code", nil)
-		rr := httptest.NewRecorder()
-
-		newAuthHandler(authMock, nil).VkOAuthCallback(rr, req)
-
-		cookies := rr.Result().Cookies()
-		assert.Len(t, cookies, 0)
-	})
+			cookies := rr.Result().Cookies()
+			if tc.expectCookie {
+				require.Len(t, cookies, 1)
+				assert.Equal(t, middleware.SessiondIdKey, cookies[0].Name)
+				assert.Equal(t, "session_token", cookies[0].Value)
+			} else {
+				assert.Len(t, cookies, 0)
+			}
+		})
+	}
 }

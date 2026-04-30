@@ -41,7 +41,11 @@ func RateLimiterMiddleware(client CheckLimit, configRateLimiter domain.RateLimit
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userIP := GetUserIP(r)
-			isFull, err := client.UpdateCountRequests(r.Context(), domain.RateLimitCheck{
+
+			ctx, cancel := context.WithTimeout(r.Context(), configRateLimiter.TTL)
+			defer cancel()
+
+			isFull, err := client.UpdateCountRequests(ctx, domain.RateLimitCheck{
 				Limit:   configRateLimiter.Limit,
 				WindowS: configRateLimiter.WindowS,
 				Action:  configRateLimiter.Action,
@@ -49,8 +53,13 @@ func RateLimiterMiddleware(client CheckLimit, configRateLimiter domain.RateLimit
 			})
 
 			if err != nil {
-				logger.Warn().Err(err).Msg("fail update count requests")
-			} else if isFull {
+				logger.Error().Err(err).Msg("CRITICAL: rate limiter for login/register is down")
+
+				api.RespondError(w, http.StatusInternalServerError, "service temporarily unavailable")
+				return
+			}
+
+			if isFull {
 				api.RespondError(w, http.StatusTooManyRequests, failUpdateMessage)
 				return
 			}

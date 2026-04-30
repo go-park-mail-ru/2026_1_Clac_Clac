@@ -8,7 +8,12 @@ const (
 	LogInUser    = "login"
 	RegisterUser = "register"
 
-	defaultLimit              = 5
+	defaultLimit           = 5
+	defaultLifeTimeRequest = 50 * time.Millisecond
+
+	safeLimit = 100
+	safeTTL   = 60 * time.Second
+
 	defaultCoolDownExpiration = 60
 )
 
@@ -16,6 +21,7 @@ type ActionRateLimiters struct {
 	Limit  int64         `mapstructure:"limit"`
 	Action string        `mapstructure:"action"`
 	Window time.Duration `mapstructure:"window"`
+	TTL    time.Duration `mapstructure:"ttl"`
 }
 
 type RateLimiters struct {
@@ -25,7 +31,15 @@ type RateLimiters struct {
 }
 
 func (d *RateLimiters) GetParameters(action string) ActionRateLimiters {
-	return d.DBActions[action]
+	actionLimit, exist := d.DBActions[action]
+	if !exist {
+		return ActionRateLimiters{
+			Limit: safeLimit,
+			TTL:   safeTTL,
+		}
+	}
+
+	return actionLimit
 }
 
 func DefaultActionsRateLimiters() RateLimiters {
@@ -36,11 +50,13 @@ func DefaultActionsRateLimiters() RateLimiters {
 				Limit:  defaultLimit,
 				Action: LogInUser,
 				Window: 1 * time.Minute,
+				TTL:    defaultLifeTimeRequest,
 			},
 			RegisterUser: {
 				Limit:  defaultLimit,
 				Action: RegisterUser,
 				Window: 1 * time.Hour,
+				TTL:    defaultLifeTimeRequest,
 			},
 		},
 		CoolDownExpirationSec: defaultCoolDownExpiration,

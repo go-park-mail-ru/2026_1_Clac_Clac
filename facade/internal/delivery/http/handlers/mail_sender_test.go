@@ -17,8 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// --- Inline Mocks ---
-
 type mockMailSenderUC struct{ mock.Mock }
 
 func (m *mockMailSenderUC) SendRecoveryCode(ctx context.Context, userLink uuid.UUID, email string) error {
@@ -47,8 +45,6 @@ func (m *mockGeterUserLink) GetUserLink(ctx context.Context, email string) (uuid
 	args := m.Called(ctx, email)
 	return args.Get(0).(uuid.UUID), args.Error(1)
 }
-
-// --- Tests ---
 
 func TestSendRecoveryEmail(t *testing.T) {
 	fixedLink := uuid.New()

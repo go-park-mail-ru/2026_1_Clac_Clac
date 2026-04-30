@@ -43,12 +43,9 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 		{
 			name: "Unauthorized_NoCookie",
 			setupRequest: func() *http.Request {
-				// Запрос без куки сессии
 				return httptest.NewRequest(http.MethodGet, "/api/csrf", nil)
 			},
-			mockBehavior: func(m *mockCSRFUC.CSRFUsecase) {
-				// Моки не должны вызываться
-			},
+			mockBehavior:       nil,
 			expectedStatusCode: http.StatusUnauthorized,
 			expectCookie:       false,
 		},

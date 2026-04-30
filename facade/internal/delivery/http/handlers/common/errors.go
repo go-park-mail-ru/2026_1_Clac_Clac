@@ -21,7 +21,8 @@ var (
 	ErrOAuthCannotRequestUserData  = errors.New("oauth_cannot_request_user_data")
 	ErrOAuthEmptyUserData          = errors.New("oauth_no_user_data")
 	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
-	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
+	ErrOAuthCannotSaveRefreshToken = errors.New("oauth_cannot_save_refresh_token")
+	ErrOAuthUnavailable            = errors.New("oauth_service_unavailable")
 
 	ErrResetTokenNotExistOrExpired = errors.New("reset token not found or expired")
 

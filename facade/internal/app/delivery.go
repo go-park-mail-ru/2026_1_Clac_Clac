@@ -5,8 +5,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers"
 )
 
-const recoveryEmailCooldownSec = 60
-
 type Delivery struct {
 	Auth       *handlers.Auth
 	Profile    *handlers.Profile
@@ -16,15 +14,15 @@ type Delivery struct {
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	authConfig := handlers.AuthConfig{
-		MaxLenPassword:        conf.Services.Auth.Handler.MaxLenPassword,
-		MinLenPassword:        conf.Services.Auth.Handler.MinLenPassword,
-		SessionLifetime:       conf.Services.Auth.Handler.SessionLifetime,
-		CoolDownExpirationSec: recoveryEmailCooldownSec,
+		MaxLenPassword:    conf.Services.Auth.Handler.MaxLenPassword,
+		MinLenPassword:    conf.Services.Auth.Handler.MinLenPassword,
+		SessionLifetime:   conf.Services.Auth.Handler.SessionLifetime,
+		VKOAuthRedirectTo: conf.Services.Auth.Handler.VKOAuthRedirectTo,
 	}
 
 	profileConfig := handlers.ProfileConfig{
 		ValidExtensions:       conf.Services.User.Handler.ValidExtensions,
-		SignatureTypeBytes:    conf.Services.User.Handler.SiganatureTypeBytes,
+		SignatureTypeBytes:    conf.Services.User.Handler.SignatureTypeBytes,
 		MaxLenNameUser:        conf.Services.User.Handler.MaxLenNameUser,
 		MaxLenDescriptionUser: conf.Services.User.Handler.MaxLenDescriptionUser,
 		MaxLenPassword:        conf.Services.User.Handler.MaxLenPassword,

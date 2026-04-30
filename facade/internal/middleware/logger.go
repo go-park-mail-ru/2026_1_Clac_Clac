@@ -37,21 +37,21 @@ func (w *LoggerResponseWriter) WriteHeader(code int) {
 
 type LoggerLimitWriter struct {
 	Destination io.Writer
-	Remaning    int
+	Remaining   int
 }
 
 func (w *LoggerLimitWriter) Write(p []byte) (int, error) {
-	if w.Remaning <= 0 {
+	if w.Remaining <= 0 {
 		return len(p), nil
 	}
 
-	toWrite := min(len(p), w.Remaning)
-	_, err := w.Destination.Write(p[:])
+	toWrite := min(len(p), w.Remaining)
+	_, err := w.Destination.Write(p[:toWrite])
 	if err != nil {
 		return 0, fmt.Errorf("destination.Write: %w", err)
 	}
 
-	w.Remaning -= toWrite
+	w.Remaining -= toWrite
 
 	return toWrite, nil
 }
@@ -59,7 +59,7 @@ func (w *LoggerLimitWriter) Write(p []byte) (int, error) {
 func NewLoggerLimitWriter(destination io.Writer, limit int) *LoggerLimitWriter {
 	return &LoggerLimitWriter{
 		Destination: destination,
-		Remaning:    limit,
+		Remaining:   limit,
 	}
 }
 

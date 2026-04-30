@@ -37,11 +37,10 @@ type UserUsecase interface {
 }
 
 type AuthConfig struct {
-	MaxLenPassword        int
-	MinLenPassword        int
-	SessionLifetime       time.Duration
-	VKOAuthRedirectTo     string
-	CoolDownExpirationSec int64
+	MaxLenPassword    int
+	MinLenPassword    int
+	SessionLifetime   time.Duration
+	VKOAuthRedirectTo string
 }
 
 type Auth struct {
@@ -280,7 +279,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 		outErr := handlerCommon.ErrOAuthExchangeFailed
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
-			outErr = handlerCommon.ErrOAuthInternalServerError
+			outErr = handlerCommon.ErrOAuthUnavailable
 		}
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
@@ -302,14 +301,14 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, err := a.auth.CreateSession(r.Context(), userLink)
 	if err != nil {
+		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+
+		outErr := handlerCommon.ErrInternalServerError
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
-			return
+			outErr = handlerCommon.ErrUserDoesNotExists
 		}
 
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
 		return
 	}
 

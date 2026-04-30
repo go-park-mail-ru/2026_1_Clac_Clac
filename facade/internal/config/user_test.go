@@ -11,7 +11,7 @@ func TestDefaultUserConfig(t *testing.T) {
 	t.Run("default handler values", func(t *testing.T) {
 		conf := DefaultUserConfig()
 
-		assert.Equal(t, profileConfigDefaultSiganatureBytes, conf.Handler.SiganatureTypeBytes)
+		assert.Equal(t, profileConfigDefaultSignatureBytes, conf.Handler.SignatureTypeBytes)
 		assert.Equal(t, int64(profileConfigDefaultMaxReadBytes), conf.Handler.MaxReadBytes)
 		assert.Equal(t, profileConfigDefaultMaxLenNameUser, conf.Handler.MaxLenNameUser)
 		assert.Equal(t, profileConfigDefaultMaxLenDescriptionUser, conf.Handler.MaxLenDescriptionUser)

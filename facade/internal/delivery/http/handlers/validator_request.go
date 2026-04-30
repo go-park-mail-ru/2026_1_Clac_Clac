@@ -14,21 +14,21 @@ var (
 	ErrorDifferencePasswords = errors.New("passwords don't match")
 )
 
-func ValidatorWithCheckPassword(email, password, repeatedPassword string, maxLenPassword, miLenPassword int) error {
+func ValidatorWithCheckPassword(email, password, repeatedPassword string, maxLenPassword, minLenPassword int) error {
 	if password != repeatedPassword {
 		return ErrorDifferencePasswords
 	}
 
-	return ValidatorRequestAuth(email, password, maxLenPassword, miLenPassword)
+	return ValidatorRequestAuth(email, password, maxLenPassword, minLenPassword)
 }
 
-func ValidatorRequestAuth(email, password string, maxLenPassword, miLenPassword int) error {
+func ValidatorRequestAuth(email, password string, maxLenPassword, minLenPassword int) error {
 	correctSymbols := common.CheckAsciiSymbol(email, password)
 	if !correctSymbols {
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < miLenPassword || len(password) > maxLenPassword {
+	if len(password) < minLenPassword || len(password) > maxLenPassword {
 		return ErrorLenPassword
 	}
 
@@ -40,7 +40,7 @@ func ValidatorRequestAuth(email, password string, maxLenPassword, miLenPassword 
 	return nil
 }
 
-func ValidatorRequestNewPassword(password, repeatedPassword string, maxLenPassword, miLenPassword int) error {
+func ValidatorRequestNewPassword(password, repeatedPassword string, maxLenPassword, minLenPassword int) error {
 	if password != repeatedPassword {
 		return ErrorDifferencePasswords
 	}
@@ -50,7 +50,7 @@ func ValidatorRequestNewPassword(password, repeatedPassword string, maxLenPasswo
 		return ErrorIncorrectSymbol
 	}
 
-	if len(password) < miLenPassword || len(password) > maxLenPassword {
+	if len(password) < minLenPassword || len(password) > maxLenPassword {
 		return ErrorLenPassword
 	}
 
@@ -58,6 +58,10 @@ func ValidatorRequestNewPassword(password, repeatedPassword string, maxLenPasswo
 }
 
 func ValidateEmail(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil
+	field, err := mail.ParseAddress(email)
+	if err != nil {
+		return false
+	}
+
+	return field.Address == email
 }
