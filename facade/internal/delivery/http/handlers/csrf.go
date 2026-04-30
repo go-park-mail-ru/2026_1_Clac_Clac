@@ -37,7 +37,7 @@ func NewCSRF(csrf CSRFUsecase) *CSRF {
 //	@Tags			Auth
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Success		200	{string}	string				"OK"
+//	@Success		200	{object}	api.Response		"OK"
 //	@Failure		401	{object}	api.ErrorResponse	"User not authorized"
 //	@Failure		500	{object}	api.ErrorResponse	"Cannot create CSRF token"
 //	@Router			/api/csrf [get]

@@ -63,7 +63,6 @@ func NewAuthHandler(auth AuthUsecase, user UserUsecase, cfg AuthConfig) *Auth {
 //	@Description    Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
 //	@Tags           Auth
 //	@Security       sessionCookie
-//	@Security       csrfToken
 //	@Produce        json
 //	@Success        200 {object}    api.Response        "Пользователь авторизован"
 //	@Failure        401 {object}    api.ErrorResponse   "Сессия отсутствует или истекла"
@@ -254,14 +253,11 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 // VkOAuthCallback обрабатывает коллбэк от VK
 //
 //	@Summary        VK OAuth Коллбэк
-//	@Description    Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Отвечает HTTP 302 редиректом на фронтенд при успехе или ошибке OAuth. При ошибке создания сессии возвращает JSON-ошибку.
+//	@Description    Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
 //	@Tags           Auth
-//	@Produce        json
 //	@Param          code    query   string  true    "Временный OAuth-код от VK"
-//	@Success        302     "Редирект на фронтенд: ?code=200&message=success (cookie session_id установлен)"
-//	@Failure        302     "Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки)"
-//	@Failure        404     {object}    api.ErrorResponse   "Пользователь не найден при создании сессии"
-//	@Failure        500     {object}    api.ErrorResponse   "Внутренняя ошибка сервера при создании сессии"
+//	@Success        302     "Редирект: ?code=200&message=success (cookie session_id установлен)"
+//	@Failure        302     "Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
 //	@Router         /api/oauth/vk [get]
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())

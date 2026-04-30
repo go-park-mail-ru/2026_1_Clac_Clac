@@ -20,58 +20,77 @@ func newTestCSRF() *CSRF {
 	})
 }
 
-func TestCSRFGenerateAndCheck(t *testing.T) {
+func TestCSRFGenerate(t *testing.T) {
 	svc := newTestCSRF()
 	ctx := context.Background()
-	sessionID := "session-abc"
 
 	expireAt := time.Now().Add(time.Hour).Unix()
-	token, err := svc.Generate(ctx, sessionID, expireAt)
+	token, err := svc.Generate(ctx, "session-abc", expireAt)
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, token)
-
-	err = svc.Check(ctx, sessionID, token)
-	assert.NoError(t, err)
 }
 
-func TestCSRFCheckWrongSession(t *testing.T) {
+func TestCSRFCheck(t *testing.T) {
 	svc := newTestCSRF()
 	ctx := context.Background()
 
-	expireAt := time.Now().Add(time.Hour).Unix()
-	token, err := svc.Generate(ctx, "session-correct", expireAt)
+	validExpireAt := time.Now().Add(time.Hour).Unix()
+	validToken, err := svc.Generate(ctx, "session-correct", validExpireAt)
 	require.NoError(t, err)
 
-	err = svc.Check(ctx, "session-wrong", token)
-	assert.ErrorIs(t, err, common.ErrCSRFTokensDoNotEqual)
-}
-
-func TestCSRFCheckExpired(t *testing.T) {
-	svc := newTestCSRF()
-	ctx := context.Background()
-
-	expireAt := time.Now().Add(-time.Hour).Unix()
-	token, err := svc.Generate(ctx, "session-abc", expireAt)
+	expiredExpireAt := time.Now().Add(-time.Hour).Unix()
+	expiredToken, err := svc.Generate(ctx, "session-abc", expiredExpireAt)
 	require.NoError(t, err)
 
-	err = svc.Check(ctx, "session-abc", token)
-	assert.ErrorIs(t, err, common.ErrCSRFTokenExpired)
-}
+	tests := []struct {
+		name        string
+		sessionID   string
+		token       string
+		expectedErr error
+	}{
+		{
+			name:        "Success",
+			sessionID:   "session-correct",
+			token:       validToken,
+			expectedErr: nil,
+		},
+		{
+			name:        "WrongSession",
+			sessionID:   "session-wrong",
+			token:       validToken,
+			expectedErr: common.ErrCSRFTokensDoNotEqual,
+		},
+		{
+			name:        "Expired",
+			sessionID:   "session-abc",
+			token:       expiredToken,
+			expectedErr: common.ErrCSRFTokenExpired,
+		},
+		{
+			name:        "InvalidFormat_NoColon",
+			sessionID:   "session",
+			token:       "no-colon-here",
+			expectedErr: common.ErrInvalidCSRFToken,
+		},
+		{
+			name:        "InvalidFormat_BadExpireAt",
+			sessionID:   "session",
+			token:       "notanumber:abc",
+			expectedErr: common.ErrCannotParseExpireTimeCSRFToken,
+		},
+	}
 
-func TestCSRFCheckInvalidFormat(t *testing.T) {
-	svc := newTestCSRF()
-	ctx := context.Background()
-
-	err := svc.Check(ctx, "session", "no-colon-here")
-	assert.ErrorIs(t, err, common.ErrInvalidCSRFToken)
-}
-
-func TestCSRFCheckBadExpireAt(t *testing.T) {
-	svc := newTestCSRF()
-	ctx := context.Background()
-
-	err := svc.Check(ctx, "session", "notanumber:abc")
-	assert.ErrorIs(t, err, common.ErrCannotParseExpireTimeCSRFToken)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := svc.Check(ctx, tc.sessionID, tc.token)
+			if tc.expectedErr != nil {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestCSRFGetExpireTime(t *testing.T) {

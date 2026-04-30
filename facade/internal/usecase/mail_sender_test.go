@@ -18,80 +18,133 @@ var (
 )
 
 func TestSendRecoveryCode(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		recoveryInfo := domain.RecoveryCode{
-			UserLink: testUserLink,
-			Email:    "test@mail.ru",
-		}
-		m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(nil)
+	recoveryInfo := domain.RecoveryCode{UserLink: testUserLink, Email: "test@mail.ru"}
 
-		err := NewMailSender(m).SendRecoveryCode(context.Background(), testUserLink, "test@mail.ru")
-		require.NoError(t, err)
-	})
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockMailClient.MailSenderClient)
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(testError)
+			},
+			expectError: true,
+		},
+	}
 
-	t.Run("ClientError", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		recoveryInfo := domain.RecoveryCode{
-			UserLink: testUserLink,
-			Email:    "test@mail.ru",
-		}
-		m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(testError)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockMailClient.NewMailSenderClient(t)
+			tc.mockBehavior(m)
 
-		err := NewMailSender(m).SendRecoveryCode(context.Background(), testUserLink, "test@mail.ru")
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, testError))
-	})
+			err := NewMailSender(m).SendRecoveryCode(context.Background(), testUserLink, "test@mail.ru")
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, testError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestCheckRecoveryCode(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		checkInfo := domain.RecoveryCodeCheck{
-			Code: "123456",
-		}
-		m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(nil)
+	checkInfo := domain.RecoveryCodeCheck{Code: "123456"}
 
-		err := NewMailSender(m).CheckRecoveryCode(context.Background(), "123456")
-		require.NoError(t, err)
-	})
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockMailClient.MailSenderClient)
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(testError)
+			},
+			expectError: true,
+		},
+	}
 
-	t.Run("ClientError", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		checkInfo := domain.RecoveryCodeCheck{
-			Code: "123456",
-		}
-		m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(testError)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockMailClient.NewMailSenderClient(t)
+			tc.mockBehavior(m)
 
-		err := NewMailSender(m).CheckRecoveryCode(context.Background(), "123456")
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, testError))
-	})
+			err := NewMailSender(m).CheckRecoveryCode(context.Background(), "123456")
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, testError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestExchangeTokenForUser(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		resetToken := domain.ResetToken{
-			Token: "valid_token",
-		}
-		m.On("ExchangeTokenForUser", context.Background(), resetToken).Return(testUserLink, nil)
+	resetToken := domain.ResetToken{Token: "valid_token"}
 
-		resultLink, err := NewMailSender(m).ExchangeTokenForUser(context.Background(), resetToken)
-		require.NoError(t, err)
-		assert.Equal(t, testUserLink, resultLink)
-	})
+	tests := []struct {
+		name         string
+		resetToken   domain.ResetToken
+		mockBehavior func(m *mockMailClient.MailSenderClient)
+		expectedLink uuid.UUID
+		expectError  bool
+	}{
+		{
+			name:       "Success",
+			resetToken: resetToken,
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("ExchangeTokenForUser", context.Background(), resetToken).Return(testUserLink, nil)
+			},
+			expectedLink: testUserLink,
+			expectError:  false,
+		},
+		{
+			name:       "ClientError",
+			resetToken: domain.ResetToken{Token: "invalid_token"},
+			mockBehavior: func(m *mockMailClient.MailSenderClient) {
+				m.On("ExchangeTokenForUser", context.Background(), domain.ResetToken{Token: "invalid_token"}).
+					Return(uuid.Nil, testError)
+			},
+			expectedLink: uuid.Nil,
+			expectError:  true,
+		},
+	}
 
-	t.Run("ClientError", func(t *testing.T) {
-		m := mockMailClient.NewMailSenderClient(t)
-		resetToken := domain.ResetToken{
-			Token: "invalid_token",
-		}
-		m.On("ExchangeTokenForUser", context.Background(), resetToken).Return(uuid.Nil, testError)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockMailClient.NewMailSenderClient(t)
+			tc.mockBehavior(m)
 
-		resultLink, err := NewMailSender(m).ExchangeTokenForUser(context.Background(), resetToken)
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, testError))
-		assert.Equal(t, uuid.Nil, resultLink)
-	})
+			resultLink, err := NewMailSender(m).ExchangeTokenForUser(context.Background(), tc.resetToken)
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, testError))
+				assert.Equal(t, uuid.Nil, resultLink)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedLink, resultLink)
+			}
+		})
+	}
 }

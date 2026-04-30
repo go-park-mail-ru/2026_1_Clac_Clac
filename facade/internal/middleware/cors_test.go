@@ -24,56 +24,60 @@ func TestCORSMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	t.Run("OPTIONS preflight — all CORS headers set, 204", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodOptions, "/", nil)
-		res := httptest.NewRecorder()
+	tests := []struct {
+		name                  string
+		method                string
+		expectedStatus        int
+		expectAllCORSHeaders  bool
+		expectHandlerCalled   bool
+	}{
+		{
+			name:                 "OPTIONS_preflight",
+			method:               http.MethodOptions,
+			expectedStatus:       http.StatusNoContent,
+			expectAllCORSHeaders: true,
+			expectHandlerCalled:  false,
+		},
+		{
+			name:                "GET_request",
+			method:              http.MethodGet,
+			expectedStatus:      http.StatusOK,
+			expectHandlerCalled: true,
+		},
+		{
+			name:                "POST_request",
+			method:              http.MethodPost,
+			expectedStatus:      http.StatusOK,
+			expectHandlerCalled: true,
+		},
+	}
 
-		middleware.CORSMiddleware(&conf)(successHandler).ServeHTTP(res, req)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, "/", nil)
+			res := httptest.NewRecorder()
 
-		assert.Equal(t, http.StatusNoContent, res.Code)
+			middleware.CORSMiddleware(&conf)(successHandler).ServeHTTP(res, req)
 
-		expectedHeaders := []string{
-			"Access-Control-Allow-Credentials",
-			"Access-Control-Allow-Origin",
-			"Access-Control-Allow-Methods",
-			"Access-Control-Allow-Headers",
-			"Access-Control-Max-Age",
-		}
-		for _, h := range expectedHeaders {
-			require.NotEmpty(t, res.Header().Get(h), "header %q must be set", h)
-		}
-	})
+			assert.Equal(t, tc.expectedStatus, res.Code)
+			assert.NotEmpty(t, res.Header().Get("Access-Control-Allow-Credentials"))
+			assert.NotEmpty(t, res.Header().Get("Access-Control-Allow-Origin"))
 
-	t.Run("GET request — credentials and origin headers set, handler called", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		res := httptest.NewRecorder()
-
-		middleware.CORSMiddleware(&conf)(successHandler).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-		assert.NotEmpty(t, res.Header().Get("Access-Control-Allow-Credentials"))
-		assert.NotEmpty(t, res.Header().Get("Access-Control-Allow-Origin"))
-	})
-
-	t.Run("POST request — next handler is called", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
-		res := httptest.NewRecorder()
-
-		middleware.CORSMiddleware(&conf)(successHandler).ServeHTTP(res, req)
-
-		assert.Equal(t, http.StatusOK, res.Code)
-	})
-
-	t.Run("CORS header values match config", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodOptions, "/", nil)
-		res := httptest.NewRecorder()
-
-		middleware.CORSMiddleware(&conf)(successHandler).ServeHTTP(res, req)
-
-		assert.Equal(t, conf.Credentials, res.Header().Get("Access-Control-Allow-Credentials"))
-		assert.Equal(t, conf.Origin, res.Header().Get("Access-Control-Allow-Origin"))
-		assert.Equal(t, conf.Methods, res.Header().Get("Access-Control-Allow-Methods"))
-		assert.Equal(t, conf.Headers, res.Header().Get("Access-Control-Allow-Headers"))
-		assert.Equal(t, conf.MaxAge, res.Header().Get("Access-Control-Max-Age"))
-	})
+			if tc.expectAllCORSHeaders {
+				allHeaders := []string{
+					"Access-Control-Allow-Methods",
+					"Access-Control-Allow-Headers",
+					"Access-Control-Max-Age",
+				}
+				for _, h := range allHeaders {
+					require.NotEmpty(t, res.Header().Get(h), "header %q must be set", h)
+				}
+				assert.Equal(t, conf.Credentials, res.Header().Get("Access-Control-Allow-Credentials"))
+				assert.Equal(t, conf.Origin, res.Header().Get("Access-Control-Allow-Origin"))
+				assert.Equal(t, conf.Methods, res.Header().Get("Access-Control-Allow-Methods"))
+				assert.Equal(t, conf.Headers, res.Header().Get("Access-Control-Allow-Headers"))
+				assert.Equal(t, conf.MaxAge, res.Header().Get("Access-Control-Max-Age"))
+			}
+		})
+	}
 }

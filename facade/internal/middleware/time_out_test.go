@@ -12,55 +12,68 @@ import (
 
 const fastTimeout = 50 * time.Millisecond
 
-func TestTimeOutMiddlewareContextCancelled(t *testing.T) {
-	var capturedCtx context.Context
+func TestTimeOutMiddleware(t *testing.T) {
+	type ctxKey struct{}
 
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		capturedCtx = r.Context()
-		select {
-		case <-capturedCtx.Done():
-		case <-time.After(fastTimeout * 3):
-		}
-	})
+	tests := []struct {
+		name           string
+		handler        http.HandlerFunc
+		requestCtx     context.Context
+		expectedStatus int
+		checkDeadline  bool
+	}{
+		{
+			name: "FastHandler",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			requestCtx:     context.Background(),
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "ContextPropagated",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				if r.Context().Value(ctxKey{}) != "test-value" {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			},
+			requestCtx:     context.WithValue(context.Background(), ctxKey{}, "test-value"),
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "ContextCancelledAfterTimeout",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				select {
+				case <-r.Context().Done():
+				case <-time.After(fastTimeout * 3):
+				}
+			},
+			requestCtx:    context.Background(),
+			checkDeadline: true,
+		},
+	}
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	res := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var capturedCtx context.Context
 
-	TimeOutMiddleware(fastTimeout)(h).ServeHTTP(res, req)
+			wrapped := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedCtx = r.Context()
+				tc.handler(w, r)
+			})
 
-	assert.ErrorIs(t, capturedCtx.Err(), context.DeadlineExceeded)
-}
+			req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(tc.requestCtx)
+			res := httptest.NewRecorder()
 
-func TestTimeOutMiddlewareFastHandler(t *testing.T) {
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+			TimeOutMiddleware(fastTimeout)(wrapped).ServeHTTP(res, req)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	res := httptest.NewRecorder()
-
-	TimeOutMiddleware(fastTimeout)(h).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
-}
-
-func TestTimeOutMiddlewareContextPropagated(t *testing.T) {
-	type key struct{}
-	ctx := context.WithValue(context.Background(), key{}, "test-value")
-
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		val := r.Context().Value(key{})
-		if val != "test-value" {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
-	res := httptest.NewRecorder()
-
-	TimeOutMiddleware(fastTimeout)(h).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
+			if tc.checkDeadline {
+				assert.ErrorIs(t, capturedCtx.Err(), context.DeadlineExceeded)
+			} else {
+				assert.Equal(t, tc.expectedStatus, res.Code)
+			}
+		})
+	}
 }

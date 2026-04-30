@@ -27,61 +27,50 @@ var testRateCfg = domain.RateLimitConfig{
 	WindowS: 60,
 }
 
-func TestRateLimiterMiddlewareNotExceeded(t *testing.T) {
-	client := &stubCheckLimit{
-		fn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
-			return false, nil
+func TestRateLimiterMiddleware(t *testing.T) {
+	tests := []struct {
+		name           string
+		clientFn       func(context.Context, domain.RateLimitCheck) (bool, error)
+		expectedStatus int
+	}{
+		{
+			name: "NotExceeded",
+			clientFn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
+				return false, nil
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "Exceeded",
+			clientFn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
+				return true, nil
+			},
+			expectedStatus: http.StatusTooManyRequests,
+		},
+		{
+			name: "ClientError_FailClosed",
+			clientFn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
+				return false, errors.New("redis unavailable")
+			},
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
-	logger := zerolog.Nop()
-	mw := middleware.RateLimiterMiddleware(client, testRateCfg, &logger)
 
-	req := httptest.NewRequest(http.MethodPost, "/login", nil)
-	res := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			logger := zerolog.Nop()
+			mw := middleware.RateLimiterMiddleware(&stubCheckLimit{fn: tc.clientFn}, testRateCfg, &logger)
 
-	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})).ServeHTTP(res, req)
+			req := httptest.NewRequest(http.MethodPost, "/login", nil)
+			res := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusOK, res.Code)
-}
+			mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})).ServeHTTP(res, req)
 
-func TestRateLimiterMiddlewareExceeded(t *testing.T) {
-	client := &stubCheckLimit{
-		fn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
-			return true, nil
-		},
+			assert.Equal(t, tc.expectedStatus, res.Code)
+		})
 	}
-	logger := zerolog.Nop()
-	mw := middleware.RateLimiterMiddleware(client, testRateCfg, &logger)
-
-	req := httptest.NewRequest(http.MethodPost, "/login", nil)
-	res := httptest.NewRecorder()
-
-	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusTooManyRequests, res.Code)
-}
-
-func TestRateLimiterMiddlewareClientError(t *testing.T) {
-	client := &stubCheckLimit{
-		fn: func(_ context.Context, _ domain.RateLimitCheck) (bool, error) {
-			return false, errors.New("redis unavailable")
-		},
-	}
-	logger := zerolog.Nop()
-	mw := middleware.RateLimiterMiddleware(client, testRateCfg, &logger)
-
-	req := httptest.NewRequest(http.MethodPost, "/login", nil)
-	res := httptest.NewRecorder()
-
-	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
 }
 
 func TestGetUserIP(t *testing.T) {

@@ -12,37 +12,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRecoveryMiddlewareNoPanic(t *testing.T) {
-	buf := &bytes.Buffer{}
-	logger := zerolog.New(buf)
+func TestRecoveryMiddleware(t *testing.T) {
+	tests := []struct {
+		name           string
+		handler        http.HandlerFunc
+		expectedStatus int
+		expectLog      bool
+	}{
+		{
+			name: "NoPanic",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedStatus: http.StatusOK,
+			expectLog:      false,
+		},
+		{
+			name: "Panic",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				panic("something exploded")
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectLog:      true,
+		},
+	}
 
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := &bytes.Buffer{}
+			logger := zerolog.New(buf)
 
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
-	require.NoError(t, err)
-	res := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, "/", nil)
+			require.NoError(t, err)
+			res := httptest.NewRecorder()
 
-	middleware.RecoveryMiddleware(&logger)(h).ServeHTTP(res, req)
+			middleware.RecoveryMiddleware(&logger)(tc.handler).ServeHTTP(res, req)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-}
-
-func TestRecoveryMiddlewarePanic(t *testing.T) {
-	buf := &bytes.Buffer{}
-	logger := zerolog.New(buf)
-
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic("something exploded")
-	})
-
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
-	require.NoError(t, err)
-	res := httptest.NewRecorder()
-
-	middleware.RecoveryMiddleware(&logger)(h).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusInternalServerError, res.Code)
-	assert.NotEmpty(t, buf.Bytes(), "panic must be logged")
+			assert.Equal(t, tc.expectedStatus, res.Code)
+			if tc.expectLog {
+				assert.NotEmpty(t, buf.Bytes(), "panic must be logged")
+			}
+		})
+	}
 }

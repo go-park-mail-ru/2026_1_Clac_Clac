@@ -61,7 +61,7 @@ func NewMailSender(mailSender MailSenderUsecase, coolDown CoolDownUsecase, geter
 //	@Accept			json
 //	@Produce		json
 //	@Param			input	body		dto.PasswordRecoveryRequest	true	"Email пользователя"
-//	@Success		200		{string}	string						"OK"
+//	@Success		200		{object}	api.Response				"OK"
 //	@Failure		400		{object}	api.ErrorResponse			"Invalid email"
 //	@Failure		404		{object}	api.ErrorResponse			"User does not exist"
 //	@Failure		429		{object}	api.ErrorResponse			"Too many requests"
@@ -130,7 +130,7 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 //	@Accept			json
 //	@Produce		json
 //	@Param			input	body		dto.RecoveryCodeRequest	true	"Код из письма"
-//	@Success		200		{string}	string					"OK"
+//	@Success		200		{object}	api.Response			"OK"
 //	@Failure		400		{object}	api.ErrorResponse		"Invalid request schema"
 //	@Failure		500		{object}	api.ErrorResponse		"Internal server error"
 //	@Router			/api/check-code [post]

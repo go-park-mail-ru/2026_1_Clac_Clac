@@ -53,12 +53,12 @@ func TestRateLimitersGetParameters(t *testing.T) {
 		assert.Equal(t, 1*time.Hour, params.Window)
 	})
 
-	t.Run("returns zero value for unknown action", func(t *testing.T) {
+	t.Run("returns safe defaults for unknown action", func(t *testing.T) {
 		conf := DefaultActionsRateLimiters()
 		params := conf.GetParameters("unknown_action")
 
 		assert.Empty(t, params.Action)
-		assert.Zero(t, params.Limit)
-		assert.Zero(t, params.Window)
+		assert.Equal(t, int64(safeLimit), params.Limit)
+		assert.Equal(t, safeTTL, params.TTL)
 	})
 }

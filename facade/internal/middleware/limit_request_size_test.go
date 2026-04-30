@@ -20,48 +20,47 @@ var bodyReader = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 })
 
-func TestLimitRequestSizeUnderLimit(t *testing.T) {
-	const maxSize int64 = 64
+func TestLimitRequestSize(t *testing.T) {
+	tests := []struct {
+		name           string
+		maxSize        int64
+		body           string
+		expectedStatus int
+	}{
+		{
+			name:           "UnderLimit",
+			maxSize:        64,
+			body:           "small body",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "OverLimit",
+			maxSize:        16,
+			body:           strings.Repeat("x", 100),
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "EmptyBody",
+			maxSize:        16,
+			body:           "",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "ExactLimit",
+			maxSize:        10,
+			body:           "1234567890",
+			expectedStatus: http.StatusOK,
+		},
+	}
 
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("small body"))
-	res := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
+			res := httptest.NewRecorder()
 
-	middleware.LimitRequestSizeMiddleware(maxSize)(bodyReader).ServeHTTP(res, req)
+			middleware.LimitRequestSizeMiddleware(tc.maxSize)(bodyReader).ServeHTTP(res, req)
 
-	assert.Equal(t, http.StatusOK, res.Code)
-}
-
-func TestLimitRequestSizeOverLimit(t *testing.T) {
-	const maxSize int64 = 16
-
-	big := strings.Repeat("x", 100)
-	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(big))
-	res := httptest.NewRecorder()
-
-	middleware.LimitRequestSizeMiddleware(maxSize)(bodyReader).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusBadRequest, res.Code)
-}
-
-func TestLimitRequestSizeEmptyBody(t *testing.T) {
-	const maxSize int64 = 16
-
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
-	res := httptest.NewRecorder()
-
-	middleware.LimitRequestSizeMiddleware(maxSize)(bodyReader).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
-}
-
-func TestLimitRequestSizeExactLimit(t *testing.T) {
-	const maxSize int64 = 10
-
-	body := strings.NewReader("1234567890")
-	req := httptest.NewRequest(http.MethodPost, "/", body)
-	res := httptest.NewRecorder()
-
-	middleware.LimitRequestSizeMiddleware(maxSize)(bodyReader).ServeHTTP(res, req)
-
-	assert.Equal(t, http.StatusOK, res.Code)
+			assert.Equal(t, tc.expectedStatus, res.Code)
+		})
+	}
 }

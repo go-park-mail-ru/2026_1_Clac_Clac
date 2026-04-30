@@ -73,7 +73,6 @@ func NewProfileHandler(profile ProfileUseCase, mailSender MailSenderUsecase, cfg
 //	@Description    Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
 //	@Tags           Profile
 //	@Security       sessionCookie
-//	@Security       csrfToken
 //	@Produce        json
 //	@Success        200 {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
 //	@Failure        401 {object}    api.ErrorResponse                   "Пользователь не авторизован"
@@ -110,7 +109,6 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 //	@Description    Возвращает публичный профиль любого пользователя по его UUID.
 //	@Tags           Profile
 //	@Security       sessionCookie
-//	@Security       csrfToken
 //	@Produce        json
 //	@Param          user_link   path        string                              true    "UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
 //	@Success        200         {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"

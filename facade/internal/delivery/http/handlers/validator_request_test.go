@@ -109,13 +109,33 @@ func TestValidatorRequestNewPassword(t *testing.T) {
 }
 
 func TestValidatorWithCheckPassword(t *testing.T) {
-	t.Run("Passwords do not match", func(t *testing.T) {
-		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass5678", maxLen, minLen)
-		assert.Equal(t, ErrorDifferencePasswords, err)
-	})
+	tests := []struct {
+		name             string
+		email            string
+		password         string
+		repeatedPassword string
+		expectedError    error
+	}{
+		{
+			name:             "Passwords do not match",
+			email:            "bobr@mail.ru",
+			password:         "pass1234",
+			repeatedPassword: "pass5678",
+			expectedError:    ErrorDifferencePasswords,
+		},
+		{
+			name:             "Success delegates to ValidatorRequestAuth",
+			email:            "bobr@mail.ru",
+			password:         "pass1234",
+			repeatedPassword: "pass1234",
+			expectedError:    nil,
+		},
+	}
 
-	t.Run("Success delegates to ValidatorRequestAuth", func(t *testing.T) {
-		err := ValidatorWithCheckPassword("bobr@mail.ru", "pass1234", "pass1234", maxLen, minLen)
-		assert.NoError(t, err)
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidatorWithCheckPassword(tc.email, tc.password, tc.repeatedPassword, maxLen, minLen)
+			assert.Equal(t, tc.expectedError, err)
+		})
+	}
 }

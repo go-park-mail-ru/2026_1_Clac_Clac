@@ -68,7 +68,9 @@ func TestSetCSRFCookieHandler(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			m := mockCSRFUC.NewCSRFUsecase(t)
-			tc.mockBehavior(m)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(m)
+			}
 
 			handler := NewCSRF(m)
 			req := tc.setupRequest()

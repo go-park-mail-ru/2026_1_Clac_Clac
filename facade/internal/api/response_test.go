@@ -12,126 +12,195 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Точно такие же константы в api, сделал это осознано.
-// Логика такая: код должен соответсовать тестам,
-// если брать константы из api, то может быть опечатка.
-// Вероятность опечататся дважды ниже, чем один
+// Константы намеренно продублированы, чтобы тесты не зависели от возможных опечаток в пакете api.
 const (
-	HeaderContentType = "Content-Type"
-)
-
-const (
+	HeaderContentType   = "Content-Type"
 	MIMEApplicationJSON = "application/json"
 	MIMETextPlain       = "text/plain"
-)
-
-const (
-	StatusOK    = "ok"
-	StatusError = "error"
+	StatusOK            = "ok"
+	StatusError         = "error"
 )
 
 func TestSetContentType(t *testing.T) {
-	t.Run("just writing", func(t *testing.T) {
-		res := httptest.NewRecorder()
+	tests := []struct {
+		name        string
+		first       string
+		second      string
+		expectedCT  string
+	}{
+		{
+			name:       "SingleWrite",
+			first:      MIMETextPlain,
+			second:     "",
+			expectedCT: MIMETextPlain,
+		},
+		{
+			name:       "DoubleWrite_IdempotentFirstValue",
+			first:      MIMETextPlain,
+			second:     MIMEApplicationJSON,
+			expectedCT: MIMETextPlain,
+		},
+	}
 
-		api.SetContentType(res, MIMETextPlain)
-
-		assert.Equal(t, MIMETextPlain, res.Header().Get(HeaderContentType), "types must be equal")
-	})
-
-	t.Run("double writing", func(t *testing.T) {
-		res := httptest.NewRecorder()
-
-		api.SetContentType(res, MIMETextPlain)
-		api.SetContentType(res, MIMEApplicationJSON)
-
-		assert.Equal(t, MIMETextPlain, res.Header().Get(HeaderContentType), "types must be equal")
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := httptest.NewRecorder()
+			api.SetContentType(res, tc.first)
+			if tc.second != "" {
+				api.SetContentType(res, tc.second)
+			}
+			assert.Equal(t, tc.expectedCT, res.Header().Get(HeaderContentType))
+		})
+	}
 }
 
 func TestRespond(t *testing.T) {
-	t.Run("ok response", func(t *testing.T) {
-		expectedBody := fmt.Sprintf(`{"status":"%s"}`, StatusOK)
+	tests := []struct {
+		name         string
+		statusCode   int
+		status       string
+		expectedBody string
+	}{
+		{
+			name:         "OK",
+			statusCode:   http.StatusOK,
+			status:       StatusOK,
+			expectedBody: fmt.Sprintf(`{"status":"%s"}`, StatusOK),
+		},
+		{
+			name:         "Error",
+			statusCode:   http.StatusBadRequest,
+			status:       StatusError,
+			expectedBody: fmt.Sprintf(`{"status":"%s"}`, StatusError),
+		},
+	}
 
-		res := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := httptest.NewRecorder()
+			_, err := api.Respond(res, tc.statusCode, tc.status)
 
-		_, err := api.Respond(res, http.StatusOK, StatusOK)
-
-		require.NoError(t, err, "respond must not return error")
-
-		assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType), "always response with json")
-		assert.Equal(t, http.StatusOK, res.Result().StatusCode, "statuses must be equal")
-		assert.Equal(t, expectedBody, res.Body.String(), "bodies must be equal")
-	})
+			require.NoError(t, err)
+			assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType))
+			assert.Equal(t, tc.statusCode, res.Result().StatusCode)
+			assert.Equal(t, tc.expectedBody, res.Body.String())
+		})
+	}
 }
 
 func TestRespondOk(t *testing.T) {
-	t.Run("response with simple user", func(t *testing.T) {
-		userId := 5
-		userName := "TempName"
+	type simpleUser struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
 
-		expectedBody := fmt.Sprintf(`{"status":"%s","data":{"id":%d,"name":"%s"}}`, StatusOK, userId, userName)
+	tests := []struct {
+		name         string
+		data         simpleUser
+		expectedBody string
+	}{
+		{
+			name:         "SimpleUser",
+			data:         simpleUser{ID: 5, Name: "TempName"},
+			expectedBody: fmt.Sprintf(`{"status":"%s","data":{"id":5,"name":"TempName"}}`, StatusOK),
+		},
+		{
+			name:         "EmptyUser",
+			data:         simpleUser{},
+			expectedBody: fmt.Sprintf(`{"status":"%s","data":{"id":0,"name":""}}`, StatusOK),
+		},
+	}
 
-		simpleUser := struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		}{
-			ID:   userId,
-			Name: userName,
-		}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := httptest.NewRecorder()
+			_, err := api.RespondOk(res, tc.data)
 
-		res := httptest.NewRecorder()
-
-		_, err := api.RespondOk(res, simpleUser)
-
-		require.NoError(t, err, "respond must not return error")
-
-		assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType), "always response with json")
-		assert.Equal(t, http.StatusOK, res.Result().StatusCode, "statuses must be equal")
-		assert.Equal(t, expectedBody, res.Body.String(), "bodies must be equal")
-	})
+			require.NoError(t, err)
+			assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType))
+			assert.Equal(t, http.StatusOK, res.Result().StatusCode)
+			assert.Equal(t, tc.expectedBody, res.Body.String())
+		})
+	}
 }
 
 func TestRespondError(t *testing.T) {
-	t.Run("error response", func(t *testing.T) {
-		errorCode := http.StatusBadRequest
-		errorMessage := "this is error message"
-		expectedBody := fmt.Sprintf(`{"status":"%s","code":%d,"message":"%s"}`, StatusError, errorCode, errorMessage)
+	tests := []struct {
+		name         string
+		code         int
+		message      string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest",
+			code:         http.StatusBadRequest,
+			message:      "this is error message",
+			expectedBody: fmt.Sprintf(`{"status":"%s","code":%d,"message":"this is error message"}`, StatusError, http.StatusBadRequest),
+		},
+		{
+			name:         "NotFound",
+			code:         http.StatusNotFound,
+			message:      "not found",
+			expectedBody: fmt.Sprintf(`{"status":"%s","code":%d,"message":"not found"}`, StatusError, http.StatusNotFound),
+		},
+	}
 
-		res := httptest.NewRecorder()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := httptest.NewRecorder()
+			_, err := api.RespondError(res, tc.code, tc.message)
 
-		_, err := api.RespondError(res, http.StatusBadRequest, errorMessage)
-
-		require.NoError(t, err, "respond must not return error")
-
-		assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType), "always response with json")
-		assert.Equal(t, http.StatusBadRequest, res.Result().StatusCode, "statuses must be equal")
-		assert.Equal(t, expectedBody, res.Body.String(), "bodies must be equal")
-	})
+			require.NoError(t, err)
+			assert.Equal(t, MIMEApplicationJSON, res.Header().Get(HeaderContentType))
+			assert.Equal(t, tc.code, res.Result().StatusCode)
+			assert.Equal(t, tc.expectedBody, res.Body.String())
+		})
+	}
 }
 
 func TestHandleError(t *testing.T) {
-	t.Run("no error test", func(t *testing.T) {
-		const zeroStatus = 0
+	tests := []struct {
+		name           string
+		inputErr       error
+		expectedStatus int
+		expectBody     bool
+		expectErr      bool
+	}{
+		{
+			name:           "NoError",
+			inputErr:       nil,
+			expectedStatus: 0,
+			expectBody:     false,
+			expectErr:      false,
+		},
+		{
+			name:           "WithError",
+			inputErr:       errors.New("oh no..."),
+			expectedStatus: http.StatusInternalServerError,
+			expectBody:     true,
+			expectErr:      true,
+		},
+	}
 
-		res := httptest.NewRecorder()
-		res.Code = zeroStatus
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			const zeroStatus = 0
+			res := httptest.NewRecorder()
+			if tc.inputErr == nil {
+				res.Code = zeroStatus
+			}
 
-		err := api.HandleError(res, nil)
+			err := api.HandleError(res, tc.inputErr)
 
-		require.NoError(t, err, "must not return error")
-		assert.Equal(t, zeroStatus, res.Code, "must not write status code")
-		assert.Empty(t, res.Body.String(), "must not write body")
-		assert.Empty(t, res.Header(), "must not write header")
-	})
-
-	t.Run("error test", func(t *testing.T) {
-		res := httptest.NewRecorder()
-
-		err := api.HandleError(res, errors.New("oh no..."))
-
-		require.Error(t, err, "must return error")
-		assert.NotEmpty(t, res.Body.String(), "must write body")
-		assert.Equal(t, http.StatusInternalServerError, res.Code, "status must be 500")
-	})
+			if tc.expectErr {
+				require.Error(t, err)
+				assert.NotEmpty(t, res.Body.String())
+				assert.Equal(t, tc.expectedStatus, res.Code)
+			} else {
+				require.NoError(t, err)
+				assert.Empty(t, res.Body.String())
+				assert.Equal(t, zeroStatus, res.Code)
+			}
+		})
+	}
 }

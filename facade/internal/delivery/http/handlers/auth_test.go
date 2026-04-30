@@ -24,11 +24,10 @@ import (
 )
 
 var defaultAuthCfg = AuthConfig{
-	MaxLenPassword:        128,
-	MinLenPassword:        8,
-	SessionLifetime:       24 * time.Hour,
-	VKOAuthRedirectTo:     "http://localhost/oauth",
-	CoolDownExpirationSec: 60,
+	MaxLenPassword:    128,
+	MinLenPassword:    8,
+	SessionLifetime:   24 * time.Hour,
+	VKOAuthRedirectTo: "http://localhost/oauth",
 }
 
 var fixedLink = uuid.New()
