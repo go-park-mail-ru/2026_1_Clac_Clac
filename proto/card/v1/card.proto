@@ -117,7 +117,8 @@ message UpdateCommentRequest {
 message UpdateCommentResponse {}
 
 message CreateSubtaskRequest {
-  string description = 1;
+  string card_link = 1;
+  string description =2;
 }
 
 message CreateSubtaskResponse {
@@ -125,13 +126,17 @@ message CreateSubtaskResponse {
 }
 
 message UpdateSubtaskRequest {
-  bool ready = 1;
-  string description = 2;
+  string card_link = 1;
+  string subtask_link = 2;
+  bool ready = 3;
+  string description = 4;
 }
 
 message UpdateSubtaskResponse {}
 
-message DeleteSubtaskRequest {}
+message DeleteSubtaskRequest {
+  
+}
 
 message DeleteSubtaskResponse {}
 

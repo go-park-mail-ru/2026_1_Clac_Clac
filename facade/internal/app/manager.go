@@ -6,22 +6,27 @@ import (
 )
 
 type Manager struct {
-	AuthUser *usecase.AuthUser
-	Profile  *usecase.Profile
-	CoolDown *usecase.CoolDown
-	CSRF     *usecase.CSRF
+	Auth       *usecase.Auth
+	User       *usecase.User
+	CoolDown   *usecase.CoolDown
+	MailSender *usecase.MailSender
+	CSRF       *usecase.CSRF
 }
 
 func NewManager(connector *Connector, conf *config.Config) *Manager {
 	configCSRF := usecase.CSRFConfig{
-		Secret: conf.CSRF.Secret,
-		TTL:    conf.CSRF.TTL,
+		Secret:                         conf.CSRF.Secret,
+		TTL:                            conf.CSRF.TTL,
+		ExpireTimeConvertationBase:     conf.CSRF.ExpireTimeConvertationBase,
+		ExpireTimeConvertationTypeSize: conf.CSRF.ExpireTimeConvertationTypeSize,
+		PartsCount:                     conf.CSRF.PartsCount,
 	}
 
 	return &Manager{
-		AuthUser: usecase.NewAuthUser(connector.User, connector.Auth, connector.MailSender),
-		Profile:  usecase.NewProfile(connector.User),
-		CoolDown: usecase.NewCoolDown(connector.RateLimiter),
-		CSRF:     usecase.NewCSRF(configCSRF),
+		Auth:       usecase.NewAuth(connector.Auth),
+		User:       usecase.NewUser(connector.User),
+		CoolDown:   usecase.NewCoolDown(connector.RateLimiter),
+		MailSender: usecase.NewMailSender(connector.MailSender),
+		CSRF:       usecase.NewCSRF(configCSRF),
 	}
 }

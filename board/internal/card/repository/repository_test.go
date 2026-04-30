@@ -981,7 +981,7 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 			test.mockBehavior(mockDB)
 
 			repo := NewRepository(mockDB)
-			result := repo.IsCommentAuthor(ctx, targetCommentLink, targetUserLink)
+			result, err := repo.IsCommentAuthor(ctx, targetCommentLink, targetUserLink)
 
 			assert.Equal(t, test.expected, result)
 			assert.NoError(t, mockDB.ExpectationsWereMet())

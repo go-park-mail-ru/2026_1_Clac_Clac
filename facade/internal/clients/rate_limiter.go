@@ -39,7 +39,7 @@ func (r *RateLimiter) SetCooldown(ctx context.Context, cooldown domain.Cooldown)
 	req := &pb.SetCooldownRequest{
 		Name:        cooldown.Name,
 		Email:       cooldown.Email,
-		ExpirationS: cooldown.ExpirationMs,
+		ExpirationS: cooldown.ExpirationS,
 	}
 
 	resp, err := r.client.SetCooldown(ctx, req)

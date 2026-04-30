@@ -5,6 +5,8 @@ const (
 	profileConfigDefaultMaxReadBytes          = 5 << 20
 	profileConfigDefaultMaxLenNameUser        = 128
 	profileConfigDefaultMaxLenDescriptionUser = 500
+	profileConfigDefaultMaxLenPassword        = 128
+	profileConfigDefaultMinLenPassword        = 8
 )
 
 type UserHandler struct {
@@ -12,6 +14,8 @@ type UserHandler struct {
 	MaxReadBytes          int64               `mapstructure:"max_read_bytes"`
 	MaxLenNameUser        int                 `mapstructure:"max_len_name_user"`
 	MaxLenDescriptionUser int                 `mapstructure:"max_len_description_user"`
+	MaxLenPassword        int                 `mapstructure:"max_len_password"`
+	MinLenPassword        int                 `mapstructure:"min_len_password"`
 	ValidExtensions       map[string]struct{} `mapstructure:"valid_extensions"`
 }
 
@@ -31,6 +35,8 @@ func DefaultUserConfig() User {
 			MaxReadBytes:          profileConfigDefaultMaxReadBytes,
 			MaxLenNameUser:        profileConfigDefaultMaxLenNameUser,
 			MaxLenDescriptionUser: profileConfigDefaultMaxLenDescriptionUser,
+			MaxLenPassword:        profileConfigDefaultMaxLenPassword,
+			MinLenPassword:        profileConfigDefaultMinLenPassword,
 			ValidExtensions:       DefaultValidExtensions(),
 		},
 		Client: UserClient{

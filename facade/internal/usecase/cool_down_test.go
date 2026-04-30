@@ -12,34 +12,55 @@ import (
 )
 
 func TestCheckCoolDown(t *testing.T) {
-	cooldown := domain.Cooldown{Name: "recovery_email", Email: "u@mail.ru", ExpirationMs: 60}
+	cooldown := domain.Cooldown{Name: "recovery_email", Email: "u@mail.ru", ExpirationS: 60}
 
-	t.Run("Allowed", func(t *testing.T) {
-		m := mockRateClient.NewRateLimiterClient(t)
-		expected := domain.CooldownResult{Allowed: true, WaitS: 0}
-		m.On("SetCooldown", context.Background(), cooldown).Return(expected, nil)
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockRateClient.RateLimiterClient)
+		expectedRes  domain.CooldownResult
+		expectError  bool
+	}{
+		{
+			name: "Allowed",
+			mockBehavior: func(m *mockRateClient.RateLimiterClient) {
+				expected := domain.CooldownResult{Allowed: true, WaitS: 0}
+				m.On("SetCooldown", context.Background(), cooldown).Return(expected, nil)
+			},
+			expectedRes: domain.CooldownResult{Allowed: true, WaitS: 0},
+			expectError: false,
+		},
+		{
+			name: "NotAllowed",
+			mockBehavior: func(m *mockRateClient.RateLimiterClient) {
+				expected := domain.CooldownResult{Allowed: false, WaitS: 45}
+				m.On("SetCooldown", context.Background(), cooldown).Return(expected, nil)
+			},
+			expectedRes: domain.CooldownResult{Allowed: false, WaitS: 45},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockRateClient.RateLimiterClient) {
+				m.On("SetCooldown", context.Background(), cooldown).Return(domain.CooldownResult{}, errors.New("redis unavailable"))
+			},
+			expectedRes: domain.CooldownResult{},
+			expectError: true,
+		},
+	}
 
-		result, err := NewCoolDown(m).CheckCoolDown(context.Background(), cooldown)
-		require.NoError(t, err)
-		assert.True(t, result.Allowed)
-	})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockRateClient.NewRateLimiterClient(t)
+			tc.mockBehavior(m)
 
-	t.Run("NotAllowed", func(t *testing.T) {
-		m := mockRateClient.NewRateLimiterClient(t)
-		expected := domain.CooldownResult{Allowed: false, WaitS: 45}
-		m.On("SetCooldown", context.Background(), cooldown).Return(expected, nil)
+			result, err := NewCoolDown(m).CheckCoolDown(context.Background(), cooldown)
 
-		result, err := NewCoolDown(m).CheckCoolDown(context.Background(), cooldown)
-		require.NoError(t, err)
-		assert.False(t, result.Allowed)
-		assert.EqualValues(t, 45, result.WaitS)
-	})
-
-	t.Run("ClientError", func(t *testing.T) {
-		m := mockRateClient.NewRateLimiterClient(t)
-		m.On("SetCooldown", context.Background(), cooldown).Return(domain.CooldownResult{}, errors.New("redis unavailable"))
-
-		_, err := NewCoolDown(m).CheckCoolDown(context.Background(), cooldown)
-		require.Error(t, err)
-	})
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedRes, result)
+			}
+		})
+	}
 }

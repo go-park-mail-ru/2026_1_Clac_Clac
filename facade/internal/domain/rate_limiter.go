@@ -8,9 +8,9 @@ type RateLimitCheck struct {
 }
 
 type Cooldown struct {
-	Name         string
-	Email        string
-	ExpirationMs int64
+	Name        string
+	Email       string
+	ExpirationS int64
 }
 
 type CooldownResult struct {

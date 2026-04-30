@@ -7,7 +7,9 @@ import (
 const (
 	LogInUser    = "login"
 	RegisterUser = "register"
-	defaultLimit = 5
+
+	defaultLimit              = 5
+	defaultCoolDownExpiration = 60
 )
 
 type ActionRateLimiters struct {
@@ -17,8 +19,9 @@ type ActionRateLimiters struct {
 }
 
 type RateLimiters struct {
-	ClientConfig `mapstructure:",squash"`
-	DBActions    map[string]ActionRateLimiters `mapstructure:"actions"`
+	ClientConfig          `mapstructure:",squash"`
+	DBActions             map[string]ActionRateLimiters `mapstructure:"actions"`
+	CoolDownExpirationSec int                           `mapstructure:"cool_down_expiration"`
 }
 
 func (d *RateLimiters) GetParameters(action string) ActionRateLimiters {
@@ -40,5 +43,6 @@ func DefaultActionsRateLimiters() RateLimiters {
 				Window: 1 * time.Hour,
 			},
 		},
+		CoolDownExpirationSec: defaultCoolDownExpiration,
 	}
 }

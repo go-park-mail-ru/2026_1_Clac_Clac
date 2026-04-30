@@ -10,7 +10,7 @@ import (
 	card "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	boardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	cardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	sectionPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"

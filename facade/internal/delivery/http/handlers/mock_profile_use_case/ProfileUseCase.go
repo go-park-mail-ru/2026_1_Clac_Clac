@@ -63,6 +63,24 @@ func (_m *ProfileUseCase) GetProfile(ctx context.Context, userLink uuid.UUID) (d
 	return r0, r1
 }
 
+// ResetPassword provides a mock function with given fields: ctx, updatedPassword
+func (_m *ProfileUseCase) ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error {
+	ret := _m.Called(ctx, updatedPassword)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetPassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdatedPassword) error); ok {
+		r0 = rf(ctx, updatedPassword)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateAvatar provides a mock function with given fields: ctx, info
 func (_m *ProfileUseCase) UpdateAvatar(ctx context.Context, info domain.AvatarInfo) (string, error) {
 	ret := _m.Called(ctx, info)

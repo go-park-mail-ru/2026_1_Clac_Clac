@@ -87,6 +87,8 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 	tools := router.Tools{
 		Auth:        delivery.Auth,
 		Profile:     delivery.Profile,
+		MailSender:  delivery.MailSender,
+		CSRF:        delivery.CSRF,
 		AuthChecker: connector.Auth,
 		RateLimiter: connector.RateLimiter,
 		CSRFChecker: manager.CSRF.Check,

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
 	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"

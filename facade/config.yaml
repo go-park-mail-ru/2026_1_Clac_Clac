@@ -33,6 +33,8 @@ services:
       max_read_bytes: 5242880
       max_len_name_user: 128
       max_len_description_user: 500
+      max_len_password: 128
+      min_len_password: 8
       valid_extensions:
         image/png:
         image/jpg:
@@ -72,3 +74,4 @@ services:
         limit: 3
         action: "register"
         window: 1h
+    cool_down_expiration: 60

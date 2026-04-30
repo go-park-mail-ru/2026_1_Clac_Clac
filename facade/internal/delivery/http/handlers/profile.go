@@ -12,8 +12,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/middleware"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -39,6 +39,7 @@ type ProfileUseCase interface {
 	UpdateProfile(ctx context.Context, info domain.UpdatedInfo) error
 	UpdateAvatar(ctx context.Context, info domain.AvatarInfo) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
+	ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error
 }
 
 type ProfileConfig struct {
@@ -47,30 +48,40 @@ type ProfileConfig struct {
 	MaxLenNameUser        int
 	MaxLenDescriptionUser int
 	MaxReadBytes          int64
+	MaxLenPassword        int
+	MinLenPassword        int
 }
 
 type Profile struct {
-	usecase ProfileUseCase
-	cfg     ProfileConfig
+	profile    ProfileUseCase
+	mailSender MailSenderUsecase
+	cfg        ProfileConfig
 }
 
-func NewProfileHandler(usecase ProfileUseCase, cfg ProfileConfig) *Profile {
-	return &Profile{usecase: usecase, cfg: cfg}
+func NewProfileHandler(profile ProfileUseCase, mailSender MailSenderUsecase, cfg ProfileConfig) *Profile {
+	return &Profile{
+		profile:    profile,
+		mailSender: mailSender,
+		cfg:        cfg,
+	}
 }
 
 // GetProfile возвращает профиль текущего пользователя
 //
-//	@Summary		Получить свой профиль
-//	@Tags			Profile
-//	@Security		sessionCookie
-//	@Security		csrfToken
-//	@Produce		json
-//	@Success		200	{object}	dto.ProfileResponse
-//	@Failure		401	{object}	api.ErrorResponse	"unauthorized"
-//	@Failure		404	{object}	api.ErrorResponse	"user not found"
-//	@Failure		500	{object}	api.ErrorResponse	"cannot get user profile"
-//	@Router			/api/profiles [get]
+//	@Summary        Получить свой профиль
+//	@Description    Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
+//	@Tags           Profile
+//	@Security       sessionCookie
+//	@Security       csrfToken
+//	@Produce        json
+//	@Success        200 {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
+//	@Failure        401 {object}    api.ErrorResponse                   "Пользователь не авторизован"
+//	@Failure        404 {object}    api.ErrorResponse                   "Пользователь не найден"
+//	@Failure        500 {object}    api.ErrorResponse                   "Внутренняя ошибка сервера при получении профиля"
+//	@Router         /api/profiles [get]
 func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
@@ -78,12 +89,13 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := p.usecase.GetProfile(r.Context(), userLink)
+	user, err := p.profile.GetProfile(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
+		logger.Error().Err(err).Msg("profile.GetProfile failed")
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -93,34 +105,36 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // GetProfileByLink возвращает профиль пользователя по UUID
 //
-//	@Summary		Получить профиль по ссылке
-//	@Tags			Profile
-//	@Security		sessionCookie
-//	@Security		csrfToken
-//	@Produce		json
-//	@Param			user_link	path		string	true	"UUID пользователя"
-//	@Success		200			{object}	dto.ProfileResponse
-//	@Failure		400			{object}	api.ErrorResponse	"invalid user link"
-//	@Failure		404			{object}	api.ErrorResponse	"user not found"
-//	@Failure		500			{object}	api.ErrorResponse	"cannot get user profile"
-//	@Router			/api/profiles/{user_link} [get]
+//	@Summary        Получить профиль по ссылке
+//	@Description    Возвращает публичный профиль любого пользователя по его UUID.
+//	@Tags           Profile
+//	@Security       sessionCookie
+//	@Security       csrfToken
+//	@Produce        json
+//	@Param          user_link   path        string                              true    "UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
+//	@Success        200         {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
+//	@Failure        400         {object}    api.ErrorResponse                   "Некорректный формат UUID пользователя"
+//	@Failure        401         {object}    api.ErrorResponse                   "Пользователь не авторизован"
+//	@Failure        404         {object}    api.ErrorResponse                   "Пользователь не найден"
+//	@Failure        500         {object}    api.ErrorResponse                   "Внутренняя ошибка сервера"
+//	@Router         /api/profiles/{user_link} [get]
 func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	userLinkParam := mux.Vars(r)["user_link"]
 	userLink, err := uuid.Parse(userLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, "invalid user link")
+		api.RespondError(w, http.StatusBadRequest, "invalid user link format")
 		return
 	}
 
-	user, err := p.usecase.GetProfile(r.Context(), userLink)
+	user, err := p.profile.GetProfile(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg("profile.GetProfileByLink")
+		logger.Error().Err(err).Msg("profile.GetProfileByLink failed")
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -130,19 +144,22 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProfile обновляет текстовые данные профиля (имя, описание)
 //
-//	@Summary		Обновить профиль
-//	@Tags			Profile
-//	@Security		sessionCookie
-//	@Security		csrfToken
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		dto.UpdateProfileRequest	true	"Новые данные"
-//	@Success		200		{string}	string						"OK"
-//	@Failure		400		{object}	api.ErrorResponse			"incorrect name/description"
-//	@Failure		401		{object}	api.ErrorResponse			"unauthorized"
-//	@Failure		500		{object}	api.ErrorResponse			"cannot update profile"
-//	@Router			/api/profiles/info [post]
+//	@Summary        Обновить профиль
+//	@Description    Изменяет display_name и description_user. Требует валидный CSRF-токен.
+//	@Tags           Profile
+//	@Security       sessionCookie
+//	@Security       csrfToken
+//	@Accept         json
+//	@Produce        json
+//	@Param          input   body        dto.UpdateProfileRequest    true    "Новые имя и описание"
+//	@Success        200     {object}    api.Response                "Профиль успешно обновлён"
+//	@Failure        400     {object}    api.ErrorResponse           "Некорректные данные: отсутствует обязательное поле или превышена длина"
+//	@Failure        401     {object}    api.ErrorResponse           "Пользователь не авторизован"
+//	@Failure        500     {object}    api.ErrorResponse           "Ошибка обновления профиля"
+//	@Router         /api/profiles/info [post]
 func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
@@ -166,7 +183,7 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := p.usecase.UpdateProfile(r.Context(), domain.UpdatedInfo{
+	err := p.profile.UpdateProfile(r.Context(), domain.UpdatedInfo{
 		UserLink:    userLink,
 		DisplayName: req.DisplayName,
 		Description: req.Description,
@@ -180,6 +197,7 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidProfileData.Error())
 			return
 		}
+		logger.Error().Err(err).Msg("profile.UpdateProfile failed")
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateProfile)
 		return
 	}
@@ -189,19 +207,22 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAvatar загружает новый аватар
 //
-//	@Summary		Обновить аватар
-//	@Tags			Profile
-//	@Security		sessionCookie
-//	@Security		csrfToken
-//	@Accept			multipart/form-data
-//	@Produce		json
-//	@Param			avatar	formData	file	true	"Файл изображения (jpg/jpeg/png/webp)"
-//	@Success		200		{object}	dto.AvatarResponse
-//	@Failure		400		{object}	api.ErrorResponse	"avatar file too large or invalid"
-//	@Failure		401		{object}	api.ErrorResponse	"unauthorized"
-//	@Failure		415		{object}	api.ErrorResponse	"avatar must be jpeg/png/jpg/webp"
-//	@Failure		500		{object}	api.ErrorResponse	"cannot update avatar"
-//	@Router			/api/profiles/avatar [put]
+//	@Summary        Обновить аватар
+//	@Description    Загружает новое изображение. Допустимые форматы определяются по magic bytes.
+//	@Tags           Profile
+//	@Security       sessionCookie
+//	@Security       csrfToken
+//	@Accept         multipart/form-data
+//	@Produce        json
+//	@Param          avatar  formData    file                                true    "Файл изображения (поле: avatar)"
+//	@Success        200     {object}    api.OkResponse[dto.AvatarResponse]  "Аватар загружен, возвращается URL"
+//	@Failure        400     {object}    api.ErrorResponse                   "Файл слишком большой или отсутствует поле avatar"
+//	@Failure        401     {object}    api.ErrorResponse                   "Пользователь не авторизован"
+//	@Failure        404     {object}    api.ErrorResponse                   "Пользователь не найден"
+//	@Failure        415     {object}    api.ErrorResponse                   "Недопустимый тип файла"
+//	@Failure        422     {object}    api.ErrorResponse                   "Невозможно обработать/прочитать файл"
+//	@Failure        500     {object}    api.ErrorResponse                   "Ошибка на сервере при сохранении аватара"
+//	@Router         /api/profiles/avatar [put]
 func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -217,7 +238,6 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
 		return
 	}
-
 	defer r.MultipartForm.RemoveAll()
 
 	file, header, err := r.FormFile(nameAvatarBlock)
@@ -234,6 +254,7 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	sigBuf := make([]byte, p.cfg.SignatureTypeBytes)
 	n, err := file.Read(sigBuf)
 	if err != nil && !errors.Is(err, io.EOF) {
+		logger.Error().Err(err).Msg("failed to read signature bytes")
 		api.RespondError(w, http.StatusInternalServerError, msgInvalidFile)
 		return
 	}
@@ -245,12 +266,14 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		logger.Error().Err(err).Msg("failed to seek file")
 		api.RespondError(w, http.StatusUnprocessableEntity, msgFailProcessFile)
 		return
 	}
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
+		logger.Error().Err(err).Msg("failed to read all file data")
 		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
 		return
 	}
@@ -260,7 +283,7 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		ext = header.Filename
 	}
 
-	avatarURL, err := p.usecase.UpdateAvatar(r.Context(), domain.AvatarInfo{
+	avatarURL, err := p.profile.UpdateAvatar(r.Context(), domain.AvatarInfo{
 		UserLink:      userLink,
 		FileData:      fileData,
 		ContentType:   mimeType,
@@ -281,16 +304,17 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 // DeleteAvatar удаляет аватар пользователя
 //
-//	@Summary		Удалить аватар
-//	@Tags			Profile
-//	@Security		sessionCookie
-//	@Security		csrfToken
-//	@Produce		json
-//	@Success		200	{string}	string				"OK"
-//	@Failure		401	{object}	api.ErrorResponse	"unauthorized"
-//	@Failure		404	{object}	api.ErrorResponse	"user not found"
-//	@Failure		500	{object}	api.ErrorResponse	"cannot delete avatar"
-//	@Router			/api/profiles/avatar [delete]
+//	@Summary        Удалить аватар
+//	@Description    Удаляет текущий аватар пользователя из хранилища и сбрасывает поле avatar_url в профиле. Если аватара не было, всё равно возвращает 200.
+//	@Tags           Profile
+//	@Security       sessionCookie
+//	@Security       csrfToken
+//	@Produce        json
+//	@Success        200 {object}    api.Response        "Аватар удалён"
+//	@Failure        401 {object}    api.ErrorResponse   "Пользователь не авторизован"
+//	@Failure        404 {object}    api.ErrorResponse   "Пользователь не найден"
+//	@Failure        500 {object}    api.ErrorResponse   "Ошибка удаления аватара"
+//	@Router         /api/profiles/avatar [delete]
 func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -301,7 +325,7 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := p.usecase.DeleteAvatar(r.Context(), userLink); err != nil {
+	if err := p.profile.DeleteAvatar(r.Context(), userLink); err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
@@ -312,6 +336,83 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
+// ResetUserPassword устанавливает новый пароль
+//
+//	@Summary        Сброс пароля
+//	@Description    Устанавливает новый пароль, используя одноразовый token_id (код из письма). Токен инвалидируется после использования.
+//	@Tags           Auth
+//	@Accept         json
+//	@Produce        json
+//	@Param          input   body        dto.NewPasswordRequest  true    "Новый пароль и одноразовый токен"
+//	@Success        200     {object}    api.Response            "Пароль успешно изменён"
+//	@Failure        400     {object}    api.ErrorResponse       "Пароли не совпадают, некорректная длина или токен не найден"
+//	@Failure        404     {object}    api.ErrorResponse       "Токен не существует/истёк или пользователь не найден"
+//	@Failure        500     {object}    api.ErrorResponse       "Внутренняя ошибка сервера при смене пароля"
+//	@Router         /api/reset-password [post]
+func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	var request dto.NewPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if err := ValidatorRequestNewPassword(request.Password, request.RepeatedPassword, p.cfg.MaxLenPassword, p.cfg.MinLenPassword); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
+		return
+	}
+
+	if err := p.mailSender.CheckRecoveryCode(r.Context(), request.TokenID); err != nil {
+		logger.Error().Err(err).Msg("mailSender.CheckRecoveryCode failed")
+
+		if errors.Is(err, common.ErrorResetTokenNotFound) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
+			return
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
+		return
+	}
+
+	userLink, err := p.mailSender.ExchangeTokenForUser(r.Context(), domain.ResetToken{
+		Token: request.TokenID,
+	})
+	if err != nil {
+		logger.Error().Err(err).Msg("mailSender.ExchangeTokenForUser failed")
+
+		if errors.Is(err, common.ErrorResetTokenNotFound) {
+			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrResetTokenNotExistOrExpired.Error())
+			return
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		return
+	}
+
+	if err := p.profile.ResetPassword(r.Context(), domain.UpdatedPassword{
+		UserLink: userLink,
+		Password: request.Password,
+	}); err != nil {
+		logger.Error().Err(err).Msg("profile.ResetPassword failed")
+
+		if errors.Is(err, common.ErrorNotNullValue) {
+			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
+			return
+		}
+
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+
+		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
+		return
+	}
+
+	api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 func convertToProfileResponse(u domain.FullInfoUser) dto.ProfileResponse {

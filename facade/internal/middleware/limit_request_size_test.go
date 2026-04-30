@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/middleware"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/stretchr/testify/assert"
 )
 

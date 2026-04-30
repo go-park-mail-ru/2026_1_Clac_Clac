@@ -11,6 +11,8 @@ var (
 	ErrInternalServerError    = errors.New("something went wrong")
 	ErrUserNotAuthorized      = errors.New("user not authorized")
 	ErrUserDoesNotExists      = errors.New("user does not exists")
+	ErrUserAlreadyExists      = errors.New("user already exist")
+	ErrNullInNotNullField     = errors.New("field can not be null")
 
 	ErrOAuthCodeEmpty              = errors.New("oauth_code_empty")
 	ErrOAuthExchangeFailed         = errors.New("oauth_error")
@@ -20,6 +22,8 @@ var (
 	ErrOAuthEmptyUserData          = errors.New("oauth_no_user_data")
 	ErrOAuthInternalServerError    = errors.New("oauth_something_went_wrong")
 	ErrOAuthCannotSaveRefreshToken = errors.New("oauth cannot save refresh token")
+
+	ErrResetTokenNotExistOrExpired = errors.New("reset token not found or expired")
 
 	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
 	ErrCannotGetCSRFTokenExpireTime = errors.New("cannot get csrf token expire time")

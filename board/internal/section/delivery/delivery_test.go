@@ -177,7 +177,7 @@ func TestGetCards(t *testing.T) {
 	serviceCards := []serviceDto.Card{
 		{
 			CardLink:     cardLink,
-			ExecuterName: &executer,
+			ExecutorName: &executer,
 			Title:        "Task 1",
 			DeadLine:     &deadline,
 		},

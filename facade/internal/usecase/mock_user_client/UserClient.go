@@ -44,6 +44,52 @@ func (_m *UserClient) CreateUser(ctx context.Context, infoUser domain.NewCredent
 	return r0, r1
 }
 
+// DeleteAvatar provides a mock function with given fields: ctx, userLink
+func (_m *UserClient) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAvatar")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetProfile provides a mock function with given fields: ctx, userLink
+func (_m *UserClient) GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error) {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfile")
+	}
+
+	var r0 domain.FullInfoUser
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (domain.FullInfoUser, error)); ok {
+		return rf(ctx, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) domain.FullInfoUser); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Get(0).(domain.FullInfoUser)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUser provides a mock function with given fields: ctx, entryUser
 func (_m *UserClient) GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error) {
 	ret := _m.Called(ctx, entryUser)
@@ -143,6 +189,52 @@ func (_m *UserClient) ResetPassword(ctx context.Context, updatedPassword domain.
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdatedPassword) error); ok {
 		r0 = rf(ctx, updatedPassword)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateAvatar provides a mock function with given fields: ctx, avatarInfo
+func (_m *UserClient) UpdateAvatar(ctx context.Context, avatarInfo domain.AvatarInfo) (string, error) {
+	ret := _m.Called(ctx, avatarInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAvatar")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.AvatarInfo) (string, error)); ok {
+		return rf(ctx, avatarInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.AvatarInfo) string); ok {
+		r0 = rf(ctx, avatarInfo)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.AvatarInfo) error); ok {
+		r1 = rf(ctx, avatarInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UpdateProfile provides a mock function with given fields: ctx, updatedInfo
+func (_m *UserClient) UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo) error {
+	ret := _m.Called(ctx, updatedInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateProfile")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdatedInfo) error); ok {
+		r0 = rf(ctx, updatedInfo)
 	} else {
 		r0 = ret.Error(0)
 	}
