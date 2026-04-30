@@ -13,7 +13,7 @@ services:
       - ../../appeal/.env
     environment:
       - DATABASE_HOST=appeal-db
-      - DATABASE_PORT=5432
+      - DATABASE_PORT=5433
     restart: unless-stopped
     depends_on:
       appeal-migrate:
