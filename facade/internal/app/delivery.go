@@ -10,6 +10,7 @@ type Delivery struct {
 	Profile    *handlers.Profile
 	MailSender *handlers.MailSender
 	CSRF       *handlers.CSRF
+	Appeal     *handlers.Appeal
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -34,10 +35,16 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		CoolDownExpirationSec: int64(conf.Services.RateLimiters.CoolDownExpirationSec),
 	}
 
+	appealConfig := handlers.AppealConfig{
+		MultipartAttachmentFileKey: conf.Services.Appeal.Handler.MultipartAttachmentFileKey,
+		MaxAttachmentSize:          conf.App.MaxUploadImageSize,
+	}
+
 	return &Delivery{
 		Auth:       handlers.NewAuthHandler(manager.Auth, manager.User, authConfig),
 		Profile:    handlers.NewProfileHandler(manager.User, manager.MailSender, profileConfig),
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
+		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
 	}
 }

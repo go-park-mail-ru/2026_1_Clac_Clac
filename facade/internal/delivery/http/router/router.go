@@ -39,6 +39,15 @@ type CSRFHandler interface {
 	SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request)
 }
 
+type AppealHandler interface {
+	CreateAppeal(w http.ResponseWriter, r *http.Request)
+	GetAppeals(w http.ResponseWriter, r *http.Request)
+	UploadAttachment(w http.ResponseWriter, r *http.Request)
+	DeleteAppeal(w http.ResponseWriter, r *http.Request)
+	GetStats(w http.ResponseWriter, r *http.Request)
+	ChangeAppealStatus(w http.ResponseWriter, r *http.Request)
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
@@ -47,6 +56,7 @@ type Tools struct {
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
+	Appeal      AppealHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -114,6 +124,14 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodGet)
 	withText.HandleFunc("/cards/{card_link}/subtasks/{link}", notImplemented).Methods(http.MethodPut)
 	withText.HandleFunc("/cards/{card_link}/subtasks/{link}", notImplemented).Methods(http.MethodDelete)
+
+	withText.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
+	withText.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
+	withImage.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
+	withText.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
+	withText.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
+	withText.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
+
 	return r
 }
 
