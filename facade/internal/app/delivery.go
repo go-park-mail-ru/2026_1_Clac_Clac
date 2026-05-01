@@ -10,6 +10,7 @@ type Delivery struct {
 	Profile    *handlers.Profile
 	MailSender *handlers.MailSender
 	CSRF       *handlers.CSRF
+	Board      *handlers.Board
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -34,10 +35,15 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		CoolDownExpirationSec: int64(conf.Services.RateLimiters.CoolDownExpirationSec),
 	}
 
+	boardConfig := handlers.BoardConfig{
+		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
+	}
+
 	return &Delivery{
 		Auth:       handlers.NewAuthHandler(manager.Auth, manager.User, authConfig),
 		Profile:    handlers.NewProfileHandler(manager.User, manager.MailSender, profileConfig),
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
+		Board:      handlers.NewBoard(manager.Board, boardConfig),
 	}
 }

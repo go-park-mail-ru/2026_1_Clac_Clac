@@ -60,7 +60,7 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		return nil, fmt.Errorf("failed to connect to RateLimiter service: %w", err)
 	}
 
-	boardConn, err := connect(config.Board.Addr)
+	boardConn, err := connect(config.Board.Client.Addr)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Board service: %w", err)
