@@ -77,3 +77,11 @@ services:
         window: 1h
         ttl: 50s
     cool_down_expiration: 60
+
+  appeal:
+    client:
+      addr: "localhost:50056"
+      timeout: 5s
+      retries: 5
+    handler:
+      multipart_attachment_file_key: "attachment"

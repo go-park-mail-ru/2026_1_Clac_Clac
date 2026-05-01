@@ -11,6 +11,7 @@ type Manager struct {
 	CoolDown   *usecase.CoolDown
 	MailSender *usecase.MailSender
 	CSRF       *usecase.CSRF
+	Appeal     *usecase.Appeal
 }
 
 func NewManager(connector *Connector, conf *config.Config) *Manager {
@@ -28,5 +29,6 @@ func NewManager(connector *Connector, conf *config.Config) *Manager {
 		CoolDown:   usecase.NewCoolDown(connector.RateLimiter),
 		MailSender: usecase.NewMailSender(connector.MailSender),
 		CSRF:       usecase.NewCSRF(configCSRF),
+		Appeal:     usecase.NewAppeal(connector.Appeal),
 	}
 }

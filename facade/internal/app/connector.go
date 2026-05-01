@@ -15,6 +15,7 @@ type Connector struct {
 	Auth        *clients.Auth
 	MailSender  *clients.MailSender
 	RateLimiter *clients.RateLimiter
+	Appeal      *clients.Appeal
 
 	logger *zerolog.Logger
 	conns  []*grpc.ClientConn
@@ -56,11 +57,18 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		return nil, fmt.Errorf("failed to connect to RateLimiter service: %w", err)
 	}
 
+	appealConn, err := connect(config.Appeal.Client.Addr)
+	if err != nil {
+		closeAll(activeConns, logger)
+		return nil, fmt.Errorf("failed to connect to Appeal service: %w", err)
+	}
+
 	return &Connector{
 		User:        clients.NewUserClient(userConn),
 		Auth:        clients.NewAuthClient(authConn),
 		MailSender:  clients.NewMailSenderClient(mailSenderConn),
 		RateLimiter: clients.NewRateLimiterClient(rateLimiterConn),
+		Appeal:      clients.NewAppealClient(appealConn),
 		logger:      logger,
 		conns:       activeConns,
 	}, nil

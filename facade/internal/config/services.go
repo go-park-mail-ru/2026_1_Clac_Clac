@@ -6,6 +6,7 @@ type Services struct {
 	Auth         Auth         `mapstructure:"auth"`
 	Board        ClientConfig `mapstructure:"board"`
 	RateLimiters RateLimiters `mapstructure:"rate_limiters"`
+	Appeal       Appeal       `mapstructure:"appeal"`
 }
 
 func DefaultServicesConfig() Services {
@@ -15,5 +16,6 @@ func DefaultServicesConfig() Services {
 		Auth:         DefaultAuthConfig(),
 		Board:        DefaultClientConfig(),
 		RateLimiters: DefaultActionsRateLimiters(),
+		Appeal:       DefaultAppealConfig(),
 	}
 }

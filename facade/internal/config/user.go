@@ -10,7 +10,7 @@ const (
 )
 
 type UserHandler struct {
-	SignatureTypeBytes     int                 `mapstructure:"signature_type_bytes"`
+	SignatureTypeBytes    int                 `mapstructure:"signature_type_bytes"`
 	MaxReadBytes          int64               `mapstructure:"max_read_bytes"`
 	MaxLenNameUser        int                 `mapstructure:"max_len_name_user"`
 	MaxLenDescriptionUser int                 `mapstructure:"max_len_description_user"`
