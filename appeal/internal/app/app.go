@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/config"
 	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/delivery"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	appealPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/rs/zerolog"

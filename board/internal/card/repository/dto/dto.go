@@ -55,3 +55,17 @@ type UpdateCommentInfo struct {
 	CommentLink uuid.UUID
 	Text        string
 }
+
+type CreateSubtaskInfo struct {
+	SubtaskLink uuid.UUID
+	TaskLink    uuid.UUID
+	Description string
+}
+
+type SubtaskInfo struct {
+	SubtaskLink uuid.UUID
+	CardLink    uuid.UUID
+	Description string
+	IsDone      bool
+	Position    int
+}

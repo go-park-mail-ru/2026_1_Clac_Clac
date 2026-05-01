@@ -421,7 +421,7 @@ func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.Creat
 	newCommentLink := uuid.New()
 
 	createCommentQuery := `
-		INSERT INTO comment_task (task_id, parent_id, author_link, text)
+		INSERT INTO comment_task (link, task_id, parent_id, author_link, text)
 		VALUES (
 			$1,
 			(SELECT task_id FROM task WHERE task_link = $2),

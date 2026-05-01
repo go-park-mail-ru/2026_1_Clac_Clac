@@ -179,7 +179,7 @@ func TestHandlerSetCooldown(t *testing.T) {
 				m.On("SetCooldown", mock.Anything, mock.Anything).Return(false, 30*time.Second, nil)
 			},
 			expectedAllowed: false,
-			expectedWaitMs:  30000,
+			expectedWaitMs:  30,
 			expectedCode:    codes.OK,
 		},
 		{

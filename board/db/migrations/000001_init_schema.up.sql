@@ -183,7 +183,7 @@ JOIN task_version v
 CREATE TABLE subtask (
     subtask_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_link UUID NOT NULL,
-    link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+    subtask_link UUID DEFAULT gen_random_uuid() NOT NULL UNIQUE,
 
     "description" TEXT NOT NULL,
     is_done BOOLEAN DEFAULT false NOT NULL,
