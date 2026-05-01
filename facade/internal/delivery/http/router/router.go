@@ -39,6 +39,16 @@ type CSRFHandler interface {
 	SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request)
 }
 
+type BoardHandler interface {
+	GetBoards(w http.ResponseWriter, r *http.Request)
+	GetBoard(w http.ResponseWriter, r *http.Request)
+	CreateBoard(w http.ResponseWriter, r *http.Request)
+	DeleteBoard(w http.ResponseWriter, r *http.Request)
+	UpdateBoard(w http.ResponseWriter, r *http.Request)
+	UploadBackground(w http.ResponseWriter, r *http.Request)
+	GetMembers(w http.ResponseWriter, r *http.Request)
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
@@ -47,6 +57,7 @@ type Tools struct {
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
+	Board       BoardHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -109,6 +120,14 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withText.HandleFunc("/profiles/info", deps.Profile.UpdateProfile).Methods(http.MethodPost)
 	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
 	withText.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
+
+	withText.HandleFunc("/boards", deps.Board.GetBoards).Methods(http.MethodGet)
+	withText.HandleFunc("/boards", deps.Board.CreateBoard).Methods(http.MethodPost)
+	withText.HandleFunc("/boards/{link}", deps.Board.GetBoard).Methods(http.MethodGet)
+	withText.HandleFunc("/boards/{link}", deps.Board.DeleteBoard).Methods(http.MethodDelete)
+	withText.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
+	withImage.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
+	withText.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
 
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodPost)
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodGet)
