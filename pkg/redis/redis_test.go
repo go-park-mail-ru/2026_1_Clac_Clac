@@ -4,10 +4,44 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestNewPoolRedisSuccess(t *testing.T) {
+	mr, err := miniredis.Run()
+	require.NoError(t, err)
+	defer mr.Close()
+
+	logger := zerolog.Nop()
+	client, err := NewPoolRedis(&redis.Options{
+		Addr: mr.Addr(),
+	}, Config{
+		PingSleepTime: time.Millisecond,
+		MaxRetries:    3,
+	}, &logger)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+	if client != nil {
+		client.Close()
+	}
+}
+
+func TestNewPoolRedisRetry(t *testing.T) {
+	logger := zerolog.Nop()
+	_, err := NewPoolRedis(&redis.Options{
+		Addr:        "localhost:9999",
+		DialTimeout: 5 * time.Millisecond,
+	}, Config{
+		PingSleepTime: time.Millisecond,
+		MaxRetries:    2,
+	}, &logger)
+	assert.ErrorIs(t, err, ErrorConnectRedis)
+}
 
 func TestNewPoolRedisError(t *testing.T) {
 	logger := zerolog.Nop()

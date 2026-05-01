@@ -12,12 +12,37 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	mockCardSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery/mock_card_srv"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+// testCardService extends the generated mock with subtask methods missing from it.
+type testCardService struct {
+	*mockCardSrv.CardService
+}
+
+func (m *testCardService) CreateSubtask(ctx context.Context, createInfo serviceDto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error) {
+	args := m.Called(ctx, createInfo, userLink)
+	return args.Get(0).(models.SubtaskInfo), args.Error(1)
+}
+
+func (m *testCardService) DeleteSubtask(ctx context.Context, deleteInfo serviceDto.DeleteSubtask, userLink uuid.UUID) error {
+	args := m.Called(ctx, deleteInfo, userLink)
+	return args.Error(0)
+}
+
+func (m *testCardService) UpdateSubtask(ctx context.Context, updateInfo serviceDto.UpdateSubtask, userLink uuid.UUID) error {
+	args := m.Called(ctx, updateInfo, userLink)
+	return args.Error(0)
+}
+
+func newTestCardService(t *testing.T) *testCardService {
+	return &testCardService{mockCardSrv.NewCardService(t)}
+}
 
 func grpcCode(err error) codes.Code {
 	return status.Code(err)
@@ -43,14 +68,14 @@ func TestGetCard(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.GetCardRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 		checkResp    func(t *testing.T, resp *pb.GetCardResponse)
 	}{
 		{
 			nameTest: "Success get card",
 			req:      &pb.GetCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetCard", mock.Anything, targetCardLink, mock.Anything).Return(serviceCardInfo, nil)
 			},
 			expectedCode: codes.OK,
@@ -71,7 +96,7 @@ func TestGetCard(t *testing.T) {
 		{
 			nameTest: "Error card not found",
 			req:      &pb.GetCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetCard", mock.Anything, targetCardLink, mock.Anything).Return(serviceDto.InfoCard{}, common.ErrCardNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -79,7 +104,7 @@ func TestGetCard(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      &pb.GetCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetCard", mock.Anything, targetCardLink, mock.Anything).Return(serviceDto.InfoCard{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -88,7 +113,7 @@ func TestGetCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -111,13 +136,13 @@ func TestDeleteCard(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.DeleteCardRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 	}{
 		{
 			nameTest: "Success delete card",
 			req:      &pb.DeleteCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteCard", mock.Anything, targetCardLink, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
@@ -131,7 +156,7 @@ func TestDeleteCard(t *testing.T) {
 		{
 			nameTest: "Error card not found",
 			req:      &pb.DeleteCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteCard", mock.Anything, targetCardLink, mock.Anything).Return(common.ErrCardNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -139,7 +164,7 @@ func TestDeleteCard(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      &pb.DeleteCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteCard", mock.Anything, targetCardLink, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -148,7 +173,7 @@ func TestDeleteCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -180,13 +205,13 @@ func TestUpdateCard(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.UpdateCardRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 	}{
 		{
 			nameTest: "Success update card",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
@@ -210,7 +235,7 @@ func TestUpdateCard(t *testing.T) {
 		{
 			nameTest: "Error card not found",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrCardNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -218,7 +243,7 @@ func TestUpdateCard(t *testing.T) {
 		{
 			nameTest: "Error invalid reference data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrInvalidReferenceCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -226,7 +251,7 @@ func TestUpdateCard(t *testing.T) {
 		{
 			nameTest: "Error check violation data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrInvalidCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -234,7 +259,7 @@ func TestUpdateCard(t *testing.T) {
 		{
 			nameTest: "Error missing required field",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -242,7 +267,7 @@ func TestUpdateCard(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateCardDetails", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -251,7 +276,7 @@ func TestUpdateCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -282,13 +307,13 @@ func TestReorderCards(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.ReorderCardsRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 	}{
 		{
 			nameTest: "Success reorder card",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
@@ -308,7 +333,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error card not found",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrCardNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -316,7 +341,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error skip mandatory section",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrCannotSkipMandatorySection)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -324,7 +349,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error invalid reference data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrInvalidReferenceCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -332,7 +357,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error check violation data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrInvalidCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -340,7 +365,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error missing required field",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -348,7 +373,7 @@ func TestReorderCards(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("ReorderCard", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -357,7 +382,7 @@ func TestReorderCards(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -391,14 +416,14 @@ func TestCreateCard(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.CreateCardRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 		checkResp    func(t *testing.T, resp *pb.CreateCardResponse)
 	}{
 		{
 			nameTest: "Success create card",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceResult, nil)
 			},
 			expectedCode: codes.OK,
@@ -435,7 +460,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error section not found",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -443,7 +468,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error card already exists",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrCardAlreadyExists)
 			},
 			expectedCode: codes.AlreadyExists,
@@ -451,7 +476,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error invalid reference data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrInvalidReferenceCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -459,7 +484,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error check violation data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrInvalidCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -467,7 +492,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error missing required field",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -475,7 +500,7 @@ func TestCreateCard(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateCard", mock.Anything, mock.Anything).Return(serviceDto.PlaceCard{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -484,7 +509,7 @@ func TestCreateCard(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -513,14 +538,14 @@ func TestGetComments(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.GetCommentsRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 		checkResp    func(t *testing.T, resp *pb.GetCommentsResponse)
 	}{
 		{
 			nameTest: "Success get comments",
 			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetComments", mock.Anything, targetCardLink, mock.Anything).Return([]serviceDto.CommentInfo{
 					{Link: commentLink, ParentLink: &parentLink, AuthorLink: authorLink, Text: "hello"},
 				}, nil)
@@ -536,7 +561,7 @@ func TestGetComments(t *testing.T) {
 		{
 			nameTest: "Success empty comments",
 			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetComments", mock.Anything, targetCardLink, mock.Anything).Return([]serviceDto.CommentInfo{}, nil)
 			},
 			expectedCode: codes.OK,
@@ -554,7 +579,7 @@ func TestGetComments(t *testing.T) {
 		{
 			nameTest: "Error card not found",
 			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetComments", mock.Anything, targetCardLink, mock.Anything).Return([]serviceDto.CommentInfo{}, common.ErrCardNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -562,7 +587,7 @@ func TestGetComments(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      &pb.GetCommentsRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("GetComments", mock.Anything, targetCardLink, mock.Anything).Return([]serviceDto.CommentInfo{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -571,7 +596,7 @@ func TestGetComments(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -603,14 +628,14 @@ func TestCreateComment(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.CreateCommentRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 		checkResp    func(t *testing.T, resp *pb.CreateCommentResponse)
 	}{
 		{
 			nameTest: "Success create comment",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{
 					Link:       newCommentLink,
 					AuthorLink: targetAuthorLink,
@@ -653,7 +678,7 @@ func TestCreateComment(t *testing.T) {
 				ParentLink: &parentLinkStr,
 				Text:       "reply",
 			},
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{
 					Link:       newCommentLink,
 					ParentLink: &targetParentLink,
@@ -666,7 +691,7 @@ func TestCreateComment(t *testing.T) {
 		{
 			nameTest: "Error missing required field",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, common.ErrMissingRequiredField)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -674,7 +699,7 @@ func TestCreateComment(t *testing.T) {
 		{
 			nameTest: "Error invalid reference data",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, common.ErrInvalidReferenceCardData)
 			},
 			expectedCode: codes.InvalidArgument,
@@ -682,7 +707,7 @@ func TestCreateComment(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(serviceDto.CommentInfo{}, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -691,7 +716,7 @@ func TestCreateComment(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -719,13 +744,13 @@ func TestDeleteComment(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.DeleteCommentRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 	}{
 		{
 			nameTest: "Success delete comment",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(nil)
 			},
 			expectedCode: codes.OK,
@@ -745,7 +770,7 @@ func TestDeleteComment(t *testing.T) {
 		{
 			nameTest: "Error comment not found",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(common.ErrCommentNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -753,7 +778,7 @@ func TestDeleteComment(t *testing.T) {
 		{
 			nameTest: "Error permission denied",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(common.ErrPermissionDenied)
 			},
 			expectedCode: codes.PermissionDenied,
@@ -761,7 +786,7 @@ func TestDeleteComment(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("DeleteComment", mock.Anything, targetCommentLink, targetUserLink).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -770,7 +795,7 @@ func TestDeleteComment(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
@@ -796,13 +821,13 @@ func TestUpdateComment(t *testing.T) {
 	tests := []struct {
 		nameTest     string
 		req          *pb.UpdateCommentRequest
-		mockBehavior func(m *mockCardSrv.CardService)
+		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
 	}{
 		{
 			nameTest: "Success update comment",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateComment", mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedCode: codes.OK,
@@ -822,7 +847,7 @@ func TestUpdateComment(t *testing.T) {
 		{
 			nameTest: "Error comment not found",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateComment", mock.Anything, mock.Anything).Return(common.ErrCommentNotFound)
 			},
 			expectedCode: codes.NotFound,
@@ -830,7 +855,7 @@ func TestUpdateComment(t *testing.T) {
 		{
 			nameTest: "Error permission denied",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateComment", mock.Anything, mock.Anything).Return(common.ErrPermissionDenied)
 			},
 			expectedCode: codes.PermissionDenied,
@@ -838,7 +863,7 @@ func TestUpdateComment(t *testing.T) {
 		{
 			nameTest: "Error internal server",
 			req:      validReq,
-			mockBehavior: func(m *mockCardSrv.CardService) {
+			mockBehavior: func(m *testCardService) {
 				m.On("UpdateComment", mock.Anything, mock.Anything).Return(errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
@@ -847,13 +872,228 @@ func TestUpdateComment(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.nameTest, func(t *testing.T) {
-			mockService := mockCardSrv.NewCardService(t)
+			mockService := newTestCardService(t)
 			if test.mockBehavior != nil {
 				test.mockBehavior(mockService)
 			}
 
 			handler := NewHandler(mockService, Config{})
 			_, err := handler.UpdateComment(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestCreateSubtask(t *testing.T) {
+	targetCardLink := uuid.New()
+	targetUserLink := uuid.New()
+	subtaskLink := uuid.New()
+
+	validReq := &pb.CreateSubtaskRequest{
+		CardLink:    targetCardLink.String(),
+		UserLink:    targetUserLink.String(),
+		Description: "test subtask",
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.CreateSubtaskRequest
+		mockBehavior func(m *testCardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success create subtask",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(
+					models.SubtaskInfo{SubtaskLink: subtaskLink, Description: "test subtask", Position: 1},
+					nil,
+				)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid card uuid",
+			req:          &pb.CreateSubtaskRequest{CardLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.CreateSubtaskRequest{CardLink: targetCardLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error missing required field",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(
+					models.SubtaskInfo{}, common.ErrMissingRequiredField,
+				)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(
+					models.SubtaskInfo{}, errors.New("db error"),
+				)
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := newTestCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.CreateSubtask(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestDeleteSubtask(t *testing.T) {
+	targetSubtaskLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	validReq := &pb.DeleteSubtaskRequest{
+		SubtaskLink: targetSubtaskLink.String(),
+		UserLink:    targetUserLink.String(),
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.DeleteSubtaskRequest
+		mockBehavior func(m *testCardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success delete subtask",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteSubtask", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid subtask uuid",
+			req:          &pb.DeleteSubtaskRequest{SubtaskLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.DeleteSubtaskRequest{SubtaskLink: targetSubtaskLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error subtask not found",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteSubtask", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrSubtaskNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteSubtask", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := newTestCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.DeleteSubtask(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestUpdateSubtask(t *testing.T) {
+	targetSubtaskLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	validReq := &pb.UpdateSubtaskRequest{
+		SubtaskLink: targetSubtaskLink.String(),
+		UserLink:    targetUserLink.String(),
+		Description: "updated desc",
+		IsDone:      true,
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.UpdateSubtaskRequest
+		mockBehavior func(m *testCardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success update subtask",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("UpdateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid subtask uuid",
+			req:          &pb.UpdateSubtaskRequest{SubtaskLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.UpdateSubtaskRequest{SubtaskLink: targetSubtaskLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error subtask not found",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("UpdateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(common.ErrSubtaskNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("UpdateSubtask", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := newTestCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.UpdateSubtask(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 		})

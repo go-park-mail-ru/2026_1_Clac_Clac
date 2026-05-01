@@ -9,6 +9,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func TestStartListenError(t *testing.T) {
+	cfg := Config{
+		Addr: "invalid-address-that-cannot-listen",
+	}
+	buf := &bytes.Buffer{}
+	logger := zerolog.New(buf)
+	e := New(cfg, &logger)
+
+	err := e.Start(context.Background())
+	if err == nil {
+		t.Fatal("expected error from invalid listen address")
+	}
+}
+
 func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second
 	cfg := Config{

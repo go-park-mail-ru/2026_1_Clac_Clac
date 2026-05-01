@@ -10,7 +10,22 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestStartListenError(t *testing.T) {
+	cfg := engine.Config{
+		Addr: "invalid-address-that-cannot-listen",
+	}
+	buf := &bytes.Buffer{}
+	logger := zerolog.New(buf)
+	router := mux.NewRouter()
+	e := engine.New(&cfg, &logger, router)
+
+	err := e.Start(context.Background())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to listen")
+}
 
 func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second

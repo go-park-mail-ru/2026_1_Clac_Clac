@@ -13,6 +13,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type nestedStruct struct {
+	Inner string `mapstructure:"inner_val"`
+}
+
+type bindTestStruct struct {
+	Name    string       `mapstructure:"name"`
+	Skip    string       `mapstructure:"-"`
+	NoTag   string
+	Nested  nestedStruct `mapstructure:"nested"`
+	PtrNest *nestedStruct `mapstructure:"ptr_nested"`
+}
+
+func TestBindStructKeys(t *testing.T) {
+	v := viper.New()
+	config.BindStructKeys(v, bindTestStruct{})
+	assert.NotNil(t, v)
+}
+
+func TestBindStructKeysPointer(t *testing.T) {
+	v := viper.New()
+	s := &bindTestStruct{}
+	config.BindStructKeys(v, s)
+	assert.NotNil(t, v)
+}
+
+func TestBindStructKeysNonStruct(t *testing.T) {
+	v := viper.New()
+	config.BindStructKeys(v, "not a struct")
+	assert.NotNil(t, v)
+}
+
 const (
 	DebugLevel = "debug"
 	InfoLevel  = "info"

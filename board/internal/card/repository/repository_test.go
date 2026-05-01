@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 
 	"github.com/google/uuid"
@@ -28,6 +29,7 @@ func TestRepositoryGetCard(t *testing.T) {
 		Description:  "Description",
 		DataDeadLine: &targetDeadLine,
 		NameExecutor: &targetExecuter,
+		Subtasks:     []models.SubtaskInfo{},
 	}
 
 	tests := []struct {
@@ -39,8 +41,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "display_name"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.NameExecutor)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "display_name", "subtasks"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.NameExecutor, []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -911,11 +913,13 @@ func TestRepositoryCreateComment(t *testing.T) {
 	targetAuthorLink := uuid.New()
 	targetParentLink := uuid.New()
 
+	commentLink := uuid.New()
 	createInfo := dto.CreateCommentInfo{
-		CardLink:   targetCardLink,
-		ParentLink: &targetParentLink,
-		AuthorLink: targetAuthorLink,
-		Text:       "hello world",
+		CommentLink: commentLink,
+		CardLink:    targetCardLink,
+		ParentLink:  &targetParentLink,
+		AuthorLink:  targetAuthorLink,
+		Text:        "hello world",
 	}
 
 	tests := []struct {
@@ -1208,6 +1212,240 @@ func TestRepositoryUpdateComment(t *testing.T) {
 				if assert.Error(t, err) {
 					if errors.Is(test.expectedError, common.ErrCommentNotFound) {
 						assert.ErrorIs(t, err, common.ErrCommentNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryCreateSubtask(t *testing.T) {
+	ctx := context.Background()
+	taskLink := uuid.New()
+	subtaskLink := uuid.New()
+
+	createInfo := dto.CreateSubtaskInfo{
+		SubtaskLink: subtaskLink,
+		TaskLink:    taskLink,
+		Description: "do something",
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedError error
+	}{
+		{
+			nameTest: "Success create subtask",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
+					WithArgs(taskLink, subtaskLink, "do something").
+					WillReturnRows(pgxmock.NewRows([]string{"is_done", "position"}).AddRow(false, 1))
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error missing required field",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
+					WithArgs(taskLink, subtaskLink, "do something").
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+			},
+			expectedError: common.ErrMissingRequiredField,
+		},
+		{
+			nameTest: "Error invalid reference data",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
+					WithArgs(taskLink, subtaskLink, "do something").
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+			},
+			expectedError: common.ErrInvalidReferenceCardData,
+		},
+		{
+			nameTest: "Error query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
+					WithArgs(taskLink, subtaskLink, "do something").
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedError: errors.New("pool.QueryRow: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB)
+			result, err := repo.CreateSubtask(ctx, createInfo)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrMissingRequiredField) ||
+						errors.Is(test.expectedError, common.ErrInvalidReferenceCardData) {
+						assert.ErrorIs(t, err, test.expectedError)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				if assert.NoError(t, err) {
+					assert.Equal(t, subtaskLink, result.SubtaskLink)
+					assert.Equal(t, "do something", result.Description)
+					assert.False(t, result.IsDone)
+					assert.Equal(t, 1, result.Position)
+				}
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryDeleteSubtask(t *testing.T) {
+	ctx := context.Background()
+	subtaskLink := uuid.New()
+
+	deleteInfo := dto.DeleteSubtask{SubTaskLink: subtaskLink}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedError error
+	}{
+		{
+			nameTest: "Success delete subtask",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)DELETE FROM subtask.*WHERE subtask_link = \$1`).
+					WithArgs(subtaskLink).
+					WillReturnResult(pgxmock.NewResult("DELETE", 1))
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error subtask not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)DELETE FROM subtask.*WHERE subtask_link = \$1`).
+					WithArgs(subtaskLink).
+					WillReturnResult(pgxmock.NewResult("DELETE", 0))
+			},
+			expectedError: common.ErrSubtaskNotFound,
+		},
+		{
+			nameTest: "Error exec fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)DELETE FROM subtask.*WHERE subtask_link = \$1`).
+					WithArgs(subtaskLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedError: errors.New("pool.Exec: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB)
+			err = repo.DeleteSubtask(ctx, deleteInfo)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrSubtaskNotFound) {
+						assert.ErrorIs(t, err, common.ErrSubtaskNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryUpdateSubtask(t *testing.T) {
+	ctx := context.Background()
+	subtaskLink := uuid.New()
+
+	updateInfo := dto.UpdateSubtask{
+		SubTaskLink: subtaskLink,
+		Description: "updated desc",
+		IsDone:      true,
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedError error
+	}{
+		{
+			nameTest: "Success update subtask",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)UPDATE subtask.*WHERE subtask_link = \$3`).
+					WithArgs("updated desc", true, subtaskLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error subtask not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)UPDATE subtask.*WHERE subtask_link = \$3`).
+					WithArgs("updated desc", true, subtaskLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			},
+			expectedError: common.ErrSubtaskNotFound,
+		},
+		{
+			nameTest: "Error exec fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectExec(`(?s)UPDATE subtask.*WHERE subtask_link = \$3`).
+					WithArgs("updated desc", true, subtaskLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedError: errors.New("pool.Exec: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB)
+			err = repo.UpdateSubtask(ctx, updateInfo)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrSubtaskNotFound) {
+						assert.ErrorIs(t, err, common.ErrSubtaskNotFound)
 					} else {
 						assert.EqualError(t, err, test.expectedError.Error())
 					}

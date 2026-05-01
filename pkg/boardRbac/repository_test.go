@@ -180,5 +180,23 @@ func TestRepository_GetUserRoleByLink_Generic(t *testing.T) {
 			assert.Equal(t, test.expectedRole, role)
 			assert.Equal(t, test.expectedBoard, bLink)
 		})
+
+		t.Run(test.nameTest+"_Subtask", func(t *testing.T) {
+			mockDB, _ := pgxmock.NewPool()
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+			repo := NewRepository(mockDB)
+			role, bLink, err := repo.GetUserRoleBySubtaskLink(ctx, itemLink, userLink)
+
+			if test.expectedError != nil {
+				assert.ErrorContains(t, err, test.expectedError.Error())
+				assert.ErrorContains(t, err, "get user role on subtask")
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, test.expectedRole, role)
+			assert.Equal(t, test.expectedBoard, bLink)
+		})
 	}
 }
