@@ -20,7 +20,7 @@ CREATE TABLE "user" (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     CONSTRAINT check_display_name CHECK (char_length(display_name) <= 128),
-    CONSTRAINT check_length_description CHECK (char_length(description_user) <= 1000),
+    CONSTRAINT check_length_description CHECK (char_length(description_user) <= 1000)
 );
 
 CREATE TRIGGER set_user_updated_at

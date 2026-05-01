@@ -1,29 +1,29 @@
 services:
-  appeal:
+  user:
     build:
       context: ../../
-      dockerfile: deployments/appeal/Dockerfile
-    image: nexus-appeal
-    container_name: nexus-appeal
+      dockerfile: deployments/user/Dockerfile
+    image: nexus-user
+    container_name: nexus-user
     ports:
-      - "127.0.0.1:50056:8080"
+      - "127.0.0.1:50051:8080"
     volumes:
-      - ../../appeal/config.yaml:/app/config.yaml:ro
+      - ../../user/config.yaml:/app/config.yaml:ro
     env_file:
-      - ../../appeal/.env
+      - ../../user/.env
     environment:
-      - DATABASE_HOST=appeal-db
+      - DATABASE_HOST=user-db
       - DATABASE_PORT=5432
     restart: unless-stopped
     depends_on:
-      appeal-migrate:
+      user-migrate:
         condition: service_completed_successfully
 
-  appeal-db:
+  user-db:
     image: postgres:17-alpine
-    container_name: nexus-appeal-db
+    container_name: nexus-user-db
     volumes:
-      - appeal_db_data:/var/lib/postgresql/data/
+      - user_db_data:/var/lib/postgresql/data/
     environment:
       - POSTGRES_DB=${DATABASE_NAME}
       - POSTGRES_USER=${DATABASE_USER}
@@ -35,17 +35,17 @@ services:
       timeout: 5s
       retries: 5
 
-  appeal-migrate:
+  user-migrate:
     image: migrate/migrate
     volumes:
-      - ../../appeal/db/migrations:/migrations
+      - ../../user/internal/db/migrations:/migrations
     command:
       - -path=/migrations
-      - -database=postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@appeal-db:5432/${DATABASE_NAME}?sslmode=disable
+      - -database=postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@user-db:5432/${DATABASE_NAME}?sslmode=disable
       - up
     depends_on:
-      appeal-db:
+      user-db:
         condition: service_healthy
 
 volumes:
-  appeal_db_data:
+  user_db_data:

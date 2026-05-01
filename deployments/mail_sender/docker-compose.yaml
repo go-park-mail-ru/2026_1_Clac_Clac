@@ -1,0 +1,36 @@
+services:
+  mail-sender:
+    build:
+      context: ../../
+      dockerfile: deployments/mail_sender/Dockerfile
+    image: nexus-mail-sender
+    container_name: nexus-mail-sender
+    ports:
+      - "127.0.0.1:50053:8080"
+    volumes:
+      - ../../mail_sender/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../mail_sender/.env
+    environment:
+      - REDIS_HOST=mail-sender-redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    depends_on:
+      mail-sender-redis:
+        condition: service_healthy
+
+  mail-sender-redis:
+    image: redis:7-alpine
+    container_name: nexus-mail-sender-redis
+    volumes:
+      - mail-sender_redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping", "--no-auth-warning"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mail-sender_redis_data:
