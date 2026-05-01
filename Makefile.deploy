@@ -12,7 +12,7 @@ NGINX_CONF_NAME = nginx.conf
 NGINX_CONF_FILE = $(ROOT_DIR)/nginx/$(NGINX_CONF_NAME)
 NGINX_SITE_ENABLED_FILE = /etc/nginx/sites-enabled/$(NGINX_CONF_NAME)
 
-.PHONY: help deploy reload create-service setup-nginx
+.PHONY: help deploy reload create-service setup-nginx up-build
 
 define LOGO_TEXT
   /$$$$$$$$$$$$  /$$$$                            /$$$$$$$$$$$$  /$$$$
@@ -53,3 +53,12 @@ reload:
 	sudo systemctl daemon-reload
 	sudo systemctl enable $(SERVICE_NAME)
 	sudo systemctl restart $(SERVICE_NAME)
+
+up-build:
+	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
+	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env up -d --build
+	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env up -d --build
+	docker compose -f deployments/mail_sender/docker-compose.yaml --env-file=./mail_sender/.env up -d --build
+	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env up -d --build
+	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env up -d --build
+	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build
