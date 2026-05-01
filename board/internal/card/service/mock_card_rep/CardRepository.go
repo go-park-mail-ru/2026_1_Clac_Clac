@@ -8,6 +8,8 @@ import (
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	mock "github.com/stretchr/testify/mock"
 
+	models "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -72,6 +74,34 @@ func (_m *CardRepository) CreateComment(ctx context.Context, createCardInfo dto.
 	return r0, r1
 }
 
+// CreateSubtask provides a mock function with given fields: ctx, createInfo
+func (_m *CardRepository) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo) (models.SubtaskInfo, error) {
+	ret := _m.Called(ctx, createInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSubtask")
+	}
+
+	var r0 models.SubtaskInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateSubtaskInfo) (models.SubtaskInfo, error)); ok {
+		return rf(ctx, createInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateSubtaskInfo) models.SubtaskInfo); ok {
+		r0 = rf(ctx, createInfo)
+	} else {
+		r0 = ret.Get(0).(models.SubtaskInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CreateSubtaskInfo) error); ok {
+		r1 = rf(ctx, createInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteCard provides a mock function with given fields: ctx, linkCard
 func (_m *CardRepository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	ret := _m.Called(ctx, linkCard)
@@ -101,6 +131,24 @@ func (_m *CardRepository) DeleteComment(ctx context.Context, commentLink uuid.UU
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
 		r0 = rf(ctx, commentLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteSubtask provides a mock function with given fields: ctx, deleteInfo
+func (_m *CardRepository) DeleteSubtask(ctx context.Context, deleteInfo dto.DeleteSubtask) error {
+	ret := _m.Called(ctx, deleteInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteSubtask")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.DeleteSubtask) error); ok {
+		r0 = rf(ctx, deleteInfo)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -241,6 +289,24 @@ func (_m *CardRepository) UpdateComment(ctx context.Context, updateCommentInfo d
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateCommentInfo) error); ok {
 		r0 = rf(ctx, updateCommentInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateSubtask provides a mock function with given fields: ctx, updateInfo
+func (_m *CardRepository) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtask) error {
+	ret := _m.Called(ctx, updateInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateSubtask")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateSubtask) error); ok {
+		r0 = rf(ctx, updateInfo)
 	} else {
 		r0 = ret.Error(0)
 	}

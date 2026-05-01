@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-//go:generate --name=BoardClient --output=mock_board_client
+//go:generate mockery --name=BoardClient --output=mock_board_client
 type BoardClient interface {
 	GetBoards(ctx context.Context, userLink uuid.UUID) ([]domain.BoardInfo, error)
 	GetBoard(ctx context.Context, boardInfo domain.GetBoardRequest) (domain.BoardInfo, error)

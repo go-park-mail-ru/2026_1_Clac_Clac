@@ -35,7 +35,7 @@ const (
 	boardLinkKey = "link"
 )
 
-//go:generate --name=BoardUsecase --output=mock_board_use_case
+//go:generate mockery --name=BoardUsecase --output=mock_board_use_case
 type BoardUsecase interface {
 	GetBoards(ctx context.Context, userLink uuid.UUID) ([]domain.BoardInfo, error)
 	GetBoard(ctx context.Context, boardInfo domain.GetBoardRequest) (domain.BoardInfo, error)
