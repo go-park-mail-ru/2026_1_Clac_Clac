@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
 	mockSectionRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/mock_section_rep"
@@ -224,6 +225,14 @@ func TestServiceGetCards(t *testing.T) {
 			ExecutorName: &targetExecutorName,
 			Title:        "Task 1",
 			DeadLine:     &targetDeadLine,
+			Subtasks: []models.SubtaskInfo{
+				{
+					SubtaskLink: uuid.New(),
+					Description: "Subtask 1",
+					IsDone:      true,
+					Position:    1,
+				},
+			},
 		},
 	}
 
@@ -233,6 +242,14 @@ func TestServiceGetCards(t *testing.T) {
 			ExecutorName: repCards[0].ExecutorName,
 			Title:        repCards[0].Title,
 			DeadLine:     repCards[0].DeadLine,
+			Subtasks: []models.SubtaskInfo{
+				{
+					SubtaskLink: repCards[0].Subtasks[0].SubtaskLink,
+					Description: repCards[0].Subtasks[0].Description,
+					IsDone:      repCards[0].Subtasks[0].IsDone,
+					Position:    repCards[0].Subtasks[0].Position,
+				},
+			},
 		},
 	}
 
@@ -263,10 +280,10 @@ func TestServiceGetCards(t *testing.T) {
 			nameTest: "Error from repository",
 			mockBehavior: func(m *mockSectionRep.SectionRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnSection", ctx, targetSectionLink, userLink, mock.Anything).Return(nil)
-				m.On("GetCards", ctx, targetSectionLink).Return([]repositoryDto.Card{}, errors.New("db error"))
+				m.On("GetCards", ctx, targetSectionLink).Return(nil, errors.New("db error"))
 			},
 			expectedError: errors.New("SectionRepository.GetCards: db error"),
-			expectedRes:   []dto.Card{},
+			expectedRes:   nil,
 		},
 	}
 
@@ -290,7 +307,6 @@ func TestServiceGetCards(t *testing.T) {
 		})
 	}
 }
-
 func TestServiceCreateSection(t *testing.T) {
 	ctx := context.Background()
 	userLink := uuid.New()

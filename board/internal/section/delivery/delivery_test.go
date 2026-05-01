@@ -9,7 +9,9 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery"
 	mockSectionService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery/mock_section_service"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/models"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -172,8 +174,9 @@ func TestGetSections(t *testing.T) {
 
 func TestGetCards(t *testing.T) {
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	cardLink := uuid.New()
 	targetUserLink := uuid.New()
+	cardLink := uuid.New()
+	subtaskLink := uuid.New()
 	executer := "John Doe"
 	deadline := time.Now().Add(24 * time.Hour)
 
@@ -183,6 +186,14 @@ func TestGetCards(t *testing.T) {
 			ExecutorName: &executer,
 			Title:        "Task 1",
 			DeadLine:     &deadline,
+			Subtasks: []models.SubtaskInfo{
+				{
+					SubtaskLink: subtaskLink,
+					Description: "Subtask 1",
+					IsDone:      true,
+					Position:    1,
+				},
+			},
 		},
 	}
 
@@ -197,26 +208,53 @@ func TestGetCards(t *testing.T) {
 			name: "success",
 			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return(serviceCards, nil)
+				// Ожидаем передачу targetUserLink
+				m.On("GetCards", mock.Anything, sectionLink, targetUserLink).Return(serviceCards, nil)
 			},
 			expectedCode: codes.OK,
 			checkResp: func(t *testing.T, resp *pb.GetCardsResponse) {
 				assert.Len(t, resp.CardsInfo, 1)
-				assert.Equal(t, cardLink.String(), resp.CardsInfo[0].Link)
-				assert.Equal(t, "Task 1", resp.CardsInfo[0].Title)
+				card := resp.CardsInfo[0]
+
+				// Проверяем основные поля
+				assert.Equal(t, cardLink.String(), card.Link)
+				assert.Equal(t, "Task 1", card.Title)
+				assert.Equal(t, executer, *card.ExecutorName)
+				assert.NotNil(t, card.Deadline)
+
+				// Проверяем маппинг подзадач
+				assert.Len(t, card.Subtasks, 1)
+				assert.Equal(t, subtaskLink.String(), card.Subtasks[0].SubtaskLink)
+				assert.Equal(t, "Subtask 1", card.Subtasks[0].Description)
+				assert.True(t, card.Subtasks[0].IsDone)
+				assert.Equal(t, int64(1), card.Subtasks[0].Position)
 			},
 		},
 		{
 			name:         "invalid section uuid",
-			req:          &pb.GetCardsRequest{SectionLink: "bad-uuid"},
+			req:          &pb.GetCardsRequest{SectionLink: "bad-uuid", UserLink: targetUserLink.String()},
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "invalid user uuid", // НОВЫЙ КЕЙС
+			req:          &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: "bad-uuid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "permission denied (rbac)", // НОВЫЙ КЕЙС
+			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
+			mockBehavior: func(m *mockSectionService.SectionService) {
+				m.On("GetCards", mock.Anything, sectionLink, targetUserLink).Return(nil, rbac.ErrActionDenied)
+			},
+			expectedCode: codes.PermissionDenied,
 		},
 		{
 			name: "section not found",
 			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return([]serviceDto.Card{}, common.ErrSectionNotFound)
+				m.On("GetCards", mock.Anything, sectionLink, targetUserLink).Return(nil, common.ErrSectionNotFound)
 			},
 			expectedCode: codes.NotFound,
 		},
@@ -224,7 +262,7 @@ func TestGetCards(t *testing.T) {
 			name: "internal error",
 			req:  &pb.GetCardsRequest{SectionLink: sectionLink.String(), UserLink: targetUserLink.String()},
 			mockBehavior: func(m *mockSectionService.SectionService) {
-				m.On("GetCards", mock.Anything, sectionLink, mock.Anything).Return([]serviceDto.Card{}, errors.New("db error"))
+				m.On("GetCards", mock.Anything, sectionLink, targetUserLink).Return(nil, errors.New("db error"))
 			},
 			expectedCode: codes.Internal,
 		},
@@ -236,16 +274,22 @@ func TestGetCards(t *testing.T) {
 			if tc.mockBehavior != nil {
 				tc.mockBehavior(mockSvc)
 			}
+
+			// Инициализация хендлера (подставь свой способ, если он отличается)
 			h := delivery.NewHandler(mockSvc, delivery.Config{})
+
 			resp, err := h.GetCards(context.Background(), tc.req)
+
+			// Предполагается, что grpcCode - это твоя вспомогательная функция,
+			// которая делает status.Code(err)
 			assert.Equal(t, tc.expectedCode, grpcCode(err))
+
 			if tc.checkResp != nil && err == nil {
 				tc.checkResp(t, resp)
 			}
 		})
 	}
 }
-
 func TestCreateSection(t *testing.T) {
 	boardLink := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	sectionLink := uuid.MustParse("11111111-1111-1111-1111-111111111111")

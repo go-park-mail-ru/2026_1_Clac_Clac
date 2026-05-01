@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/models"
 	"github.com/google/uuid"
 )
 
@@ -33,4 +34,5 @@ type Card struct {
 	ExecutorName *string
 	Title        string
 	DeadLine     *time.Time
+	Subtasks     []models.SubtaskInfo
 }

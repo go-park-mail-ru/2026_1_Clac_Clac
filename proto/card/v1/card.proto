@@ -12,6 +12,14 @@ message CardInfo {
   string title = 3;
   string description = 4;
   optional google.protobuf.Timestamp deadline = 5;
+  repeated SubtaskInfo subtasks = 6;
+}
+
+message SubtaskInfo {
+  string subtask_link = 1;
+  string description = 2;
+  bool isDone = 3;
+  int64 position = 4;
 }
 
 message CommentInfo {
@@ -117,25 +125,30 @@ message UpdateCommentRequest {
 message UpdateCommentResponse {}
 
 message CreateSubtaskRequest {
-  string card_link = 1;
-  string description =2;
+  string user_link = 1;
+  string card_link = 2;
+  string description = 3;
 }
 
 message CreateSubtaskResponse {
   string subtask_link = 1;
+  string description = 2;
+  bool isDone = 3;
+  int64 position = 4;
 }
 
 message UpdateSubtaskRequest {
-  string card_link = 1;
+  string user_link = 1;
   string subtask_link = 2;
-  bool ready = 3;
+  bool is_done = 3;
   string description = 4;
 }
 
 message UpdateSubtaskResponse {}
 
 message DeleteSubtaskRequest {
-  
+  string user_link = 1;
+  string subtask_link = 2;
 }
 
 message DeleteSubtaskResponse {}

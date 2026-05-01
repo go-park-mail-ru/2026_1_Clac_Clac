@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
@@ -30,12 +31,19 @@ var (
 	ErrCannotReorderCards      = errors.New("cannot reorder cards")
 	ErrInvalidAuthorLink       = errors.New("invalid author link")
 	ErrCannotCreateCard        = errors.New("cannot create card")
-	ErrCannotGetComments       = errors.New("cannot get comments")
-	ErrCannotDeleteComment     = errors.New("cannot delete comment")
-	ErrInvalidParentLink       = errors.New("invalid parent link")
-	ErrCannotCreateComment     = errors.New("cannot create comment")
-	ErrInvalidUserLink         = errors.New("invalid user link")
-	ErrCannotUpdateComment     = errors.New("cannot update comment")
+
+	ErrCannotGetComments   = errors.New("cannot get comments")
+	ErrCannotDeleteComment = errors.New("cannot delete comment")
+	ErrInvalidParentLink   = errors.New("invalid parent link")
+	ErrCannotCreateComment = errors.New("cannot create comment")
+	ErrCannotUpdateComment = errors.New("cannot update comment")
+
+	ErrInvalidUserLink = errors.New("invalid user link")
+
+	ErrInvalidSubtaskLink  = errors.New("invalid subtask link")
+	ErrCannotCreateSubtask = errors.New("cannot create subtask")
+	ErrCannotDeleteSubtask = errors.New("cannot delete subtask")
+	ErrCannotUpdateSubtask = errors.New("cannot upadate subtask")
 )
 
 //go:generate mockery --name=CardService --output mock_card_srv
@@ -49,6 +57,9 @@ type CardService interface {
 	CreateComment(ctx context.Context, createCardInfo serviceDto.CreateCommentInfo) (serviceDto.CommentInfo, error)
 	DeleteComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) error
 	UpdateComment(ctx context.Context, updateCommentInfo serviceDto.UpdateCommentInfo) error
+	CreateSubtask(ctx context.Context, createInfo serviceDto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error)
+	DeleteSubtask(ctx context.Context, deleteInfo serviceDto.DeleteSubtask, userLink uuid.UUID) error
+	UpdateSubtask(ctx context.Context, updateInfo serviceDto.UpdateSubtask, userLink uuid.UUID) error
 }
 
 type Config struct {
@@ -98,9 +109,20 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		return nil, status.Error(codes.Internal, ErrCannotGetCard.Error())
 	}
 
-	var deadline timestamppb.Timestamp
+	var deadline *timestamppb.Timestamp
 	if card.DataDeadLine != nil {
-		deadline = *timestamppb.New(*card.DataDeadLine)
+		deadline = timestamppb.New(*card.DataDeadLine)
+	}
+
+	subtasks := make([]*pb.SubtaskInfo, 0, len(card.Subtasks))
+
+	for _, subtask := range card.Subtasks {
+		subtasks = append(subtasks, &pb.SubtaskInfo{
+			SubtaskLink: subtask.SubtaskLink.String(),
+			Description: subtask.Description,
+			IsDone:      subtask.IsDone,
+			Position:    int64(subtask.Position),
+		})
 	}
 
 	return &pb.GetCardResponse{
@@ -109,7 +131,8 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Title:        card.Title,
 			Description:  card.Description,
 			ExecutorName: card.NameExecutor,
-			Deadline:     &deadline,
+			Deadline:     deadline,
+			Subtasks:     subtasks,
 		},
 	}, nil
 }
@@ -510,4 +533,99 @@ func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRe
 	}
 
 	return &pb.UpdateCommentResponse{}, nil
+}
+
+func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRequest) (*pb.CreateSubtaskResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	taskLink, err := uuid.Parse(req.CardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	userLink, err := uuid.Parse(req.UserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
+	}
+
+	subtask, err := h.srv.CreateSubtask(ctx, serviceDto.CreateSubtaskInfo{
+		TaskLink:    taskLink,
+		Description: req.Description,
+	}, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrMissingRequiredField):
+			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
+			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		}
+
+		logger.Error().Err(err).Msg("CardService.CreateSubtask")
+		return nil, status.Error(codes.Internal, ErrCannotCreateSubtask.Error())
+	}
+
+	return &pb.CreateSubtaskResponse{
+		SubtaskLink: subtask.SubtaskLink.String(),
+		Description: subtask.Description,
+		IsDone:      subtask.IsDone,
+		Position:    int64(subtask.Position),
+	}, nil
+}
+
+func (h *CardHandler) DeleteSubtask(ctx context.Context, req *pb.DeleteSubtaskRequest) (*pb.DeleteSubtaskResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	subtaskLink, err := uuid.Parse(req.SubtaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
+	}
+
+	userLink, err := uuid.Parse(req.UserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
+	}
+
+	err = h.srv.DeleteSubtask(ctx, serviceDto.DeleteSubtask{
+		SubTaskLink: subtaskLink,
+	}, userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrSubtaskNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
+		}
+
+		logger.Error().Err(err).Msg("CardService.DeleteSubtask")
+		return nil, status.Error(codes.Internal, ErrCannotDeleteSubtask.Error())
+	}
+
+	return &pb.DeleteSubtaskResponse{}, nil
+}
+
+func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRequest) (*pb.UpdateSubtaskResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	subtaskLink, err := uuid.Parse(req.SubtaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
+	}
+
+	userLink, err := uuid.Parse(req.UserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
+	}
+
+	err = h.srv.UpdateSubtask(ctx, serviceDto.UpdateSubtask{
+		SubTaskLink: subtaskLink,
+		IsDone:      req.IsDone,
+		Description: req.Description,
+	}, userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrSubtaskNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
+		}
+
+		logger.Error().Err(err).Msg("CardService.UpdateSubtask")
+		return nil, status.Error(codes.Internal, ErrCannotUpdateSubtask.Error())
+	}
+
+	return &pb.UpdateSubtaskResponse{}, nil
 }

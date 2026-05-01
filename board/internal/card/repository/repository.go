@@ -2,18 +2,24 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
+)
+
+const (
+	msgInvalidUnmarshalSubtasks = "can not unmurshal subtasks"
 )
 
 type DBEngine interface {
@@ -39,19 +45,33 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		t.title,
 		t.description,
 		t.due_date,
-		u.display_name
+		u.display_name,
+		(
+			SELECT COALESCE(jsonb_agg(
+				jsonb_build_object(
+					'subtask_link', s.subtask_link,
+                    'description', s.description,
+                    'is_done', s.is_done,
+                    'position', s.position
+				)
+			), '[]'::jsonb)
+			FROM subtask s
+			WHERE s.task_link = t.task_link
+		) AS subtasks
 	FROM task_actual AS t
 	LEFT JOIN "user" u ON t.executer_link = u.link
 	WHERE t.task_link = $1
 	`
 
 	var infoCard dto.InfoCard
+	var subtasks []byte
 
 	err := r.pool.QueryRow(ctx, query, linkCard).Scan(
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
 		&infoCard.NameExecutor,
+		&subtasks,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -59,6 +79,10 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		}
 
 		return dto.InfoCard{}, fmt.Errorf("rep.QueryRow: %w", err)
+	}
+
+	if err := json.Unmarshal(subtasks, &infoCard.Subtasks); err != nil {
+		return dto.InfoCard{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
 	}
 
 	return infoCard, nil
@@ -508,6 +532,76 @@ func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.Up
 
 	if commandTag.RowsAffected() == 0 {
 		return common.ErrCommentNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo) (models.SubtaskInfo, error) {
+	query := `
+		INSERT INTO subtask (task_link, subtask_link, description)
+		VALUES ($1, $2, $3)
+		RETURNING is_done, position
+	`
+	var isDone bool
+	var position int
+
+	err := r.pool.QueryRow(ctx, query, createInfo.TaskLink, createInfo.SubtaskLink, createInfo.Description).Scan(&isDone, &position)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.NotNullViolation:
+				return models.SubtaskInfo{}, common.ErrMissingRequiredField
+			case pgerrcode.ForeignKeyViolation:
+				return models.SubtaskInfo{}, common.ErrInvalidReferenceCardData
+			}
+		}
+
+		return models.SubtaskInfo{}, fmt.Errorf("pool.QueryRow: %w", err)
+	}
+
+	return models.SubtaskInfo{
+		SubtaskLink: createInfo.SubtaskLink,
+		Description: createInfo.Description,
+		IsDone:      isDone,
+		Position:    position,
+	}, nil
+}
+
+func (r *Repository) DeleteSubtask(ctx context.Context, deleteInfo dto.DeleteSubtask) error {
+	query := `
+		DELETE FROM subtask 
+		WHERE subtask_link = $1
+	`
+
+	commandTag, err := r.pool.Exec(ctx, query, deleteInfo.SubTaskLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return common.ErrSubtaskNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtask) error {
+	query := `
+	UPDATE subtask
+	SET description = $1,
+	is_done = $2
+	WHERE subtask_link = $3
+	`
+
+	commandTag, err := r.pool.Exec(ctx, query, updateInfo.Description, updateInfo.IsDone, updateInfo.SubTaskLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return common.ErrSubtaskNotFound
 	}
 
 	return nil

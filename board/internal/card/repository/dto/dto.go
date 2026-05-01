@@ -3,6 +3,7 @@ package dto
 import (
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	"github.com/google/uuid"
 )
 
@@ -11,6 +12,7 @@ type InfoCard struct {
 	Title        string
 	NameExecutor *string
 	DataDeadLine *time.Time
+	Subtasks     []models.SubtaskInfo
 }
 
 type UpdatingCardDetails struct {
@@ -63,10 +65,12 @@ type CreateSubtaskInfo struct {
 	Description string
 }
 
-type SubtaskInfo struct {
-	SubtaskLink uuid.UUID
-	CardLink    uuid.UUID
+type DeleteSubtask struct {
+	SubTaskLink uuid.UUID
+}
+
+type UpdateSubtask struct {
+	SubTaskLink uuid.UUID
 	Description string
 	IsDone      bool
-	Position    int
 }

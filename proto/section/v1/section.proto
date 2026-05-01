@@ -15,11 +15,19 @@ message SectionInfo {
   optional int64 max_tasks = 6;
 }
 
+message SubtaskInfo {
+  string subtask_link = 1;
+  string description = 2;
+  bool isDone = 3;
+  int64 position = 4;
+}
+
 message CardInfo {
   string link = 1;
   optional string executor_name = 2;
   string title = 3;
   optional google.protobuf.Timestamp deadline = 4;
+  repeated SubtaskInfo subtasks = 5;
 }
 
 // GetSections

@@ -12,6 +12,7 @@ type Service interface {
 	CheckPermissionOnSection(ctx context.Context, sectionLink uuid.UUID, userLink uuid.UUID, action Action) error
 	CheckPermissionOnCard(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID, action Action) error
 	CheckPermissionOnComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID, action Action) error
+	CheckPermissionOnSubtask(ctx context.Context, subtaskLink uuid.UUID, userLink uuid.UUID, action Action) error
 }
 
 type service struct {
@@ -67,6 +68,19 @@ func (s *service) CheckPermissionOnComment(ctx context.Context, commentLink uuid
 	role, _, err := s.rep.GetUserRoleByCommentLink(ctx, commentLink, userLink)
 	if err != nil {
 		return fmt.Errorf("rep.GetUserRoleByCommentLink: %w", err)
+	}
+
+	if !IsActionAllowed(role, action) {
+		return ErrActionDenied
+	}
+
+	return nil
+}
+
+func (s *service) CheckPermissionOnSubtask(ctx context.Context, subtaskLink uuid.UUID, userLink uuid.UUID, action Action) error {
+	role, _, err := s.rep.GetUserRoleBySubtaskLink(ctx, subtaskLink, userLink)
+	if err != nil {
+		return fmt.Errorf("rep.GetUserRoleBySubtaskLink: %w", err)
 	}
 
 	if !IsActionAllowed(role, action) {

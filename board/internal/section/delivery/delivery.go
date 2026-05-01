@@ -189,11 +189,22 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 		return nil, status.Error(codes.Internal, ErrCannotGetCards.Error())
 	}
 
-	cardsResponse := make([]*pb.CardInfo, 0)
+	cardsResponse := make([]*pb.CardInfo, 0, len(cards))
 	for _, card := range cards {
 		var deadline timestamppb.Timestamp
 		if card.DeadLine != nil {
 			deadline = *timestamppb.New(*card.DeadLine)
+		}
+
+		var subtasks []*pb.SubtaskInfo
+
+		for _, sub := range card.Subtasks {
+			subtasks = append(subtasks, &pb.SubtaskInfo{
+				SubtaskLink: sub.SubtaskLink.String(),
+				Description: sub.Description,
+				IsDone:      sub.IsDone,
+				Position:    int64(sub.Position),
+			})
 		}
 
 		cardsResponse = append(cardsResponse, &pb.CardInfo{
@@ -201,6 +212,7 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			ExecutorName: card.ExecutorName,
 			Title:        card.Title,
 			Deadline:     &deadline,
+			Subtasks:     subtasks,
 		})
 	}
 

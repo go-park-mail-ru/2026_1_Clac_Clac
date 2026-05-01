@@ -22,6 +22,7 @@ type Repository interface {
 	GetUserRoleBySectionLink(ctx context.Context, sectionLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error)
 	GetUserRoleByCardLink(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error)
 	GetUserRoleByCommentLink(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error)
+	GetUserRoleBySubtaskLink(ctx context.Context, subtaskLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error)
 }
 
 type repository struct {
@@ -137,6 +138,35 @@ func (r *repository) GetUserRoleByCommentLink(ctx context.Context, commentLink u
 		}
 
 		return Roles.None, uuid.Nil, fmt.Errorf("get user role on comment: %w", err)
+	}
+
+	return role, boardLink, nil
+}
+
+func (r *repository) GetUserRoleBySubtaskLink(ctx context.Context, subtaskLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error) {
+	query := `
+		SELECT m.level_member, s.board_link
+		FROM member_board m
+		JOIN section s ON m.board_link = s.board_link
+		JOIN task_actual t ON s.section_link = t.section_link
+		JOIN subtask st ON st.task_link = t.task_link
+		WHERE st.subtask_link = $1
+		  AND m.user_link = $2
+		  AND s.deleted_at IS NULL
+		  AND m.is_archive = false
+	`
+
+	row := r.pool.QueryRow(ctx, query, subtaskLink, userLink)
+
+	var role Role
+	var boardLink uuid.UUID
+	err := row.Scan(&role, &boardLink)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Roles.None, uuid.Nil, nil
+		}
+
+		return Roles.None, uuid.Nil, fmt.Errorf("get user role on subtask: %w", err)
 	}
 
 	return role, boardLink, nil

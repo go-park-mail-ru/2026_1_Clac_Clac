@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
@@ -24,6 +25,9 @@ type CardRepository interface {
 	IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error)
 	DeleteComment(ctx context.Context, commentLink uuid.UUID) error
 	UpdateComment(ctx context.Context, updateCommentInfo repositoryDto.UpdateCommentInfo) error
+	CreateSubtask(ctx context.Context, createInfo repositoryDto.CreateSubtaskInfo) (models.SubtaskInfo, error)
+	DeleteSubtask(ctx context.Context, deleteInfo repositoryDto.DeleteSubtask) error
+	UpdateSubtask(ctx context.Context, updateInfo repositoryDto.UpdateSubtask) error
 }
 
 type Service struct {
@@ -58,6 +62,7 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		Title:        card.Title,
 		NameExecutor: card.NameExecutor,
 		DataDeadLine: card.DataDeadLine,
+		Subtasks:     card.Subtasks,
 	}, nil
 }
 
@@ -277,6 +282,77 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 	})
 	if err != nil {
 		return fmt.Errorf("CardRepository.UpdateComment: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error) {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, createInfo.TaskLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return models.SubtaskInfo{}, rbac.ErrActionDenied
+		}
+
+		return models.SubtaskInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	newSubtaskLink := uuid.New()
+
+	subtask, err := s.rep.CreateSubtask(ctx, repositoryDto.CreateSubtaskInfo{
+		TaskLink:    createInfo.TaskLink,
+		SubtaskLink: newSubtaskLink,
+		Description: createInfo.Description,
+	})
+
+	if err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("CardRepository.CreateSubtas: %w", err)
+	}
+
+	return models.SubtaskInfo{
+		SubtaskLink: subtask.SubtaskLink,
+		Description: subtask.Description,
+		IsDone:      subtask.IsDone,
+		Position:    subtask.Position,
+	}, nil
+}
+
+func (s *Service) DeleteSubtask(ctx context.Context, deleteInfo dto.DeleteSubtask, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, deleteInfo.SubTaskLink, userLink, rbac.Actions.Delete)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnSubtask: %w", err)
+	}
+
+	err = s.rep.DeleteSubtask(ctx, repositoryDto.DeleteSubtask{
+		SubTaskLink: deleteInfo.SubTaskLink,
+	})
+
+	if err != nil {
+		return fmt.Errorf("CardRepository.DeleteSubtask: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtask, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, updateInfo.SubTaskLink, userLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnSubtask: %w", err)
+	}
+
+	err = s.rep.UpdateSubtask(ctx, repositoryDto.UpdateSubtask{
+		SubTaskLink: updateInfo.SubTaskLink,
+		Description: updateInfo.Description,
+		IsDone:      updateInfo.IsDone,
+	})
+	if err != nil {
+		return fmt.Errorf("CardRepository.UpdateSubtask: %w", err)
 	}
 
 	return nil

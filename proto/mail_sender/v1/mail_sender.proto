@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mail;
+package proto.mail.v1;
 
 option go_package = "./pkg/contracts/mail_sender;mail_sender";
 

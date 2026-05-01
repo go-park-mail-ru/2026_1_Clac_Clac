@@ -1,5 +1,5 @@
 syntax = "proto3";
-package user;
+package proto.user.v1;
 option go_package = "./pkg/contracts/user;user";
 
 service UserService {

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package auth;
+package proto.auth.v1;
 
 option go_package = "./pkg/contracts/auth;auth";
 

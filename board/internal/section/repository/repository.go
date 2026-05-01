@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+)
+
+const (
+	msgInvalidUnmarshalSubtasks = "can not unmurshal subtasks"
 )
 
 type DBEngine interface {
@@ -68,7 +73,19 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 		t.task_link,
 		u.display_name AS name_executer,
 		t.title,
-		t.due_date
+		t.due_date,
+		(
+			SELECT COALESCE(jsonb_agg(
+				jsonb_build_object(
+					'subtask_link', s.subtask_link,
+                    'description', s.description,
+                    'is_done', s.is_done,
+                    'position', s.position
+				)
+			), '[]'::jsonb)
+			FROM subtask s
+			WHERE s.task_link = t.task_link
+		) AS subtasks
 	FROM task_actual AS t
 	LEFT JOIN "user" u ON t.executer_link = u.link
 	WHERE t.section_link = $1
@@ -86,15 +103,22 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 
 	for rows.Next() {
 		var card dto.Card
+		var subtasks []byte
+
 		err := rows.Scan(
 			&card.CardLink,
 			&card.ExecutorName,
 			&card.Title,
 			&card.DeadLine,
+			&subtasks,
 		)
 
 		if err != nil {
 			return []dto.Card{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		if err := json.Unmarshal(subtasks, &card.Subtasks); err != nil {
+			return []dto.Card{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
 		}
 
 		cards = append(cards, card)

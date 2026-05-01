@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package rate_limiter;
+package proto.rate_limiter.v1;
 
 option go_package = "./pkg/contracts/rate_limiter;rate_limiter";
 

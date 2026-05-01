@@ -29,6 +29,7 @@ type CardInfo struct {
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
+	Subtasks      []*SubtaskInfo         `protobuf:"bytes,6,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -98,6 +99,81 @@ func (x *CardInfo) GetDeadline() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CardInfo) GetSubtasks() []*SubtaskInfo {
+	if x != nil {
+		return x.Subtasks
+	}
+	return nil
+}
+
+type SubtaskInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SubtaskLink   string                 `protobuf:"bytes,1,opt,name=subtask_link,json=subtaskLink,proto3" json:"subtask_link,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	IsDone        bool                   `protobuf:"varint,3,opt,name=isDone,proto3" json:"isDone,omitempty"`
+	Position      int64                  `protobuf:"varint,4,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubtaskInfo) Reset() {
+	*x = SubtaskInfo{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubtaskInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubtaskInfo) ProtoMessage() {}
+
+func (x *SubtaskInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubtaskInfo.ProtoReflect.Descriptor instead.
+func (*SubtaskInfo) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SubtaskInfo) GetSubtaskLink() string {
+	if x != nil {
+		return x.SubtaskLink
+	}
+	return ""
+}
+
+func (x *SubtaskInfo) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *SubtaskInfo) GetIsDone() bool {
+	if x != nil {
+		return x.IsDone
+	}
+	return false
+}
+
+func (x *SubtaskInfo) GetPosition() int64 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
 type CommentInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CommentLink   string                 `protobuf:"bytes,1,opt,name=comment_link,json=commentLink,proto3" json:"comment_link,omitempty"`
@@ -110,7 +186,7 @@ type CommentInfo struct {
 
 func (x *CommentInfo) Reset() {
 	*x = CommentInfo{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[1]
+	mi := &file_proto_card_v1_card_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -122,7 +198,7 @@ func (x *CommentInfo) String() string {
 func (*CommentInfo) ProtoMessage() {}
 
 func (x *CommentInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[1]
+	mi := &file_proto_card_v1_card_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -135,7 +211,7 @@ func (x *CommentInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommentInfo.ProtoReflect.Descriptor instead.
 func (*CommentInfo) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{1}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CommentInfo) GetCommentLink() string {
@@ -177,7 +253,7 @@ type GetCardRequest struct {
 
 func (x *GetCardRequest) Reset() {
 	*x = GetCardRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[2]
+	mi := &file_proto_card_v1_card_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +265,7 @@ func (x *GetCardRequest) String() string {
 func (*GetCardRequest) ProtoMessage() {}
 
 func (x *GetCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[2]
+	mi := &file_proto_card_v1_card_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +278,7 @@ func (x *GetCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCardRequest.ProtoReflect.Descriptor instead.
 func (*GetCardRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{2}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetCardRequest) GetUserLink() string {
@@ -228,7 +304,7 @@ type GetCardResponse struct {
 
 func (x *GetCardResponse) Reset() {
 	*x = GetCardResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[3]
+	mi := &file_proto_card_v1_card_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +316,7 @@ func (x *GetCardResponse) String() string {
 func (*GetCardResponse) ProtoMessage() {}
 
 func (x *GetCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[3]
+	mi := &file_proto_card_v1_card_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +329,7 @@ func (x *GetCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCardResponse.ProtoReflect.Descriptor instead.
 func (*GetCardResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{3}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetCardResponse) GetCardInfo() *CardInfo {
@@ -274,7 +350,7 @@ type DeleteCardRequest struct {
 
 func (x *DeleteCardRequest) Reset() {
 	*x = DeleteCardRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[4]
+	mi := &file_proto_card_v1_card_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -286,7 +362,7 @@ func (x *DeleteCardRequest) String() string {
 func (*DeleteCardRequest) ProtoMessage() {}
 
 func (x *DeleteCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[4]
+	mi := &file_proto_card_v1_card_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -299,7 +375,7 @@ func (x *DeleteCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCardRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCardRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{4}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeleteCardRequest) GetUserLink() string {
@@ -324,7 +400,7 @@ type DeleteCardResponse struct {
 
 func (x *DeleteCardResponse) Reset() {
 	*x = DeleteCardResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[5]
+	mi := &file_proto_card_v1_card_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +412,7 @@ func (x *DeleteCardResponse) String() string {
 func (*DeleteCardResponse) ProtoMessage() {}
 
 func (x *DeleteCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[5]
+	mi := &file_proto_card_v1_card_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +425,7 @@ func (x *DeleteCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCardResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCardResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{5}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{6}
 }
 
 // UpdateCard
@@ -367,7 +443,7 @@ type UpdateCardRequest struct {
 
 func (x *UpdateCardRequest) Reset() {
 	*x = UpdateCardRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[6]
+	mi := &file_proto_card_v1_card_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +455,7 @@ func (x *UpdateCardRequest) String() string {
 func (*UpdateCardRequest) ProtoMessage() {}
 
 func (x *UpdateCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[6]
+	mi := &file_proto_card_v1_card_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +468,7 @@ func (x *UpdateCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCardRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCardRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{6}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateCardRequest) GetUserLink() string {
@@ -445,7 +521,7 @@ type UpdateCardResponse struct {
 
 func (x *UpdateCardResponse) Reset() {
 	*x = UpdateCardResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[7]
+	mi := &file_proto_card_v1_card_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +533,7 @@ func (x *UpdateCardResponse) String() string {
 func (*UpdateCardResponse) ProtoMessage() {}
 
 func (x *UpdateCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[7]
+	mi := &file_proto_card_v1_card_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +546,7 @@ func (x *UpdateCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCardResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCardResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{7}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{8}
 }
 
 // ReorderCard
@@ -486,7 +562,7 @@ type ReorderCardsRequest struct {
 
 func (x *ReorderCardsRequest) Reset() {
 	*x = ReorderCardsRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[8]
+	mi := &file_proto_card_v1_card_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -498,7 +574,7 @@ func (x *ReorderCardsRequest) String() string {
 func (*ReorderCardsRequest) ProtoMessage() {}
 
 func (x *ReorderCardsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[8]
+	mi := &file_proto_card_v1_card_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -511,7 +587,7 @@ func (x *ReorderCardsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderCardsRequest.ProtoReflect.Descriptor instead.
 func (*ReorderCardsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{8}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ReorderCardsRequest) GetUserLink() string {
@@ -550,7 +626,7 @@ type ReorderCardsResponse struct {
 
 func (x *ReorderCardsResponse) Reset() {
 	*x = ReorderCardsResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[9]
+	mi := &file_proto_card_v1_card_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -562,7 +638,7 @@ func (x *ReorderCardsResponse) String() string {
 func (*ReorderCardsResponse) ProtoMessage() {}
 
 func (x *ReorderCardsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[9]
+	mi := &file_proto_card_v1_card_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -575,7 +651,7 @@ func (x *ReorderCardsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReorderCardsResponse.ProtoReflect.Descriptor instead.
 func (*ReorderCardsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{9}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{10}
 }
 
 // CreateCard
@@ -593,7 +669,7 @@ type CreateCardRequest struct {
 
 func (x *CreateCardRequest) Reset() {
 	*x = CreateCardRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[10]
+	mi := &file_proto_card_v1_card_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +681,7 @@ func (x *CreateCardRequest) String() string {
 func (*CreateCardRequest) ProtoMessage() {}
 
 func (x *CreateCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[10]
+	mi := &file_proto_card_v1_card_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +694,7 @@ func (x *CreateCardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCardRequest.ProtoReflect.Descriptor instead.
 func (*CreateCardRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{10}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateCardRequest) GetUserLink() string {
@@ -674,7 +750,7 @@ type CreateCardResponse struct {
 
 func (x *CreateCardResponse) Reset() {
 	*x = CreateCardResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[11]
+	mi := &file_proto_card_v1_card_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +762,7 @@ func (x *CreateCardResponse) String() string {
 func (*CreateCardResponse) ProtoMessage() {}
 
 func (x *CreateCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[11]
+	mi := &file_proto_card_v1_card_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +775,7 @@ func (x *CreateCardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCardResponse.ProtoReflect.Descriptor instead.
 func (*CreateCardResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{11}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateCardResponse) GetCardLink() string {
@@ -734,7 +810,7 @@ type GetCommentsRequest struct {
 
 func (x *GetCommentsRequest) Reset() {
 	*x = GetCommentsRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[12]
+	mi := &file_proto_card_v1_card_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +822,7 @@ func (x *GetCommentsRequest) String() string {
 func (*GetCommentsRequest) ProtoMessage() {}
 
 func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[12]
+	mi := &file_proto_card_v1_card_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +835,7 @@ func (x *GetCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentsRequest.ProtoReflect.Descriptor instead.
 func (*GetCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{12}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetCommentsRequest) GetUserLink() string {
@@ -785,7 +861,7 @@ type GetCommentsResponse struct {
 
 func (x *GetCommentsResponse) Reset() {
 	*x = GetCommentsResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[13]
+	mi := &file_proto_card_v1_card_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -797,7 +873,7 @@ func (x *GetCommentsResponse) String() string {
 func (*GetCommentsResponse) ProtoMessage() {}
 
 func (x *GetCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[13]
+	mi := &file_proto_card_v1_card_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -810,7 +886,7 @@ func (x *GetCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCommentsResponse.ProtoReflect.Descriptor instead.
 func (*GetCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{13}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetCommentsResponse) GetCommentsInfo() []*CommentInfo {
@@ -833,7 +909,7 @@ type CreateCommentRequest struct {
 
 func (x *CreateCommentRequest) Reset() {
 	*x = CreateCommentRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[14]
+	mi := &file_proto_card_v1_card_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -845,7 +921,7 @@ func (x *CreateCommentRequest) String() string {
 func (*CreateCommentRequest) ProtoMessage() {}
 
 func (x *CreateCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[14]
+	mi := &file_proto_card_v1_card_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -858,7 +934,7 @@ func (x *CreateCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCommentRequest.ProtoReflect.Descriptor instead.
 func (*CreateCommentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{14}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateCommentRequest) GetUserLink() string {
@@ -898,7 +974,7 @@ type CreateCommentResponse struct {
 
 func (x *CreateCommentResponse) Reset() {
 	*x = CreateCommentResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[15]
+	mi := &file_proto_card_v1_card_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -910,7 +986,7 @@ func (x *CreateCommentResponse) String() string {
 func (*CreateCommentResponse) ProtoMessage() {}
 
 func (x *CreateCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[15]
+	mi := &file_proto_card_v1_card_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -923,7 +999,7 @@ func (x *CreateCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCommentResponse.ProtoReflect.Descriptor instead.
 func (*CreateCommentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{15}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateCommentResponse) GetCommentLink() string {
@@ -944,7 +1020,7 @@ type DeleteCommentRequest struct {
 
 func (x *DeleteCommentRequest) Reset() {
 	*x = DeleteCommentRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[16]
+	mi := &file_proto_card_v1_card_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1032,7 @@ func (x *DeleteCommentRequest) String() string {
 func (*DeleteCommentRequest) ProtoMessage() {}
 
 func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[16]
+	mi := &file_proto_card_v1_card_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -969,7 +1045,7 @@ func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCommentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{16}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteCommentRequest) GetCommentLink() string {
@@ -994,7 +1070,7 @@ type DeleteCommentResponse struct {
 
 func (x *DeleteCommentResponse) Reset() {
 	*x = DeleteCommentResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[17]
+	mi := &file_proto_card_v1_card_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1006,7 +1082,7 @@ func (x *DeleteCommentResponse) String() string {
 func (*DeleteCommentResponse) ProtoMessage() {}
 
 func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[17]
+	mi := &file_proto_card_v1_card_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1019,7 +1095,7 @@ func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCommentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{17}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{18}
 }
 
 // UpdateComment
@@ -1034,7 +1110,7 @@ type UpdateCommentRequest struct {
 
 func (x *UpdateCommentRequest) Reset() {
 	*x = UpdateCommentRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[18]
+	mi := &file_proto_card_v1_card_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1046,7 +1122,7 @@ func (x *UpdateCommentRequest) String() string {
 func (*UpdateCommentRequest) ProtoMessage() {}
 
 func (x *UpdateCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[18]
+	mi := &file_proto_card_v1_card_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1059,7 +1135,7 @@ func (x *UpdateCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCommentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCommentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{18}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UpdateCommentRequest) GetCommentLink() string {
@@ -1091,7 +1167,7 @@ type UpdateCommentResponse struct {
 
 func (x *UpdateCommentResponse) Reset() {
 	*x = UpdateCommentResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[19]
+	mi := &file_proto_card_v1_card_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1179,7 @@ func (x *UpdateCommentResponse) String() string {
 func (*UpdateCommentResponse) ProtoMessage() {}
 
 func (x *UpdateCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[19]
+	mi := &file_proto_card_v1_card_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,19 +1192,21 @@ func (x *UpdateCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCommentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCommentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{19}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{20}
 }
 
 type CreateSubtaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Description   string                 `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	CardLink      string                 `protobuf:"bytes,2,opt,name=card_link,json=cardLink,proto3" json:"card_link,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSubtaskRequest) Reset() {
 	*x = CreateSubtaskRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[20]
+	mi := &file_proto_card_v1_card_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1140,7 +1218,7 @@ func (x *CreateSubtaskRequest) String() string {
 func (*CreateSubtaskRequest) ProtoMessage() {}
 
 func (x *CreateSubtaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[20]
+	mi := &file_proto_card_v1_card_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1153,7 +1231,21 @@ func (x *CreateSubtaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSubtaskRequest.ProtoReflect.Descriptor instead.
 func (*CreateSubtaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{20}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CreateSubtaskRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *CreateSubtaskRequest) GetCardLink() string {
+	if x != nil {
+		return x.CardLink
+	}
+	return ""
 }
 
 func (x *CreateSubtaskRequest) GetDescription() string {
@@ -1166,13 +1258,16 @@ func (x *CreateSubtaskRequest) GetDescription() string {
 type CreateSubtaskResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SubtaskLink   string                 `protobuf:"bytes,1,opt,name=subtask_link,json=subtaskLink,proto3" json:"subtask_link,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	IsDone        bool                   `protobuf:"varint,3,opt,name=isDone,proto3" json:"isDone,omitempty"`
+	Position      int64                  `protobuf:"varint,4,opt,name=position,proto3" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSubtaskResponse) Reset() {
 	*x = CreateSubtaskResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[21]
+	mi := &file_proto_card_v1_card_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1184,7 +1279,7 @@ func (x *CreateSubtaskResponse) String() string {
 func (*CreateSubtaskResponse) ProtoMessage() {}
 
 func (x *CreateSubtaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[21]
+	mi := &file_proto_card_v1_card_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1197,7 +1292,7 @@ func (x *CreateSubtaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSubtaskResponse.ProtoReflect.Descriptor instead.
 func (*CreateSubtaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{21}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateSubtaskResponse) GetSubtaskLink() string {
@@ -1207,17 +1302,40 @@ func (x *CreateSubtaskResponse) GetSubtaskLink() string {
 	return ""
 }
 
+func (x *CreateSubtaskResponse) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CreateSubtaskResponse) GetIsDone() bool {
+	if x != nil {
+		return x.IsDone
+	}
+	return false
+}
+
+func (x *CreateSubtaskResponse) GetPosition() int64 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
 type UpdateSubtaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ready         bool                   `protobuf:"varint,1,opt,name=ready,proto3" json:"ready,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SubtaskLink   string                 `protobuf:"bytes,2,opt,name=subtask_link,json=subtaskLink,proto3" json:"subtask_link,omitempty"`
+	IsDone        bool                   `protobuf:"varint,3,opt,name=is_done,json=isDone,proto3" json:"is_done,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateSubtaskRequest) Reset() {
 	*x = UpdateSubtaskRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[22]
+	mi := &file_proto_card_v1_card_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1347,7 @@ func (x *UpdateSubtaskRequest) String() string {
 func (*UpdateSubtaskRequest) ProtoMessage() {}
 
 func (x *UpdateSubtaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[22]
+	mi := &file_proto_card_v1_card_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,12 +1360,26 @@ func (x *UpdateSubtaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSubtaskRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSubtaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{22}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{23}
 }
 
-func (x *UpdateSubtaskRequest) GetReady() bool {
+func (x *UpdateSubtaskRequest) GetUserLink() string {
 	if x != nil {
-		return x.Ready
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *UpdateSubtaskRequest) GetSubtaskLink() string {
+	if x != nil {
+		return x.SubtaskLink
+	}
+	return ""
+}
+
+func (x *UpdateSubtaskRequest) GetIsDone() bool {
+	if x != nil {
+		return x.IsDone
 	}
 	return false
 }
@@ -1267,7 +1399,7 @@ type UpdateSubtaskResponse struct {
 
 func (x *UpdateSubtaskResponse) Reset() {
 	*x = UpdateSubtaskResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[23]
+	mi := &file_proto_card_v1_card_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1279,7 +1411,7 @@ func (x *UpdateSubtaskResponse) String() string {
 func (*UpdateSubtaskResponse) ProtoMessage() {}
 
 func (x *UpdateSubtaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[23]
+	mi := &file_proto_card_v1_card_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,18 +1424,20 @@ func (x *UpdateSubtaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSubtaskResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSubtaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{23}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{24}
 }
 
 type DeleteSubtaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	SubtaskLink   string                 `protobuf:"bytes,2,opt,name=subtask_link,json=subtaskLink,proto3" json:"subtask_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeleteSubtaskRequest) Reset() {
 	*x = DeleteSubtaskRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[24]
+	mi := &file_proto_card_v1_card_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1315,7 +1449,7 @@ func (x *DeleteSubtaskRequest) String() string {
 func (*DeleteSubtaskRequest) ProtoMessage() {}
 
 func (x *DeleteSubtaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[24]
+	mi := &file_proto_card_v1_card_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1328,7 +1462,21 @@ func (x *DeleteSubtaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSubtaskRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSubtaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{24}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DeleteSubtaskRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *DeleteSubtaskRequest) GetSubtaskLink() string {
+	if x != nil {
+		return x.SubtaskLink
+	}
+	return ""
 }
 
 type DeleteSubtaskResponse struct {
@@ -1339,7 +1487,7 @@ type DeleteSubtaskResponse struct {
 
 func (x *DeleteSubtaskResponse) Reset() {
 	*x = DeleteSubtaskResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[25]
+	mi := &file_proto_card_v1_card_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1351,7 +1499,7 @@ func (x *DeleteSubtaskResponse) String() string {
 func (*DeleteSubtaskResponse) ProtoMessage() {}
 
 func (x *DeleteSubtaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[25]
+	mi := &file_proto_card_v1_card_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1364,22 +1512,28 @@ func (x *DeleteSubtaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSubtaskResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSubtaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{25}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{26}
 }
 
 var File_proto_card_v1_card_proto protoreflect.FileDescriptor
 
 const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdc\x01\n" +
+	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x02\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
 	"\rexecutor_name\x18\x02 \x01(\tH\x00R\fexecutorName\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
-	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
+	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x126\n" +
+	"\bsubtasks\x18\x06 \x03(\v2\x1a.proto.card.v1.SubtaskInfoR\bsubtasksB\x10\n" +
 	"\x0e_executor_nameB\v\n" +
-	"\t_deadline\"\x9b\x01\n" +
+	"\t_deadline\"\x86\x01\n" +
+	"\vSubtaskInfo\x12!\n" +
+	"\fsubtask_link\x18\x01 \x01(\tR\vsubtaskLink\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
+	"\x06isDone\x18\x03 \x01(\bR\x06isDone\x12\x1a\n" +
+	"\bposition\x18\x04 \x01(\x03R\bposition\"\x9b\x01\n" +
 	"\vCommentInfo\x12!\n" +
 	"\fcomment_link\x18\x01 \x01(\tR\vcommentLink\x12$\n" +
 	"\vparent_link\x18\x02 \x01(\tH\x00R\n" +
@@ -1448,16 +1602,25 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\fcomment_link\x18\x01 \x01(\tR\vcommentLink\x12\x1b\n" +
 	"\tuser_link\x18\x02 \x01(\tR\buserLink\x12\x12\n" +
 	"\x04text\x18\x03 \x01(\tR\x04text\"\x17\n" +
-	"\x15UpdateCommentResponse\"8\n" +
-	"\x14CreateSubtaskRequest\x12 \n" +
-	"\vdescription\x18\x01 \x01(\tR\vdescription\":\n" +
+	"\x15UpdateCommentResponse\"r\n" +
+	"\x14CreateSubtaskRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"\x90\x01\n" +
 	"\x15CreateSubtaskResponse\x12!\n" +
-	"\fsubtask_link\x18\x01 \x01(\tR\vsubtaskLink\"N\n" +
-	"\x14UpdateSubtaskRequest\x12\x14\n" +
-	"\x05ready\x18\x01 \x01(\bR\x05ready\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\"\x17\n" +
-	"\x15UpdateSubtaskResponse\"\x16\n" +
-	"\x14DeleteSubtaskRequest\"\x17\n" +
+	"\fsubtask_link\x18\x01 \x01(\tR\vsubtaskLink\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
+	"\x06isDone\x18\x03 \x01(\bR\x06isDone\x12\x1a\n" +
+	"\bposition\x18\x04 \x01(\x03R\bposition\"\x91\x01\n" +
+	"\x14UpdateSubtaskRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsubtask_link\x18\x02 \x01(\tR\vsubtaskLink\x12\x17\n" +
+	"\ais_done\x18\x03 \x01(\bR\x06isDone\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\"\x17\n" +
+	"\x15UpdateSubtaskResponse\"V\n" +
+	"\x14DeleteSubtaskRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
+	"\fsubtask_link\x18\x02 \x01(\tR\vsubtaskLink\"\x17\n" +
 	"\x15DeleteSubtaskResponse2\xa7\b\n" +
 	"\vCardService\x12H\n" +
 	"\aGetCard\x12\x1d.proto.card.v1.GetCardRequest\x1a\x1e.proto.card.v1.GetCardResponse\x12Q\n" +
@@ -1488,71 +1651,73 @@ func file_proto_card_v1_card_proto_rawDescGZIP() []byte {
 	return file_proto_card_v1_card_proto_rawDescData
 }
 
-var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_proto_card_v1_card_proto_goTypes = []any{
 	(*CardInfo)(nil),              // 0: proto.card.v1.CardInfo
-	(*CommentInfo)(nil),           // 1: proto.card.v1.CommentInfo
-	(*GetCardRequest)(nil),        // 2: proto.card.v1.GetCardRequest
-	(*GetCardResponse)(nil),       // 3: proto.card.v1.GetCardResponse
-	(*DeleteCardRequest)(nil),     // 4: proto.card.v1.DeleteCardRequest
-	(*DeleteCardResponse)(nil),    // 5: proto.card.v1.DeleteCardResponse
-	(*UpdateCardRequest)(nil),     // 6: proto.card.v1.UpdateCardRequest
-	(*UpdateCardResponse)(nil),    // 7: proto.card.v1.UpdateCardResponse
-	(*ReorderCardsRequest)(nil),   // 8: proto.card.v1.ReorderCardsRequest
-	(*ReorderCardsResponse)(nil),  // 9: proto.card.v1.ReorderCardsResponse
-	(*CreateCardRequest)(nil),     // 10: proto.card.v1.CreateCardRequest
-	(*CreateCardResponse)(nil),    // 11: proto.card.v1.CreateCardResponse
-	(*GetCommentsRequest)(nil),    // 12: proto.card.v1.GetCommentsRequest
-	(*GetCommentsResponse)(nil),   // 13: proto.card.v1.GetCommentsResponse
-	(*CreateCommentRequest)(nil),  // 14: proto.card.v1.CreateCommentRequest
-	(*CreateCommentResponse)(nil), // 15: proto.card.v1.CreateCommentResponse
-	(*DeleteCommentRequest)(nil),  // 16: proto.card.v1.DeleteCommentRequest
-	(*DeleteCommentResponse)(nil), // 17: proto.card.v1.DeleteCommentResponse
-	(*UpdateCommentRequest)(nil),  // 18: proto.card.v1.UpdateCommentRequest
-	(*UpdateCommentResponse)(nil), // 19: proto.card.v1.UpdateCommentResponse
-	(*CreateSubtaskRequest)(nil),  // 20: proto.card.v1.CreateSubtaskRequest
-	(*CreateSubtaskResponse)(nil), // 21: proto.card.v1.CreateSubtaskResponse
-	(*UpdateSubtaskRequest)(nil),  // 22: proto.card.v1.UpdateSubtaskRequest
-	(*UpdateSubtaskResponse)(nil), // 23: proto.card.v1.UpdateSubtaskResponse
-	(*DeleteSubtaskRequest)(nil),  // 24: proto.card.v1.DeleteSubtaskRequest
-	(*DeleteSubtaskResponse)(nil), // 25: proto.card.v1.DeleteSubtaskResponse
-	(*timestamppb.Timestamp)(nil), // 26: google.protobuf.Timestamp
+	(*SubtaskInfo)(nil),           // 1: proto.card.v1.SubtaskInfo
+	(*CommentInfo)(nil),           // 2: proto.card.v1.CommentInfo
+	(*GetCardRequest)(nil),        // 3: proto.card.v1.GetCardRequest
+	(*GetCardResponse)(nil),       // 4: proto.card.v1.GetCardResponse
+	(*DeleteCardRequest)(nil),     // 5: proto.card.v1.DeleteCardRequest
+	(*DeleteCardResponse)(nil),    // 6: proto.card.v1.DeleteCardResponse
+	(*UpdateCardRequest)(nil),     // 7: proto.card.v1.UpdateCardRequest
+	(*UpdateCardResponse)(nil),    // 8: proto.card.v1.UpdateCardResponse
+	(*ReorderCardsRequest)(nil),   // 9: proto.card.v1.ReorderCardsRequest
+	(*ReorderCardsResponse)(nil),  // 10: proto.card.v1.ReorderCardsResponse
+	(*CreateCardRequest)(nil),     // 11: proto.card.v1.CreateCardRequest
+	(*CreateCardResponse)(nil),    // 12: proto.card.v1.CreateCardResponse
+	(*GetCommentsRequest)(nil),    // 13: proto.card.v1.GetCommentsRequest
+	(*GetCommentsResponse)(nil),   // 14: proto.card.v1.GetCommentsResponse
+	(*CreateCommentRequest)(nil),  // 15: proto.card.v1.CreateCommentRequest
+	(*CreateCommentResponse)(nil), // 16: proto.card.v1.CreateCommentResponse
+	(*DeleteCommentRequest)(nil),  // 17: proto.card.v1.DeleteCommentRequest
+	(*DeleteCommentResponse)(nil), // 18: proto.card.v1.DeleteCommentResponse
+	(*UpdateCommentRequest)(nil),  // 19: proto.card.v1.UpdateCommentRequest
+	(*UpdateCommentResponse)(nil), // 20: proto.card.v1.UpdateCommentResponse
+	(*CreateSubtaskRequest)(nil),  // 21: proto.card.v1.CreateSubtaskRequest
+	(*CreateSubtaskResponse)(nil), // 22: proto.card.v1.CreateSubtaskResponse
+	(*UpdateSubtaskRequest)(nil),  // 23: proto.card.v1.UpdateSubtaskRequest
+	(*UpdateSubtaskResponse)(nil), // 24: proto.card.v1.UpdateSubtaskResponse
+	(*DeleteSubtaskRequest)(nil),  // 25: proto.card.v1.DeleteSubtaskRequest
+	(*DeleteSubtaskResponse)(nil), // 26: proto.card.v1.DeleteSubtaskResponse
+	(*timestamppb.Timestamp)(nil), // 27: google.protobuf.Timestamp
 }
 var file_proto_card_v1_card_proto_depIdxs = []int32{
-	26, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
-	0,  // 1: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
-	26, // 2: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	26, // 3: proto.card.v1.CreateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	1,  // 4: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
-	2,  // 5: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
-	4,  // 6: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
-	6,  // 7: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
-	8,  // 8: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
-	10, // 9: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
-	12, // 10: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
-	14, // 11: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
-	16, // 12: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
-	18, // 13: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
-	20, // 14: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
-	22, // 15: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
-	24, // 16: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
-	3,  // 17: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
-	5,  // 18: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
-	7,  // 19: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
-	9,  // 20: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
-	11, // 21: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
-	13, // 22: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
-	15, // 23: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
-	17, // 24: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
-	19, // 25: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
-	21, // 26: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
-	23, // 27: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
-	25, // 28: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
-	17, // [17:29] is the sub-list for method output_type
-	5,  // [5:17] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	27, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
+	1,  // 1: proto.card.v1.CardInfo.subtasks:type_name -> proto.card.v1.SubtaskInfo
+	0,  // 2: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
+	27, // 3: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
+	27, // 4: proto.card.v1.CreateCardRequest.deadline:type_name -> google.protobuf.Timestamp
+	2,  // 5: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
+	3,  // 6: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
+	5,  // 7: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
+	7,  // 8: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
+	9,  // 9: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
+	11, // 10: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
+	13, // 11: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
+	15, // 12: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
+	17, // 13: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
+	19, // 14: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
+	21, // 15: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
+	23, // 16: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
+	25, // 17: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
+	4,  // 18: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
+	6,  // 19: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
+	8,  // 20: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
+	10, // 21: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
+	12, // 22: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
+	14, // 23: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
+	16, // 24: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
+	18, // 25: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
+	20, // 26: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
+	22, // 27: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
+	24, // 28: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
+	26, // 29: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
+	18, // [18:30] is the sub-list for method output_type
+	6,  // [6:18] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_card_v1_card_proto_init() }
@@ -1561,17 +1726,17 @@ func file_proto_card_v1_card_proto_init() {
 		return
 	}
 	file_proto_card_v1_card_proto_msgTypes[0].OneofWrappers = []any{}
-	file_proto_card_v1_card_proto_msgTypes[1].OneofWrappers = []any{}
-	file_proto_card_v1_card_proto_msgTypes[6].OneofWrappers = []any{}
-	file_proto_card_v1_card_proto_msgTypes[10].OneofWrappers = []any{}
-	file_proto_card_v1_card_proto_msgTypes[14].OneofWrappers = []any{}
+	file_proto_card_v1_card_proto_msgTypes[2].OneofWrappers = []any{}
+	file_proto_card_v1_card_proto_msgTypes[7].OneofWrappers = []any{}
+	file_proto_card_v1_card_proto_msgTypes[11].OneofWrappers = []any{}
+	file_proto_card_v1_card_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_card_v1_card_proto_rawDesc), len(file_proto_card_v1_card_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
