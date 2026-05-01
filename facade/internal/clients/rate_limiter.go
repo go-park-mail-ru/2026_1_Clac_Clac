@@ -29,7 +29,7 @@ func (r *RateLimiter) UpdateCountRequests(ctx context.Context, check domain.Rate
 
 	resp, err := r.client.CheckRateLimit(ctx, req)
 	if err != nil {
-		return false, fmt.Errorf("client.CheckRateLimit: %w", convertGRPCError(err))
+		return false, fmt.Errorf("RateLimiterClient.CheckRateLimit: %w", convertGRPCError(err))
 	}
 
 	return resp.Exceeded, nil
@@ -44,7 +44,7 @@ func (r *RateLimiter) SetCooldown(ctx context.Context, cooldown domain.Cooldown)
 
 	resp, err := r.client.SetCooldown(ctx, req)
 	if err != nil {
-		return domain.CooldownResult{}, fmt.Errorf("client.SetCooldown: %w", convertGRPCError(err))
+		return domain.CooldownResult{}, fmt.Errorf("RateLimiterClient.SetCooldown: %w", convertGRPCError(err))
 	}
 
 	return domain.CooldownResult{

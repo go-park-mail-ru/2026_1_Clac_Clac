@@ -2,10 +2,12 @@ package clients
 
 import (
 	"strings"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -51,4 +53,14 @@ func convertGRPCError(err error) error {
 	default:
 		return err
 	}
+}
+
+func convertTimestamppbToTime(time *timestamppb.Timestamp) *time.Time {
+	if time != nil {
+		convertedTime := time.AsTime()
+
+		return &convertedTime
+	}
+
+	return nil
 }

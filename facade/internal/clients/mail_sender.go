@@ -29,7 +29,7 @@ func (m *MailSender) SendRecoveryCode(ctx context.Context, recoveryInfo domain.R
 
 	_, err := m.client.SendRecoveryCode(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.SendRecoveryCode: %w", convertGRPCError(err))
+		return fmt.Errorf("MailSender.SendRecoveryCode: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -42,7 +42,7 @@ func (m *MailSender) CheckRecoveryCode(ctx context.Context, check domain.Recover
 
 	_, err := m.client.CheckRecoveryCode(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.CheckRecoveryCode: %w", convertGRPCError(err))
+		return fmt.Errorf("MailSender.CheckRecoveryCode: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -55,7 +55,7 @@ func (m *MailSender) ExchangeTokenForUser(ctx context.Context, resetToken domain
 
 	resp, err := m.client.ExchangeTokenForUser(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("client.ExchangeTokenForUser: %w", convertGRPCError(err))
+		return uuid.Nil, fmt.Errorf("MailSender.ExchangeTokenForUser: %w", convertGRPCError(err))
 	}
 
 	userLink, err := uuid.Parse(resp.UserLink)

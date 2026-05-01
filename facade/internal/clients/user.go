@@ -28,7 +28,7 @@ func (u *User) GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullI
 
 	resp, err := u.client.GetProfile(ctx, req)
 	if err != nil {
-		return domain.FullInfoUser{}, fmt.Errorf("client.GetProfile: %w", convertGRPCError(err))
+		return domain.FullInfoUser{}, fmt.Errorf("UserClient.GetProfile: %w", convertGRPCError(err))
 	}
 
 	convertedUserLink, err := uuid.Parse(resp.UserLink)
@@ -54,7 +54,7 @@ func (u *User) UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo
 
 	_, err := u.client.UpdateProfile(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.UpdateProfile: %w", convertGRPCError(err))
+		return fmt.Errorf("UserClient.UpdateProfile: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -70,7 +70,7 @@ func (u *User) UpdateAvatar(ctx context.Context, avatarInfo domain.AvatarInfo) (
 
 	avatarURL, err := u.client.UpdateAvatar(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("client.UpdateAvatar: %w", convertGRPCError(err))
+		return "", fmt.Errorf("UserClient.UpdateAvatar: %w", convertGRPCError(err))
 	}
 
 	return avatarURL.AvatarUrl, nil
@@ -83,7 +83,7 @@ func (u *User) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
 
 	_, err := u.client.DeleteAvatar(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.DeleteAvatar: %w", convertGRPCError(err))
+		return fmt.Errorf("UserClient.DeleteAvatar: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -97,7 +97,7 @@ func (u *User) GetUser(ctx context.Context, entryUser domain.Credentials) (domai
 
 	resp, err := u.client.GetUser(ctx, req)
 	if err != nil {
-		return domain.FullInfoUser{}, fmt.Errorf("client.GetUser: %w", convertGRPCError(err))
+		return domain.FullInfoUser{}, fmt.Errorf("UserClient.GetUser: %w", convertGRPCError(err))
 	}
 
 	convertedUserLink, err := uuid.Parse(resp.UserLink)
@@ -122,7 +122,7 @@ func (u *User) CreateUser(ctx context.Context, infoUser domain.NewCredentialsUse
 
 	resp, err := u.client.CreateUser(ctx, req)
 	if err != nil {
-		return domain.FullInfoUser{}, fmt.Errorf("client.CreateUser: %w", convertGRPCError(err))
+		return domain.FullInfoUser{}, fmt.Errorf("UserClient.CreateUser: %w", convertGRPCError(err))
 	}
 
 	convertedUserLink, err := uuid.Parse(resp.UserLink)
@@ -145,7 +145,7 @@ func (u *User) GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 
 	resp, err := u.client.GetUserLink(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("client.GetUserLink: %w", convertGRPCError(err))
+		return uuid.Nil, fmt.Errorf("UserClient.GetUserLink: %w", convertGRPCError(err))
 	}
 
 	userLink, err := uuid.Parse(resp.UserLink)
@@ -164,7 +164,7 @@ func (u *User) ResetPassword(ctx context.Context, updatedPassword domain.Updated
 
 	_, err := u.client.ResetPassword(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.ResetPassword: %w", convertGRPCError(err))
+		return fmt.Errorf("UserClient.ResetPassword: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -178,7 +178,7 @@ func (u *User) ProcessUserWithVK(ctx context.Context, accessToken string, email 
 
 	resp, err := u.client.ProcessUserWithVK(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("client.ProcessUserWithVK: %w", convertGRPCError(err))
+		return uuid.Nil, fmt.Errorf("UserClient.ProcessUserWithVK: %w", convertGRPCError(err))
 	}
 
 	userLink, err := uuid.Parse(resp.UserLink)

@@ -3,7 +3,7 @@ package common
 import "errors"
 
 var (
-	ErrorParseLink = errors.New("fail parse user link to uuid")
+	ErrorParseLink = errors.New("fail parse link to uuid")
 
 	ErrorExistingUser         = errors.New("user already exists")
 	ErrorNotNullValue         = errors.New("null value in not null field")

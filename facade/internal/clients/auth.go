@@ -27,7 +27,7 @@ func (a *Auth) CreateSession(ctx context.Context, userLink uuid.UUID) (string, e
 
 	resp, err := a.client.CreateSession(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("client.CreateSession: %w", convertGRPCError(err))
+		return "", fmt.Errorf("AuthClient.CreateSession: %w", convertGRPCError(err))
 	}
 
 	return resp.SessionId, nil
@@ -40,7 +40,7 @@ func (a *Auth) CheckSession(ctx context.Context, sessionID string) (uuid.UUID, e
 
 	resp, err := a.client.GetUserLink(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("client.GetUserLink: %w", convertGRPCError(err))
+		return uuid.Nil, fmt.Errorf("AuthClient.GetUserLink: %w", convertGRPCError(err))
 	}
 
 	userLink, err := uuid.Parse(resp.UserLink)
@@ -58,7 +58,7 @@ func (a *Auth) DeleteSession(ctx context.Context, sessionID string) error {
 
 	_, err := a.client.DeleteSession(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.DeleteSession: %w", convertGRPCError(err))
+		return fmt.Errorf("AuthClient.DeleteSession: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func (a *Auth) RefreshSession(ctx context.Context, sessionID string) error {
 
 	_, err := a.client.ExtendSession(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.ExtendSession: %w", convertGRPCError(err))
+		return fmt.Errorf("AuthClient.ExtendSession: %w", convertGRPCError(err))
 	}
 
 	return nil
@@ -84,7 +84,7 @@ func (a *Auth) ExchangeVKCode(ctx context.Context, code string) (accessToken str
 
 	resp, err := a.client.ExchangeVKCode(ctx, req)
 	if err != nil {
-		return "", "", fmt.Errorf("client.ExchangeVKCode: %w", convertGRPCError(err))
+		return "", "", fmt.Errorf("AuthClient.ExchangeVKCode: %w", convertGRPCError(err))
 	}
 
 	return resp.AccessToken, resp.Email, nil
