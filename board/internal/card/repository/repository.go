@@ -418,8 +418,6 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 }
 
 func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.CreateCommentInfo) (dto.CommentInfo, error) {
-	newCommentLink := uuid.New()
-
 	createCommentQuery := `
 		INSERT INTO comment_task (link, task_id, parent_id, author_link, text)
 		VALUES (
@@ -432,7 +430,7 @@ func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.Creat
 	`
 
 	_, err := r.pool.Exec(ctx, createCommentQuery,
-		newCommentLink,
+		createCardInfo.CommentLink,
 		createCardInfo.CardLink,
 		createCardInfo.ParentLink,
 		createCardInfo.AuthorLink,
@@ -452,7 +450,7 @@ func (r *Repository) CreateComment(ctx context.Context, createCardInfo dto.Creat
 	}
 
 	return dto.CommentInfo{
-		Link:       newCommentLink,
+		Link:       createCardInfo.CommentLink,
 		ParentLink: createCardInfo.ParentLink,
 		AuthorLink: createCardInfo.AuthorLink,
 		Text:       createCardInfo.Text,

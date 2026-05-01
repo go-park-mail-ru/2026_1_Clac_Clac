@@ -45,10 +45,11 @@ type CommentInfo struct {
 }
 
 type CreateCommentInfo struct {
-	CardLink   uuid.UUID
-	ParentLink *uuid.UUID
-	AuthorLink uuid.UUID
-	Text       string
+	CommentLink uuid.UUID
+	CardLink    uuid.UUID
+	ParentLink  *uuid.UUID
+	AuthorLink  uuid.UUID
+	Text        string
 }
 
 type UpdateCommentInfo struct {

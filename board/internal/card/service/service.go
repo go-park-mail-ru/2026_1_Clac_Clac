@@ -196,11 +196,14 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 		return dto.CommentInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
 	}
 
+	newCommentLink := uuid.New()
+
 	comment, err := s.rep.CreateComment(ctx, repositoryDto.CreateCommentInfo{
-		CardLink:   createCommentInfo.CardLink,
-		ParentLink: createCommentInfo.ParentLink,
-		AuthorLink: createCommentInfo.AuthorLink,
-		Text:       createCommentInfo.Text,
+		CommentLink: newCommentLink,
+		CardLink:    createCommentInfo.CardLink,
+		ParentLink:  createCommentInfo.ParentLink,
+		AuthorLink:  createCommentInfo.AuthorLink,
+		Text:        createCommentInfo.Text,
 	})
 	if err != nil {
 		return dto.CommentInfo{}, fmt.Errorf("CardRepository.CreateComment: %w", err)
