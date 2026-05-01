@@ -60,6 +60,14 @@ services:
     addr: "localhost:50052"
     timeout: 5s
     retries: 5
+  section:
+    addr: "localhost:50052"
+    timeout: 5s
+    retries: 5
+  card:
+    addr: "localhost:50052"
+    timeout: 5s
+    retries: 5
 
   rate_limiters:
     addr: "localhost:50055"

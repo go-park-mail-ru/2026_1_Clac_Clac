@@ -5,6 +5,8 @@ type Services struct {
 	User         User         `mapstructure:"user"`
 	Auth         Auth         `mapstructure:"auth"`
 	Board        ClientConfig `mapstructure:"board"`
+	Section      ClientConfig `mapstructure:"section"`
+	Card         ClientConfig `mapstructure:"card"`
 	RateLimiters RateLimiters `mapstructure:"rate_limiters"`
 }
 
