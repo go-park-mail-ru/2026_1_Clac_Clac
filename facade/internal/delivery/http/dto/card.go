@@ -50,7 +50,7 @@ type SubtaskResponse struct {
 //	@Description	Полная информация о карточке
 type CardResponse struct {
 	CardLink     uuid.UUID         `json:"card_link"`
-	ExecutorName *string           `json:"executor_name,omitempty"`
+	ExecutorLink *string           `json:"executor_link,omitempty"`
 	Title        string            `json:"title"`
 	Description  string            `json:"description"`
 	Deadline     *time.Time        `json:"deadline,omitempty"`
