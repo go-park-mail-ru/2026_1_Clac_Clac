@@ -22,6 +22,9 @@ services:
         condition: service_completed_successfully
       board-redis:
         condition: service_healthy
+    networks:
+      - default
+      - nexus-network
 
   board-db:
     image: postgres:17-alpine
@@ -67,3 +70,7 @@ services:
 volumes:
   board_db_data:
   board_redis_data:
+
+networks:
+  nexus-network:
+    external: true

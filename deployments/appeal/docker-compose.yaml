@@ -18,6 +18,9 @@ services:
     depends_on:
       appeal-migrate:
         condition: service_completed_successfully
+    networks:
+      - default
+      - nexus-network
 
   appeal-db:
     image: postgres:17-alpine
@@ -49,3 +52,7 @@ services:
 
 volumes:
   appeal_db_data:
+
+networks:
+  nexus-network:
+    external: true

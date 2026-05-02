@@ -12,3 +12,9 @@ services:
     env_file:
       - ../../facade/.env
     restart: unless-stopped
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    external: true

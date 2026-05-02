@@ -25,7 +25,7 @@ csrf:
 services:
   user:
     client:
-      addr: "localhost:50051"
+      addr: "nexus-user:8080"
       timeout: 3s
       retries: 5
     handler:
@@ -43,7 +43,7 @@ services:
 
   auth:
     client:
-      addr: "localhost:50054"
+      addr: "nexus-authorization:8080"
       timeout: 2s
       retries: 5
     handler:
@@ -52,21 +52,21 @@ services:
       session_life_time: 24h
 
   mail_sender:
-    addr: "localhost:50053"
+    addr: "nexus-mail-sender:8080"
     timeout: 10s
     retries: 5
 
   board:
-    addr: "localhost:50052"
+    addr: "nexus-board:8080"
     timeout: 5s
     retries: 5
   section:
-    addr: "localhost:50052"
+    addr: "nexus-board:8080"
     timeout: 5s
     retries: 5
   card:
     client:
-      addr: "localhost:50052"
+      addr: "nexus-board:8080"
       timeout: 5s
       retries: 5
     handler:
@@ -92,7 +92,7 @@ services:
 
   appeal:
     client:
-      addr: "localhost:50056"
+      addr: "nexus-appeal:8080"
       timeout: 5s
       retries: 5
     handler:

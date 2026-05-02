@@ -18,6 +18,9 @@ services:
     depends_on:
       user-migrate:
         condition: service_completed_successfully
+    networks:
+      - default
+      - nexus-network
 
   user-db:
     image: postgres:17-alpine
@@ -49,3 +52,7 @@ services:
 
 volumes:
   user_db_data:
+
+networks:
+  nexus-network:
+    external: true

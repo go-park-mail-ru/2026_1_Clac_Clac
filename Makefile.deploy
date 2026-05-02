@@ -55,6 +55,7 @@ reload:
 	sudo systemctl restart $(SERVICE_NAME)
 
 up-build:
+	docker network create nexus-network 2>/dev/null || true
 	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
 	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env up -d --build
 	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env up -d --build

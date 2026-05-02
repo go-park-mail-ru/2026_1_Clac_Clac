@@ -18,6 +18,9 @@ services:
     depends_on:
       mail-sender-redis:
         condition: service_healthy
+    networks:
+      - default
+      - nexus-network
 
   mail-sender-redis:
     image: redis:7-alpine
@@ -34,3 +37,7 @@ services:
 
 volumes:
   mail-sender_redis_data:
+
+networks:
+  nexus-network:
+    external: true

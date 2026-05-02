@@ -18,6 +18,9 @@ services:
     depends_on:
       rate-limiter-redis:
         condition: service_healthy
+    networks:
+      - default
+      - nexus-network
 
   rate-limiter-redis:
     image: redis:7-alpine
@@ -34,3 +37,7 @@ services:
 
 volumes:
   rate-limiter_redis_data:
+
+networks:
+  nexus-network:
+    external: true
