@@ -4,7 +4,7 @@ app:
   max_upload_image_size: 10485760
 
 engine:
-  addr: 0.0.0.0:8081
+  addr: 0.0.0.0:8080
   write_timeout: 15s
   read_timeout: 15s
   idle_timeout: 60s
