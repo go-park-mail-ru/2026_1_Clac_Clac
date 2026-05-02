@@ -100,3 +100,12 @@ services:
       retries: 5
     handler:
       multipart_attachment_file_key: "attachment"
+
+  sentry:
+    environment: "production"
+    release: "RK3"
+    service_name: "facade"
+    tags:
+      layer: "edge"
+      team: "api-platform"
+      protocol: "http_rest"

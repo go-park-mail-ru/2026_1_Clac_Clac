@@ -14,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -198,6 +199,11 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		logger.Err(fmt.Errorf("user.CreateUser: %w", err)).Msg("create user")
+		sentryLogger.CaptureFromContext(r.Context(), err, "user.CreateUser", map[string]interface{}{
+			"email":        request.Email,
+			"display_name": request.DisplayName,
+			"action":       "create_db_record",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}

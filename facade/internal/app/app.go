@@ -9,6 +9,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/router"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 )
@@ -23,8 +25,14 @@ type App struct {
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
+	err := setupSelery(conf)
+	if err != nil {
+		return nil, fmt.Errorf("setupSelery: %w", err)
+	}
+
 	connector, err := setupConnector(&conf.Services, logger)
 	if err != nil {
+		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "connector"})
 		return nil, fmt.Errorf("NewConnector: %w", err)
 	}
 
@@ -45,8 +53,12 @@ func NewApp(conf *config.Config) (*App, error) {
 }
 
 func (a *App) Run() {
+
 	defer func() {
 		a.Logger.Info().Msg("Closing gRPC connections...")
+
+		sentryLogger.Flush()
+
 		if a.Connector != nil {
 			a.Connector.Close()
 		}
@@ -99,4 +111,16 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 	}
 
 	return router.NewRouter(tools, conf, logger)
+}
+
+func setupSelery(config *config.Config) error {
+	cfg := logger.Sentry{
+		DSN:         config.Sentry.DSN,
+		Environment: config.Sentry.Environment,
+		Release:     config.Sentry.Release,
+		ServiceName: config.Sentry.ServiceName,
+		Tags:        config.Sentry.Tags,
+	}
+
+	return sentryLogger.Init(cfg)
 }

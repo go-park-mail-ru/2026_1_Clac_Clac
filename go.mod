@@ -37,6 +37,7 @@ require (
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/getsentry/sentry-go v0.46.1 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect

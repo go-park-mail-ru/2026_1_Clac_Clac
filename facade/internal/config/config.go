@@ -6,14 +6,16 @@ import (
 	"strings"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App    Application   `mapstructure:"app"`
-	Engine engine.Config `mapstructure:"engine"`
-	CORS   CORS          `mapstructure:"cors"`
-	CSRF   CSRF          `mapstructure:"csrf"`
+	App    Application         `mapstructure:"app"`
+	Engine engine.Config       `mapstructure:"engine"`
+	CORS   CORS                `mapstructure:"cors"`
+	CSRF   CSRF                `mapstructure:"csrf"`
+	Sentry sentryLogger.Sentry `mapstructure:"sentry"`
 
 	Services Services `mapstructure:"services"`
 }
@@ -24,6 +26,7 @@ func DefaultConfig() Config {
 		Engine: DefaultEngineConfig(),
 		CORS:   DefaultCORSConfig(),
 		CSRF:   DefaultCSRFConfig(),
+		Sentry: DefaultSentryConfig(),
 
 		Services: DefaultServicesConfig(),
 	}
@@ -50,6 +53,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	// SetupEnvCORS(v)
 	// SetupEnvAuth(v)
 	// SetupEnvCSRFConfig(v)
+	// SetupEnvSentryConfig(v)
 
 	BindStructKeys(v, Config{})
 

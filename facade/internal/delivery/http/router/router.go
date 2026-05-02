@@ -97,6 +97,7 @@ type Tools struct {
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
+	r.Use(middleware.SentryHubMiddleware())
 	r.Use(middleware.RecoveryMiddleware(logger))
 	r.Use(middleware.LoggerMiddleware(logger))
 	r.Use(middleware.CORSMiddleware(&conf.CORS))
