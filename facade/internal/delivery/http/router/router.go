@@ -140,6 +140,15 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImage.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withText.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
 
+	withText.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
+	withText.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
+
+	withText.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
+	withText.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)
+	withText.HandleFunc("/sections/{link}", deps.Section.DeleteSection).Methods(http.MethodDelete)
+	withText.HandleFunc("/sections/{link}", deps.Section.UpdateSection).Methods(http.MethodPut)
+	withText.HandleFunc("/sections/{link}/cards", deps.Section.GetCards).Methods(http.MethodGet)
+
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodPost)
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodGet)
 	withText.HandleFunc("/cards/{card_link}/subtasks/{link}", notImplemented).Methods(http.MethodPut)

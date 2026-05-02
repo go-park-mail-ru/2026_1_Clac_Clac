@@ -26,6 +26,7 @@ type CardInfo struct {
 	Link         uuid.UUID
 	ExecutorName *string
 	Title        string
+	Description string
 	Deadline     *time.Time
 	Subtasks     []SubtaskInfo
 }

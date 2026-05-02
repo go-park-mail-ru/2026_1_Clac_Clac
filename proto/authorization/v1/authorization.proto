@@ -2,58 +2,58 @@ syntax = "proto3";
 
 package proto.auth.v1;
 
-option go_package = "./pkg/contracts/auth;auth";
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/authorization/v1";
 
 // Сервис отвечает ИСКЛЮЧИТЕЛЬНО за управление сессиями (Redis)
 service AuthService {
-    // Создает новую сессию по UserLink и возвращает SessionID
-    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  // Создает новую сессию по UserLink и возвращает SessionID
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
 
-    // Проверяет SessionID и возвращает UserLink (если сессия жива)
-    rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
+  // Проверяет SessionID и возвращает UserLink (если сессия жива)
+  rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
 
-    // Удаляет сессию при логауте
-    rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+  // Удаляет сессию при логауте
+  rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
-    // Продлить время жизни сессии
-    rpc ExtendSession(ExtendSessionRequest) returns (ExtendSessionResponse);
+  // Продлить время жизни сессии
+  rpc ExtendSession(ExtendSessionRequest) returns (ExtendSessionResponse);
 
-    // Обменивает VK OAuth code на access_token и email пользователя
-    rpc ExchangeVKCode(ExchangeVKCodeRequest) returns (ExchangeVKCodeResponse);
+  // Обменивает VK OAuth code на access_token и email пользователя
+  rpc ExchangeVKCode(ExchangeVKCodeRequest) returns (ExchangeVKCodeResponse);
 }
 
 message ExtendSessionRequest {
-    string session_id = 1;
+  string session_id = 1;
 }
 
 message ExtendSessionResponse {}
 
 message CreateSessionRequest {
-    string user_link = 1;
+  string user_link = 1;
 }
 
 message CreateSessionResponse {
-    string session_id = 1;
+  string session_id = 1;
 }
 
 message GetUserLinkRequest {
-    string session_id = 1;
+  string session_id = 1;
 }
 message GetUserLinkResponse {
-    string user_link = 1;
+  string user_link = 1;
 }
 
 message DeleteSessionRequest {
-    string session_id = 1;
+  string session_id = 1;
 }
 
 message DeleteSessionResponse {}
 
 message ExchangeVKCodeRequest {
-    string code = 1;
+  string code = 1;
 }
 
 message ExchangeVKCodeResponse {
-    string access_token = 1;
-    string email = 2;
+  string access_token = 1;
+  string email = 2;
 }
