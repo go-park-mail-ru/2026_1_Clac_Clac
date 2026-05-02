@@ -1,9 +1,13 @@
 FROM golang:1.26-alpine AS builder
 
 ENV GOOS=linux CGO_ENABLED=0
-RUN apk add --no-cache make
+RUN apk add --no-cache make git
 
 WORKDIR /app
+
+# Скачиваем grpcurl прямо через Go
+# Он скомпилируется под ту же архитектуру, что и твое приложение
+RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -19,11 +23,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest
 
-# 1. Устанавливаем базу + инструменты отладки
-# grpcurl - для gRPC запросов
-# bind-tools - для проверки DNS (dig, nslookup)
-# iproute2 - для ss и продвинутой работы с сетью
-# curl - для проверки HTTP/2
+# Устанавливаем только стандартные утилиты, которые точно есть
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
@@ -31,16 +31,17 @@ RUN apk add --no-cache \
     iproute2 \
     curl \
     busybox-extras \
-    && apk add --no-cache \
-    --repository=https://dl-cdn.alpinelinux.org/alpine/v3.18/community \
-    grpcurl \
     && ln -sf /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
 
 WORKDIR /app
 
 RUN adduser -D nexus && chown nexus:nexus /app
 
+# Копируем твой бинарник
 COPY --from=builder --chown=nexus:nexus /app/facade/bin/main .
+
+# Копируем grpcurl, который мы собрали в builder
+COPY --from=builder /go/bin/grpcurl /usr/local/bin/grpcurl
 
 USER nexus
 EXPOSE 8080
