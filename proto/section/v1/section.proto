@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package proto.section.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1";
+
+message SectionInfo {
+  string link = 1;
+  string name = 2;
+  int64 position = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
+}
+
+message SubtaskInfo {
+  string subtask_link = 1;
+  string description = 2;
+  bool is_done = 3;
+  int64 position = 4;
+}
+
+message CardInfo {
+  string link = 1;
+  optional string executor_name = 2;
+  string title = 3;
+  string description = 4;
+  optional google.protobuf.Timestamp deadline = 5;
+  repeated SubtaskInfo subtasks = 6;
+}
+
+// GetSections
+message GetSectionsRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message GetSectionsResponse {
+  repeated SectionInfo sections_info = 1;
+}
+
+// GetSection
+message GetSectionRequest {
+  string user_link = 1;
+  string section_link = 2;
+}
+
+message GetSectionResponse {
+  SectionInfo section_info = 1;
+}
+
+// GetCards
+message GetCardsRequest {
+  string user_link = 1;
+  string section_link = 2;
+}
+
+message GetCardsResponse {
+  repeated CardInfo cards_info = 1;
+}
+
+// CreateSection
+message CreateSectionRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string name = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
+}
+
+message CreateSectionResponse {
+  SectionInfo section_info = 1;
+}
+
+// DeleteSection
+message DeleteSectionRequest {
+  string user_link = 1;
+  string section_link = 2;
+}
+
+message DeleteSectionResponse {}
+
+// ReorderSection
+message ReorderSectionRequest {
+  string user_link = 1;
+  string board_link = 2;
+  repeated string links_list = 3;
+}
+
+message ReorderSectionResponse {}
+
+// UpdateSection
+message UpdateSectionRequest {
+  string user_link = 1;
+  string section_link = 2;
+  string name = 3;
+  bool is_mandatory = 4;
+  string color = 5;
+  optional int64 max_tasks = 6;
+}
+
+message UpdateSectionResponse {}
+
+service SectionService {
+  rpc GetSections(GetSectionsRequest) returns (GetSectionsResponse);
+  rpc GetSection(GetSectionRequest) returns (GetSectionResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc CreateSection(CreateSectionRequest) returns (CreateSectionResponse);
+  rpc DeleteSection(DeleteSectionRequest) returns (DeleteSectionResponse);
+  rpc ReorderSection(ReorderSectionRequest) returns (ReorderSectionResponse);
+  rpc UpdateSection(UpdateSectionRequest) returns (UpdateSectionResponse);
+}

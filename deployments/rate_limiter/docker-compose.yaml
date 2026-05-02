@@ -1,0 +1,43 @@
+services:
+  rate-limiter:
+    build:
+      context: ../../
+      dockerfile: deployments/rate_limiter/Dockerfile
+    image: nexus-rate-limiter
+    container_name: nexus-rate-limiter
+    ports:
+      - "127.0.0.1:50055:8080"
+    volumes:
+      - ../../rate_limiter/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../rate_limiter/.env
+    environment:
+      - REDIS_HOST=rate-limiter-redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    depends_on:
+      rate-limiter-redis:
+        condition: service_healthy
+    networks:
+      - default
+      - nexus-network
+
+  rate-limiter-redis:
+    image: redis:7-alpine
+    container_name: nexus-rate-limiter-redis
+    volumes:
+      - rate-limiter_redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping", "--no-auth-warning"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  rate-limiter_redis_data:
+
+networks:
+  nexus-network:
+    external: true

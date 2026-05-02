@@ -1,0 +1,43 @@
+services:
+  authorization:
+    build:
+      context: ../../
+      dockerfile: deployments/authorization/Dockerfile
+    image: nexus-authorization
+    container_name: nexus-authorization
+    ports:
+      - "127.0.0.1:50054:8080"
+    volumes:
+      - ../../authorization/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../authorization/.env
+    environment:
+      - REDIS_HOST=authorization-redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    depends_on:
+      authorization-redis:
+        condition: service_healthy
+    networks:
+      - default
+      - nexus-network
+
+  authorization-redis:
+    image: redis:7-alpine
+    container_name: nexus-authorization-redis
+    volumes:
+      - authorization_redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping", "--no-auth-warning"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  authorization_redis_data:
+
+networks:
+  nexus-network:
+    external: true

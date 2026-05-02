@@ -1,0 +1,58 @@
+services:
+  user:
+    build:
+      context: ../../
+      dockerfile: deployments/user/Dockerfile
+    image: nexus-user
+    container_name: nexus-user
+    ports:
+      - "127.0.0.1:50051:8080"
+    volumes:
+      - ../../user/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../user/.env
+    environment:
+      - DATABASE_HOST=user-db
+      - DATABASE_PORT=5432
+    restart: unless-stopped
+    depends_on:
+      user-migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+      - nexus-network
+
+  user-db:
+    image: postgres:17-alpine
+    container_name: nexus-user-db
+    volumes:
+      - user_db_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-migrate:
+    image: migrate/migrate
+    volumes:
+      - ../../user/internal/db/migrations:/migrations
+    command:
+      - -path=/migrations
+      - -database=postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@user-db:5432/${DATABASE_NAME}?sslmode=disable
+      - up
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+volumes:
+  user_db_data:
+
+networks:
+  nexus-network:
+    external: true

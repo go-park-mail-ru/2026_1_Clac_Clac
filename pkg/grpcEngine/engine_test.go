@@ -1,0 +1,59 @@
+package enginegrpc
+
+import (
+	"bytes"
+	"context"
+	"testing"
+	"time"
+
+	"github.com/rs/zerolog"
+)
+
+func TestStartListenError(t *testing.T) {
+	cfg := Config{
+		Addr: "invalid-address-that-cannot-listen",
+	}
+	buf := &bytes.Buffer{}
+	logger := zerolog.New(buf)
+	e := New(cfg, &logger)
+
+	err := e.Start(context.Background())
+	if err == nil {
+		t.Fatal("expected error from invalid listen address")
+	}
+}
+
+func TestGracefulShutdown(t *testing.T) {
+	const timeout = 16 * time.Second
+	cfg := Config{
+		Addr:                    ":0",
+		GracefulShutdownTimeout: 15,
+	}
+
+	buf := &bytes.Buffer{}
+	logger := zerolog.New(buf)
+
+	e := New(cfg, &logger)
+
+	serverReady := make(chan struct{})
+	e.OnListen = func(_ string) {
+		close(serverReady)
+	}
+
+	serverStopped := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		_ = e.Start(ctx)
+		close(serverStopped)
+	}()
+
+	<-serverReady
+
+	cancel()
+
+	select {
+	case <-serverStopped:
+	case <-time.After(timeout):
+		t.Fatal("server did not shutdown after timeout")
+	}
+}

@@ -1,0 +1,20 @@
+services:
+  facade:
+    build:
+      context: ../../
+      dockerfile: deployments/facade/Dockerfile
+    image: nexus-facade
+    container_name: nexus-facade
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ../../facade/config.yaml:/app/config.yaml:ro
+    env_file:
+      - ../../facade/.env
+    restart: unless-stopped
+    networks:
+      - nexus-network
+
+networks:
+  nexus-network:
+    external: true
