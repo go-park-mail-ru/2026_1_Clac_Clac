@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -30,8 +29,6 @@ func TestSetupEnvCORS(t *testing.T) {
 		t.Setenv("CORS_ORIGIN", expectedOrigin)
 
 		v := viper.New()
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
 
 		SetupEnvCORS(v)
 

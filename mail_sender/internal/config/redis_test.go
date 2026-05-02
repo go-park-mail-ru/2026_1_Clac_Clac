@@ -1,9 +1,10 @@
 package config
 
 import (
-	"strings"
+	"os"
 	"testing"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,30 +12,33 @@ import (
 
 func TestRedisConnectionConfig(t *testing.T) {
 	t.Run("test reading redis config from env", func(t *testing.T) {
-		expected := RedisConnection{
+		expected := redis.Config{
 			Password: "X5NiUyrTxlWmwK8BFpYq",
 			Host:     "localhost",
 			Port:     "6379",
 		}
 
-		t.Setenv("REDIS_PASSWORD", expected.Password)
-		t.Setenv("REDIS_HOST", expected.Host)
-		t.Setenv("REDIS_PORT", expected.Port)
+		os.Setenv("REDIS_PASSWORD", expected.Password)
+		os.Setenv("REDIS_HOST", expected.Host)
+		os.Setenv("REDIS_PORT", expected.Port)
 
 		v := viper.New()
 
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
-
-		SetupEnvRedisConnection(v)
+		redis.SetupEnvRedis(v)
 
 		var conf struct {
-			Redis RedisConnection `mapstructure:"redis"`
+			Redis redis.Config `mapstructure:"redis"`
 		}
 
 		err := v.Unmarshal(&conf)
 
 		require.NoError(t, err, "viper must not return error")
-		assert.Equal(t, expected, conf.Redis, "expected other configuration redis")
+		assert.Equal(t, expected.Password, conf.Redis.Password)
+		assert.Equal(t, expected.Host, conf.Redis.Host)
+		assert.Equal(t, expected.Port, conf.Redis.Port)
+
+		os.Unsetenv("REDIS_PASSWORD")
+		os.Unsetenv("REDIS_HOST")
+		os.Unsetenv("REDIS_PORT")
 	})
 }

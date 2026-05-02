@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/service/dto"
-	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/appealRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,9 +24,9 @@ import (
 )
 
 var (
-	ErrInvalidActions = errors.New("this role can not do it")
-
-	msgInternalError          = "server error internal"
+	ErrUnexpectedCategory     = errors.New("unexpected category")
+	ErrUnexpectedStatus       = errors.New("unexpected status")
+	ErrInvalidActions         = errors.New("this role can not do it")
 	ErrInvalidRequestSchema   = errors.New("invalid schema")
 	ErrInvalidEmailOrName     = errors.New("incorrect email or name")
 	ErrParseMultipartForm     = errors.New("file too large or invalid form")
@@ -73,6 +73,71 @@ func NewHandler(srv AppealService, conf Config) *Handler {
 	}
 }
 
+func parseProtoCategory(pbCategory pb.Category) (common.Category, error) {
+	switch pbCategory {
+	case pb.Category_CATEGORY_BUG:
+		return common.Categories.Bug, nil
+	case pb.Category_CATEGORY_PROPOSAL:
+		return common.Categories.Proposal, nil
+	case pb.Category_CATEGORY_COMPLAINT:
+		return common.Categories.Complaint, nil
+	}
+
+	return "", ErrUnexpectedCategory
+}
+
+func toProtoCategory(category common.Category) pb.Category {
+	switch category {
+	case common.Categories.Bug:
+		return pb.Category_CATEGORY_BUG
+	case common.Categories.Proposal:
+		return pb.Category_CATEGORY_PROPOSAL
+	case common.Categories.Complaint:
+		return pb.Category_CATEGORY_COMPLAINT
+	}
+
+	return pb.Category_CATEGORY_UNSPECIFIED
+}
+
+func parseProtoStatus(pbStatus pb.Status) (common.Status, error) {
+	switch pbStatus {
+	case pb.Status_STATUS_OPEN:
+		return common.Statuses.Open, nil
+	case pb.Status_STATUS_IN_WORK:
+		return common.Statuses.InWork, nil
+	case pb.Status_STATUS_CLOSE:
+		return common.Statuses.Close, nil
+	}
+
+	return "", ErrUnexpectedStatus
+}
+
+func toProtoStatus(status common.Status) pb.Status {
+	switch status {
+	case common.Statuses.Open:
+		return pb.Status_STATUS_OPEN
+	case common.Statuses.InWork:
+		return pb.Status_STATUS_IN_WORK
+	case common.Statuses.Close:
+		return pb.Status_STATUS_CLOSE
+	}
+
+	return pb.Status_STATUS_UNSPECIFIED
+}
+
+func toProtoRole(role rbac.Role) pb.Role {
+	switch role {
+	case rbac.Roles.User:
+		return pb.Role_ROLE_USER
+	case rbac.Roles.Support:
+		return pb.Role_ROLE_SUPPORT
+	case rbac.Roles.Admin:
+		return pb.Role_ROLE_ADMIN
+	}
+
+	return pb.Role_ROLE_UNSPECIFIED
+}
+
 func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest) (*pb.CreateAppealResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
@@ -82,9 +147,9 @@ func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	appealCategory, err := common.ParseProtoCategory(req.GetCategory())
+	appealCategory, err := parseProtoCategory(req.GetCategory())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, common.ErrUnexpectedCategory.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrUnexpectedCategory.Error())
 	}
 
 	request := dto.EntityAppealRequest{
@@ -152,8 +217,8 @@ func (h *Handler) GetAppeals(ctx context.Context, req *pb.GetAppealsRequest) (*p
 			AppealLink:    a.AppealLink.String(),
 			Email:         a.Email,
 			DisplayName:   a.DisplayName,
-			Category:      common.ToProtoCategory(a.Category),
-			Status:        common.ToProtoStatus(a.Status),
+			Category:      toProtoCategory(a.Category),
+			Status:        toProtoStatus(a.Status),
 			Description:   a.Description,
 			AttachmentUrl: attachmentKey,
 			CreatedAt:     timestamppb.New(a.CreatedAt),
@@ -161,7 +226,7 @@ func (h *Handler) GetAppeals(ctx context.Context, req *pb.GetAppealsRequest) (*p
 	}
 
 	return &pb.GetAppealsResponse{
-		Role:        common.ToProtoRole(appeals.Role),
+		Role:        toProtoRole(appeals.Role),
 		AppealsInfo: responseAppeals,
 	}, nil
 }
@@ -271,9 +336,9 @@ func (h *Handler) ChangeAppealStatus(ctx context.Context, req *pb.ChangeAppealSt
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
 	}
 
-	appealNewStatus, err := common.ParseProtoStatus(req.GetNewStatus())
+	appealNewStatus, err := parseProtoStatus(req.GetNewStatus())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, common.ErrUnexpectedStatus.Error())
+		return nil, status.Error(codes.InvalidArgument, ErrUnexpectedStatus.Error())
 	}
 
 	err = h.srv.ChangeAppealStatus(ctx, serviceDto.ChangeAppealStatusInfo{

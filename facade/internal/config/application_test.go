@@ -3,6 +3,7 @@ package config_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
 	"github.com/spf13/viper"
@@ -16,6 +17,7 @@ func TestDefaultApplicationConfig(t *testing.T) {
 			LogLevel:           config.DebugLevel,
 			MaxTextRequestSize: 10 * 1024,
 			MaxUploadImageSize: 10 * 1024 * 1024,
+			RequestTimeout:     5 * time.Second,
 		}
 
 		actual := config.DefaultApplicationConfig()

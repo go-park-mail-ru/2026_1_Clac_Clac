@@ -13,42 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type nestedStruct struct {
-	Inner string `mapstructure:"inner_val"`
-}
-
-type bindTestStruct struct {
-	Name    string       `mapstructure:"name"`
-	Skip    string       `mapstructure:"-"`
-	NoTag   string
-	Nested  nestedStruct `mapstructure:"nested"`
-	PtrNest *nestedStruct `mapstructure:"ptr_nested"`
-}
-
-func TestBindStructKeys(t *testing.T) {
-	v := viper.New()
-	config.BindStructKeys(v, bindTestStruct{})
-	assert.NotNil(t, v)
-}
-
-func TestBindStructKeysPointer(t *testing.T) {
-	v := viper.New()
-	s := &bindTestStruct{}
-	config.BindStructKeys(v, s)
-	assert.NotNil(t, v)
-}
-
-func TestBindStructKeysNonStruct(t *testing.T) {
-	v := viper.New()
-	config.BindStructKeys(v, "not a struct")
-	assert.NotNil(t, v)
-}
-
-const (
-	DebugLevel = "debug"
-	InfoLevel  = "info"
-)
-
 func TestConfigReading(t *testing.T) {
 	expectedConfig := config.Config{
 		App: config.DefaultApplicationConfig(),
@@ -61,7 +25,7 @@ func TestConfigReading(t *testing.T) {
 		Section: config.Section{
 			Handler: config.SectionHandler{
 				MaxQuantityTasks:  100,
-				MinQuantityTasks:  0,
+				MinQuantityTasks: 0,
 				MaxLenNameSection: 128,
 			},
 		},
@@ -79,7 +43,6 @@ app:
   log_level: debug
   max_text_request_size: 10240
   max_upload_image_size: 10485760
-
 
 engine:
   addr: ":8080"

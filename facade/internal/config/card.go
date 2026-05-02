@@ -1,7 +1,5 @@
 package config
 
-import "github.com/spf13/viper"
-
 const (
 	cardConfigDefaultMaxLenTitle       = 128
 	cardConfigDefaultMaxLenDescription = 500
@@ -31,11 +29,4 @@ func DefaultCardConfig() Card {
 			MaxLenDescription: cardConfigDefaultMaxLenDescription,
 		},
 	}
-}
-
-func SetupEnvCard(v *viper.Viper) {
-	v.SetDefault("services.card.handler.max_len_title", cardConfigDefaultMaxLenTitle)
-	v.SetDefault("services.card.handler.max_len_description", cardConfigDefaultMaxLenDescription)
-	v.RegisterAlias("services.card.handler.max_len_title", "services_card_handler_max_len_title")
-	v.RegisterAlias("services.card.handler.max_len_description", "services_card_handler_max_len_description")
 }
