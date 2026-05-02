@@ -39,11 +39,15 @@ type CSRFHandler interface {
 	SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request)
 }
 
+type CardHandler interface {
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
 	MailSender  MailSenderHandler
 	CSRF        CSRFHandler
+	Card        CardHandler
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
@@ -96,24 +100,25 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	csrfProtected := protected.PathPrefix("/").Subrouter()
 	csrfProtected.Use(middleware.CSRFMiddleware(deps.CSRFChecker))
 
-	withText := csrfProtected.PathPrefix("/").Subrouter()
-	withText.Use(textLimit)
+	withTextLimit := csrfProtected.PathPrefix("/").Subrouter()
+	withTextLimit.Use(textLimit)
 
 	withImage := csrfProtected.PathPrefix("/").Subrouter()
 	withImage.Use(imageLimit)
 
-	withText.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)
 
-	withText.HandleFunc("/profiles", deps.Profile.GetProfile).Methods(http.MethodGet)
-	withText.HandleFunc("/profiles/{user_link}", deps.Profile.GetProfileByLink).Methods(http.MethodGet)
-	withText.HandleFunc("/profiles/info", deps.Profile.UpdateProfile).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/profiles", deps.Profile.GetProfile).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/{user_link}", deps.Profile.GetProfileByLink).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/profiles/info", deps.Profile.UpdateProfile).Methods(http.MethodPost)
 	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
-	withText.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
 
-	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodPost)
-	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodGet)
-	withText.HandleFunc("/cards/{card_link}/subtasks/{link}", notImplemented).Methods(http.MethodPut)
-	withText.HandleFunc("/cards/{card_link}/subtasks/{link}", notImplemented).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
 	return r
 }
 

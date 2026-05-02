@@ -16,6 +16,12 @@ const (
 	identifierResetTokenError = "reset token"
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
+
+	identifierCardNotFound    = "card not found"
+	identifierSectionNotFound = "section not found"
+	identifierCommentNotFound = "comment not found"
+	identifierSubtaskNotFound = "sub task not found"
+	identifierTaskLimitError  = "task limit reached"
 )
 
 func convertGRPCError(err error) error {
@@ -53,6 +59,47 @@ func convertGRPCError(err error) error {
 	default:
 		return err
 	}
+}
+
+func convertCardGRPCError(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	msg := st.Message()
+	switch st.Code() {
+	case codes.NotFound:
+		switch {
+		case strings.Contains(msg, identifierCardNotFound):
+			return common.ErrorCardNotFound
+		case strings.Contains(msg, identifierSectionNotFound):
+			return common.ErrorSectionNotFound
+		case strings.Contains(msg, identifierCommentNotFound):
+			return common.ErrorCommentNotFound
+		case strings.Contains(msg, identifierSubtaskNotFound):
+			return common.ErrorSubtaskNotFound
+		default:
+			return common.ErrorNonexistentUser
+		}
+	case codes.PermissionDenied:
+		return common.ErrorPermissionDenied
+	case codes.AlreadyExists:
+		return common.ErrorCardAlreadyExists
+	case codes.InvalidArgument:
+		if strings.Contains(msg, identifierTaskLimitError) {
+			return common.ErrorTaskLimitReached
+		}
+		return common.ErrorInvalidInput
+	default:
+		return err
+	}
+}
+
+func convertTimeToTimestamppb(t *time.Time) *timestamppb.Timestamp {
+	if t != nil {
+		return timestamppb.New(*t)
+	}
+	return nil
 }
 
 func convertTimestamppbToTime(time *timestamppb.Timestamp) *time.Time {

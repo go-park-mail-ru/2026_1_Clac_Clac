@@ -10,6 +10,7 @@ type Delivery struct {
 	Profile    *handlers.Profile
 	MailSender *handlers.MailSender
 	CSRF       *handlers.CSRF
+	Card       *handlers.Card
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -34,10 +35,16 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		CoolDownExpirationSec: int64(conf.Services.RateLimiters.CoolDownExpirationSec),
 	}
 
+	cardConfig := handlers.CardConfig{
+		MaxLenTitle:       conf.Services.Card.Handler.MaxLenTitle,
+		MaxLenDescription: conf.Services.Card.Handler.MaxLenDescription,
+	}
+
 	return &Delivery{
 		Auth:       handlers.NewAuthHandler(manager.Auth, manager.User, authConfig),
 		Profile:    handlers.NewProfileHandler(manager.User, manager.MailSender, profileConfig),
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
+		Card:       handlers.NewCard(manager.Card, cardConfig),
 	}
 }

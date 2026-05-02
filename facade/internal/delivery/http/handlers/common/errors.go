@@ -28,4 +28,18 @@ var (
 
 	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
 	ErrCannotGetCSRFTokenExpireTime = errors.New("cannot get csrf token expire time")
+
+	ErrFindCard    = errors.New("can not find card")
+	ErrGetCard     = errors.New("can not get info card")
+	ErrDeleteCard  = errors.New("can not delete card")
+	ErrUpdateCard  = errors.New("can not update card")
+	ErrReorderCard = errors.New("can not reorder card")
+	ErrCreateCard  = errors.New("can not create new card")
+	ErrFindSection = errors.New("can not find section")
+	ErrNullValue   = errors.New("can not use null element")
+
+	ErrIncorrectMoveCard   = errors.New("can not skip mandatory section")
+	ErrIncorrectUniqCard   = errors.New("link card must be unique")
+	ErrIncorrectReferences = errors.New("incorrect foreign key")
+	ErrInvalidCardData     = errors.New("invalid card data")
 )
