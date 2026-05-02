@@ -10,12 +10,9 @@ type Delivery struct {
 	Profile    *handlers.Profile
 	MailSender *handlers.MailSender
 	CSRF       *handlers.CSRF
-<<<<<<< HEAD
 	Card       *handlers.Card
-=======
 	Board      *handlers.Board
 	Section    *handlers.Section
->>>>>>> feat/add-sections-to-facade
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -43,6 +40,8 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	cardConfig := handlers.CardConfig{
 		MaxLenTitle:       conf.Services.Card.Handler.MaxLenTitle,
 		MaxLenDescription: conf.Services.Card.Handler.MaxLenDescription,
+	}
+
 	boardConfig := handlers.BoardConfig{
 		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
 	}
@@ -52,11 +51,8 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		Profile:    handlers.NewProfileHandler(manager.User, manager.MailSender, profileConfig),
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
-<<<<<<< HEAD
 		Card:       handlers.NewCard(manager.Card, cardConfig),
-=======
 		Board:      handlers.NewBoard(manager.Board, boardConfig),
 		Section:    handlers.NewSection(manager.Section),
->>>>>>> feat/add-sections-to-facade
 	}
 }

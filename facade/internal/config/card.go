@@ -1,5 +1,4 @@
 package config
-<<<<<<< HEAD
 
 import "github.com/spf13/viper"
 
@@ -40,5 +39,3 @@ func SetupEnvCard(v *viper.Viper) {
 	v.RegisterAlias("services.card.handler.max_len_title", "services_card_handler_max_len_title")
 	v.RegisterAlias("services.card.handler.max_len_description", "services_card_handler_max_len_description")
 }
-=======
->>>>>>> feat/add-sections-to-facade

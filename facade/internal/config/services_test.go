@@ -14,7 +14,9 @@ func TestDefaultServicesConfig(t *testing.T) {
 		assert.Equal(t, config.DefaultClientConfig(), conf.MailSender)
 		assert.Equal(t, config.DefaultUserConfig(), conf.User)
 		assert.Equal(t, config.DefaultAuthConfig(), conf.Auth)
-		assert.Equal(t, config.DefaultClientConfig(), conf.Board)
 		assert.Equal(t, config.DefaultActionsRateLimiters(), conf.RateLimiters)
+		assert.Equal(t, config.DefaultCardConfig(), conf.Card)
+		assert.Equal(t, config.DefaultSectionConfig(), conf.Section)
+		assert.Equal(t, config.DefaultBoardConfig(), conf.Board)
 	})
 }

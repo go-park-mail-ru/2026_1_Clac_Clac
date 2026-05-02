@@ -1,6 +1,4 @@
 package config
-<<<<<<< HEAD
-=======
 
 type BoardHandler struct {
 	MultipartBackgroundFileKey string `json:"multipart_background_file_key"`
@@ -25,4 +23,3 @@ func DefaultBoardConfig() Board {
 		},
 	}
 }
->>>>>>> feat/add-sections-to-facade

@@ -31,11 +31,8 @@ func NewManager(connector *Connector, conf *config.Config) *Manager {
 		CoolDown:   usecase.NewCoolDown(connector.RateLimiter),
 		MailSender: usecase.NewMailSender(connector.MailSender),
 		CSRF:       usecase.NewCSRF(configCSRF),
-<<<<<<< HEAD
 		Card:       usecase.NewCard(connector.Card),
-=======
 		Board:      usecase.NewBoard(connector.Board),
 		Section:    usecase.NewSection(connector.Section),
->>>>>>> feat/add-sections-to-facade
 	}
 }
