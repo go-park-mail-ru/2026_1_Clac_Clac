@@ -25,14 +25,15 @@ FROM alpine:latest
 # iproute2 - для ss и продвинутой работы с сетью
 # curl - для проверки HTTP/2
 RUN apk add --no-cache \
-    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community \
     ca-certificates \
     tzdata \
-    grpcurl \
     bind-tools \
     iproute2 \
     curl \
     busybox-extras \
+    && apk add --no-cache \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/v3.18/community \
+    grpcurl \
     && ln -sf /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
 
 WORKDIR /app
