@@ -53,6 +53,25 @@ type CardHandler interface {
 	UpdateSubtask(w http.ResponseWriter, r *http.Request)
 	DeleteSubtask(w http.ResponseWriter, r *http.Request)
 }
+type BoardHandler interface {
+	GetBoards(w http.ResponseWriter, r *http.Request)
+	GetBoard(w http.ResponseWriter, r *http.Request)
+	CreateBoard(w http.ResponseWriter, r *http.Request)
+	DeleteBoard(w http.ResponseWriter, r *http.Request)
+	UpdateBoard(w http.ResponseWriter, r *http.Request)
+	UploadBackground(w http.ResponseWriter, r *http.Request)
+	GetMembers(w http.ResponseWriter, r *http.Request)
+}
+
+type SectionHandler interface {
+	GetSections(w http.ResponseWriter, r *http.Request)
+	GetSection(w http.ResponseWriter, r *http.Request)
+	GetCards(w http.ResponseWriter, r *http.Request)
+	CreateSection(w http.ResponseWriter, r *http.Request)
+	DeleteSection(w http.ResponseWriter, r *http.Request)
+	ReorderSections(w http.ResponseWriter, r *http.Request)
+	UpdateSection(w http.ResponseWriter, r *http.Request)
+}
 
 type Tools struct {
 	Auth        AuthHandler
@@ -63,6 +82,8 @@ type Tools struct {
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
+	Board       BoardHandler
+	Section     SectionHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -115,15 +136,15 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit := csrfProtected.PathPrefix("/").Subrouter()
 	withTextLimit.Use(textLimit)
 
-	withImage := csrfProtected.PathPrefix("/").Subrouter()
-	withImage.Use(imageLimit)
+	withImageLimit := csrfProtected.PathPrefix("/").Subrouter()
+	withImageLimit.Use(imageLimit)
 
 	withTextLimit.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)
 
 	withTextLimit.HandleFunc("/profiles", deps.Profile.GetProfile).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/profiles/{user_link}", deps.Profile.GetProfileByLink).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/profiles/info", deps.Profile.UpdateProfile).Methods(http.MethodPost)
-	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
+	withImageLimit.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/cards", deps.Card.CreateCard).Methods(http.MethodPost)
@@ -140,6 +161,14 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/cards/{link}/subtasks", deps.Card.CreateSubtask).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/boards", deps.Board.GetBoards).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards", deps.Board.CreateBoard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{link}", deps.Board.GetBoard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}", deps.Board.DeleteBoard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
+	withImageLimit.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
 
 	return r
 }

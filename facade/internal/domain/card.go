@@ -11,22 +11,6 @@ type GetCardRequest struct {
 	CardLink uuid.UUID
 }
 
-type CardInfo struct {
-	CardLink     uuid.UUID
-	ExecutorName *string
-	Title        string
-	Description  string
-	Deadline     *time.Time
-	Subtasks     []SubtaskInfo
-}
-
-type SubtaskInfo struct {
-	SubtaskLink uuid.UUID
-	Description string
-	IsDone      bool
-	Position    int
-}
-
 type DeleteCardRequest struct {
 	UserLink uuid.UUID
 	CardLink uuid.UUID
