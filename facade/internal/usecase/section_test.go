@@ -130,7 +130,7 @@ func TestSectionGetSection(t *testing.T) {
 func TestSectionGetCards(t *testing.T) {
 	req := domain.GetCardsRequest{UserLink: fixedUserLink, SectionLink: fixedSectionLink}
 	expected := []domain.CardInfo{
-		{Link: uuid.New(), Title: "Task 1"},
+		{CardLink: uuid.New(), Title: "Task 1"},
 	}
 
 	tests := []struct {

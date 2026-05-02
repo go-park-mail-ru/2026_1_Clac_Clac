@@ -14,7 +14,6 @@ import (
 
 var (
 	fixedCardLink    = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-	fixedSectionLink = uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 	fixedCommentLink = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
 	fixedSubtaskLink = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
 	fixedUserLink    = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")

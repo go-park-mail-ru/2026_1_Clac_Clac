@@ -183,7 +183,7 @@ func TestHandlerGetSection(t *testing.T) {
 }
 
 func TestHandlerGetCards(t *testing.T) {
-	cards := []domain.CardInfo{{Link: uuid.New(), Title: "Task 1"}}
+	cards := []domain.CardInfo{{CardLink: uuid.New(), Title: "Task 1"}}
 
 	tests := []struct {
 		name               string
@@ -300,17 +300,17 @@ func TestHandlerCreateSection(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:       "EmptyName",
-			setContext: true,
-			request:    dto.CreateSectionRequest{Name: ""},
-			mockBehavior: func(m *mockSectionUC.SectionUsecase) {},
+			name:               "EmptyName",
+			setContext:         true,
+			request:            dto.CreateSectionRequest{Name: ""},
+			mockBehavior:       func(m *mockSectionUC.SectionUsecase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:       "EmptyBoardLink",
-			setContext: true,
-			request:    dto.CreateSectionRequest{Name: "Test"},
-			mockBehavior: func(m *mockSectionUC.SectionUsecase) {},
+			name:               "EmptyBoardLink",
+			setContext:         true,
+			request:            dto.CreateSectionRequest{Name: "Test"},
+			mockBehavior:       func(m *mockSectionUC.SectionUsecase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
