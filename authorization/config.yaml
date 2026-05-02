@@ -2,7 +2,7 @@ app:
   log_level: info
 
 engine:
-  addr: ":50054"
+  addr: 0.0.0.0:8080
   graceful_shutdown_timeout: 15
 
 redis:
