@@ -1,88 +1,89 @@
 syntax = "proto3";
+
 package proto.user.v1;
-option go_package = "./pkg/contracts/user;user";
+
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/v1";
 
 service UserService {
-    rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
-    rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
-    rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
-    rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
+  rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
+  rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
 
-    rpc GetUser(GetUserRequest) returns (UserResponse);
-    rpc CreateUser(CreateRequest) returns (UserResponse);
-    rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
-    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
-    rpc ProcessUserWithVK(ProcessUserVKRequest) returns (ProcessUserVKResponse);
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc CreateUser(CreateRequest) returns (UserResponse);
+  rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc ProcessUserWithVK(ProcessUserVKRequest) returns (ProcessUserVKResponse);
 }
 
 message UpdateProfileResponse {}
 message DeleteAvatarResponse {}
 
 message UserLinkRequest {
-    string user_link = 1;
+  string user_link = 1;
 }
 
 message ProfileResponse {
-    string user_link = 1;
-    string email = 2;
-    string display_name = 3;
-    string description = 4;
-    string avatar_url = 5;
+  string user_link = 1;
+  string email = 2;
+  string display_name = 3;
+  string description = 4;
+  string avatar_url = 5;
 }
 message UpdateProfileRequest {
-    string user_link = 1;
-    string display_name = 2;
-    string description = 3;
+  string user_link = 1;
+  string display_name = 2;
+  string description = 3;
 }
 message UpdateAvatarRequest {
-    string user_link = 1;
-    bytes file_data = 2;
-    string content_type = 3;
-    string file_extension = 4;
+  string user_link = 1;
+  bytes file_data = 2;
+  string content_type = 3;
+  string file_extension = 4;
 }
 message AvatarResponse {
-    string avatar_url = 1;
+  string avatar_url = 1;
 }
 
 message GetUserRequest {
-    string email = 1;
-    string password = 2;
+  string email = 1;
+  string password = 2;
 }
 
 message UserResponse {
-    string user_link = 1;
-    string display_name = 2;
-    string email = 3;
-    string avatar = 4;
+  string user_link = 1;
+  string display_name = 2;
+  string email = 3;
+  string avatar = 4;
 }
 
 message CreateRequest {
-    string display_name = 1;
-    string password = 2;
-    string email = 3;
+  string display_name = 1;
+  string password = 2;
+  string email = 3;
 }
 
 message GetUserLinkRequest {
-    string email = 1;
+  string email = 1;
 }
 
 message GetUserLinkResponse {
-    string user_link = 1;
+  string user_link = 1;
 }
 
-
 message ResetPasswordRequest {
-    string password = 1;
-    string user_link = 2;
+  string password = 1;
+  string user_link = 2;
 }
 
 message ResetPasswordResponse {}
 
-message ProcessUserVKRequest  {
-    string access_token = 1;
-    string email = 2;
+message ProcessUserVKRequest {
+  string access_token = 1;
+  string email = 2;
 }
 
-message ProcessUserVKResponse  {
-    string user_link = 1;
+message ProcessUserVKResponse {
+  string user_link = 1;
 }

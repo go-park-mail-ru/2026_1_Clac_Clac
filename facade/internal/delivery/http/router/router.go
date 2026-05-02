@@ -162,6 +162,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
 
+	withTextLimit.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/sections/{link}", deps.Section.DeleteSection).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/sections/{link}", deps.Section.UpdateSection).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/sections/{link}/cards", deps.Section.GetCards).Methods(http.MethodGet)
+
 	withTextLimit.HandleFunc("/boards", deps.Board.GetBoards).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards", deps.Board.CreateBoard).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{link}", deps.Board.GetBoard).Methods(http.MethodGet)
@@ -169,6 +175,8 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
 	withImageLimit.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
 
 	return r
 }
