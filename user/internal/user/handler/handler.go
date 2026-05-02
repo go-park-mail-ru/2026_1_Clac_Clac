@@ -126,11 +126,14 @@ func (h *Handler) CreateUser(ctx context.Context, req *pb.CreateRequest) (*pb.Us
 }
 
 func (h *Handler) GetUserLink(ctx context.Context, req *pb.GetUserLinkRequest) (*pb.GetUserLinkResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	userLink, err := h.srv.GetUserLink(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentEmail) {
 			return nil, status.Error(codes.NotFound, msgEmailDoesNotExists)
 		}
+		logger.Error().Err(err).Msg("srv.GetUserLink failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -196,6 +199,8 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 }
 
 func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.ProfileResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	parseUserLink, err := uuid.Parse(req.UserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, msgFailParseUserLink)
@@ -206,6 +211,7 @@ func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			return nil, status.Error(codes.NotFound, msgFailFoundUser)
 		}
+		logger.Error().Err(err).Msg("srv.GetProfile failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -219,6 +225,8 @@ func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.
 }
 
 func (h *Handler) UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	parseUserLink, err := uuid.Parse(req.UserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, msgFailParseUserLink)
@@ -236,6 +244,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *pb.UpdateProfileReques
 		if errors.Is(err, common.ErrorInvalidProfileData) {
 			return nil, status.Error(codes.InvalidArgument, msgInvalidProfileData)
 		}
+		logger.Error().Err(err).Msg("srv.UpdateProfile failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/rate_limiter/v1"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -32,6 +33,8 @@ func NewHandler(srv ServiceLimiter) *Handler {
 }
 
 func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequest) (*pb.CheckRateLimitResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	if req.UserIp == "" || req.Action == "" || req.WindowS <= 0 || req.Limit <= 0 {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
@@ -43,6 +46,7 @@ func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequ
 		Limit:  req.Limit,
 	})
 	if err != nil {
+		logger.Error().Err(err).Msg("srv.CheckRateLimit failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -52,6 +56,8 @@ func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequ
 }
 
 func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (*pb.SetCooldownResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	if req.Name == "" || req.Email == "" || req.ExpirationS <= 0 {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
 	}
@@ -62,6 +68,7 @@ func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (
 		Expiration: time.Duration(req.ExpirationS) * time.Second,
 	})
 	if err != nil {
+		logger.Error().Err(err).Msg("srv.SetCooldown failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
