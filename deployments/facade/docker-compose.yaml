@@ -5,6 +5,7 @@ services:
       dockerfile: deployments/facade/Dockerfile
     image: nexus-facade
     container_name: nexus-facade
+    network_mode: "host"
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
