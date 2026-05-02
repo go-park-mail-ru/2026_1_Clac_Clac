@@ -39,7 +39,6 @@ type CSRFHandler interface {
 	SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request)
 }
 
-<<<<<<< HEAD
 type CardHandler interface {
 	GetCard(w http.ResponseWriter, r *http.Request)
 	DeleteCard(w http.ResponseWriter, r *http.Request)
@@ -72,7 +71,7 @@ type SectionHandler interface {
 	DeleteSection(w http.ResponseWriter, r *http.Request)
 	ReorderSections(w http.ResponseWriter, r *http.Request)
 	UpdateSection(w http.ResponseWriter, r *http.Request)
-=======
+}
 type AppealHandler interface {
 	CreateAppeal(w http.ResponseWriter, r *http.Request)
 	GetAppeals(w http.ResponseWriter, r *http.Request)
@@ -80,7 +79,6 @@ type AppealHandler interface {
 	DeleteAppeal(w http.ResponseWriter, r *http.Request)
 	GetStats(w http.ResponseWriter, r *http.Request)
 	ChangeAppealStatus(w http.ResponseWriter, r *http.Request)
->>>>>>> feat/deploy-microservices
 }
 
 type Tools struct {
@@ -92,12 +90,9 @@ type Tools struct {
 	AuthChecker middleware.SessionCheker
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
-<<<<<<< HEAD
 	Board       BoardHandler
 	Section     SectionHandler
-=======
 	Appeal      AppealHandler
->>>>>>> feat/deploy-microservices
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -192,12 +187,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
 
-	withText.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
-	withText.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
-	withImage.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
-	withText.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
-	withText.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
-	withText.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
+	withImageLimit.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
 
 	return r
 }
