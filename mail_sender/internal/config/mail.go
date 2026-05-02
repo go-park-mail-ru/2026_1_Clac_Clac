@@ -25,8 +25,13 @@ func DefaultMailConfig() Mail {
 }
 
 func SetupEnvMailSender(v *viper.Viper) {
-	v.BindEnv("mail.host", "MAIL_SENDER_HOST")
-	v.BindEnv("mail.port", "MAIL_SENDER_PORT")
-	v.BindEnv("mail.username", "MAIL_SENDER_USERNAME")
-	v.BindEnv("mail.password", "MAIL_SENDER_PASSWORD")
+	v.SetDefault("mail.host", "")
+	v.SetDefault("mail.port", "")
+	v.SetDefault("mail.username", "")
+	v.SetDefault("mail.password", "")
+
+	v.RegisterAlias("mail.host", "mail_sender_host")
+	v.RegisterAlias("mail.port", "mail_sender_port")
+	v.RegisterAlias("mail.username", "mail_sender_username")
+	v.RegisterAlias("mail.password", "mail_sender_password")
 }

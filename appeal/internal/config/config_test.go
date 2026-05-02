@@ -25,6 +25,7 @@ func TestConfigReading(t *testing.T) {
 			Addr:                    ":8080",
 			GracefulShutdownTimeout: 25,
 		},
+		Database: config.DefaultPostgresConfig(),
 		S3:     config.S3{},
 		Appeal: config.DefaultAppealConfig(),
 	}

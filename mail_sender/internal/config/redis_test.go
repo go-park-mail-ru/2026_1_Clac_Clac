@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
@@ -23,6 +24,8 @@ func TestRedisConnectionConfig(t *testing.T) {
 		os.Setenv("REDIS_PORT", expected.Port)
 
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
 
 		redis.SetupEnvRedis(v)
 

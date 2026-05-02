@@ -22,12 +22,18 @@ func UnaryAccessLog(logger *zerolog.Logger) grpc.UnaryServerInterceptor {
 			requestID = uuid.New().String()
 		}
 
+		peerAddr := getPeerAddr(ctx)
+
 		requestLogger := logger.With().
 			Str("method", info.FullMethod).
 			Str("request_id", requestID).
+			Str("remote_addr", peerAddr).
+			Str("start_time", startTime.Format(time.RFC3339)).
 			Logger()
 
-		resp, err := handler(ctx, req)
+		ctxWithLogger := requestLogger.WithContext(ctx)
+
+		resp, err := handler(ctxWithLogger, req)
 
 		duration := time.Since(startTime)
 
@@ -38,8 +44,6 @@ func UnaryAccessLog(logger *zerolog.Logger) grpc.UnaryServerInterceptor {
 		} else {
 			logEvent = requestLogger.Error()
 		}
-
-		peerAddr := getPeerAddr(ctx)
 
 		logEvent = logEvent.
 			Str("url", info.FullMethod).
@@ -65,12 +69,23 @@ func StreamAccessLog(logger *zerolog.Logger) grpc.StreamServerInterceptor {
 			requestID = uuid.New().String()
 		}
 
+		peerAddr := getPeerAddr(ss.Context())
+
 		requestLogger := logger.With().
 			Str("method", info.FullMethod).
 			Str("request_id", requestID).
+			Str("remote_addr", peerAddr).
+			Str("start_time", startTime.Format(time.RFC3339)).
 			Logger()
 
-		err := handler(srv, ss)
+		ctxWithLogger := requestLogger.WithContext(ss.Context())
+
+		wrappedStream := &contextStreamWriter{
+			ServerStream: ss,
+			ctx:          ctxWithLogger,
+		}
+
+		err := handler(srv, wrappedStream)
 
 		duration := time.Since(startTime)
 
@@ -81,8 +96,6 @@ func StreamAccessLog(logger *zerolog.Logger) grpc.StreamServerInterceptor {
 		} else {
 			logEvent = requestLogger.Error()
 		}
-
-		peerAddr := getPeerAddr(ss.Context())
 
 		logEvent = logEvent.
 			Str("url", info.FullMethod).
@@ -117,4 +130,13 @@ func getPeerAddr(ctx context.Context) string {
 		return ""
 	}
 	return p.Addr.String()
+}
+
+type contextStreamWriter struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *contextStreamWriter) Context() context.Context {
+	return s.ctx
 }

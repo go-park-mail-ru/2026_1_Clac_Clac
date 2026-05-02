@@ -5,14 +5,13 @@ import (
 	"strings"
 
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
 	App      Application       `mapstructure:"app"`
 	Engine   grpcEngine.Config `mapstructure:"engine"`
-	Database postgres.Config   `mapstructure:"database"`
+	Database PostgresConfig   `mapstructure:"database"`
 	S3       S3                `mapstructure:"s3"`
 	Appeal   Appeal            `mapstructure:"appeal"`
 }
@@ -21,7 +20,7 @@ func DefaultConfig() Config {
 	return Config{
 		App:      DefaultApplicationConfig(),
 		Appeal:   DefaultAppealConfig(),
-		Database: postgres.Config{},
+		Database: DefaultPostgresConfig(),
 	}
 }
 
@@ -37,9 +36,9 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	postgres.SetupEnvPostgres(v)
-	grpcEngine.SetupEnvGrpcEngine(v)
+	SetupEnvPostgres(v)
 	SetupEnvS3(v)
 
 	return v, nil

@@ -1,12 +1,13 @@
-package postgres
+package config
 
 import (
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
 	"github.com/spf13/viper"
 )
 
-type Config struct {
+type PostgresConfig struct {
 	User                  string        `mapstructure:"user"`
 	Password              string        `mapstructure:"password"`
 	Host                  string        `mapstructure:"host"`
@@ -19,6 +20,35 @@ type Config struct {
 	PingSleepTime         time.Duration `mapstructure:"ping_sleep_time"`
 	TimeOut               time.Duration `mapstructure:"time_out"`
 	MaxRetries            int           `mapstructure:"max_retries"`
+}
+
+func (p PostgresConfig) ToPkg() *postgres.Config {
+	return &postgres.Config{
+		User:                  p.User,
+		Password:              p.Password,
+		Host:                  p.Host,
+		Port:                  p.Port,
+		Name:                  p.Name,
+		MinConnections:        p.MinConnections,
+		MaxConnections:        p.MaxConnections,
+		MaxConnectionLifetime: p.MaxConnectionLifetime,
+		MaxHealthCheckPeriod:  p.MaxHealthCheckPeriod,
+		PingSleepTime:         p.PingSleepTime,
+		TimeOut:              p.TimeOut,
+		MaxRetries:           p.MaxRetries,
+	}
+}
+
+func DefaultPostgresConfig() PostgresConfig {
+	return PostgresConfig{
+		MinConnections:        2,
+		MaxConnections:        10,
+		MaxConnectionLifetime: time.Hour,
+		MaxHealthCheckPeriod:  30 * time.Second,
+		PingSleepTime:        2 * time.Second,
+		TimeOut:             5 * time.Second,
+		MaxRetries:          5,
+	}
 }
 
 func SetupEnvPostgres(v *viper.Viper) {

@@ -5,16 +5,14 @@ import (
 	"strings"
 
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
-	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
 	App      Application       `mapstructure:"app"`
 	Engine   grpcEngine.Config `mapstructure:"engine"`
-	Database postgres.Config   `mapstructure:"database"`
-	Redis    pkgredis.Config   `mapstructure:"redis"`
+	Database PostgresConfig   `mapstructure:"database"`
+	Redis    RedisConfig      `mapstructure:"redis"`
 	S3       S3                `mapstructure:"s3"`
 	Board    Board             `mapstructure:"board"`
 	Section  Section           `mapstructure:"section"`
@@ -27,8 +25,8 @@ func DefaultConfig() Config {
 		Board:    DefaultBoardConfig(),
 		Section:  DefaultSectionConfig(),
 		Card:     DefaultCardConfig(),
-		Database: postgres.Config{},
-		Redis:    pkgredis.Config{},
+		Database: DefaultPostgresConfig(),
+		Redis:    DefaultRedisConfig(),
 	}
 }
 
@@ -44,10 +42,10 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	postgres.SetupEnvPostgres(v)
-	pkgredis.SetupEnvRedis(v)
-	grpcEngine.SetupEnvGrpcEngine(v)
+	SetupEnvPostgres(v)
+	SetupEnvRedis(v)
 	SetupEnvS3(v)
 
 	return v, nil

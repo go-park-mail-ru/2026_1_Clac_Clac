@@ -5,26 +5,24 @@ import (
 	"strings"
 
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App             Application     `mapstructure:"app"`
-	Engine         enginegrpc.Config `mapstructure:"engine"`
-	Redis          redis.Config   `mapstructure:"redis"`
-	RedisConnection RedisConnection `mapstructure:"-"`
-	VkOAuth        VkOAuth       `mapstructure:"vk_oauth"`
-	Auth           Auth         `mapstructure:"auth"`
+	App             Application       `mapstructure:"app"`
+	Engine          enginegrpc.Config `mapstructure:"engine"`
+	RedisConnection RedisConnection   `mapstructure:"redis"`
+	VkOAuth         VkOAuth           `mapstructure:"vk_oauth"`
+	Auth            Auth              `mapstructure:"auth"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:    DefaultApplicationConfig(),
-		Engine: DefaultEngineConfig(),
-		Redis:  redis.Config{},
+		App:     DefaultApplicationConfig(),
+		Engine:  DefaultEngineConfig(),
+		RedisConnection: DefaultRedisConnection(),
 		VkOAuth: DefaultVkOAuthConfig(),
-		Auth:   DefaultAuthConfig(),
+		Auth:    DefaultAuthConfig(),
 	}
 }
 
@@ -40,10 +38,10 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	SetupEnvVkOAuth(v)
-	redis.SetupEnvRedis(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
+	SetupEnvRedisConnection(v)
 
 	return v, nil
 }

@@ -37,6 +37,8 @@ func NewHandler(srv ServiceSender) *Handler {
 }
 
 func (h *Handler) SendRecoveryCode(ctx context.Context, req *pb.SendRecoveryCodeRequest) (*pb.SendRecoveryCodeResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	convertedUserLink, err := uuid.Parse(req.UserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
@@ -44,6 +46,7 @@ func (h *Handler) SendRecoveryCode(ctx context.Context, req *pb.SendRecoveryCode
 
 	err = h.srv.SendRecoveryCode(ctx, convertedUserLink, req.Email)
 	if err != nil {
+		logger.Error().Err(err).Msg("srv.SendRecoveryCode failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 

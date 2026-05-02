@@ -1,12 +1,13 @@
-package redis
+package config
 
 import (
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
-type Config struct {
+type RedisConfig struct {
 	Password       string        `mapstructure:"password"`
 	Host           string        `mapstructure:"host"`
 	Port           string        `mapstructure:"port"`
@@ -15,6 +16,29 @@ type Config struct {
 	MaxConnections int           `mapstructure:"max_connections"`
 	PingSleepTime  time.Duration `mapstructure:"ping_sleep_time"`
 	MaxRetries     int           `mapstructure:"max_retries"`
+}
+
+func (r RedisConfig) ToPkg() redis.Config {
+	return redis.Config{
+		Password:       r.Password,
+		Host:           r.Host,
+		Port:           r.Port,
+		NumberDB:       r.NumberDB,
+		MinConnections: r.MinConnections,
+		MaxConnections: r.MaxConnections,
+		PingSleepTime:  r.PingSleepTime,
+		MaxRetries:     r.MaxRetries,
+	}
+}
+
+func DefaultRedisConfig() RedisConfig {
+	return RedisConfig{
+		NumberDB:        0,
+		MinConnections: 20,
+		MaxConnections: 100,
+		PingSleepTime:  2 * time.Second,
+		MaxRetries:     5,
+	}
 }
 
 func SetupEnvRedis(v *viper.Viper) {

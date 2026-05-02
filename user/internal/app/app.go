@@ -66,10 +66,14 @@ func (a *App) Run() {
 
 func setupEngine(conf enginegrpc.Config, logger *zerolog.Logger) *enginegrpc.Engine {
 	opts := []grpc.ServerOption{
-		grpc.UnaryInterceptor(interceptors.UnaryAccessLog(logger)),
-		grpc.StreamInterceptor(interceptors.StreamAccessLog(logger)),
-		grpc.UnaryInterceptor(interceptors.UnaryPanicRecovery(logger)),
-		grpc.StreamInterceptor(interceptors.StreamPanicRecovery(logger)),
+		grpc.ChainUnaryInterceptor(
+			interceptors.UnaryAccessLog(logger),
+			interceptors.UnaryPanicRecovery(logger),
+		),
+		grpc.ChainStreamInterceptor(
+			interceptors.StreamAccessLog(logger),
+			interceptors.StreamPanicRecovery(logger),
+		),
 	}
 	return enginegrpc.New(conf, logger, opts...)
 }

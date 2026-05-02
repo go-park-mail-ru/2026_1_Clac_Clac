@@ -48,6 +48,8 @@ func NewHandler(srv AuthService, vkOAuth VkOAuth) *Handler {
 }
 
 func (h *Handler) CreateSession(ctx context.Context, req *pb.CreateSessionRequest) (*pb.CreateSessionResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	convertedLink, err := uuid.Parse(req.UserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, msgErrorParseUserLink)
@@ -55,6 +57,7 @@ func (h *Handler) CreateSession(ctx context.Context, req *pb.CreateSessionReques
 
 	sessionID, err := h.srv.CreateSession(ctx, convertedLink)
 	if err != nil {
+		logger.Error().Err(err).Msg("srv.CreateSession failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -64,12 +67,15 @@ func (h *Handler) CreateSession(ctx context.Context, req *pb.CreateSessionReques
 }
 
 func (h *Handler) GetUserLink(ctx context.Context, req *pb.GetUserLinkRequest) (*pb.GetUserLinkResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	userLink, err := h.srv.GetUserLink(ctx, req.SessionId)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSession) {
 			return nil, status.Error(codes.NotFound, msgDoesNotExistSession)
 		}
 
+		logger.Error().Err(err).Msg("srv.GetUserLink failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -79,8 +85,11 @@ func (h *Handler) GetUserLink(ctx context.Context, req *pb.GetUserLinkRequest) (
 }
 
 func (h *Handler) DeleteSession(ctx context.Context, req *pb.DeleteSessionRequest) (*pb.DeleteSessionResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	err := h.srv.DeleteSession(ctx, req.SessionId)
 	if err != nil {
+		logger.Error().Err(err).Msg("srv.DeleteSession failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -88,12 +97,15 @@ func (h *Handler) DeleteSession(ctx context.Context, req *pb.DeleteSessionReques
 }
 
 func (h *Handler) ExtendSession(ctx context.Context, req *pb.ExtendSessionRequest) (*pb.ExtendSessionResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	err := h.srv.ExtendSession(ctx, req.SessionId)
 	if err != nil {
 		if errors.Is(err, common.ErrorNotExistingSession) {
 			return nil, status.Error(codes.NotFound, msgDoesNotExistSession)
 		}
 
+		logger.Error().Err(err).Msg("srv.ExtendSession failed")
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 

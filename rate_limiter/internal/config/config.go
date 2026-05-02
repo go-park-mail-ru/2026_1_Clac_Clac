@@ -5,22 +5,20 @@ import (
 	"strings"
 
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App             Application   `mapstructure:"app"`
-	Engine         enginegrpc.Config `mapstructure:"engine"`
-	Redis          redis.Config   `mapstructure:"redis"`
-	RedisConnection RedisConnection `mapstructure:"-"`
+	App             Application       `mapstructure:"app"`
+	Engine          enginegrpc.Config `mapstructure:"engine"`
+	RedisConnection RedisConnection   `mapstructure:"redis"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		App:    DefaultApplicationConfig(),
 		Engine: DefaultEngineConfig(),
-		Redis:  redis.Config{},
+		RedisConnection: DefaultRedisConnection(),
 	}
 }
 
@@ -36,9 +34,9 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	redis.SetupEnvRedis(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
+	SetupEnvRedisConnection(v)
 
 	return v, nil
 }

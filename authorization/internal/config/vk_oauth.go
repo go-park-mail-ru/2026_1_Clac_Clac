@@ -27,11 +27,11 @@ func SetupEnvVkOAuth(v *viper.Viper) {
 	v.SetDefault("vk_oauth.app_key", vkOAuthDefaultValue)
 	v.SetDefault("vk_oauth.app_secret", vkOAuthDefaultValue)
 	v.SetDefault("vk_oauth.redirect_url", vkOAuthDefaultValue)
-	v.SetDefault("vk_oatuh.api_method", vkOAuthDefaultValue)
+	v.SetDefault("vk_oauth.api_method", vkOAuthDefaultValue)
 
 	v.RegisterAlias("vk_oauth.app_id", "vk_oauth_app_id")
 	v.RegisterAlias("vk_oauth.app_key", "vk_oauth_app_key")
 	v.RegisterAlias("vk_oauth.app_secret", "vk_oauth_app_secret")
 	v.RegisterAlias("vk_oauth.redirect_url", "vk_oauth_redirect_url")
-	v.RegisterAlias("vk_oatuh.api_method", "vk_oatuh_api_method")
+	v.RegisterAlias("vk_oauth.api_method", "vk_oauth_api_method")
 }

@@ -45,7 +45,7 @@ services:
   auth:
     client:
       addr: "nexus-authorization:8080"
-      timeout: 2s
+      timeout: 10s
       retries: 5
     handler:
       max_len_password: 128
