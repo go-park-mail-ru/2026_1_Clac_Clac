@@ -1,9 +1,6 @@
 FROM golang:1.26-alpine AS builder
 
-# Флаг CGO_ENABLED говорит компилятору сделать
-# один бинарник, без всяких СИшных библиотек
 ENV GOOS=linux CGO_ENABLED=0
-
 RUN apk add --no-cache make
 
 WORKDIR /app
@@ -15,7 +12,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 COPY pkg/ ./pkg/
 COPY facade/ ./facade/
 
-# Бинарник будет в /app/facade/bin
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     make -C facade build
@@ -23,13 +19,23 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest
 
-# Для сертификатов и времени
-RUN apk add --no-cache ca-certificates tzdata \
+# 1. Устанавливаем базу + инструменты отладки
+# grpcurl - для gRPC запросов
+# bind-tools - для проверки DNS (dig, nslookup)
+# iproute2 - для ss и продвинутой работы с сетью
+# curl - для проверки HTTP/2
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    grpcurl \
+    bind-tools \
+    iproute2 \
+    curl \
+    busybox-extras \
     && ln -sf /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem
 
 WORKDIR /app
 
-# Будем запускать НЕ из-под root
 RUN adduser -D nexus && chown nexus:nexus /app
 
 COPY --from=builder --chown=nexus:nexus /app/facade/bin/main .
