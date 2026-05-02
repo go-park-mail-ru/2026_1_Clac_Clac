@@ -47,10 +47,10 @@ type SectionsResponse struct {
 //
 //	@Description	Краткая информация о карточке задачи
 type Card struct {
-	CardLink     uuid.UUID  `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	ExecutorName *string    `json:"executor_name" example:"Иван Иванов"`
-	Title        string     `json:"title" example:"Починить баг на фронтенде"`
-	DeadLine     *time.Time `json:"dead_line" example:"2026-04-12T14:35:00Z"`
+	CardLink      uuid.UUID  `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ExecutorLink  *uuid.UUID `json:"executor_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Title         string     `json:"title" example:"Починить баг на фронтенде"`
+	DeadLine      *time.Time `json:"dead_line" example:"2026-04-12T14:35:00Z"`
 }
 
 // CardsSection используется для возврата списка всех карточек конкретной секции.

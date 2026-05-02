@@ -16,12 +16,12 @@ type SectionInfo struct {
 }
 
 type CardInfo struct {
-	CardLink     uuid.UUID
-	ExecutorName *string
-	Title        string
-	Description  string
-	Deadline     *time.Time
-	Subtasks     []SubtaskInfo
+	CardLink      uuid.UUID
+	ExecutorLink  *uuid.UUID
+	Title         string
+	Description   string
+	Deadline      *time.Time
+	Subtasks      []SubtaskInfo
 }
 
 type SubtaskInfo struct {

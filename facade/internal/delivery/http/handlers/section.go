@@ -79,7 +79,7 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 
 	return dto.Card{
 		Link:         c.CardLink,
-		ExecutorName: c.ExecutorName,
+		ExecutorLink: c.ExecutorLink,
 		Title:        c.Title,
 		Description:  c.Description,
 		Deadline:     c.Deadline,

@@ -207,9 +207,15 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			})
 		}
 
+		var executorLink *string
+		if card.ExecutorLink != nil {
+			s := card.ExecutorLink.String()
+			executorLink = &s
+		}
+
 		cardsResponse = append(cardsResponse, &pb.CardInfo{
 			Link:         card.CardLink.String(),
-			ExecutorName: card.ExecutorName,
+			ExecutorLink: executorLink,
 			Title:        card.Title,
 			Deadline:     &deadline,
 			Subtasks:     subtasks,

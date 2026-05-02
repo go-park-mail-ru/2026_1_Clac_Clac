@@ -111,7 +111,7 @@ func (s *Service) GetCards(ctx context.Context, sectionLink uuid.UUID, userLink 
 	for _, card := range cards {
 		convertCards = append(convertCards, dto.Card{
 			CardLink:     card.CardLink,
-			ExecutorName: card.ExecutorName,
+			ExecutorLink: card.ExecutorLink,
 			Title:        card.Title,
 			DeadLine:     card.DeadLine,
 			Subtasks:     card.Subtasks,

@@ -181,15 +181,16 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.Card:
+    description: Card info in section
     properties:
       deadline:
         example: "2026-04-12T14:35:00Z"
         type: string
       description:
-        example: Описание карточки
+        example: Card description
         type: string
-      executor_name:
-        example: Иван Иванов
+      executor_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       link:
         example: 123e4567-e89b-12d3-a456-426614174000
@@ -199,25 +200,30 @@ definitions:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskInfo'
         type: array
       title:
-        example: Починить баг на фронтенде
+        example: Fix bug on frontend
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardResponse:
-    description: Полная информация о карточке
+    description: Full information about card
     properties:
       card_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       deadline:
+        example: "2026-04-12T14:35:00Z"
         type: string
       description:
+        example: Card description
         type: string
-      executor_name:
+      executor_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       subtasks:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskResponse'
         type: array
       title:
+        example: Fix bug on frontend
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardsResponse:
@@ -232,8 +238,6 @@ definitions:
       appeal_link:
         type: string
       new_status:
-        type: string
-      user_link:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CommentResponse:
@@ -266,8 +270,6 @@ definitions:
         type: string
       email:
         type: string
-      user_link:
-        type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateBoardRequest:
     properties:
@@ -276,8 +278,6 @@ definitions:
       description:
         type: string
       name:
-        type: string
-      user_link:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateCardRequest:
@@ -505,8 +505,6 @@ definitions:
       description:
         type: string
       name:
-        type: string
-      user_link:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardRequest:

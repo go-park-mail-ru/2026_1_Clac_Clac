@@ -2905,6 +2905,7 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.Card": {
+            "description": "Card info in section",
             "type": "object",
             "properties": {
                 "deadline": {
@@ -2913,11 +2914,11 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "example": "Описание карточки"
+                    "example": "Card description"
                 },
-                "executor_name": {
+                "executor_link": {
                     "type": "string",
-                    "example": "Иван Иванов"
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "link": {
                     "type": "string",
@@ -2931,25 +2932,29 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string",
-                    "example": "Починить баг на фронтенде"
+                    "example": "Fix bug on frontend"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardResponse": {
-            "description": "Полная информация о карточке",
+            "description": "Full information about card",
             "type": "object",
             "properties": {
                 "card_link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "deadline": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2026-04-12T14:35:00Z"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Card description"
                 },
-                "executor_name": {
-                    "type": "string"
+                "executor_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "subtasks": {
                     "type": "array",
@@ -2958,7 +2963,8 @@ const docTemplate = `{
                     }
                 },
                 "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Fix bug on frontend"
                 }
             }
         },
@@ -2980,9 +2986,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "new_status": {
-                    "type": "string"
-                },
-                "user_link": {
                     "type": "string"
                 }
             }
@@ -3031,9 +3034,6 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string"
-                },
-                "user_link": {
-                    "type": "string"
                 }
             }
         },
@@ -3047,9 +3047,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "user_link": {
                     "type": "string"
                 }
             }
@@ -3378,9 +3375,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "user_link": {
                     "type": "string"
                 }
             }

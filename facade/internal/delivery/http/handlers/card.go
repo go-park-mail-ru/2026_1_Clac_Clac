@@ -890,9 +890,15 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 			Position:    int(s.Position),
 		})
 	}
+	var executorLink *string
+	if card.ExecutorLink != nil {
+		s := card.ExecutorLink.String()
+		executorLink = &s
+	}
+
 	return dto.CardResponse{
 		CardLink:     cardLink,
-		ExecutorName: card.ExecutorName,
+		ExecutorLink: executorLink,
 		Title:        card.Title,
 		Description:  card.Description,
 		Deadline:     card.Deadline,

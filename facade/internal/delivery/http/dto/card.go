@@ -45,15 +45,15 @@ type SubtaskResponse struct {
 	Position    int       `json:"position"`
 }
 
-// CardResponse описывает полную информацию о карточке.
+// CardResponse describes full card info.
 //
-//	@Description	Полная информация о карточке
+//	@Description	Full information about card
 type CardResponse struct {
-	CardLink     uuid.UUID         `json:"card_link"`
-	ExecutorLink *string           `json:"executor_link,omitempty"`
-	Title        string            `json:"title"`
-	Description  string            `json:"description"`
-	Deadline     *time.Time        `json:"deadline,omitempty"`
+	CardLink     uuid.UUID         `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ExecutorLink *string           `json:"executor_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Title        string            `json:"title" example:"Fix bug on frontend"`
+	Description  string            `json:"description" example:"Card description"`
+	Deadline     *time.Time        `json:"deadline,omitempty" example:"2026-04-12T14:35:00Z"`
 	Subtasks     []SubtaskResponse `json:"subtasks"`
 }
 
