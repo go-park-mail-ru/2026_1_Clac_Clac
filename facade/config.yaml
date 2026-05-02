@@ -74,7 +74,7 @@ services:
       max_len_description: 500
 
   rate_limiters:
-    addr: "nexus-rate-limiter:50055"
+    addr: "nexus-rate-limiter:8080"
     timeout: 2s
     retries: 5
     actions:
