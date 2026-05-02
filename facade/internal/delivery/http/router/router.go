@@ -114,12 +114,14 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 		Limit:   loginRateConf.Limit,
 		Action:  loginRateConf.Action,
 		WindowS: int64(loginRateConf.Window.Seconds()),
+		TTL:     loginRateConf.TTL,
 	}, logger)
 
 	registerRateMW := middleware.RateLimiterMiddleware(deps.RateLimiter, domain.RateLimitConfig{
 		Limit:   registerRateConf.Limit,
 		Action:  registerRateConf.Action,
 		WindowS: int64(registerRateConf.Window.Seconds()),
+		TTL:     registerRateConf.TTL,
 	}, logger)
 
 	public := r.PathPrefix("/").Subrouter()
