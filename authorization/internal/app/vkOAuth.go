@@ -9,7 +9,7 @@ import (
 func NewVKOAuth(conf *config.VkOAuth) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     conf.AppID,
-		ClientSecret: conf.AppKey,
+		ClientSecret: conf.AppSecret,
 		RedirectURL:  conf.RedirectURL,
 		Scopes:       []string{"email"},
 		Endpoint:     vk.Endpoint,

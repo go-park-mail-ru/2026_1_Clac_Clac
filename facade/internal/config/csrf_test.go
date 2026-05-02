@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -46,8 +45,6 @@ func TestSetupEnvCSRFConfig(t *testing.T) {
 		t.Setenv("CSRF_SECRET", secret)
 
 		v := viper.New()
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
 
 		SetupEnvCSRFConfig(v)
 

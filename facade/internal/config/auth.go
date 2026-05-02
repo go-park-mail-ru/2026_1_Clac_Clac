@@ -45,7 +45,9 @@ func DefaultAuthConfig() Auth {
 }
 
 func SetupEnvAuth(v *viper.Viper) {
-	v.SetDefault("services.auth.handler.vk_oauth_redirect_to", vkOAuthDefaultValue)
+	v.SetDefault("services.auth.handler.session_life_time", authConfigSessionLifeTime)
+	v.SetDefault("services.auth.handler.vk_oauth_redirect_to", authConfigDefaultVKOAuthRedirectTo)
 
-	v.RegisterAlias("services.auth.handler.vk_oauth_redirect_to", "services_auth_handler_vk_oauth_redirect_to")
+	v.BindEnv("services.auth.handler.session_life_time", "SERVICES_AUTH_HANDLER_SESSION_LIFE_TIME")
+	v.BindEnv("services.auth.handler.vk_oauth_redirect_to", "SERVICES_AUTH_HANDLER_VK_OAUTH_REDIRECT_TO")
 }

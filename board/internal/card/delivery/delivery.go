@@ -125,12 +125,18 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		})
 	}
 
+	var executorLink *string
+	if card.ExecutorLink != nil {
+		s := card.ExecutorLink.String()
+		executorLink = &s
+	}
+
 	return &pb.GetCardResponse{
 		CardInfo: &pb.CardInfo{
 			Link:         cardLink.String(),
 			Title:        card.Title,
 			Description:  card.Description,
-			ExecutorName: card.NameExecutor,
+			ExecutorLink: executorLink,
 			Deadline:     deadline,
 			Subtasks:     subtasks,
 		},

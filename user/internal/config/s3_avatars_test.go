@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -31,9 +30,6 @@ func TestS3AvatarsConfig(t *testing.T) {
 		t.Setenv("S3_AVATARS_SECRET_KEY", want.SecretKey)
 
 		v := viper.New()
-
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
 
 		SetupEnvS3Avatars(v)
 

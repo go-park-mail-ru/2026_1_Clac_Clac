@@ -45,7 +45,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		t.title,
 		t.description,
 		t.due_date,
-		u.display_name,
+		t.executer_link,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
@@ -59,7 +59,6 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 			WHERE s.task_link = t.task_link
 		) AS subtasks
 	FROM task_actual AS t
-	LEFT JOIN "user" u ON t.executer_link = u.link
 	WHERE t.task_link = $1
 	`
 
@@ -70,7 +69,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
-		&infoCard.NameExecutor,
+		&infoCard.ExecutorLink,
 		&subtasks,
 	)
 	if err != nil {

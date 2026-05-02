@@ -116,14 +116,18 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			})
 		}
 
-		var executorName *string
-		if ci.ExecutorName != nil {
-			executorName = ci.ExecutorName
+		var executorLink *uuid.UUID
+		if ci.ExecutorLink != nil {
+			el, err := uuid.Parse(*ci.ExecutorLink)
+			if err != nil {
+				return nil, common.ErrorParseLink
+			}
+			executorLink = &el
 		}
 
 		cards = append(cards, domain.CardInfo{
 			CardLink:     link,
-			ExecutorName: executorName,
+			ExecutorLink: executorLink,
 			Title:        ci.Title,
 			Deadline:     deadline,
 			Subtasks:     subtasks,

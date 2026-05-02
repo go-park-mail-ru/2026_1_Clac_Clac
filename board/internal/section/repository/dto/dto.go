@@ -30,9 +30,9 @@ type ListSectionLink struct {
 }
 
 type Card struct {
-	CardLink     uuid.UUID
-	ExecutorName *string
-	Title        string
-	DeadLine     *time.Time
-	Subtasks     []models.SubtaskInfo
+	CardLink      uuid.UUID
+	ExecutorLink  *uuid.UUID
+	Title         string
+	DeadLine      *time.Time
+	Subtasks      []models.SubtaskInfo
 }

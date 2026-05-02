@@ -2,26 +2,25 @@ package config
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App    Application   `mapstructure:"app"`
-	Engine engine.Config `mapstructure:"engine"`
-
-	RedisConnection RedisConnection `mapstructure:"redis"`
+	App             Application   `mapstructure:"app"`
+	Engine         enginegrpc.Config `mapstructure:"engine"`
+	Redis          redis.Config   `mapstructure:"redis"`
+	RedisConnection RedisConnection `mapstructure:"-"`
 }
 
 func DefaultConfig() Config {
 	return Config{
 		App:    DefaultApplicationConfig(),
 		Engine: DefaultEngineConfig(),
-
-		RedisConnection: DefaultRedisConnection(),
+		Redis:  redis.Config{},
 	}
 }
 
@@ -37,58 +36,9 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
 
-	// SetupEnvRedisConnection(v)
-	BindStructKeys(v, Config{})
+	redis.SetupEnvRedis(v)
+	enginegrpc.SetupEnvGrpcEngine(v)
 
 	return v, nil
-}
-
-func BindStructKeys(v *viper.Viper, conf any, parts ...string) {
-	bindTypeKeys(v, reflect.TypeOf(conf), parts)
-}
-
-func bindTypeKeys(v *viper.Viper, t reflect.Type, parts []string) {
-	for t != nil && t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-
-	if t == nil || t.Kind() != reflect.Struct {
-		return
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-
-		if !field.IsExported() {
-			continue
-		}
-
-		tag := field.Tag.Get("mapstructure")
-
-		tag = strings.Split(tag, ",")[0]
-
-		if tag == "-" {
-			continue
-		}
-
-		if tag == "" {
-			tag = strings.ToLower(field.Name)
-		}
-
-		currentPath := append(parts[:len(parts):len(parts)], tag)
-		fullKey := strings.Join(currentPath, ".")
-
-		fieldType := field.Type
-		for fieldType.Kind() == reflect.Pointer {
-			fieldType = fieldType.Elem()
-		}
-
-		if fieldType.Kind() == reflect.Struct {
-			bindTypeKeys(v, fieldType, currentPath)
-		} else {
-			v.BindEnv(fullKey)
-		}
-	}
 }

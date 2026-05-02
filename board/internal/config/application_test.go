@@ -1,10 +1,8 @@
-package config_test
+package config
 
 import (
 	"bytes"
 	"testing"
-
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +11,7 @@ import (
 
 func TestApplicationConfig(t *testing.T) {
 	t.Run("test unmarshal", func(t *testing.T) {
-		want := config.DefaultApplicationConfig()
+		want := DefaultApplicationConfig()
 
 		var yamlTest = []byte(`
 			log_level: debug
@@ -21,11 +19,12 @@ func TestApplicationConfig(t *testing.T) {
 			max_upload_image_size: 10485760
 		`)
 
-		viper.SetConfigType("yaml")
-		viper.ReadConfig(bytes.NewBuffer(yamlTest))
+		v := viper.New()
+		v.SetConfigType("yaml")
+		v.ReadConfig(bytes.NewBuffer(yamlTest))
 
-		conf := config.DefaultApplicationConfig()
-		err := viper.Unmarshal(&conf)
+		conf := DefaultApplicationConfig()
+		err := v.Unmarshal(&conf)
 
 		require.NoError(t, err, "viper.Unmarshal should not return error")
 		assert.Equal(t, want, conf)
@@ -34,6 +33,6 @@ func TestApplicationConfig(t *testing.T) {
 }
 
 func TestIsDebug(t *testing.T) {
-	assert.True(t, config.IsDebug(DebugLevel), "this is debug level")
-	assert.False(t, config.IsDebug(InfoLevel), "this is not debug level")
+	assert.True(t, IsDebug("debug"), "this is debug level")
+	assert.False(t, IsDebug("info"), "this is not debug level")
 }

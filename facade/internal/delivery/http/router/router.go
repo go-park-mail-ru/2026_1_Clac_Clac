@@ -10,6 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type AuthHandler interface {
@@ -192,9 +194,11 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
 	withImageLimit.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
+
+	r.PathPrefix("/docs/").Handler(httpSwagger.Handler())
 
 	return r
 }

@@ -12,6 +12,7 @@ const (
 	defaultMinRedisConnections = 20
 	defaultPingSleepTimeRedis  = 2 * time.Second
 	defaultMaxRetriesRedis     = 5
+	_                     // used in DefaultRedisConnection
 )
 
 type RedisConnection struct {

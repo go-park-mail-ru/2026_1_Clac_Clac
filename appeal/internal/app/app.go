@@ -9,9 +9,11 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/config"
 	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/delivery"
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
 	appealPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -94,5 +96,11 @@ func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 }
 
 func (a *App) setupEngine(logger *zerolog.Logger) {
-	a.Engine = grpcEngine.New(a.Config.Engine, logger)
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(interceptors.UnaryAccessLog(logger)),
+		grpc.StreamInterceptor(interceptors.StreamAccessLog(logger)),
+		grpc.UnaryInterceptor(interceptors.UnaryPanicRecovery(logger)),
+		grpc.StreamInterceptor(interceptors.StreamPanicRecovery(logger)),
+	}
+	a.Engine = grpcEngine.New(a.Config.Engine, logger, opts...)
 }

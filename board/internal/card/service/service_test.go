@@ -79,13 +79,13 @@ func newTestCardRepository(t *testing.T) *testCardRepository {
 func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()
 	targetUserLink := uuid.New()
-	targetExecuterName := "John Doe"
+	targetExecutorLink := uuid.New()
 	targetDataDeadLine := time.Now()
 
 	repResponse := repositoryDto.InfoCard{
 		Title:        "Title",
 		Description:  "Desc",
-		NameExecutor: &targetExecuterName,
+		ExecutorLink: &targetExecutorLink,
 		DataDeadLine: &targetDataDeadLine,
 	}
 
@@ -105,7 +105,7 @@ func TestGetCard(t *testing.T) {
 			expectedRes: dto.InfoCard{
 				Title:        "Title",
 				Description:  "Desc",
-				NameExecutor: &targetExecuterName,
+				ExecutorLink: &targetExecutorLink,
 				DataDeadLine: &targetDataDeadLine,
 			},
 		},

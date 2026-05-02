@@ -33,14 +33,14 @@ func NewCSRF(csrf CSRFUsecase) *CSRF {
 
 // SetCSRFCookieHandler генерирует и устанавливает CSRF токен
 //
-//	@Summary		Получить CSRF токен
-//	@Tags			Auth
-//	@Security		sessionCookie
-//	@Produce		json
-//	@Success		200	{object}	api.Response		"OK"
-//	@Failure		401	{object}	api.ErrorResponse	"User not authorized"
-//	@Failure		500	{object}	api.ErrorResponse	"Cannot create CSRF token"
-//	@Router			/api/csrf [get]
+//	@Summary	Получить CSRF токен
+//	@Tags		Auth
+//	@Security	sessionCookie
+//	@Produce	json
+//	@Success	200	{object}	api.Response		"OK"
+//	@Failure	401	{object}	api.ErrorResponse	"User not authorized"
+//	@Failure	500	{object}	api.ErrorResponse	"Cannot create CSRF token"
+//	@Router		/csrf [get]
 func (c *CSRF) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

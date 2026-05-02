@@ -56,12 +56,12 @@ func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()
 	targetUserLink := uuid.New()
 	targetDeadline := time.Now().Add(24 * time.Hour)
-	execName := "John Doe"
+	execLink := uuid.New()
 
 	serviceCardInfo := serviceDto.InfoCard{
 		Title:        "TestTitle",
 		Description:  "Test Desc",
-		NameExecutor: &execName,
+		ExecutorLink: &execLink,
 		DataDeadLine: &targetDeadline,
 	}
 
@@ -84,7 +84,7 @@ func TestGetCard(t *testing.T) {
 				assert.Equal(t, targetCardLink.String(), resp.CardInfo.Link)
 				assert.Equal(t, "TestTitle", resp.CardInfo.Title)
 				assert.Equal(t, "Test Desc", resp.CardInfo.Description)
-				assert.Equal(t, execName, resp.CardInfo.GetExecutorName())
+				assert.Equal(t, execLink.String(), resp.CardInfo.GetExecutorLink())
 			},
 		},
 		{

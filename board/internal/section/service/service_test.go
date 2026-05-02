@@ -221,15 +221,15 @@ func TestServiceGetCards(t *testing.T) {
 	ctx := context.Background()
 	userLink := uuid.New()
 	targetSectionLink := uuid.New()
-	targetExecutorName := "John Doe"
+	targetExecutorLink := uuid.New()
 	targetDeadLine := time.Now()
 
 	repCards := []repositoryDto.Card{
 		{
-			CardLink:     uuid.New(),
-			ExecutorName: &targetExecutorName,
-			Title:        "Task 1",
-			DeadLine:     &targetDeadLine,
+			CardLink:      uuid.New(),
+			ExecutorLink:  &targetExecutorLink,
+			Title:         "Task 1",
+			DeadLine:      &targetDeadLine,
 			Subtasks: []models.SubtaskInfo{
 				{
 					SubtaskLink: uuid.New(),
@@ -243,10 +243,10 @@ func TestServiceGetCards(t *testing.T) {
 
 	expectedCards := []dto.Card{
 		{
-			CardLink:     repCards[0].CardLink,
-			ExecutorName: repCards[0].ExecutorName,
-			Title:        repCards[0].Title,
-			DeadLine:     repCards[0].DeadLine,
+			CardLink:      repCards[0].CardLink,
+			ExecutorLink:  repCards[0].ExecutorLink,
+			Title:         repCards[0].Title,
+			DeadLine:      repCards[0].DeadLine,
 			Subtasks: []models.SubtaskInfo{
 				{
 					SubtaskLink: repCards[0].Subtasks[0].SubtaskLink,

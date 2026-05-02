@@ -79,7 +79,7 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 
 	return dto.Card{
 		Link:         c.CardLink,
-		ExecutorName: c.ExecutorName,
+		ExecutorLink: c.ExecutorLink,
 		Title:        c.Title,
 		Description:  c.Description,
 		Deadline:     c.Deadline,
@@ -89,13 +89,13 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 
 // @Summary		Получить все секции доски
 // @Description	Возвращает массив всех секций, привязанных к конкретной доске
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
 // @Param			board_link	path		string	true	"UUID доски"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[[]dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid board link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get sections"
+// @Success		200			{object}	api.OkResponse[[]dto.SectionInfo]
+// @Failure		400			{object}	api.ErrorResponse	"invalid board link"
+// @Failure		401			{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500			{object}	api.ErrorResponse	"cannot get sections"
 // @Router			/boards/{board_link}/sections [get]
 func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -138,14 +138,14 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить секцию
 // @Description	Возвращает информацию о конкретной секции по её UUID
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
 // @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get section"
+// @Success		200		{object}	api.OkResponse[dto.SectionInfo]
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get section"
 // @Router			/sections/{link} [get]
 func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -187,14 +187,14 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить карточки секции
 // @Description	Возвращает список всех карточек, находящихся в указанной секции
-// @Tags			cards
+// @Tags			Cards
 // @Produce		json
 // @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[dto.CardsResponse]
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get cards"
+// @Success		200		{object}	api.OkResponse[dto.CardsResponse]
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get cards"
 // @Router			/sections/{link}/cards [get]
 func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -241,14 +241,14 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Создать секцию
 // @Description	Создает новую секцию на доске
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
-// @Param		request	body		dto.CreateSectionRequest	true	"Данные для создания секции"
-// @Success		201	{object}	api.OkResponse[dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot create section"
+// @Param			request	body		dto.CreateSectionRequest	true	"Данные для создания секции"
+// @Success		201		{object}	api.OkResponse[dto.SectionInfo]
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500		{object}	api.ErrorResponse	"cannot create section"
 // @Router			/sections [post]
 func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -289,14 +289,14 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Удалить секцию
 // @Description	Удаляет секцию по её UUID
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
-// @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot delete section"
+// @Param			link	path		string				true	"UUID секции"	Format(uuid)
+// @Success		200		{object}	api.Response		"status ok"
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot delete section"
 // @Router			/sections/{link} [delete]
 func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -338,15 +338,15 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Переупорядочить секции
 // @Description	Обновляет порядок секций на доске
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
 // @Param			board_link	path		string				true	"UUID доски"	Format(uuid)
 // @Param			request		body		dto.ListSectionLink	true	"Новый порядок секций"
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot reorder sections"
+// @Success		200			{object}	api.Response		"status ok"
+// @Failure		400			{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401			{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500			{object}	api.ErrorResponse	"cannot reorder sections"
 // @Router			/boards/{board_link}/sections/reorder [patch]
 func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -391,16 +391,16 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Обновить секцию
 // @Description	Изменяет данные существующей секции
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
-// @Param			link	path		string					true	"UUID секции"	Format(uuid)
-// @Param			request	body		dto.SectionInfo			true	"Новые данные секции"
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot update section"
+// @Param			link	path		string				true	"UUID секции"	Format(uuid)
+// @Param			request	body		dto.SectionInfo		true	"Новые данные секции"
+// @Success		200		{object}	api.Response		"status ok"
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot update section"
 // @Router			/sections/{link} [put]
 func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())

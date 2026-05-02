@@ -6,8 +6,14 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/app"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
 	"github.com/joho/godotenv"
+
+	_ "github.com/go-park-mail-ru/2026_1_Clac_Clac/docs"
 )
 
+// @title			NeXuS
+// @description	Наше API
+// @host			clac-clac.mooo.com
+// @BasePath		/api
 func main() {
 	const configPath = "."
 

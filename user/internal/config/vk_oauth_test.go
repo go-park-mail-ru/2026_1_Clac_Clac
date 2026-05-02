@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -26,9 +25,6 @@ func TestVkOAuthConfig(t *testing.T) {
 		t.Setenv("VK_OAUTH_API_METHOD", want.APIMethod)
 
 		v := viper.New()
-
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
 
 		SetupEnvVkOAuth(v)
 

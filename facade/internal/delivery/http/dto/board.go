@@ -10,19 +10,16 @@ type BoardInfo struct {
 }
 
 type GetBoardRequest struct {
-	UserLink  uuid.UUID `json:"user_link"`
 	BoardLink uuid.UUID `json:"board_link"`
 }
 
 type CreateBoardRequest struct {
-	UserLink    uuid.UUID `json:"user_link"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Background  string    `json:"background"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Background  string `json:"background"`
 }
 
 type UpdateBoardRequest struct {
-	UserLink    uuid.UUID `json:"user_link"`
 	BoardLink   uuid.UUID `json:"board_link"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -30,7 +27,6 @@ type UpdateBoardRequest struct {
 }
 
 type UploadBackgroundRequest struct {
-	UserLink  uuid.UUID `json:"user_link"`
 	BoardLink uuid.UUID `json:"board_link"`
 	Filename  string    `json:"filename"`
 }
@@ -40,7 +36,6 @@ type UploadBackgroundResponse struct {
 }
 
 type GetMembersRequest struct {
-	UserLink  uuid.UUID `json:"user_link"`
 	BoardLink uuid.UUID `json:"board_link"`
 }
 

@@ -8,11 +8,11 @@ import (
 )
 
 type InfoCard struct {
-	Description  string
-	Title        string
-	NameExecutor *string
-	DataDeadLine *time.Time
-	Subtasks     []models.SubtaskInfo
+	Description   string
+	Title         string
+	ExecutorLink  *uuid.UUID
+	DataDeadLine  *time.Time
+	Subtasks      []models.SubtaskInfo
 }
 
 type UpdatingCardDetails struct {

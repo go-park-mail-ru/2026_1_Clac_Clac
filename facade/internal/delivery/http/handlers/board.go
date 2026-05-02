@@ -73,7 +73,7 @@ func boardInfoToDTO(b domain.BoardInfo) dto.BoardInfo {
 
 // @Summary		Получить список досок пользователя
 // @Description	Возвращает все доски, к которым у авторизованного пользователя есть доступ
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Success		200	{object}	api.OkResponse[[]dto.BoardInfo]
 // @Failure		401	{object}	api.ErrorResponse	"unauthorized"
@@ -105,7 +105,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить информацию о доске
 // @Description	Возвращает информацию о доске по её UUID ссылке
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Param			link	path		string	true	"UUID доски"	Format(uuid)
 // @Success		200		{object}	api.OkResponse[dto.BoardInfo]
@@ -155,7 +155,7 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Создать новую доску
 // @Description	Создает новую доску на основе переданных данных
-// @Tags			boards
+// @Tags			Boards
 // @Accept			json
 // @Produce		json
 // @Param			request	body		dto.CreateBoardRequest	true	"DTO для создания доски"
@@ -201,7 +201,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Удалить доску
 // @Description	Удаляет доску по её UUID ссылке
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Param			link	path		string				true	"UUID доски для удаления"	Format(uuid)
 // @Success		200		{object}	api.Response		"status ok"
@@ -251,7 +251,7 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Обновить информацию о доске
 // @Description	Обновляет метаданные доски (имя, описание, фон)
-// @Tags			boards
+// @Tags			Boards
 // @Accept			json
 // @Produce		json
 // @Param			link	path		string					true	"UUID доски"	Format(uuid)
@@ -312,7 +312,7 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Загрузить фон для доски
 // @Description	Загружает изображение (multipart/form-data) и устанавливает его как фон доски
-// @Tags			boards
+// @Tags			Boards
 // @Accept			multipart/form-data
 // @Produce		json
 // @Param			link		path		string	true	"UUID доски"	Format(uuid)
@@ -384,14 +384,14 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить пользователей доски
 // @Description	Возвращает массив UUID всех пользователей, имеющих доступ к доске
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
-// @Param			link	path		string						true	"UUID доски"	Format(uuid)
+// @Param			link	path		string	true	"UUID доски"	Format(uuid)
 // @Success		200		{object}	api.OkResponse[dto.GetMembersResponse]
-// @Failure		400		{object}	api.ErrorResponse			"invalid board link / board link missing"
-// @Failure		401		{object}	api.ErrorResponse			"unauthorized"
-// @Failure		404		{object}	api.ErrorResponse			"board not found"
-// @Failure		500		{object}	api.ErrorResponse			"cannot get members"
+// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"board not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get members"
 // @Router			/boards/{link}/users [get]
 func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())

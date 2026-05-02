@@ -177,7 +177,7 @@ func (x *SubtaskInfo) GetPosition() int64 {
 type CardInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Link          string                 `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
-	ExecutorName  *string                `protobuf:"bytes,2,opt,name=executor_name,json=executorName,proto3,oneof" json:"executor_name,omitempty"`
+	ExecutorLink  *string                `protobuf:"bytes,2,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
@@ -223,9 +223,9 @@ func (x *CardInfo) GetLink() string {
 	return ""
 }
 
-func (x *CardInfo) GetExecutorName() string {
-	if x != nil && x.ExecutorName != nil {
-		return *x.ExecutorName
+func (x *CardInfo) GetExecutorLink() string {
+	if x != nil && x.ExecutorLink != nil {
+		return *x.ExecutorLink
 	}
 	return ""
 }
@@ -1006,12 +1006,12 @@ const file_proto_section_v1_section_proto_rawDesc = "" +
 	"\bposition\x18\x04 \x01(\x03R\bposition\"\x97\x02\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
-	"\rexecutor_name\x18\x02 \x01(\tH\x00R\fexecutorName\x88\x01\x01\x12\x14\n" +
+	"\rexecutor_link\x18\x02 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
 	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x129\n" +
 	"\bsubtasks\x18\x06 \x03(\v2\x1d.proto.section.v1.SubtaskInfoR\bsubtasksB\x10\n" +
-	"\x0e_executor_nameB\v\n" +
+	"\x0e_executor_linkB\v\n" +
 	"\t_deadline\"P\n" +
 	"\x12GetSectionsRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +

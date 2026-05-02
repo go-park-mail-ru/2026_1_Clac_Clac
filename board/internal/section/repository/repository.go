@@ -71,7 +71,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 	query := `
 	SELECT
 		t.task_link,
-		u.display_name AS name_executer,
+		t.executer_link,
 		t.title,
 		t.due_date,
 		(
@@ -87,7 +87,6 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 			WHERE s.task_link = t.task_link
 		) AS subtasks
 	FROM task_actual AS t
-	LEFT JOIN "user" u ON t.executer_link = u.link
 	WHERE t.section_link = $1
 	ORDER BY t.position ASC;
 	`
@@ -107,7 +106,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 
 		err := rows.Scan(
 			&card.CardLink,
-			&card.ExecutorName,
+			&card.ExecutorLink,
 			&card.Title,
 			&card.DeadLine,
 			&subtasks,

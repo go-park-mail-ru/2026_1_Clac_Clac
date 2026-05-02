@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -43,8 +42,6 @@ func TestSetupEnvAuth(t *testing.T) {
 		t.Setenv("SERVICES_AUTH_HANDLER_VK_OAUTH_REDIRECT_TO", redirectURL)
 
 		v := viper.New()
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		v.AutomaticEnv()
 
 		SetupEnvAuth(v)
 

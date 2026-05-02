@@ -60,14 +60,14 @@ func NewAuthHandler(auth AuthUsecase, user UserUsecase, cfg AuthConfig) *Auth {
 
 // MeHandler проверяет текущую сессию пользователя
 //
-//	@Summary        Проверка авторизации (Me)
-//	@Description    Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
-//	@Tags           Auth
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Success        200 {object}    api.Response        "Пользователь авторизован"
-//	@Failure        401 {object}    api.ErrorResponse   "Сессия отсутствует или истекла"
-//	@Router         /api/me [get]
+//	@Summary		Проверка авторизации (Me)
+//	@Description	Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
+//	@Tags			Auth
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"Пользователь авторизован"
+//	@Failure		401	{object}	api.ErrorResponse	"Сессия отсутствует или истекла"
+//	@Router			/me [get]
 func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
@@ -81,18 +81,18 @@ func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogInUser выполняет вход пользователя
 //
-//	@Summary        Вход (Login)
-//	@Description    Аутентифицирует пользователя по email и паролю. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в минуту.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.LogInRequest    true    "Email и пароль"
-//	@Success        200     {object}    api.OkResponse[dto.UserInfoResponse]    "Успешный вход, cookie session_id установлен"
-//	@Failure        400     {object}    api.ErrorResponse                       "Некорректный формат запроса, email или пароль"
-//	@Failure        404     {object}    api.ErrorResponse                       "Пользователь не найден или неверные учётные данные"
-//	@Failure        429     {object}    api.ErrorResponse                       "Слишком много попыток входа"
-//	@Failure        500     {object}    api.ErrorResponse                       "Внутренняя ошибка сервера"
-//	@Router         /api/login [post]
+//	@Summary		Вход (Login)
+//	@Description	Аутентифицирует пользователя по email и паролю. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в минуту.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.LogInRequest						true	"Email и пароль"
+//	@Success		200		{object}	api.OkResponse[dto.UserInfoResponse]	"Успешный вход, cookie session_id установлен"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email или пароль"
+//	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден или неверные учётные данные"
+//	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток входа"
+//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/login [post]
 func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -153,19 +153,19 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 // RegisterUser регистрирует нового пользователя
 //
-//	@Summary        Регистрация
-//	@Description    Создаёт новый аккаунт. Пароли должны совпадать, email должен быть уникальным. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в час.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.RegisterRequest                     true    "Данные для регистрации"
-//	@Success        201     {object}    api.OkResponse[dto.UserInfoResponse]    "Аккаунт создан, cookie session_id установлен"
-//	@Failure        400     {object}    api.ErrorResponse                       "Некорректный формат запроса, email/пароль; пароли не совпадают"
-//	@Failure        404     {object}    api.ErrorResponse                       "Пользователь не найден (ошибка при создании сессии)"
-//	@Failure        409     {object}    api.ErrorResponse                       "Пользователь с таким email уже существует"
-//	@Failure        429     {object}    api.ErrorResponse                       "Слишком много попыток регистрации"
-//	@Failure        500     {object}    api.ErrorResponse                       "Внутренняя ошибка сервера"
-//	@Router         /api/register [post]
+//	@Summary		Регистрация
+//	@Description	Создаёт новый аккаунт. Пароли должны совпадать, email должен быть уникальным. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в час.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RegisterRequest						true	"Данные для регистрации"
+//	@Success		201		{object}	api.OkResponse[dto.UserInfoResponse]	"Аккаунт создан, cookie session_id установлен"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают"
+//	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден (ошибка при создании сессии)"
+//	@Failure		409		{object}	api.ErrorResponse						"Пользователь с таким email уже существует"
+//	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток регистрации"
+//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/register [post]
 func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -236,12 +236,12 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 // LogOutUser удаляет сессию пользователя
 //
-//	@Summary        Выход (Logout)
-//	@Description    Инвалидирует текущую сессию и очищает cookie session_id. Если cookie отсутствует, всё равно возвращает 200 — endpoint идемпотентен.
-//	@Tags           Auth
-//	@Produce        json
-//	@Success        200 {object}    api.Response    "Сессия завершена"
-//	@Router         /api/logout [post]
+//	@Summary		Выход (Logout)
+//	@Description	Инвалидирует текущую сессию и очищает cookie session_id. Если cookie отсутствует, всё равно возвращает 200 — endpoint идемпотентен.
+//	@Tags			Auth
+//	@Produce		json
+//	@Success		200	{object}	api.Response	"Сессия завершена"
+//	@Router			/logout [post]
 func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -258,13 +258,13 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 
 // VkOAuthCallback обрабатывает коллбэк от VK
 //
-//	@Summary        VK OAuth Коллбэк
-//	@Description    Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
-//	@Tags           Auth
-//	@Param          code    query   string  true    "Временный OAuth-код от VK"
-//	@Success        302     "Редирект: ?code=200&message=success (cookie session_id установлен)"
-//	@Failure        302     "Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
-//	@Router         /api/oauth/vk [get]
+//	@Summary		VK OAuth Коллбэк
+//	@Description	Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
+//	@Tags			Auth
+//	@Param			code	query	string	true	"Временный OAuth-код от VK"
+//	@Success		302		"Редирект: ?code=200&message=success (cookie session_id установлен)"
+//	@Failure		302		"Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
+//	@Router			/oauth/vk [get]
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
