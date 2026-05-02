@@ -93,6 +93,7 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 		RateLimiter: connector.RateLimiter,
 		CSRFChecker: manager.CSRF.Check,
 		Board:       delivery.Board,
+		Section:     delivery.Section,
 	}
 
 	return router.NewRouter(tools, conf, logger)

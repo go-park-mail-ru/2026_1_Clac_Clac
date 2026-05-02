@@ -5,7 +5,7 @@ type Services struct {
 	User         User         `mapstructure:"user"`
 	Auth         Auth         `mapstructure:"auth"`
 	Board        Board        `mapstructure:"board"`
-	Section      ClientConfig `mapstructure:"section"`
+	Section      Section      `mapstructure:"section"`
 	Card         ClientConfig `mapstructure:"card"`
 	RateLimiters RateLimiters `mapstructure:"rate_limiters"`
 }
@@ -16,6 +16,7 @@ func DefaultServicesConfig() Services {
 		User:         DefaultUserConfig(),
 		Auth:         DefaultAuthConfig(),
 		Board:        DefaultBoardConfig(),
+		Section:      DefaultSectionConfig(),
 		RateLimiters: DefaultActionsRateLimiters(),
 	}
 }

@@ -12,6 +12,7 @@ type Manager struct {
 	MailSender *usecase.MailSender
 	CSRF       *usecase.CSRF
 	Board      *usecase.Board
+	Section    *usecase.Section
 }
 
 func NewManager(connector *Connector, conf *config.Config) *Manager {
@@ -30,5 +31,6 @@ func NewManager(connector *Connector, conf *config.Config) *Manager {
 		MailSender: usecase.NewMailSender(connector.MailSender),
 		CSRF:       usecase.NewCSRF(configCSRF),
 		Board:      usecase.NewBoard(connector.Board),
+		Section:    usecase.NewSection(connector.Section),
 	}
 }

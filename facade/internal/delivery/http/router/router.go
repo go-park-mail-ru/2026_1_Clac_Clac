@@ -49,6 +49,16 @@ type BoardHandler interface {
 	GetMembers(w http.ResponseWriter, r *http.Request)
 }
 
+type SectionHandler interface {
+	GetSections(w http.ResponseWriter, r *http.Request)
+	GetSection(w http.ResponseWriter, r *http.Request)
+	GetCards(w http.ResponseWriter, r *http.Request)
+	CreateSection(w http.ResponseWriter, r *http.Request)
+	DeleteSection(w http.ResponseWriter, r *http.Request)
+	ReorderSections(w http.ResponseWriter, r *http.Request)
+	UpdateSection(w http.ResponseWriter, r *http.Request)
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
@@ -58,6 +68,7 @@ type Tools struct {
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
 	Board       BoardHandler
+	Section     SectionHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
