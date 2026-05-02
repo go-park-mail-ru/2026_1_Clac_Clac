@@ -191,7 +191,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
 	withImageLimit.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
 
