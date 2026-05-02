@@ -61,18 +61,19 @@ func NewAppeal(service AppealUsecase, conf AppealConfig) *Appeal {
 }
 
 // CreateAppeal godoc
-// @Summary      Создать обращение
-// @Description  Создает новое обращение (тикет) от лица авторизованного пользователя
-// @Tags         appeals
-// @Accept       json
-// @Produce      json
-// @Param        request body dto.EntityAppealRequest true "Данные обращения"
-// @Success      200  {object} object{appeal_link=string} "Appeal link UUID"
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals [post]
+//
+//	@Summary		Создать обращение
+//	@Description	Создает новое обращение (тикет) от лица авторизованного пользователя
+//	@Tags			Appeals
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.CreateAppealRequest		true	"Данные обращения"
+//	@Success		200		{object}	object{appeal_link=string}	"Appeal link UUID"
+//	@Failure		400		{string}	string						"Bad Request"
+//	@Failure		401		{string}	string						"Unauthorized"
+//	@Failure		500		{string}	string						"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals [post]
 func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -118,15 +119,16 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAppeals godoc
-// @Summary      Получить список обращений
-// @Description  Возвращает все обращения, созданные текущим авторизованным пользователем
-// @Tags         appeals
-// @Produce      json
-// @Success      200  {object} dto.Appeals "Успешный ответ со списком обращений"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals [get]
+//
+//	@Summary		Получить список обращений
+//	@Description	Возвращает все обращения, созданные текущим авторизованным пользователем
+//	@Tags			Appeals
+//	@Produce		json
+//	@Success		200	{object}	dto.GetAppealsResponse	"Успешный ответ со списком обращений"
+//	@Failure		401	{string}	string					"Unauthorized"
+//	@Failure		500	{string}	string					"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals [get]
 func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -168,19 +170,20 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadAttachment godoc
-// @Summary      Загрузить вложение к обращению
-// @Description  Загружает изображение (multipart/form-data) и прикрепляет его к обращению
-// @Tags         appeals
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        link        path      string  true  "UUID обращения"  format(uuid)
-// @Param        attachment  formData  file    true  "Файл вложения (PNG/JPEG)"
-// @Success      200  {object} api.OkResponse[dto.UploadAttachmentResponse]
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link}/attachment [put]
+//
+//	@Summary		Загрузить вложение к обращению
+//	@Description	Загружает изображение (multipart/form-data) и прикрепляет его к обращению
+//	@Tags			Appeals
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			link		path		string	true	"UUID обращения"	format(uuid)
+//	@Param			attachment	formData	file	true	"Файл вложения (PNG/JPEG)"
+//	@Success		200			{object}	api.OkResponse[dto.UploadAttachmentResponse]
+//	@Failure		400			{string}	string	"Bad Request"
+//	@Failure		401			{string}	string	"Unauthorized"
+//	@Failure		500			{string}	string	"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link}/attachment [put]
 func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -240,16 +243,17 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAppeal godoc
-// @Summary      Удалить обращение
-// @Description  Удаляет конкретное обращение по его UUID
-// @Tags         appeals
-// @Param        link path      string  true  "UUID обращения" format(uuid)
-// @Success      200  {string}  string  "OK"
-// @Failure      400  {string}  string  "Bad Request (невалидный UUID)"
-// @Failure      401  {string}  string  "Unauthorized"
-// @Failure      500  {string}  string  "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link} [delete]
+//
+//	@Summary		Удалить обращение
+//	@Description	Удаляет конкретное обращение по его UUID
+//	@Tags			Appeals
+//	@Param			link	path		string	true	"UUID обращения"	format(uuid)
+//	@Success		200		{string}	string	"OK"
+//	@Failure		400		{string}	string	"Bad Request (невалидный UUID)"
+//	@Failure		401		{string}	string	"Unauthorized"
+//	@Failure		500		{string}	string	"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link} [delete]
 func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -288,16 +292,17 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetStats godoc
-// @Summary      Получить статистику обращений
-// @Description  Возвращает количество обращений по статусам (доступно только для support/admin)
-// @Tags         appeals
-// @Produce      json
-// @Success      200  {object} dto.AppealStats "Успешный ответ со статистикой"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/stats [get]
+//
+//	@Summary		Получить статистику обращений
+//	@Description	Возвращает количество обращений по статусам (доступно только для support/admin)
+//	@Tags			Appeals
+//	@Produce		json
+//	@Success		200	{object}	dto.AppealsStats	"Успешный ответ со статистикой"
+//	@Failure		401	{string}	string				"Unauthorized"
+//	@Failure		403	{string}	string				"Forbidden (Недостаточно прав)"
+//	@Failure		500	{string}	string				"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/stats [get]
 func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -324,20 +329,21 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // ChangeAppealStatus godoc
-// @Summary      Изменить статус обращения
-// @Description  Меняет статус существующего обращения (доступно только для support/admin)
-// @Tags         appeals
-// @Accept       json
-// @Produce      json
-// @Param        link    path string                 true "UUID обращения" format(uuid)
-// @Param        request body dto.ChangeAppealStatus true "Новый статус"
-// @Success      200  {string} string "OK"
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link} [patch]
+//
+//	@Summary		Изменить статус обращения
+//	@Description	Меняет статус существующего обращения (доступно только для support/admin)
+//	@Tags			Appeals
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string						true	"UUID обращения"	format(uuid)
+//	@Param			request	body		dto.ChangeAppealStatusInfo	true	"Новый статус"
+//	@Success		200		{string}	string						"OK"
+//	@Failure		400		{string}	string						"Bad Request"
+//	@Failure		401		{string}	string						"Unauthorized"
+//	@Failure		403		{string}	string						"Forbidden (Недостаточно прав)"
+//	@Failure		500		{string}	string						"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link} [patch]
 func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

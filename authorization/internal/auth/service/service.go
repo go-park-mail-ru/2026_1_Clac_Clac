@@ -19,7 +19,7 @@ type AuthRepository interface {
 
 type Tools struct {
 	GeneratorSessionID func() (string, error)
-	CreateSessionKey  func(string) string
+	CreateSessionKey   func(string) string
 }
 
 type Config struct {

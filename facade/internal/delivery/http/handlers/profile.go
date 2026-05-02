@@ -69,16 +69,16 @@ func NewProfileHandler(profile ProfileUseCase, mailSender MailSenderUsecase, cfg
 
 // GetProfile возвращает профиль текущего пользователя
 //
-//	@Summary        Получить свой профиль
-//	@Description    Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Success        200 {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
-//	@Failure        401 {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404 {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        500 {object}    api.ErrorResponse                   "Внутренняя ошибка сервера при получении профиля"
-//	@Router         /api/profiles [get]
+//	@Summary		Получить свой профиль
+//	@Description	Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Success		200	{object}	api.OkResponse[dto.ProfileResponse]	"Профиль пользователя"
+//	@Failure		401	{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404	{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		500	{object}	api.ErrorResponse					"Внутренняя ошибка сервера при получении профиля"
+//	@Router			/profiles [get]
 func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -105,18 +105,18 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // GetProfileByLink возвращает профиль пользователя по UUID
 //
-//	@Summary        Получить профиль по ссылке
-//	@Description    Возвращает публичный профиль любого пользователя по его UUID.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Param          user_link   path        string                              true    "UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-//	@Success        200         {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
-//	@Failure        400         {object}    api.ErrorResponse                   "Некорректный формат UUID пользователя"
-//	@Failure        401         {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404         {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        500         {object}    api.ErrorResponse                   "Внутренняя ошибка сервера"
-//	@Router         /api/profiles/{user_link} [get]
+//	@Summary		Получить профиль по ссылке
+//	@Description	Возвращает публичный профиль любого пользователя по его UUID.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Param			user_link	path		string								true	"UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
+//	@Success		200			{object}	api.OkResponse[dto.ProfileResponse]	"Профиль пользователя"
+//	@Failure		400			{object}	api.ErrorResponse					"Некорректный формат UUID пользователя"
+//	@Failure		401			{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404			{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		500			{object}	api.ErrorResponse					"Внутренняя ошибка сервера"
+//	@Router			/profiles/{user_link} [get]
 func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -143,19 +143,19 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProfile обновляет текстовые данные профиля (имя, описание)
 //
-//	@Summary        Обновить профиль
-//	@Description    Изменяет display_name и description_user. Требует валидный CSRF-токен.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.UpdateProfileRequest    true    "Новые имя и описание"
-//	@Success        200     {object}    api.Response                "Профиль успешно обновлён"
-//	@Failure        400     {object}    api.ErrorResponse           "Некорректные данные: отсутствует обязательное поле или превышена длина"
-//	@Failure        401     {object}    api.ErrorResponse           "Пользователь не авторизован"
-//	@Failure        500     {object}    api.ErrorResponse           "Ошибка обновления профиля"
-//	@Router         /api/profiles/info [post]
+//	@Summary		Обновить профиль
+//	@Description	Изменяет display_name и description_user. Требует валидный CSRF-токен.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.UpdateProfileRequest	true	"Новые имя и описание"
+//	@Success		200		{object}	api.Response				"Профиль успешно обновлён"
+//	@Failure		400		{object}	api.ErrorResponse			"Некорректные данные: отсутствует обязательное поле или превышена длина"
+//	@Failure		401		{object}	api.ErrorResponse			"Пользователь не авторизован"
+//	@Failure		500		{object}	api.ErrorResponse			"Ошибка обновления профиля"
+//	@Router			/profiles/info [post]
 func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -208,22 +208,22 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAvatar загружает новый аватар
 //
-//	@Summary        Обновить аватар
-//	@Description    Загружает новое изображение. Допустимые форматы определяются по magic bytes.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Accept         multipart/form-data
-//	@Produce        json
-//	@Param          avatar  formData    file                                true    "Файл изображения (поле: avatar)"
-//	@Success        200     {object}    api.OkResponse[dto.AvatarResponse]  "Аватар загружен, возвращается URL"
-//	@Failure        400     {object}    api.ErrorResponse                   "Файл слишком большой или отсутствует поле avatar"
-//	@Failure        401     {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404     {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        415     {object}    api.ErrorResponse                   "Недопустимый тип файла"
-//	@Failure        422     {object}    api.ErrorResponse                   "Невозможно обработать/прочитать файл"
-//	@Failure        500     {object}    api.ErrorResponse                   "Ошибка на сервере при сохранении аватара"
-//	@Router         /api/profiles/avatar [put]
+//	@Summary		Обновить аватар
+//	@Description	Загружает новое изображение. Допустимые форматы определяются по magic bytes.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			avatar	formData	file								true	"Файл изображения (поле: avatar)"
+//	@Success		200		{object}	api.OkResponse[dto.AvatarResponse]	"Аватар загружен, возвращается URL"
+//	@Failure		400		{object}	api.ErrorResponse					"Файл слишком большой или отсутствует поле avatar"
+//	@Failure		401		{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404		{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		415		{object}	api.ErrorResponse					"Недопустимый тип файла"
+//	@Failure		422		{object}	api.ErrorResponse					"Невозможно обработать/прочитать файл"
+//	@Failure		500		{object}	api.ErrorResponse					"Ошибка на сервере при сохранении аватара"
+//	@Router			/profiles/avatar [put]
 func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -305,17 +305,17 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 // DeleteAvatar удаляет аватар пользователя
 //
-//	@Summary        Удалить аватар
-//	@Description    Удаляет текущий аватар пользователя из хранилища и сбрасывает поле avatar_url в профиле. Если аватара не было, всё равно возвращает 200.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Produce        json
-//	@Success        200 {object}    api.Response        "Аватар удалён"
-//	@Failure        401 {object}    api.ErrorResponse   "Пользователь не авторизован"
-//	@Failure        404 {object}    api.ErrorResponse   "Пользователь не найден"
-//	@Failure        500 {object}    api.ErrorResponse   "Ошибка удаления аватара"
-//	@Router         /api/profiles/avatar [delete]
+//	@Summary		Удалить аватар
+//	@Description	Удаляет текущий аватар пользователя из хранилища и сбрасывает поле avatar_url в профиле. Если аватара не было, всё равно возвращает 200.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"Аватар удалён"
+//	@Failure		401	{object}	api.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		404	{object}	api.ErrorResponse	"Пользователь не найден"
+//	@Failure		500	{object}	api.ErrorResponse	"Ошибка удаления аватара"
+//	@Router			/profiles/avatar [delete]
 func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -341,17 +341,17 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 
 // ResetUserPassword устанавливает новый пароль
 //
-//	@Summary        Сброс пароля
-//	@Description    Устанавливает новый пароль, используя одноразовый token_id (код из письма). Токен инвалидируется после использования.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.NewPasswordRequest  true    "Новый пароль и одноразовый токен"
-//	@Success        200     {object}    api.Response            "Пароль успешно изменён"
-//	@Failure        400     {object}    api.ErrorResponse       "Пароли не совпадают, некорректная длина или токен не найден"
-//	@Failure        404     {object}    api.ErrorResponse       "Токен не существует/истёк или пользователь не найден"
-//	@Failure        500     {object}    api.ErrorResponse       "Внутренняя ошибка сервера при смене пароля"
-//	@Router         /api/reset-password [post]
+//	@Summary		Сброс пароля
+//	@Description	Устанавливает новый пароль, используя одноразовый token_id (код из письма). Токен инвалидируется после использования.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.NewPasswordRequest	true	"Новый пароль и одноразовый токен"
+//	@Success		200		{object}	api.Response			"Пароль успешно изменён"
+//	@Failure		400		{object}	api.ErrorResponse		"Пароли не совпадают, некорректная длина или токен не найден"
+//	@Failure		404		{object}	api.ErrorResponse		"Токен не существует/истёк или пользователь не найден"
+//	@Failure		500		{object}	api.ErrorResponse		"Внутренняя ошибка сервера при смене пароля"
+//	@Router			/reset-password [post]
 func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
