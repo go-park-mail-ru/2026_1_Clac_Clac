@@ -11,6 +11,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc/reflection"
 )
 
 type App struct {
@@ -35,6 +36,8 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	delivery := setupDelivery(manager)
 	delivery.Register(engine.Server)
+
+	reflection.Register(engine.Server)
 
 	return &App{
 		Config:  conf,
