@@ -15,6 +15,7 @@ type Connector struct {
 	Auth        *clients.Auth
 	MailSender  *clients.MailSender
 	RateLimiter *clients.RateLimiter
+	Appeal      *clients.Appeal
 
 	Board   *clients.Board
 	Section *clients.Section
@@ -65,6 +66,11 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Board service: %w", err)
 	}
+	appealConn, err := connect(config.Appeal.Client.Addr)
+	if err != nil {
+		closeAll(activeConns, logger)
+		return nil, fmt.Errorf("failed to connect to Appeal service: %w", err)
+	}
 
 	return &Connector{
 		User:        clients.NewUserClient(userConn),
@@ -74,6 +80,7 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		Board:       clients.NewBoardClient(boardConn),
 		Section:     clients.NewSectionClient(boardConn),
 		Card:        clients.NewCardClient(boardConn),
+		Appeal:      clients.NewAppealClient(appealConn),
 		logger:      logger,
 		conns:       activeConns,
 	}, nil

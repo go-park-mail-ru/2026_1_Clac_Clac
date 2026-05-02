@@ -13,6 +13,7 @@ type Delivery struct {
 	Card       *handlers.Card
 	Board      *handlers.Board
 	Section    *handlers.Section
+	Appeal     *handlers.Appeal
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -45,6 +46,10 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	boardConfig := handlers.BoardConfig{
 		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
 	}
+	appealConfig := handlers.AppealConfig{
+		MultipartAttachmentFileKey: conf.Services.Appeal.Handler.MultipartAttachmentFileKey,
+		MaxAttachmentSize:          conf.App.MaxUploadImageSize,
+	}
 
 	return &Delivery{
 		Auth:       handlers.NewAuthHandler(manager.Auth, manager.User, authConfig),
@@ -54,5 +59,6 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		Card:       handlers.NewCard(manager.Card, cardConfig),
 		Board:      handlers.NewBoard(manager.Board, boardConfig),
 		Section:    handlers.NewSection(manager.Section),
+		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
 	}
 }

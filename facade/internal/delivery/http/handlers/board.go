@@ -25,7 +25,6 @@ var (
 	ErrCannotUpdateBoard      = errors.New("cannot update board")
 	ErrBoardLinkMissing       = errors.New("board link missing")
 	ErrInvalidBoardLink       = errors.New("invalid board link")
-	ErrParseMultipartForm     = errors.New("file too large or invalid form")
 	ErrCannotFindBackground   = errors.New("cannot find 'background' key")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetMembers       = errors.New("cannot get members")

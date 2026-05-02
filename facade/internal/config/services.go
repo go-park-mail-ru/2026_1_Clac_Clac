@@ -8,6 +8,7 @@ type Services struct {
 	Board        Board        `mapstructure:"board"`
 	Section      Section      `mapstructure:"section"`
 	RateLimiters RateLimiters `mapstructure:"rate_limiters"`
+	Appeal       Appeal       `mapstructure:"appeal"`
 }
 
 func DefaultServicesConfig() Services {
@@ -19,5 +20,6 @@ func DefaultServicesConfig() Services {
 		Board:        DefaultBoardConfig(),
 		Section:      DefaultSectionConfig(),
 		RateLimiters: DefaultActionsRateLimiters(),
+		Appeal:       DefaultAppealConfig(),
 	}
 }
