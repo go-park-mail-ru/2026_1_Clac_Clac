@@ -3,7 +3,6 @@ package router
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
@@ -101,7 +100,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	r.Use(middleware.RecoveryMiddleware(logger))
 	r.Use(middleware.LoggerMiddleware(logger))
 	r.Use(middleware.CORSMiddleware(&conf.CORS))
-	r.Use(middleware.TimeOutMiddleware(5 * time.Second))
+	r.Use(middleware.TimeOutMiddleware(conf.App.RequestTimeout))
 
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)

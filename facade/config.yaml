@@ -2,6 +2,7 @@ app:
   log_level: info
   max_text_request_size: 10240
   max_upload_image_size: 10485760
+  request_timeout: 5s
 
 engine:
   addr: 0.0.0.0:8080
@@ -57,13 +58,15 @@ services:
     retries: 5
 
   board:
-    addr: "nexus-board:8080"
-    timeout: 5s
-    retries: 5
+    client:
+      addr: "nexus-board:8080"
+      timeout: 5s
+      retries: 5
   section:
-    addr: "nexus-board:8080"
-    timeout: 5s
-    retries: 5
+    client:
+      addr: "nexus-board:8080"
+      timeout: 5s
+      retries: 5
   card:
     client:
       addr: "nexus-board:8080"
