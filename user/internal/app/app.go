@@ -9,11 +9,13 @@ import (
 	"time"
 
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 )
 
 type App struct {
@@ -21,7 +23,7 @@ type App struct {
 	Logger  *zerolog.Logger
 	Store   *Store
 	Manager *Manager
-	Engine  *engine.Engine
+	Engine  *enginegrpc.Engine
 }
 
 // Создает приложение, настраивает его компоненты
@@ -62,8 +64,14 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
-	return engine.New(conf, logger)
+func setupEngine(conf enginegrpc.Config, logger *zerolog.Logger) *enginegrpc.Engine {
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(interceptors.UnaryAccessLog(logger)),
+		grpc.StreamInterceptor(interceptors.StreamAccessLog(logger)),
+		grpc.UnaryInterceptor(interceptors.UnaryPanicRecovery(logger)),
+		grpc.StreamInterceptor(interceptors.StreamPanicRecovery(logger)),
+	}
+	return enginegrpc.New(conf, logger, opts...)
 }
 
 // Настройка логера

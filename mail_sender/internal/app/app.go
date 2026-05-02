@@ -7,16 +7,18 @@ import (
 	"os"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/config"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
 	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 )
 
 type App struct {
 	Config  *config.Config
 	Logger  *zerolog.Logger
-	Engine  *engine.Engine
+	Engine  *enginegrpc.Engine
 	Store   *Store
 	Manager *Manager
 }
@@ -57,8 +59,14 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
-	return engine.New(conf, logger)
+func setupEngine(conf enginegrpc.Config, logger *zerolog.Logger) *enginegrpc.Engine {
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(interceptors.UnaryAccessLog(logger)),
+		grpc.StreamInterceptor(interceptors.StreamAccessLog(logger)),
+		grpc.UnaryInterceptor(interceptors.UnaryPanicRecovery(logger)),
+		grpc.StreamInterceptor(interceptors.StreamPanicRecovery(logger)),
+	}
+	return enginegrpc.New(conf, logger, opts...)
 }
 
 func setupLogger(conf *config.Application) *zerolog.Logger {
