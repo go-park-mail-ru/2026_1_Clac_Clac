@@ -25,7 +25,7 @@ type App struct {
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	err := setupSelery(conf)
+	err := setupSentry(conf)
 	if err != nil {
 		return nil, fmt.Errorf("setupSelery: %w", err)
 	}
@@ -113,13 +113,14 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 	return router.NewRouter(tools, conf, logger)
 }
 
-func setupSelery(config *config.Config) error {
+func setupSentry(config *config.Config) error {
 	cfg := logger.Sentry{
-		DSN:         config.Sentry.DSN,
-		Environment: config.Sentry.Environment,
-		Release:     config.Sentry.Release,
-		ServiceName: config.Sentry.ServiceName,
-		Tags:        config.Sentry.Tags,
+		DSN:              config.Sentry.DSN,
+		Environment:      config.Sentry.Environment,
+		Release:          config.Sentry.Release,
+		ServiceName:      config.Sentry.ServiceName,
+		Tags:             config.Sentry.Tags,
+		TracesSampleRate: config.Sentry.TracesSampleRate,
 	}
 
 	return sentryLogger.Init(cfg)

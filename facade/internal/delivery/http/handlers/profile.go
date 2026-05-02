@@ -15,6 +15,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -95,7 +96,12 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg("profile.GetProfile failed")
+		errLog := fmt.Errorf("profile.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.GetProfile failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetProfile", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -133,7 +139,12 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg("profile.GetProfileByLink failed")
+		errLog := fmt.Errorf("profile.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.GetProfileByLink failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetProfileByLink", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile_by_link",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -198,7 +209,12 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidProfileData.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("profile.UpdateProfile failed")
+		errLog := fmt.Errorf("profile.UpdateProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.UpdateProfile failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateProfile", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "update_profile",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateProfile)
 		return
 	}
@@ -255,7 +271,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	sigBuf := make([]byte, p.cfg.SignatureTypeBytes)
 	n, err := file.Read(sigBuf)
 	if err != nil && !errors.Is(err, io.EOF) {
-		logger.Error().Err(err).Msg("failed to read signature bytes")
+		errLog := fmt.Errorf("file.Read signature: %w", err)
+		logger.Error().Err(errLog).Msg("failed to read signature bytes")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "read_signature_bytes",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgInvalidFile)
 		return
 	}
@@ -274,7 +295,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to read all file data")
+		errLog := fmt.Errorf("io.ReadAll avatar: %w", err)
+		logger.Error().Err(errLog).Msg("failed to read all file data")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "read_file_data",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
 		return
 	}
@@ -295,7 +321,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg(msgFailUpdateAvatar)
+		errLog := fmt.Errorf("profile.UpdateAvatar: %w", err)
+		logger.Error().Err(errLog).Msg(msgFailUpdateAvatar)
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "update_avatar",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateAvatar)
 		return
 	}
@@ -331,7 +362,12 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg(msgFailDeleteAvatar)
+		errLog := fmt.Errorf("profile.DeleteAvatar: %w", err)
+		logger.Error().Err(errLog).Msg(msgFailDeleteAvatar)
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "delete_avatar",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAvatar)
 		return
 	}
@@ -367,13 +403,17 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.mailSender.CheckRecoveryCode(r.Context(), request.TokenID); err != nil {
-		logger.Error().Err(err).Msg("mailSender.CheckRecoveryCode failed")
+		errLog := fmt.Errorf("mailSender.CheckRecoveryCode: %w", err)
+		logger.Error().Err(errLog).Msg("mailSender.CheckRecoveryCode failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"action": "check_recovery_code",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}
@@ -382,13 +422,17 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		Token: request.TokenID,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("mailSender.ExchangeTokenForUser failed")
+		errLog := fmt.Errorf("mailSender.ExchangeTokenForUser: %w", err)
+		logger.Error().Err(errLog).Msg("mailSender.ExchangeTokenForUser failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrResetTokenNotExistOrExpired.Error())
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"action": "exchange_token_for_user",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -397,7 +441,8 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		UserLink: userLink,
 		Password: request.Password,
 	}); err != nil {
-		logger.Error().Err(err).Msg("profile.ResetPassword failed")
+		errLog := fmt.Errorf("profile.ResetPassword: %w", err)
+		logger.Error().Err(errLog).Msg("profile.ResetPassword failed")
 
 		if errors.Is(err, common.ErrorNotNullValue) {
 			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
@@ -409,6 +454,10 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "reset_password",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}

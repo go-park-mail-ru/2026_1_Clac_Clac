@@ -13,6 +13,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -119,7 +120,13 @@ func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.GetCard failed")
+		errLog := fmt.Errorf("card.GetCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.GetCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "get_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetCard)
 		return
 	}
@@ -168,7 +175,13 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteCard failed")
+		errLog := fmt.Errorf("card.DeleteCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "delete_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteCard)
 		return
 	}
@@ -260,7 +273,13 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateCard failed")
+		errLog := fmt.Errorf("card.UpdateCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateCard)
 		return
 	}
@@ -333,7 +352,13 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.ReorderCards failed")
+		errLog := fmt.Errorf("card.ReorderCards: %w", err)
+		logger.Error().Err(errLog).Msg("card.ReorderCards failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ReorderCards", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "reorder_cards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailReorderCards)
 		return
 	}
@@ -429,7 +454,13 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateCard failed")
+		errLog := fmt.Errorf("card.CreateCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateCard", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "create_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateCard)
 		return
 	}
@@ -478,7 +509,13 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.GetComments failed")
+		errLog := fmt.Errorf("card.GetComments: %w", err)
+		logger.Error().Err(errLog).Msg("card.GetComments failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetComments", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "get_comments",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetComments)
 		return
 	}
@@ -553,7 +590,13 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateComment failed")
+		errLog := fmt.Errorf("card.CreateComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateComment", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "create_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateComment)
 		return
 	}
@@ -604,7 +647,13 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteComment failed")
+		errLog := fmt.Errorf("card.DeleteComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteComment", map[string]interface{}{
+			"user_link":    userLink,
+			"comment_link": commentLink,
+			"action":       "delete_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteComment)
 		return
 	}
@@ -670,7 +719,13 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateComment failed")
+		errLog := fmt.Errorf("card.UpdateComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateComment", map[string]interface{}{
+			"user_link":    userLink,
+			"comment_link": commentLink,
+			"action":       "update_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateComment)
 		return
 	}
@@ -734,7 +789,13 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateSubtask failed")
+		errLog := fmt.Errorf("card.CreateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateSubtask", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "create_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateSubtask)
 		return
 	}
@@ -801,7 +862,13 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateSubtask failed")
+		errLog := fmt.Errorf("card.UpdateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateSubtask", map[string]interface{}{
+			"user_link":    userLink,
+			"subtask_link": subtaskLink,
+			"action":       "update_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateSubtask)
 		return
 	}
@@ -852,7 +919,13 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteSubtask failed")
+		errLog := fmt.Errorf("card.DeleteSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteSubtask", map[string]interface{}{
+			"user_link":    userLink,
+			"subtask_link": subtaskLink,
+			"action":       "delete_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteSubtask)
 		return
 	}

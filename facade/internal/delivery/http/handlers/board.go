@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -90,7 +92,12 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 	boards, err := h.srv.GetBoards(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("board usecase GetBoards")
+		errLog := fmt.Errorf("srv.GetBoards: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetBoards")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetBoards", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_boards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
@@ -145,7 +152,13 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase GetBoard")
+		errLog := fmt.Errorf("srv.GetBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
@@ -191,7 +204,12 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		Background:  req.Background,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("board usecase CreateBoard")
+		errLog := fmt.Errorf("srv.CreateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase CreateBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateBoard", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "create_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateBoard.Error())
 		return
 	}
@@ -241,7 +259,13 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase DeleteBoard")
+		errLog := fmt.Errorf("srv.DeleteBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase DeleteBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "delete_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteBoard.Error())
 		return
 	}
@@ -302,7 +326,13 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase UpdateBoard")
+		errLog := fmt.Errorf("srv.UpdateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase UpdateBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "update_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
 		return
 	}
@@ -372,7 +402,13 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase UploadBackground")
+		errLog := fmt.Errorf("srv.UploadBackground: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase UploadBackground")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadBackground", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "upload_background",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		return
 	}
@@ -423,7 +459,13 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase GetMembers")
+		errLog := fmt.Errorf("srv.GetMembers: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetMembers")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetMembers", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_members",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetMembers.Error())
 		return
 	}

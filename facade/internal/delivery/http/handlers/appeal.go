@@ -14,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -108,7 +109,12 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
+		errLog := fmt.Errorf("srv.CreateAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to create appeal")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateAppeal", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "create_appeal",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateAppeal.Error())
 		return
 	}
@@ -142,7 +148,12 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 
 	role, appeals, err := h.service.GetAppeal(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.GetAppeal: %w", err)).Msg("failed to get user appeals")
+		errLog := fmt.Errorf("srv.GetAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to get user appeals")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetAppeals", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_appeals",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetAppeals.Error())
 		return
 	}
@@ -232,7 +243,13 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		Filename:   header.Filename,
 	}, file)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
+		errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("failed to upload attachment")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadAttachment", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "upload_attachment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
 		return
 	}
@@ -283,7 +300,13 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		AppealLink: appealLink,
 	})
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
+		errLog := fmt.Errorf("srv.DeleteAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to delete appeal")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAppeal", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "delete_appeal",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteAppeal.Error())
 		return
 	}
@@ -316,7 +339,12 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetStats(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot get appeal stats")
+		errLog := fmt.Errorf("srv.GetStats: %w", err)
+		logger.Error().Err(errLog).Msg("cannot get appeal stats")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetStats", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_stats",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetStats.Error())
 		return
 	}
@@ -381,7 +409,13 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 		NewStatus:  request.NewStatus,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot change appeal status")
+		errLog := fmt.Errorf("srv.ChangeAppealStatus: %w", err)
+		logger.Error().Err(errLog).Msg("cannot change appeal status")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ChangeAppealStatus", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "change_appeal_status",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotChangeStatus.Error())
 		return
 	}

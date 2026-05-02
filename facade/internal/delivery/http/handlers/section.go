@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
@@ -12,6 +13,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -123,7 +125,13 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase GetSections")
+		errLog := fmt.Errorf("srv.GetSections: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetSections")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetSections", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_sections",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSections.Error())
 		return
 	}
@@ -177,7 +185,13 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase GetSection")
+		errLog := fmt.Errorf("srv.GetSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "get_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSection.Error())
 		return
 	}
@@ -226,7 +240,13 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase GetCards")
+		errLog := fmt.Errorf("srv.GetCards: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetCards")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetCards", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "get_cards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetCards.Error())
 		return
 	}
@@ -279,7 +299,13 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 		MaxTasks:    req.MaxTasks,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase CreateSection")
+		errLog := fmt.Errorf("srv.CreateSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase CreateSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateSection", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": req.BoardLink,
+			"action":     "create_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateSection.Error())
 		return
 	}
@@ -328,7 +354,13 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase DeleteSection")
+		errLog := fmt.Errorf("srv.DeleteSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase DeleteSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "delete_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteSection.Error())
 		return
 	}
@@ -381,7 +413,13 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 		LinksList: req.List,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase ReorderSection")
+		errLog := fmt.Errorf("srv.ReorderSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase ReorderSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ReorderSections", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "reorder_sections",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotReorderSections.Error())
 		return
 	}
@@ -442,7 +480,13 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase UpdateSection")
+		errLog := fmt.Errorf("srv.UpdateSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase UpdateSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "update_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateSection.Error())
 		return
 	}

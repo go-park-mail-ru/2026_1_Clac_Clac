@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/rs/zerolog"
 )
 
@@ -55,7 +57,11 @@ func (c *CSRF) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := c.csrf.Generate(r.Context(), sessionID, expireTime.Unix())
 	if err != nil {
-		logger.Error().Err(err).Msg("generate csrf token")
+		errLog := fmt.Errorf("csrf.Generate: %w", err)
+		logger.Error().Err(errLog).Msg("generate csrf token")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "SetCSRFCookieHandler", map[string]interface{}{
+			"action": "generate_csrf_token",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotCreateCSRFToken.Error())
 		return
 	}

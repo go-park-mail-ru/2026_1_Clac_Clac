@@ -120,7 +120,14 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Err(fmt.Errorf("user.GetUser: %w", err)).Msg("get info user")
+		errLog := fmt.Errorf("user.GetUser: %w", err)
+		logger.Err(errLog).Msg("get info user")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+			"email":  request.Email,
+			"action": "get_db_user",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -128,12 +135,26 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := a.auth.CreateSession(r.Context(), user.UserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+			errLog := fmt.Errorf("auth.CreateSession user not found just after creation: %w", err)
+			logger.Err(errLog).Msg("create session")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+				"user_link": user.UserLink,
+				"action":    "create_session_anomaly",
+			})
+
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+			"user_link": user.UserLink,
+			"action":    "create_session_anomaly",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -198,8 +219,10 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Err(fmt.Errorf("user.CreateUser: %w", err)).Msg("create user")
-		sentryLogger.CaptureFromContext(r.Context(), err, "user.CreateUser", map[string]interface{}{
+		errLog := fmt.Errorf("user.CreateUser: %w", err)
+		logger.Err(errLog).Str("email", request.Email).Msg("failed to create user")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
 			"email":        request.Email,
 			"display_name": request.DisplayName,
 			"action":       "create_db_record",
@@ -211,12 +234,26 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := a.auth.CreateSession(r.Context(), user.UserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+			errLog := fmt.Errorf("auth.CreateSession user not found just after creation: %w", err)
+			logger.Err(errLog).Msg("create session")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
+				"user_link": user.UserLink,
+				"action":    "create_session_anomaly",
+			})
+
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
+			"user_link": user.UserLink,
+			"action":    "create_session_redis",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -248,7 +285,12 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(middleware.SessiondIdKey)
 	if err == nil && cookie != nil {
 		if errDeleteSession := a.auth.DeleteSession(r.Context(), cookie.Value); errDeleteSession != nil {
-			logger.Err(fmt.Errorf("usecase.Logout: %w", errDeleteSession)).Msg("logout user")
+			errLog := fmt.Errorf("usecase.Logout: %w", errDeleteSession)
+			logger.Err(errLog).Msg("logout user")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "LogOutUser Context", map[string]interface{}{
+				"action": "delete_session_redis",
+			})
 		}
 	}
 
@@ -277,12 +319,18 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, email, err := a.auth.ExchangeVKCode(r.Context(), code)
 	if err != nil {
-		logger.Error().Err(err).Msg("vk oauth callback: exchange code failed")
+		errLog := fmt.Errorf("auth.ExchangeVKCode: %w", err)
+		logger.Err(errLog).Msg("vk oauth callback: exchange code failed")
 
 		outErr := handlerCommon.ErrOAuthExchangeFailed
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
 			outErr = handlerCommon.ErrOAuthUnavailable
 		}
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+			"action":            "exchange_code",
+			"is_vk_unavailable": errors.Is(err, common.ErrorVKOAuthUnavailable),
+		})
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
 		return
@@ -290,12 +338,18 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	userLink, err := a.user.ProcessUserWithVK(r.Context(), accessToken, email)
 	if err != nil {
-		logger.Error().Err(err).Msg("vk oauth callback: user processing failed")
+		errLog := fmt.Errorf("user.ProcessUserWithVK: %w", err)
+		logger.Err(errLog).Msg("vk oauth callback: user processing failed")
 
 		outErr := handlerCommon.ErrOAuthInternalServerError
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
 			outErr = handlerCommon.ErrOAuthCannotRequestUserData
 		}
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+			"email":  email,
+			"action": "process_vk_user",
+		})
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
 		return
@@ -303,11 +357,22 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, err := a.auth.CreateSession(r.Context(), userLink)
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session in vk oauth")
 
 		outErr := handlerCommon.ErrInternalServerError
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			outErr = handlerCommon.ErrUserDoesNotExists
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+				"user_link": userLink,
+				"action":    "create_session_anomaly",
+			})
+		} else {
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+				"user_link": userLink,
+				"action":    "create_session_redis",
+			})
 		}
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())

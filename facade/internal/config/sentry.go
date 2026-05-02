@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	defaultDSN         = ""
-	defaultEnvironment = "production"
-	defaultRelease     = "RK3"
-	defaultServiceName = "facade"
+	defaultDSN              = ""
+	defaultEnvironment      = "production"
+	defaultRelease          = "RK3"
+	defaultServiceName      = "facade"
+	defaulTtracesSampleRate = 1.0
 )
 
 var (
@@ -22,10 +23,11 @@ var (
 
 func DefaultSentryConfig() sentryLogger.Sentry {
 	return sentryLogger.Sentry{
-		Environment: defaultEnvironment,
-		Release:     defaultRelease,
-		ServiceName: defaultServiceName,
-		Tags:        defaultTags,
+		Environment:      defaultEnvironment,
+		Release:          defaultRelease,
+		ServiceName:      defaultServiceName,
+		Tags:             defaultTags,
+		TracesSampleRate: defaulTtracesSampleRate,
 	}
 }
 

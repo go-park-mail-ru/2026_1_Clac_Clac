@@ -71,11 +71,11 @@ func CaptureFromContext(ctx context.Context, err error, contextName string, extr
 	hub.WithScope(func(scope *sentry.Scope) {
 		if len(extra) > 0 {
 			if contextName == "" {
-				if contextName == "" {
-					contextName = "Context Data"
-				}
-				scope.SetContext(contextName, extra)
+				contextName = "Context Data"
 			}
+			scope.SetContext(contextName, extra)
 		}
+
+		hub.CaptureException(err)
 	})
 }
