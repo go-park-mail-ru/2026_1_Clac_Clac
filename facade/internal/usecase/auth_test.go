@@ -7,13 +7,11 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	mockAuthClient "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/usecase/mock_auth_client"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	fixedUserLink  = uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	fixedSessionID = "12345667"
 )
 

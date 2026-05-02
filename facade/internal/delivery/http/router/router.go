@@ -40,6 +40,18 @@ type CSRFHandler interface {
 }
 
 type CardHandler interface {
+	GetCard(w http.ResponseWriter, r *http.Request)
+	DeleteCard(w http.ResponseWriter, r *http.Request)
+	UpdateCard(w http.ResponseWriter, r *http.Request)
+	ReorderCards(w http.ResponseWriter, r *http.Request)
+	CreateCard(w http.ResponseWriter, r *http.Request)
+	GetComments(w http.ResponseWriter, r *http.Request)
+	CreateComment(w http.ResponseWriter, r *http.Request)
+	DeleteComment(w http.ResponseWriter, r *http.Request)
+	UpdateComment(w http.ResponseWriter, r *http.Request)
+	CreateSubtask(w http.ResponseWriter, r *http.Request)
+	UpdateSubtask(w http.ResponseWriter, r *http.Request)
+	DeleteSubtask(w http.ResponseWriter, r *http.Request)
 }
 
 type Tools struct {
@@ -114,11 +126,24 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
 
-	withTextLimit.HandleFunc("/cards/{link}", cardHandler.GetCard).Methods(http.MethodGet)
-	withTextLimit.HandleFunc("/cards/{link}", cardHandler.DeleteCard).Methods(http.MethodDelete)
-	withTextLimit.HandleFunc("/cards/{link}", cardHandler.UpdateCardDetails).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/cards/{link}/reorder", cardHandler.ReorderCard).Methods(http.MethodPatch)
-	withTextLimit.HandleFunc("/cards", cardHandler.CreateCard).Methods(http.MethodPost)
+	// Cards
+	withTextLimit.HandleFunc("/cards", deps.Card.CreateCard).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/cards/{link}", deps.Card.GetCard).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}", deps.Card.DeleteCard).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/cards/{link}", deps.Card.UpdateCard).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/cards/{link}/reorder", deps.Card.ReorderCards).Methods(http.MethodPatch)
+
+	// Comments
+	withTextLimit.HandleFunc("/cards/{link}/comments", deps.Card.GetComments).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/cards/{link}/comments", deps.Card.CreateComment).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/comments/{comment_link}", deps.Card.DeleteComment).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/comments/{comment_link}", deps.Card.UpdateComment).Methods(http.MethodPut)
+
+	// Subtasks
+	withTextLimit.HandleFunc("/cards/{link}/subtasks", deps.Card.CreateSubtask).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
+
 	return r
 }
 

@@ -65,9 +65,13 @@ services:
     timeout: 5s
     retries: 5
   card:
-    addr: "localhost:50052"
-    timeout: 5s
-    retries: 5
+    client:
+      addr: "localhost:50052"
+      timeout: 5s
+      retries: 5
+    handler:
+      max_len_title: 128
+      max_len_description: 500
 
   rate_limiters:
     addr: "localhost:50055"
