@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -23,6 +24,8 @@ func TestMailSenderConfig(t *testing.T) {
 		t.Setenv("MAIL_SENDER_PASSWORD", want.Password)
 
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
 
 		SetupEnvMailSender(v)
 
