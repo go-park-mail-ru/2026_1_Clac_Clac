@@ -14,6 +14,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
 COPY pkg/ ./pkg/
+COPY docs/ ./docs/
 COPY facade/ ./facade/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
