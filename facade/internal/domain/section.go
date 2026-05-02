@@ -15,21 +15,21 @@ type SectionInfo struct {
 	MaxTasks    *int64
 }
 
-type SubtaskInfo struct {
-	SubtaskLink uuid.UUID
-	Description string
-	IsDone      bool
-	Position    int64
-}
-
 type CardInfo struct {
-	Link         uuid.UUID
+	CardLink     uuid.UUID
 	ExecutorName *string
 	Title        string
+	Description  string
 	Deadline     *time.Time
 	Subtasks     []SubtaskInfo
 }
 
+type SubtaskInfo struct {
+	SubtaskLink uuid.UUID
+	Description string
+	IsDone      bool
+	Position    int
+}
 type GetSectionsRequest struct {
 	UserLink  uuid.UUID
 	BoardLink uuid.UUID

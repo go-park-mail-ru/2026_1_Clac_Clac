@@ -38,11 +38,11 @@ const (
 	commentLinkKey = "comment_link"
 	subtaskLinkKey = "subtask_link"
 
-	msgCardNotFound    = "card not found"
-	msgSectionNotFound = "section not found"
-	msgCommentNotFound = "comment not found"
-	msgSubtaskNotFound = "subtask not found"
-	msgPermissionDenied = "permission denied"
+	msgCardNotFound      = "card not found"
+	msgSectionNotFound   = "section not found"
+	msgCommentNotFound   = "comment not found"
+	msgSubtaskNotFound   = "subtask not found"
+	msgPermissionDenied  = "permission denied"
 	msgCardAlreadyExists = "card already exists"
 	msgTaskLimitReached  = "task limit reached"
 	msgInvalidInput      = "invalid input"
@@ -887,7 +887,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 			SubtaskLink: s.SubtaskLink,
 			Description: s.Description,
 			IsDone:      s.IsDone,
-			Position:    s.Position,
+			Position:    int(s.Position),
 		})
 	}
 	return dto.CardResponse{
@@ -918,7 +918,7 @@ func convertToSubtaskResponse(s domain.SubtaskInfo) dto.SubtaskResponse {
 		SubtaskLink: s.SubtaskLink,
 		Description: s.Description,
 		IsDone:      s.IsDone,
-		Position:    s.Position,
+		Position:    int(s.Position),
 	}
 }
 

@@ -112,7 +112,7 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 				SubtaskLink: subtaskLink,
 				Description: st.Description,
 				IsDone:      st.IsDone,
-				Position:    st.Position,
+				Position:    int(st.Position),
 			})
 		}
 
@@ -122,7 +122,7 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 		}
 
 		cards = append(cards, domain.CardInfo{
-			Link:         link,
+			CardLink:     link,
 			ExecutorName: executorName,
 			Title:        ci.Title,
 			Deadline:     deadline,
