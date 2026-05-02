@@ -38,11 +38,11 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	engine.SetupEnvEngine(v)
 	SetupEnvCORS(v)
 	SetupEnvCSRFConfig(v)
-	SetupEnvAuth(v)
 
 	return v, nil
 }

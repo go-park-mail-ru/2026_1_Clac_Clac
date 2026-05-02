@@ -10,21 +10,21 @@ import (
 )
 
 type Config struct {
-	App             Application     `mapstructure:"app"`
-	Engine         enginegrpc.Config `mapstructure:"engine"`
-	Redis          redis.Config   `mapstructure:"redis"`
-	RedisConnection RedisConnection `mapstructure:"-"`
-	VkOAuth        VkOAuth       `mapstructure:"vk_oauth"`
-	Auth           Auth         `mapstructure:"auth"`
+	App             Application       `mapstructure:"app"`
+	Engine          enginegrpc.Config `mapstructure:"engine"`
+	Redis           redis.Config      `mapstructure:"redis"`
+	RedisConnection RedisConnection   `mapstructure:"-"`
+	VkOAuth         VkOAuth           `mapstructure:"vk_oauth"`
+	Auth            Auth              `mapstructure:"auth"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:    DefaultApplicationConfig(),
-		Engine: DefaultEngineConfig(),
-		Redis:  redis.Config{},
+		App:     DefaultApplicationConfig(),
+		Engine:  DefaultEngineConfig(),
+		Redis:   redis.Config{},
 		VkOAuth: DefaultVkOAuthConfig(),
-		Auth:   DefaultAuthConfig(),
+		Auth:    DefaultAuthConfig(),
 	}
 }
 
@@ -40,10 +40,10 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	SetupEnvVkOAuth(v)
 	redis.SetupEnvRedis(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
 
 	return v, nil
 }

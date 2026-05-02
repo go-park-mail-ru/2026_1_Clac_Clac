@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-	App             Application   `mapstructure:"app"`
-	Engine         enginegrpc.Config `mapstructure:"engine"`
-	Redis          redis.Config   `mapstructure:"redis"`
-	RedisConnection RedisConnection `mapstructure:"-"`
+	App             Application       `mapstructure:"app"`
+	Engine          enginegrpc.Config `mapstructure:"engine"`
+	Redis           redis.Config      `mapstructure:"redis"`
+	RedisConnection RedisConnection   `mapstructure:"-"`
 }
 
 func DefaultConfig() Config {
@@ -36,9 +36,9 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	redis.SetupEnvRedis(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
 
 	return v, nil
 }

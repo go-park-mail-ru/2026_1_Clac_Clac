@@ -16,7 +16,7 @@ type Config struct {
 	DBConnection DatabaseConnection `mapstructure:"database"`
 	S3           S3                 `mapstructure:"s3"`
 	S3Avatars    S3Avatars          `mapstructure:"s3_avatars"`
-	Database    postgres.Config     `mapstructure:"database_raw"`
+	Database     postgres.Config    `mapstructure:"database_raw"`
 }
 
 func DefaultConfig() Config {
@@ -43,12 +43,12 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	SetupEnvVkOAuth(v)
 	SetupEnvS3(v)
 	SetupEnvS3Avatars(v)
 	postgres.SetupEnvPostgres(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
 
 	return v, nil
 }

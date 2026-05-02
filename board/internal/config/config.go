@@ -44,10 +44,10 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	postgres.SetupEnvPostgres(v)
 	pkgredis.SetupEnvRedis(v)
-	grpcEngine.SetupEnvGrpcEngine(v)
 	SetupEnvS3(v)
 
 	return v, nil

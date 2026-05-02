@@ -2,8 +2,6 @@ package config
 
 import (
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 const (
@@ -42,10 +40,4 @@ func DefaultRedisConnection() RedisConnection {
 		PingSleepTime:  defaultPingSleepTimeRedis,
 		MaxRetries:     defaultMaxRetriesRedis,
 	}
-}
-
-func SetupEnvRedisConnection(v *viper.Viper) {
-	v.BindEnv("redis.password", "REDIS_PASSWORD")
-	v.BindEnv("redis.host", "REDIS_HOST")
-	v.BindEnv("redis.port", "REDIS_PORT")
 }

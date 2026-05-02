@@ -39,9 +39,9 @@ func SetupEnvCSRFConfig(v *viper.Viper) {
 	v.SetDefault("csrf.expire_time_convertation_type_size", defaultCSRFTokenExpireTimeConvertationTypeSize)
 	v.SetDefault("csrf.parts_count", defaultPartsCount)
 
-	v.BindEnv("csrf.secret", "CSRF_SECRET")
-	v.BindEnv("csrf.ttl", "CSRF_TTL")
-	v.BindEnv("csrf.expire_time_convertation_base", "CSRF_EXPIRE_TIME_CONVERTATION_BASE")
-	v.BindEnv("csrf.expire_time_convertation_type_size", "CSRF_EXPIRE_TIME_CONVERTATION_TYPE_SIZE")
-	v.BindEnv("csrf.parts_count", "CSRF_PARTS_COUNT")
+	v.RegisterAlias("csrf.secret", "csrf_secret")
+	v.RegisterAlias("csrf.ttl", "csrf_ttl")
+	v.RegisterAlias("csrf.expire_time_convertation_base", "csrf_expire_time_convertation_base")
+	v.RegisterAlias("csrf.expire_time_convertation_type_size", "csrf_expire_time_convertation_type_size")
+	v.RegisterAlias("csrf.parts_count", "csrf_parts_count")
 }
