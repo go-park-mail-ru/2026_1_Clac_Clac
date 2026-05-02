@@ -11,6 +11,7 @@ type Delivery struct {
 	MailSender *handlers.MailSender
 	CSRF       *handlers.CSRF
 	Board      *handlers.Board
+	Section    *handlers.Section
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -45,5 +46,6 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
 		Board:      handlers.NewBoard(manager.Board, boardConfig),
+		Section:    handlers.NewSection(manager.Section),
 	}
 }

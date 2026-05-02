@@ -49,6 +49,16 @@ type BoardHandler interface {
 	GetMembers(w http.ResponseWriter, r *http.Request)
 }
 
+type SectionHandler interface {
+	GetSections(w http.ResponseWriter, r *http.Request)
+	GetSection(w http.ResponseWriter, r *http.Request)
+	GetCards(w http.ResponseWriter, r *http.Request)
+	CreateSection(w http.ResponseWriter, r *http.Request)
+	DeleteSection(w http.ResponseWriter, r *http.Request)
+	ReorderSections(w http.ResponseWriter, r *http.Request)
+	UpdateSection(w http.ResponseWriter, r *http.Request)
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
@@ -58,6 +68,7 @@ type Tools struct {
 	RateLimiter middleware.CheckLimit
 	CSRFChecker func(ctx context.Context, sessionID, token string) error
 	Board       BoardHandler
+	Section     SectionHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -128,6 +139,15 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withText.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
 	withImage.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withText.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
+
+	withText.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
+	withText.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
+
+	withText.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
+	withText.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)
+	withText.HandleFunc("/sections/{link}", deps.Section.DeleteSection).Methods(http.MethodDelete)
+	withText.HandleFunc("/sections/{link}", deps.Section.UpdateSection).Methods(http.MethodPut)
+	withText.HandleFunc("/sections/{link}/cards", deps.Section.GetCards).Methods(http.MethodGet)
 
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodPost)
 	withText.HandleFunc("/cards/{card_link}/subtasks", notImplemented).Methods(http.MethodGet)

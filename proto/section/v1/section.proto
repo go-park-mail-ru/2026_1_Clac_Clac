@@ -18,7 +18,7 @@ message SectionInfo {
 message SubtaskInfo {
   string subtask_link = 1;
   string description = 2;
-  bool isDone = 3;
+  bool is_done = 3;
   int64 position = 4;
 }
 
@@ -26,8 +26,9 @@ message CardInfo {
   string link = 1;
   optional string executor_name = 2;
   string title = 3;
-  optional google.protobuf.Timestamp deadline = 4;
-  repeated SubtaskInfo subtasks = 5;
+  string description = 4;
+  optional google.protobuf.Timestamp deadline = 5;
+  repeated SubtaskInfo subtasks = 6;
 }
 
 // GetSections
