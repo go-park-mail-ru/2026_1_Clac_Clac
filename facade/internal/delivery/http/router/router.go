@@ -126,20 +126,17 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImage.HandleFunc("/profiles/avatar", deps.Profile.UpdateAvatar).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/profiles/avatar", deps.Profile.DeleteAvatar).Methods(http.MethodDelete)
 
-	// Cards
 	withTextLimit.HandleFunc("/cards", deps.Card.CreateCard).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/cards/{link}", deps.Card.GetCard).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/cards/{link}", deps.Card.DeleteCard).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/cards/{link}", deps.Card.UpdateCard).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/cards/{link}/reorder", deps.Card.ReorderCards).Methods(http.MethodPatch)
 
-	// Comments
 	withTextLimit.HandleFunc("/cards/{link}/comments", deps.Card.GetComments).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/cards/{link}/comments", deps.Card.CreateComment).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/comments/{comment_link}", deps.Card.DeleteComment).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/comments/{comment_link}", deps.Card.UpdateComment).Methods(http.MethodPut)
 
-	// Subtasks
 	withTextLimit.HandleFunc("/cards/{link}/subtasks", deps.Card.CreateSubtask).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
@@ -149,8 +146,4 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 
 func healthcheck(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
-}
-
-func notImplemented(w http.ResponseWriter, r *http.Request) {
-	api.HandleError(api.RespondError(w, http.StatusNotImplemented, "not implemented"))
 }
