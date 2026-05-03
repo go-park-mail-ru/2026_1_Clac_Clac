@@ -77,7 +77,7 @@ func NewHandler(srv AuthService, cfg Config, httpClient HTTPClient) *Handler {
 
 func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
-
+	panic("GET USER")
 	serviceUser, err := h.srv.GetUser(ctx, serviceDto.GetUserInfo{
 		Email:    req.Email,
 		Password: req.Password,
