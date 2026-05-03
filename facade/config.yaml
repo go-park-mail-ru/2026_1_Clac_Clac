@@ -105,7 +105,7 @@ services:
     environment: "production"
     release: "RK3"
     service_name: "facade"
-    traces_sample_rate: 0.1
+    traces_sample_rate: 1.0
     tags:
       layer: "edge"
       team: "api-platform"

@@ -10,7 +10,7 @@ const (
 	defaultEnvironment      = "production"
 	defaultRelease          = "RK3"
 	defaultServiceName      = "facade"
-	defaultTracesSampleRate = 0.1
+	defaultTracesSampleRate = 1.0
 	defaultRepanic          = true
 )
 
