@@ -41,7 +41,7 @@ require (
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/getsentry/sentry-go/grpc v0.46.1 // indirect
+	github.com/getsentry/sentry-go/grpc v0.46.1 // direct
 	github.com/go-openapi/jsonpointer v0.23.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.5 // indirect
 	github.com/go-openapi/spec v0.22.4 // indirect
