@@ -24,6 +24,7 @@ docker-up-build:
 	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env up -d --build
 	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env up -d --build
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env up -d
 
 docker-down:
 	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env down
@@ -33,6 +34,8 @@ docker-down:
 	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env down
 	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env down
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env down
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env down
+
 
 .PHONY: up-appeal up-auth up-board up-mail-sender up-rate-limiter up-user up-facade
 
@@ -56,3 +59,34 @@ up-user:
 
 up-facade:
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build
+
+up-monitoring:
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env up -d
+
+
+
+
+logs-facade:
+	docker logs -f nexus-facade
+
+logs-user:
+	docker logs -f nexus-user
+
+logs-rate-limiter:
+	docker logs -f nexus-rate-limiter
+
+logs-appeal:
+	docker logs -f nexus-appeal
+
+logs-auth:
+	docker logs -f nexus-authorization
+
+logs-board:
+	docker logs -f nexus-board
+
+logs-mail-sender:
+	docker logs -f nexus-mail-sender
+
+logs-monitoring:
+	docker logs -f nexus-prometheus
+	docker logs -f nexus-grafana
