@@ -62,6 +62,9 @@ services:
       addr: "nexus-board:8080"
       timeout: 5s
       retries: 5
+    handler:
+      multipart_background_file_key: "background"
+
   section:
     client:
       addr: "nexus-board:8080"

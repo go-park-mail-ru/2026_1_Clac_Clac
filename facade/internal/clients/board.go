@@ -35,7 +35,7 @@ func (b *Board) GetBoards(ctx context.Context, userLink uuid.UUID) ([]domain.Boa
 
 	res, err := b.client.GetBoards(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("client.GetBoards: %w", convertGRPCError(err))
+		return nil, fmt.Errorf("client.GetBoards: %w", convertBoardGRPCError(err))
 	}
 
 	boards := make([]domain.BoardInfo, 0, len(res.BoardsInfo))
@@ -63,7 +63,7 @@ func (b *Board) GetBoard(ctx context.Context, boardInfo domain.GetBoardRequest) 
 
 	res, err := b.client.GetBoard(ctx, req)
 	if err != nil {
-		return domain.BoardInfo{}, fmt.Errorf("client.GetBoard: %w", convertGRPCError(err))
+		return domain.BoardInfo{}, fmt.Errorf("client.GetBoard: %w", convertBoardGRPCError(err))
 	}
 
 	link, err := uuid.Parse(res.BoardInfo.Link)
@@ -89,7 +89,7 @@ func (b *Board) CreateBoard(ctx context.Context, boardInfo domain.CreateBoardReq
 
 	res, err := b.client.CreateBoard(ctx, req)
 	if err != nil {
-		return domain.BoardInfo{}, fmt.Errorf("client.CreateBoard: %w", convertGRPCError(err))
+		return domain.BoardInfo{}, fmt.Errorf("client.CreateBoard: %w", convertBoardGRPCError(err))
 	}
 
 	link, err := uuid.Parse(res.BoardInfo.Link)
@@ -113,7 +113,7 @@ func (b *Board) DeleteBoard(ctx context.Context, boardInfo domain.GetBoardReques
 
 	_, err := b.client.DeleteBoard(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.DeleteBoard: %w", convertGRPCError(err))
+		return fmt.Errorf("client.DeleteBoard: %w", convertBoardGRPCError(err))
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func (b *Board) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardReq
 
 	_, err := b.client.UpdateBoard(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.UpdateBoard: %w", convertGRPCError(err))
+		return fmt.Errorf("client.UpdateBoard: %w", convertBoardGRPCError(err))
 	}
 
 	return nil
@@ -154,7 +154,7 @@ func (b *Board) UploadBackground(ctx context.Context, backgroundInfo domain.Uplo
 
 	res, err := b.client.UploadBackground(ctx, req)
 	if err != nil {
-		return domain.UploadBackgroundResponse{}, fmt.Errorf("client.UploadBackground: %w", convertGRPCError(err))
+		return domain.UploadBackgroundResponse{}, fmt.Errorf("client.UploadBackground: %w", convertBoardGRPCError(err))
 	}
 
 	return domain.UploadBackgroundResponse{
@@ -170,7 +170,7 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 
 	res, err := b.client.GetMembers(ctx, req)
 	if err != nil {
-		return domain.GetMembersResponse{}, fmt.Errorf("client.GetMembers: %w", convertGRPCError(err))
+		return domain.GetMembersResponse{}, fmt.Errorf("client.GetMembers: %w", convertBoardGRPCError(err))
 	}
 
 	userLinks := make([]uuid.UUID, 0, len(res.UsersLinks))

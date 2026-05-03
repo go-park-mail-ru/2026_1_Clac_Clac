@@ -1244,38 +1244,48 @@ func TestRepositoryCreateSubtask(t *testing.T) {
 		{
 			nameTest: "Success create subtask",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
-					WillReturnRows(pgxmock.NewRows([]string{"is_done", "position"}).AddRow(false, 1))
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*`).
+					WithArgs(taskLink, subtaskLink, "do something", 1).
+					WillReturnRows(pgxmock.NewRows([]string{"subtask_link", "is_done", "position"}).AddRow(subtaskLink, false, 1))
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
-			nameTest: "Error missing required field",
+			nameTest: "Error begin tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
-					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
 			},
-			expectedError: common.ErrMissingRequiredField,
+			expectedError: errors.New("pool.Begin: begin error"),
 		},
 		{
 			nameTest: "Error invalid reference data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*`).
+					WithArgs(taskLink, subtaskLink, "do something", 1).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidReferenceCardData,
 		},
 		{
 			nameTest: "Error query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
 					WillReturnError(errors.New("db disconnect"))
+				m.ExpectRollback()
 			},
-			expectedError: errors.New("pool.QueryRow: db disconnect"),
+			expectedError: errors.New("tx.QueryRow: db disconnect"),
 		},
 	}
 

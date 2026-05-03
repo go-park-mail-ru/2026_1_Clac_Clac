@@ -33,3 +33,26 @@ docker-down:
 	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env down
 	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env down
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env down
+
+.PHONY: up-appeal up-auth up-board up-mail-sender up-rate-limiter up-user up-facade
+
+up-appeal:
+	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
+
+up-auth:
+	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env up -d --build
+
+up-board:
+	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env up -d --build
+
+up-mail-sender:
+	docker compose -f deployments/mail_sender/docker-compose.yaml --env-file=./mail_sender/.env up -d --build
+
+up-rate-limiter:
+	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env up -d --build
+
+up-user:
+	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env up -d --build
+
+up-facade:
+	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build

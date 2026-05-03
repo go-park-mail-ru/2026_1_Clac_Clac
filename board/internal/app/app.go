@@ -17,6 +17,7 @@ import (
 	boardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	cardPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	sectionPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -100,7 +101,11 @@ func (a *App) setupManager(store *Store) {
 func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 	boardPB.RegisterBoardServiceServer(
 		engine.Server,
-		board.NewHandler(manager.Board, board.Config(a.Config.Board.Handler)),
+		board.NewHandler(manager.Board, board.Config{
+			BaseBackgroundURL:          s3.GetURL(a.Config.S3.Endpoint, a.Config.S3.BoardsBackgroundsBucket),
+			MultipartBackgroundFileKey: a.Config.Board.Handler.MultipartBackgroundFileKey,
+			MaxBackgroundSize:          a.Config.Board.Handler.MaxBackgroundSize,
+		}),
 	)
 	sectionPB.RegisterSectionServiceServer(
 		engine.Server,

@@ -57,6 +57,7 @@ type BoardService interface {
 }
 
 type Config struct {
+	BaseBackgroundURL          string
 	MultipartBackgroundFileKey string
 	MaxBackgroundSize          int64
 }
@@ -343,7 +344,7 @@ func (h *BoardHandler) UploadBackground(ctx context.Context, req *pb.UploadBackg
 	}
 
 	return &pb.UploadBackgroundResponse{
-		BackgroundKey: backgroundKey,
+		BackgroundKey: fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, backgroundKey),
 	}, nil
 }
 

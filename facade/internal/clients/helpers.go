@@ -19,6 +19,7 @@ const (
 
 	identifierCardNotFound    = "card not found"
 	identifierSectionNotFound = "section not found"
+	identifierBoardNotFound   = "board not found"
 	identifierCommentNotFound = "comment not found"
 	identifierSubtaskNotFound = "sub task not found"
 	identifierTaskLimitError  = "task limit reached"
@@ -90,6 +91,52 @@ func convertCardGRPCError(err error) error {
 			return common.ErrorTaskLimitReached
 		}
 		return common.ErrorInvalidInput
+	default:
+		return err
+	}
+}
+
+func convertBoardGRPCError(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	msg := st.Message()
+	switch st.Code() {
+	case codes.NotFound:
+		switch {
+		case strings.Contains(msg, identifierBoardNotFound):
+			return common.ErrorBoardNotFound
+		case strings.Contains(msg, identifierSectionNotFound):
+			return common.ErrorSectionNotFound
+		default:
+			return common.ErrorNonexistentUser
+		}
+	case codes.PermissionDenied:
+		return common.ErrorBoardPermissionDenied
+	default:
+		return err
+	}
+}
+
+func convertSectionGRPCError(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	msg := st.Message()
+	switch st.Code() {
+	case codes.NotFound:
+		switch {
+		case strings.Contains(msg, identifierSectionNotFound):
+			return common.ErrorSectionNotFound
+		case strings.Contains(msg, identifierBoardNotFound):
+			return common.ErrorBoardNotFound
+		default:
+			return common.ErrorNonexistentUser
+		}
+	case codes.PermissionDenied:
+		return common.ErrorSectionPermissionDenied
 	default:
 		return err
 	}

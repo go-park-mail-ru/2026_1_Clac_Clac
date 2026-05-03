@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/models"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository/dto"
 
 	"github.com/google/uuid"
@@ -67,17 +68,24 @@ func (r *Repository) GetSection(ctx context.Context, link uuid.UUID) (dto.FullSe
 	return infoSection, nil
 }
 
+type rawSubtask struct {
+	SubtaskLink string `json:"subtask_link"`
+	Description string `json:"description"`
+	IsDone      bool   `json:"is_done"`
+	Position    int    `json:"position"`
+}
+
 func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto.Card, error) {
 	query := `
 	SELECT
 		t.task_link,
-		t.executer_link,
+		COALESCE(t.executer_link, '00000000-0000-0000-0000-000000000000'::uuid) as executer_link,
 		t.title,
 		t.due_date,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
-					'subtask_link', s.subtask_link,
+					'subtask_link', COALESCE(s.subtask_link, '00000000-0000-0000-0000-000000000000'::uuid),
                     'description', s.description,
                     'is_done', s.is_done,
                     'position', s.position
@@ -102,11 +110,12 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 
 	for rows.Next() {
 		var card dto.Card
-		var subtasks []byte
+		var subtasks json.RawMessage
+		var execLink uuid.UUID
 
 		err := rows.Scan(
 			&card.CardLink,
-			&card.ExecutorLink,
+			&execLink,
 			&card.Title,
 			&card.DeadLine,
 			&subtasks,
@@ -116,8 +125,26 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 			return []dto.Card{}, fmt.Errorf("rows.Scan: %w", err)
 		}
 
-		if err := json.Unmarshal(subtasks, &card.Subtasks); err != nil {
+		if execLink == uuid.Nil {
+			card.ExecutorLink = nil
+		} else {
+			card.ExecutorLink = &execLink
+		}
+
+		var rawSubtasks []rawSubtask
+		if err := json.Unmarshal(subtasks, &rawSubtasks); err != nil {
 			return []dto.Card{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
+		}
+
+		card.Subtasks = make([]models.SubtaskInfo, 0, len(rawSubtasks))
+		for _, rs := range rawSubtasks {
+			link, _ := uuid.Parse(rs.SubtaskLink)
+			card.Subtasks = append(card.Subtasks, models.SubtaskInfo{
+				SubtaskLink: link,
+				Description: rs.Description,
+				IsDone:      rs.IsDone,
+				Position:    rs.Position,
+			})
 		}
 
 		cards = append(cards, card)

@@ -145,7 +145,7 @@ func TestHandlerGetBoard(t *testing.T) {
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
 			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
-				m.On("GetBoard", mock.Anything, mock.Anything).Return(domain.BoardInfo{}, common.ErrorNonexistentUser)
+				m.On("GetBoard", mock.Anything, mock.Anything).Return(domain.BoardInfo{}, common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -299,7 +299,7 @@ func TestHandlerDeleteBoard(t *testing.T) {
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
 			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
-				m.On("DeleteBoard", mock.Anything, mock.Anything).Return(common.ErrorNonexistentUser)
+				m.On("DeleteBoard", mock.Anything, mock.Anything).Return(common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -386,7 +386,7 @@ func TestHandlerUpdateBoard(t *testing.T) {
 			linkParam:  fixedBoardLink.String(),
 			request:    updateReq,
 			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
-				m.On("UpdateBoard", mock.Anything, mock.Anything).Return(common.ErrorNonexistentUser)
+				m.On("UpdateBoard", mock.Anything, mock.Anything).Return(common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -494,7 +494,7 @@ func TestHandlerUploadBackground(t *testing.T) {
 			linkParam: fixedBoardLink.String(),
 			fileKey:   "background",
 			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
-				m.On("UploadBackground", mock.Anything, mock.Anything, mock.Anything).Return(domain.UploadBackgroundResponse{}, common.ErrorNonexistentUser)
+				m.On("UploadBackground", mock.Anything, mock.Anything, mock.Anything).Return(domain.UploadBackgroundResponse{}, common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -566,7 +566,7 @@ func TestHandlerGetMembers(t *testing.T) {
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
 			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
-				m.On("GetMembers", mock.Anything, mock.Anything).Return(domain.GetMembersResponse{}, common.ErrorNonexistentUser)
+				m.On("GetMembers", mock.Anything, mock.Anything).Return(domain.GetMembersResponse{}, common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
