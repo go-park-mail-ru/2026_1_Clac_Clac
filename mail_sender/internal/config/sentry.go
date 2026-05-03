@@ -11,7 +11,7 @@ const (
 	defaultRelease          = "RK3"
 	defaultServiceName      = "mail_sender"
 	defaulTtracesSampleRate = 0.1
-	defaultRepanic          = false
+	defaultRepanic          = true
 )
 
 var (

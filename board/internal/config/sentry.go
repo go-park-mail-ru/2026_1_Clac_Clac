@@ -11,7 +11,7 @@ const (
 	defaultRelease          = "RK3"
 	defaultServiceName      = "board"
 	defaulTtracesSampleRate = 0.1
-	defaultRepanic          = false
+	defaultRepanic          = true
 )
 
 var (
