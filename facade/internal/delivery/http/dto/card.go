@@ -55,6 +55,7 @@ type CardResponse struct {
 	Description  string            `json:"description" example:"Card description"`
 	Deadline     *time.Time        `json:"deadline,omitempty" example:"2026-04-12T14:35:00Z"`
 	Subtasks     []SubtaskResponse `json:"subtasks"`
+	Position    int              `json:"position" example:"2"`
 }
 
 // CreateCardResponse содержит ответ при создании карточки.

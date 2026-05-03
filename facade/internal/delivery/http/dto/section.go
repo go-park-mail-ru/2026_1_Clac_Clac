@@ -35,12 +35,13 @@ type SectionsResponse struct {
 //
 //	@Description	Card info in section
 type Card struct {
-	Link          uuid.UUID     `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	ExecutorLink  *uuid.UUID    `json:"executor_link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Title         string        `json:"title" example:"Fix bug on frontend"`
-	Description   string        `json:"description" example:"Card description"`
-	Deadline      *time.Time    `json:"deadline" example:"2026-04-12T14:35:00Z"`
-	Subtasks      []SubtaskInfo `json:"subtasks"`
+	Link         uuid.UUID     `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ExecutorLink *uuid.UUID   `json:"executor_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Title        string      `json:"title" example:"Fix bug on frontend"`
+	Description string      `json:"description" example:"Card description"`
+	Deadline     *time.Time  `json:"deadline" example:"2026-04-12T14:35:00Z"`
+	Subtasks     []SubtaskInfo `json:"subtasks"`
+	Position    int         `json:"position" example:"2"`
 }
 
 type SubtaskInfo struct {

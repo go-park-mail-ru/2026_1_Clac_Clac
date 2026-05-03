@@ -218,7 +218,8 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			ExecutorLink: executorLink,
 			Title:        card.Title,
 			Deadline:     &deadline,
-			Subtasks:     subtasks,
+			Subtasks:    subtasks,
+			Position:   int64(card.Position),
 		})
 	}
 

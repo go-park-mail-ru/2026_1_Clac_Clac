@@ -138,7 +138,8 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Description:  card.Description,
 			ExecutorLink: executorLink,
 			Deadline:     deadline,
-			Subtasks:     subtasks,
+			Subtasks:    subtasks,
+			Position:   int64(card.Position),
 		},
 	}, nil
 }

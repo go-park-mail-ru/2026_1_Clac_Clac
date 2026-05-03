@@ -46,6 +46,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		t.description,
 		t.due_date,
 		t.executer_link,
+		t.position,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
@@ -70,6 +71,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
 		&infoCard.ExecutorLink,
+		&infoCard.Position,
 		&subtasks,
 	)
 	if err != nil {

@@ -15,6 +15,7 @@ type InfoCard struct {
 	Description  string     `json:"description" example:"Собрать метрики за Q3 и подготовить презентацию"`
 	NameExecutor *string    `json:"name_executor" example:"Иван Иванов"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-04-15T15:04:05Z"`
+	Position    int       `json:"position" example:"2"`
 }
 
 // NewCard используется для запросов на создание новой карточки.

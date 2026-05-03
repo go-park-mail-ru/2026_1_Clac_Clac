@@ -903,6 +903,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 		Description:  card.Description,
 		Deadline:     card.Deadline,
 		Subtasks:     subtasks,
+		Position:     card.Position,
 	}
 }
 

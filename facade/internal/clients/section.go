@@ -131,6 +131,7 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			Title:        ci.Title,
 			Deadline:     deadline,
 			Subtasks:     subtasks,
+			Position:    int(ci.Position),
 		})
 	}
 
