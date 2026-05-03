@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -16,17 +17,18 @@ import (
 
 type Engine struct {
 	config        Config
-	logger       *zerolog.Logger
-	Server       *grpc.Server
+	logger        *zerolog.Logger
+	Server        *grpc.Server
 	ServerOptions []grpc.ServerOption
-	OnListen     func(addr string)
+	SentryOptions sentrygrpc.ServerOptions
+	OnListen      func(addr string)
 }
 
 func New(config Config, logger *zerolog.Logger, opts ...grpc.ServerOption) *Engine {
 	return &Engine{
 		config:        config,
 		logger:        logger,
-		Server:       grpc.NewServer(opts...),
+		Server:        grpc.NewServer(opts...),
 		ServerOptions: opts,
 	}
 }

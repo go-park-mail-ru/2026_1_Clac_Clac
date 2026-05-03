@@ -7,4 +7,6 @@ type Sentry struct {
 	ServiceName      string            `mapstructure:"service_name"`
 	Tags             map[string]string `mapstructure:"tags"`
 	TracesSampleRate float64           `mapstructure:"traces_sample_rate"`
+
+	Repanic bool `mapstructure:"repanic"`
 }

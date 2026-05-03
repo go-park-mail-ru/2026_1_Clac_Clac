@@ -9,7 +9,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/router"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -114,14 +113,5 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 }
 
 func setupSentry(config *config.Config) error {
-	cfg := logger.Sentry{
-		DSN:              config.Sentry.DSN,
-		Environment:      config.Sentry.Environment,
-		Release:          config.Sentry.Release,
-		ServiceName:      config.Sentry.ServiceName,
-		Tags:             config.Sentry.Tags,
-		TracesSampleRate: config.Sentry.TracesSampleRate,
-	}
-
-	return sentryLogger.Init(cfg)
+	return sentryLogger.Init(config.Sentry)
 }

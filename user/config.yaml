@@ -20,3 +20,14 @@ database:
   ping_sleep_time: 2s
   time_out: 5s
   max_retries: 5
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "user"
+  traces_sample_rate: 1.0
+  tags:
+    layer: "edge"
+    team: "api-platform"
+    protocol: "http_rest"
+  repanic: true

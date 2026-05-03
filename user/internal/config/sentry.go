@@ -9,8 +9,8 @@ const (
 	defaultDSN              = ""
 	defaultEnvironment      = "production"
 	defaultRelease          = "RK3"
-	defaultServiceName      = "facade"
-	defaulTtracesSampleRate = 1.0
+	defaultServiceName      = "user"
+	defaulTtracesSampleRate = 0.1
 	defaultRepanic          = false
 )
 

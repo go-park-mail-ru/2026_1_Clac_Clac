@@ -8,9 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db"
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,10 +32,16 @@ type App struct {
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	engine := setupEngine(conf.Engine, logger)
+	err := setupSentry(conf)
+	if err != nil {
+		return nil, fmt.Errorf("setupSelery: %w", err)
+	}
+
+	engine := setupEngine(conf.Engine, conf.Sentry, logger)
 
 	store, err := setupStore(conf, logger)
 	if err != nil {
+		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "connector"})
 		return nil, fmt.Errorf("setupStore: %w", err)
 	}
 
@@ -64,15 +72,21 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf enginegrpc.Config, logger *zerolog.Logger) *enginegrpc.Engine {
+func setupEngine(conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger *zerolog.Logger) *enginegrpc.Engine {
+	sentryOpts := sentrygrpc.ServerOptions{
+		Repanic: sentryConf.Repanic,
+	}
+
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.UnaryAccessLog(logger),
 			interceptors.UnaryPanicRecovery(logger),
+			sentrygrpc.UnaryServerInterceptor(sentryOpts),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptors.StreamAccessLog(logger),
 			interceptors.StreamPanicRecovery(logger),
+			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
 	}
 	return enginegrpc.New(conf, logger, opts...)
@@ -163,4 +177,8 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 
 func setupDelivery(m *Manager, conf *config.Config) *Delivery {
 	return NewDelivery(m, conf)
+}
+
+func setupSentry(config *config.Config) error {
+	return sentryLogger.Init(config.Sentry)
 }
