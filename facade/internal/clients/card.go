@@ -195,6 +195,7 @@ func (c *Card) GetComments(ctx context.Context, infoComments domain.GetCommentsR
 			ParentLink:  parentLink,
 			AuthorLink:  authorLink,
 			Text:        comment.Text,
+			CreatedAt:   comment.CreatedAt.AsTime(),
 		})
 	}
 

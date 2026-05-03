@@ -845,9 +845,9 @@ func TestRepositoryGetComments(t *testing.T) {
 		{
 			nameTest: "Success get comments with parent",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text"}).
-					AddRow(commentLink1, authorLink, &parentLink, "first comment").
-					AddRow(commentLink2, authorLink, nil, "second comment")
+				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text", "created_at"}).
+					AddRow(commentLink1, authorLink, &parentLink, "first comment", time.Now()).
+					AddRow(commentLink2, authorLink, nil, "second comment", time.Now())
 
 				m.ExpectQuery(`(?s)SELECT.*c.link.*FROM comment_task.*WHERE t.task_link = \$1`).
 					WithArgs(targetCardLink).
@@ -859,7 +859,7 @@ func TestRepositoryGetComments(t *testing.T) {
 		{
 			nameTest: "Success empty comments",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text"})
+				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text", "created_at"})
 
 				m.ExpectQuery(`(?s)SELECT.*c.link.*FROM comment_task.*WHERE t.task_link = \$1`).
 					WithArgs(targetCardLink).

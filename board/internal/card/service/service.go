@@ -185,6 +185,7 @@ func (s *Service) GetComments(ctx context.Context, cardLink uuid.UUID, userLink 
 			ParentLink: comment.ParentLink,
 			AuthorLink: comment.AuthorLink,
 			Text:       comment.Text,
+			CreatedAt:  comment.CreatedAt,
 		})
 	}
 
