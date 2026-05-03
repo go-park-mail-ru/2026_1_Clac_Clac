@@ -29,6 +29,11 @@ var (
 	ErrorBoardPermissionDenied = errors.New("board permission denied")
 	ErrorSectionPermissionDenied = errors.New("section permission denied")
 
+	ErrorAppealNotFound       = errors.New("appeal not found")
+	ErrInvalidCategory        = errors.New("invalid category")
+	ErrCannotGetStats         = errors.New("cannot get stats")
+	ErrCannotChangeStatus    = errors.New("cannot change status")
+
 	ErrInvalidCSRFToken               = errors.New("invalid csrf token")
 	ErrCannotParseExpireTimeCSRFToken = errors.New("cannot parse expire time csrf token")
 	ErrCSRFTokenExpired               = errors.New("csrf token expired")

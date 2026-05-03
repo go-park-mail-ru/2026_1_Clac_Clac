@@ -144,11 +144,13 @@ func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest)
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	appealCategory, err := parseProtoCategory(req.GetCategory())
 	if err != nil {
+		logger.Error().Err(err).Msg("parseProtoCategory")
 		return nil, status.Error(codes.InvalidArgument, ErrUnexpectedCategory.Error())
 	}
 
@@ -161,17 +163,20 @@ func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest)
 	request.Sanitize()
 
 	if err := ValidatorRequestAppeal(request.Mail, request.DisplayName); err != nil {
+		logger.Error().Err(err).Msg("ValidatorRequestAppeal")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidEmailOrName.Error())
 	}
 
 	appealLink, err := h.srv.CreateAppeal(ctx, serviceDto.EntityAppeal{
 		UserLink:    userLink,
 		DisplayName: request.DisplayName,
-		Mail:        request.Mail,
+		Mail:       request.Mail,
 		Description: request.Description,
-		Category:    request.Category,
+		Category:   request.Category,
 	})
 	if err != nil {
+		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
+
 		switch {
 		case errors.Is(err, common.ErrorExistingUser):
 			return nil, status.Error(codes.InvalidArgument, common.ErrorExistingUser.Error())
@@ -181,11 +186,10 @@ func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest)
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCategory.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
 		return nil, status.Error(codes.Internal, ErrCannotCreateAppeal.Error())
 	}
 
-	return &pb.CreateAppealResponse{
+return &pb.CreateAppealResponse{
 		AppealLink: appealLink.String(),
 	}, nil
 }
@@ -196,6 +200,7 @@ func (h *Handler) GetAppeals(ctx context.Context, req *pb.GetAppealsRequest) (*p
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
@@ -237,12 +242,14 @@ func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachment
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	rawAppealLink := req.GetAppealLink()
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
+		logger.Error().Err(err).Str("appeal_link", rawAppealLink).Msg("invalid appeal link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
 	}
 
@@ -250,6 +257,7 @@ func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachment
 
 	contentType := http.DetectContentType(image)
 	if !strings.HasPrefix(contentType, "image/") {
+		logger.Error().Str("content_type", contentType).Msg("invalid content type")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
 	}
 
@@ -258,11 +266,12 @@ func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachment
 
 	attachmentKey, err := h.srv.UploadAttachment(ctx, bytes.NewReader(image), contentType, extension, appealLink, userLink)
 	if err != nil {
+		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
+
 		if errors.Is(err, common.ErrorAppealNotFound) {
 			return nil, status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
 		return nil, status.Error(codes.Internal, ErrCannotUploadAttachment.Error())
 	}
 
@@ -277,18 +286,28 @@ func (h *Handler) DeleteAppeal(ctx context.Context, req *pb.DeleteAppealRequest)
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	rawAppealLink := req.GetAppealLink()
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
+		logger.Error().Err(err).Str("appeal_link", rawAppealLink).Msg("invalid appeal link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
 	}
 
 	err = h.srv.DeleteAppeal(ctx, appealLink, userLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
+
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrorAppealNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
+		}
+
 		return nil, status.Error(codes.Internal, ErrCannotDeleteAppeal.Error())
 	}
 
@@ -301,16 +320,18 @@ func (h *Handler) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.Ge
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	stats, err := h.srv.GetStats(ctx, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrorPermissionDenied) {
+		logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("failed to get stats")
+
+		if errors.Is(err, rbac.ErrActionDenied) {
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("get stats")
 		return nil, status.Error(codes.Internal, ErrCannotGetStats.Error())
 	}
 
@@ -327,17 +348,20 @@ func (h *Handler) ChangeAppealStatus(ctx context.Context, req *pb.ChangeAppealSt
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
+		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
 	rawAppealLink := req.GetAppealLink()
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
+		logger.Error().Err(err).Str("appeal_link", rawAppealLink).Msg("invalid appeal link")
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
 	}
 
 	appealNewStatus, err := parseProtoStatus(req.GetNewStatus())
 	if err != nil {
+		logger.Error().Err(err).Msg("parseProtoStatus")
 		return nil, status.Error(codes.InvalidArgument, ErrUnexpectedStatus.Error())
 	}
 
@@ -347,11 +371,15 @@ func (h *Handler) ChangeAppealStatus(ctx context.Context, req *pb.ChangeAppealSt
 		Status:        appealNewStatus,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorPermissionDenied) {
+		logger.Error().Err(fmt.Errorf("srv.ChangeAppealStatus: %w", err)).Msg("failed to change status")
+
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrorAppealNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.ChangeAppealStatus: %w", err)).Msg("change status")
 		return nil, status.Error(codes.Internal, ErrCannotChangeStatus.Error())
 	}
 

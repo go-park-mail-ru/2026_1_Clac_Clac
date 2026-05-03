@@ -1,7 +1,7 @@
 package config
 
 type AppealHandler struct {
-	MultipartAttachmentFileKey string `json:"multipart_attachment_file_key"`
+	MultipartAttachmentFileKey string `mapstructure:"multipart_attachment_file_key"`
 }
 
 type ClientAppeal struct {

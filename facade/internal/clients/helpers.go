@@ -23,6 +23,9 @@ const (
 	identifierCommentNotFound = "comment not found"
 	identifierSubtaskNotFound = "sub task not found"
 	identifierTaskLimitError  = "task limit reached"
+
+	identifierAppealNotFound  = "appeal not found"
+	identifierInvalidCategory = "invalid category"
 )
 
 func convertGRPCError(err error) error {
@@ -137,6 +140,38 @@ func convertSectionGRPCError(err error) error {
 		}
 	case codes.PermissionDenied:
 		return common.ErrorSectionPermissionDenied
+	default:
+		return err
+	}
+}
+
+func convertAppealGRPCError(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	msg := st.Message()
+	switch st.Code() {
+	case codes.AlreadyExists:
+		return common.ErrorExistingUser
+	case codes.NotFound:
+		switch {
+		case strings.Contains(msg, identifierAppealNotFound):
+			return common.ErrorAppealNotFound
+		default:
+			return common.ErrorNonexistentUser
+		}
+	case codes.PermissionDenied:
+		return common.ErrorPermissionDenied
+	case codes.InvalidArgument:
+		switch {
+		case strings.Contains(msg, identifierInvalidCategory):
+			return common.ErrInvalidCategory
+		case strings.Contains(msg, identifierNullFieldError):
+			return common.ErrorNotNullValue
+		default:
+			return common.ErrorInvalidInput
+		}
 	default:
 		return err
 	}

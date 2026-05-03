@@ -106,6 +106,9 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, common.ErrorNotNullValue):
 			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
 			return
+		case errors.Is(err, common.ErrInvalidCategory):
+			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+			return
 		}
 
 		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
@@ -283,6 +286,15 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		AppealLink: appealLink,
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
 		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteAppeal.Error())
 		return
@@ -316,6 +328,12 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetStats(r.Context(), userLink)
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		}
+
 		logger.Error().Err(err).Msg("cannot get appeal stats")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetStats.Error())
 		return
@@ -381,6 +399,15 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 		NewStatus:  request.NewStatus,
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
 		logger.Error().Err(err).Msg("cannot change appeal status")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotChangeStatus.Error())
 		return
