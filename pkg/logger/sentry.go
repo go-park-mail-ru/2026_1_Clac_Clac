@@ -10,19 +10,16 @@ import (
 
 func Init(cfg Sentry) error {
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:         cfg.DSN,
-		Environment: cfg.Environment,
-		Release:     cfg.Release,
-		ServerName:  cfg.ServiceName,
-		// TracesSampleRate: 0.2,
-
-		// BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-		// 	return event
-		// },
+		Dsn:              cfg.DSN,
+		Environment:      cfg.Environment,
+		Release:          cfg.Release,
+		ServerName:       cfg.ServiceName,
+		TracesSampleRate: cfg.TracesSampleRate,
+		EnableTracing:    true,
 	})
 
 	if err != nil {
-		return fmt.Errorf("sentry.Init: %W", err)
+		return fmt.Errorf("sentry.Init: %w", err)
 	}
 
 	sentry.ConfigureScope(func(scope *sentry.Scope) {

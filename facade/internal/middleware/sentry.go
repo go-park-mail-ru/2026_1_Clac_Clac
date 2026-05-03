@@ -20,7 +20,7 @@ func SentryHubMiddleware() func(http.Handler) http.Handler {
 				}
 			}
 
-			span := sentry.StartSpan(ctx, "http_server", sentry.WithTransactionName(transactionName))
+			span := sentry.StartSpan(ctx, "http.server", sentry.WithTransactionName(transactionName))
 
 			defer span.Finish()
 
