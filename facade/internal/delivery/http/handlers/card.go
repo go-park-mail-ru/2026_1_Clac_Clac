@@ -988,6 +988,7 @@ func convertToCommentsResponse(resp domain.GetCommentsResponse) dto.CommentsResp
 			ParentLink:  c.ParentLink,
 			AuthorLink:  c.AuthorLink,
 			Text:        c.Text,
+			CreatedAt:   c.CreatedAt,
 		})
 	}
 	return dto.CommentsResponse{Comments: comments}

@@ -28,6 +28,7 @@ message CommentInfo {
   optional string parent_link = 2;
   string author_link = 3;
   string text = 4;
+  google.protobuf.Timestamp created_at = 5;
 }
 
 // GetCard

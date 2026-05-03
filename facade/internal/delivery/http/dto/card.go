@@ -90,6 +90,7 @@ type CommentResponse struct {
 	ParentLink  *uuid.UUID `json:"parent_link,omitempty"`
 	AuthorLink  uuid.UUID  `json:"author_link"`
 	Text        string     `json:"text"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // CommentsResponse содержит список комментариев к карточке.

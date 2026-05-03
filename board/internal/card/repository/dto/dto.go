@@ -45,6 +45,7 @@ type CommentInfo struct {
 	ParentLink *uuid.UUID
 	AuthorLink uuid.UUID
 	Text       string
+	CreatedAt  time.Time
 }
 
 type CreateCommentInfo struct {

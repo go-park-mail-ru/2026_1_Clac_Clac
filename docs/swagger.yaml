@@ -195,6 +195,9 @@ definitions:
       link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+      position:
+        example: 2
+        type: integer
       subtasks:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskInfo'
@@ -218,6 +221,9 @@ definitions:
       executor_link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+      position:
+        example: 2
+        type: integer
       subtasks:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskResponse'
@@ -246,6 +252,8 @@ definitions:
       author_link:
         type: string
       comment_link:
+        type: string
+      created_at:
         type: string
       parent_link:
         type: string

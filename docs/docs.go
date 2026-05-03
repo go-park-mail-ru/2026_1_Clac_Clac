@@ -2924,6 +2924,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
+                "position": {
+                    "type": "integer",
+                    "example": 2
+                },
                 "subtasks": {
                     "type": "array",
                     "items": {
@@ -2955,6 +2959,10 @@ const docTemplate = `{
                 "executor_link": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "position": {
+                    "type": "integer",
+                    "example": 2
                 },
                 "subtasks": {
                     "type": "array",
@@ -2998,6 +3006,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "comment_link": {
+                    "type": "string"
+                },
+                "created_at": {
                     "type": "string"
                 },
                 "parent_link": {

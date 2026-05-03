@@ -457,6 +457,7 @@ func (h *CardHandler) GetComments(ctx context.Context, req *pb.GetCommentsReques
 			ParentLink:  &parentLink,
 			AuthorLink:  comment.AuthorLink.String(),
 			Text:        comment.Text,
+			CreatedAt:   timestamppb.New(comment.CreatedAt),
 		})
 	}
 

@@ -413,7 +413,8 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 			c.link AS comment_link,
 			c.author_link,
 			p.link AS parent_link,
-			c.text
+			c.text,
+			c.created_at
 		FROM comment_task c
 		LEFT JOIN comment_task p ON p.comment_id = c.parent_id
 		JOIN task t ON t.task_id = c.task_id
@@ -431,7 +432,7 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 	for rows.Next() {
 		var comment dto.CommentInfo
 
-		err := rows.Scan(&comment.Link, &comment.AuthorLink, &comment.ParentLink, &comment.Text)
+		err := rows.Scan(&comment.Link, &comment.AuthorLink, &comment.ParentLink, &comment.Text, &comment.CreatedAt)
 		if err != nil {
 			return []dto.CommentInfo{}, fmt.Errorf("rows.Scan: %w", err)
 		}
