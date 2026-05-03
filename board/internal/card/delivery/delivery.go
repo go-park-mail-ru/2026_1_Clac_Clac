@@ -190,26 +190,28 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	var executorLink uuid.UUID
+	var executorLink *uuid.UUID
 	if req.ExecutorLink != nil {
 		rawExecutorLink := req.GetExecutorLink()
-		executorLink, err = uuid.Parse(rawExecutorLink)
+		parsed, err := uuid.Parse(rawExecutorLink)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ErrInvalidExecutorLink.Error())
 		}
+		executorLink = &parsed
 	}
 
-	var deadline time.Time
+	var deadline *time.Time
 	if req.Deadline != nil {
-		deadline = req.GetDeadline().AsTime()
+		d := req.GetDeadline().AsTime()
+		deadline = &d
 	}
 
 	updatingInfo := dto.UpdatingCardDetails{
 		LinkCard:     cardLink,
 		Title:        req.GetTitle(),
 		Description:  req.GetDescription(),
-		LinkExecutor: &executorLink,
-		DataDeadLine: &deadline,
+		LinkExecutor: executorLink,
+		DataDeadLine: deadline,
 	}
 
 	if !common.CheckCardNameLength(updatingInfo.Title, h.cnf.MaxLenTitle) {
@@ -324,26 +326,28 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrCardDescriptionIsTooBig.Error())
 	}
 
-	var executorLink uuid.UUID
+	var executorLink *uuid.UUID
 	if req.ExecutorLink != nil {
 		rawExecutorLink := req.GetExecutorLink()
-		executorLink, err = uuid.Parse(rawExecutorLink)
+		parsed, err := uuid.Parse(rawExecutorLink)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ErrInvalidExecutorLink.Error())
 		}
+		executorLink = &parsed
 	}
 
-	var deadline time.Time
+	var deadline *time.Time
 	if req.Deadline != nil {
-		deadline = req.GetDeadline().AsTime()
+		d := req.GetDeadline().AsTime()
+		deadline = &d
 	}
 
 	card, err := h.srv.CreateCard(ctx, serviceDto.NewCard{
 		LinkAuthor:   userLink,
 		Title:        title,
 		Description:  description,
-		LinkExecutor: &executorLink,
-		DataDeadLine: &deadline,
+		LinkExecutor: executorLink,
+		DataDeadLine: deadline,
 		LinkSection:  sectionLink,
 	})
 	if err != nil {
