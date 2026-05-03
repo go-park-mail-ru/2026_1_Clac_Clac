@@ -9,16 +9,16 @@ const (
 	defaultDSN              = ""
 	defaultEnvironment      = "production"
 	defaultRelease          = "RK3"
-	defaultServiceName      = "user"
+	defaultServiceName      = "appeal"
 	defaulTtracesSampleRate = 0.1
 	defaultRepanic          = true
 )
 
 var (
 	defaultTags = map[string]string{
-		"layer":    "edge",
+		"layer":    "grpc",
 		"team":     "api-platform",
-		"protocol": "http_rest",
+		"protocol": "grpc",
 	}
 )
 

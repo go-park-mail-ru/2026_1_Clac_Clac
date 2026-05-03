@@ -11,3 +11,14 @@ redis:
   max_connections: 100
   ping_sleep_time: 2s
   max_retries: 5
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "rate_limiter"
+  traces_sample_rate: 0.1
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false

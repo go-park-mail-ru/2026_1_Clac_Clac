@@ -12,6 +12,7 @@ import (
 
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/appealRbac"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -181,7 +182,13 @@ func (h *Handler) CreateAppeal(ctx context.Context, req *pb.CreateAppealRequest)
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCategory.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
+		errLog := fmt.Errorf("srv.CreateAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to create appeal")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateAppeal", map[string]interface{}{
+			"user_link": rawUserLink,
+			"category":  req.GetCategory().String(),
+			"action":    "create_appeal",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateAppeal.Error())
 	}
 
@@ -201,7 +208,12 @@ func (h *Handler) GetAppeals(ctx context.Context, req *pb.GetAppealsRequest) (*p
 
 	appeals, err := h.srv.GetAppeals(ctx, userLink)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.GetUserAppeals: %w", err)).Msg("failed to get user appeals")
+		errLog := fmt.Errorf("srv.GetUserAppeals: %w", err)
+		logger.Error().Err(errLog).Msg("failed to get user appeals")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetAppeals", map[string]interface{}{
+			"user_link": rawUserLink,
+			"action":    "get_appeals",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetAppeals.Error())
 	}
 
@@ -262,7 +274,13 @@ func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachment
 			return nil, status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
+		errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("failed to upload attachment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UploadAttachment", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"appeal_link": rawAppealLink,
+			"action":      "upload_attachment",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUploadAttachment.Error())
 	}
 
@@ -288,7 +306,13 @@ func (h *Handler) DeleteAppeal(ctx context.Context, req *pb.DeleteAppealRequest)
 
 	err = h.srv.DeleteAppeal(ctx, appealLink, userLink)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
+		errLog := fmt.Errorf("srv.DeleteAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to delete appeal")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteAppeal", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"appeal_link": rawAppealLink,
+			"action":      "delete_appeal",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteAppeal.Error())
 	}
 
@@ -310,7 +334,12 @@ func (h *Handler) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.Ge
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.GetStats: %w", err)).Msg("get stats")
+		errLog := fmt.Errorf("srv.GetStats: %w", err)
+		logger.Error().Err(errLog).Msg("get stats")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetStats", map[string]interface{}{
+			"user_link": rawUserLink,
+			"action":    "get_stats",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetStats.Error())
 	}
 
@@ -351,7 +380,13 @@ func (h *Handler) ChangeAppealStatus(ctx context.Context, req *pb.ChangeAppealSt
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.ChangeAppealStatus: %w", err)).Msg("change status")
+		errLog := fmt.Errorf("srv.ChangeAppealStatus: %w", err)
+		logger.Error().Err(errLog).Msg("change status")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ChangeAppealStatus", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"appeal_link": rawAppealLink,
+			"action":      "change_appeal_status",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotChangeStatus.Error())
 	}
 

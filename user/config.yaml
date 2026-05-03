@@ -25,7 +25,7 @@ sentry:
   environment: "production"
   release: "RK3"
   service_name: "user"
-  traces_sample_rate: 1.0
+  traces_sample_rate: 0.1
   tags:
     layer: "edge"
     team: "api-platform"

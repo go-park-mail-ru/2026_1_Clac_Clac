@@ -15,3 +15,14 @@ redis:
 auth:
   service:
     session_life_time: 24h
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "authorization"
+  traces_sample_rate: 0.1
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false

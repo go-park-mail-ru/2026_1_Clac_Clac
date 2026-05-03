@@ -16,3 +16,14 @@ database:
   ping_sleep_time: 2s
   time_out: 5s
   max_retries: 5
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "appeal"
+  traces_sample_rate: 0.1
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false

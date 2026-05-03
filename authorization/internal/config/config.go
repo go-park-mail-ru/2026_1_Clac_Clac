@@ -5,24 +5,27 @@ import (
 	"strings"
 
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App             Application       `mapstructure:"app"`
-	Engine          enginegrpc.Config `mapstructure:"engine"`
-	RedisConnection RedisConnection   `mapstructure:"redis"`
-	VkOAuth         VkOAuth           `mapstructure:"vk_oauth"`
-	Auth            Auth              `mapstructure:"auth"`
+	App             Application         `mapstructure:"app"`
+	Engine          enginegrpc.Config   `mapstructure:"engine"`
+	RedisConnection RedisConnection     `mapstructure:"redis"`
+	VkOAuth         VkOAuth             `mapstructure:"vk_oauth"`
+	Auth            Auth                `mapstructure:"auth"`
+	Sentry          sentryLogger.Sentry `mapstructure:"sentry"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:     DefaultApplicationConfig(),
-		Engine:  DefaultEngineConfig(),
+		App:             DefaultApplicationConfig(),
+		Engine:          DefaultEngineConfig(),
 		RedisConnection: DefaultRedisConnection(),
-		VkOAuth: DefaultVkOAuthConfig(),
-		Auth:    DefaultAuthConfig(),
+		VkOAuth:         DefaultVkOAuthConfig(),
+		Auth:            DefaultAuthConfig(),
+		Sentry:          DefaultSentryConfig(),
 	}
 }
 
@@ -42,6 +45,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 
 	SetupEnvVkOAuth(v)
 	SetupEnvRedisConnection(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

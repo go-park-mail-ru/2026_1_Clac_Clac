@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/common"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -57,7 +59,12 @@ func (h *Handler) CreateSession(ctx context.Context, req *pb.CreateSessionReques
 
 	sessionID, err := h.srv.CreateSession(ctx, convertedLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("srv.CreateSession failed")
+		errLog := fmt.Errorf("srv.CreateSession: %w", err)
+		logger.Error().Err(errLog).Msg("srv.CreateSession failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateSession", map[string]interface{}{
+			"user_link": req.UserLink,
+			"action":    "create_session",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -75,7 +82,11 @@ func (h *Handler) GetUserLink(ctx context.Context, req *pb.GetUserLinkRequest) (
 			return nil, status.Error(codes.NotFound, msgDoesNotExistSession)
 		}
 
-		logger.Error().Err(err).Msg("srv.GetUserLink failed")
+		errLog := fmt.Errorf("srv.GetUserLink: %w", err)
+		logger.Error().Err(errLog).Msg("srv.GetUserLink failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetUserLink", map[string]interface{}{
+			"action": "get_user_link",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -89,7 +100,11 @@ func (h *Handler) DeleteSession(ctx context.Context, req *pb.DeleteSessionReques
 
 	err := h.srv.DeleteSession(ctx, req.SessionId)
 	if err != nil {
-		logger.Error().Err(err).Msg("srv.DeleteSession failed")
+		errLog := fmt.Errorf("srv.DeleteSession: %w", err)
+		logger.Error().Err(errLog).Msg("srv.DeleteSession failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteSession", map[string]interface{}{
+			"action": "delete_session",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -105,7 +120,11 @@ func (h *Handler) ExtendSession(ctx context.Context, req *pb.ExtendSessionReques
 			return nil, status.Error(codes.NotFound, msgDoesNotExistSession)
 		}
 
-		logger.Error().Err(err).Msg("srv.ExtendSession failed")
+		errLog := fmt.Errorf("srv.ExtendSession: %w", err)
+		logger.Error().Err(errLog).Msg("srv.ExtendSession failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ExtendSession", map[string]interface{}{
+			"action": "extend_session",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -117,7 +136,11 @@ func (h *Handler) ExchangeVKCode(ctx context.Context, req *pb.ExchangeVKCodeRequ
 
 	token, err := h.vkOAuth.Exchange(ctx, req.Code)
 	if err != nil {
-		logger.Err(err).Msg("vk oauth exchange failed")
+		errLog := fmt.Errorf("vkOAuth.Exchange: %w", err)
+		logger.Err(errLog).Msg("vk oauth exchange failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ExchangeVKCode", map[string]interface{}{
+			"action": "vk_oauth_exchange",
+		})
 		return nil, status.Error(codes.Unavailable, msgVKExchangeFailed)
 	}
 

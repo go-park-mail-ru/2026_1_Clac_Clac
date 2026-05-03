@@ -17,3 +17,14 @@ sender:
     count_retries: 5
     life_time_reset_token: 15m
     sleep_time: 2s
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "mail_sender"
+  traces_sample_rate: 0.1
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false

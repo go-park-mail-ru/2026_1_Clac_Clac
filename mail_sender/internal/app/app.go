@@ -6,9 +6,11 @@ import (
 	"io"
 	"os"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/config"
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	redisConnector "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -26,10 +28,15 @@ type App struct {
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	engine := setupEngine(conf.Engine, logger)
+	if err := setupSentry(conf); err != nil {
+		return nil, fmt.Errorf("setupSentry: %w", err)
+	}
+
+	engine := setupEngine(conf.Engine, conf.Sentry, logger)
 
 	store, err := setupStore(conf, logger)
 	if err != nil {
+		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "store"})
 		return nil, fmt.Errorf("setupStore: %w", err)
 	}
 
@@ -59,15 +66,21 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf enginegrpc.Config, logger *zerolog.Logger) *enginegrpc.Engine {
+func setupEngine(conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger *zerolog.Logger) *enginegrpc.Engine {
+	sentryOpts := sentrygrpc.ServerOptions{
+		Repanic: sentryConf.Repanic,
+	}
+
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.UnaryAccessLog(logger),
 			interceptors.UnaryPanicRecovery(logger),
+			sentrygrpc.UnaryServerInterceptor(sentryOpts),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptors.StreamAccessLog(logger),
 			interceptors.StreamPanicRecovery(logger),
+			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
 	}
 	return enginegrpc.New(conf, logger, opts...)
@@ -86,6 +99,10 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 
 	logger := zerolog.New(loggerOutput).With().Timestamp().Logger()
 	return &logger
+}
+
+func setupSentry(conf *config.Config) error {
+	return sentryLogger.Init(conf.Sentry)
 }
 
 func setupRedis(redisConnection *config.RedisConnection, logger *zerolog.Logger) (*redis.Client, error) {

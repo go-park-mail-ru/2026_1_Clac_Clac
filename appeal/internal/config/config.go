@@ -5,15 +5,17 @@ import (
 	"strings"
 
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      Application       `mapstructure:"app"`
-	Engine   grpcEngine.Config `mapstructure:"engine"`
-	Database PostgresConfig   `mapstructure:"database"`
-	S3       S3                `mapstructure:"s3"`
-	Appeal   Appeal            `mapstructure:"appeal"`
+	App      Application         `mapstructure:"app"`
+	Engine   grpcEngine.Config   `mapstructure:"engine"`
+	Database PostgresConfig      `mapstructure:"database"`
+	S3       S3                  `mapstructure:"s3"`
+	Appeal   Appeal              `mapstructure:"appeal"`
+	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
 }
 
 func DefaultConfig() Config {
@@ -21,6 +23,7 @@ func DefaultConfig() Config {
 		App:      DefaultApplicationConfig(),
 		Appeal:   DefaultAppealConfig(),
 		Database: DefaultPostgresConfig(),
+		Sentry:   DefaultSentryConfig(),
 	}
 }
 
@@ -40,6 +43,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 
 	SetupEnvPostgres(v)
 	SetupEnvS3(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

@@ -6,10 +6,12 @@ import (
 	"io"
 	"os"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/config"
 	appeal "github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/delivery"
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	appealPB "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/rs/zerolog"
@@ -32,7 +34,12 @@ func NewApp(conf config.Config) (*App, error) {
 
 	app.setupLogger()
 
+	if err := app.setupSentry(); err != nil {
+		return nil, fmt.Errorf("app.setupSentry: %w", err)
+	}
+
 	if err := app.setupStore(&app.Logger); err != nil {
+		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "store"})
 		return nil, fmt.Errorf("app.setupStore: %w", err)
 	}
 
@@ -58,7 +65,6 @@ func (a *App) Run() {
 func (a *App) setupLogger() {
 	var loggerOutput io.Writer
 
-	// В зависимости от режима работы разные форматы вывода
 	if config.IsDebug(a.Config.App.LogLevel) {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		loggerOutput = zerolog.ConsoleWriter{Out: os.Stdout}
@@ -68,6 +74,10 @@ func (a *App) setupLogger() {
 	}
 
 	a.Logger = zerolog.New(loggerOutput).With().Timestamp().Logger()
+}
+
+func (a *App) setupSentry() error {
+	return sentryLogger.Init(a.Config.Sentry)
 }
 
 func (a *App) setupStore(logger *zerolog.Logger) error {
@@ -96,14 +106,20 @@ func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 }
 
 func (a *App) setupEngine(logger *zerolog.Logger) {
+	sentryOpts := sentrygrpc.ServerOptions{
+		Repanic: a.Config.Sentry.Repanic,
+	}
+
 	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.UnaryAccessLog(logger),
 			interceptors.UnaryPanicRecovery(logger),
+			sentrygrpc.UnaryServerInterceptor(sentryOpts),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptors.StreamAccessLog(logger),
 			interceptors.StreamPanicRecovery(logger),
+			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
 	}
 	a.Engine = grpcEngine.New(a.Config.Engine, logger, opts...)

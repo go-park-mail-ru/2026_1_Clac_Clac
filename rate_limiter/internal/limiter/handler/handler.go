@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/rate_limiter/v1"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/rate_limiter/internal/limiter/service/dto"
 	"github.com/rs/zerolog"
@@ -46,7 +48,12 @@ func (h *Handler) CheckRateLimit(ctx context.Context, req *pb.CheckRateLimitRequ
 		Limit:  req.Limit,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("srv.CheckRateLimit failed")
+		errLog := fmt.Errorf("srv.CheckRateLimit: %w", err)
+		logger.Error().Err(errLog).Msg("srv.CheckRateLimit failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CheckRateLimit", map[string]interface{}{
+			"user_ip": req.UserIp,
+			"action":  req.Action,
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -68,7 +75,13 @@ func (h *Handler) SetCooldown(ctx context.Context, req *pb.SetCooldownRequest) (
 		Expiration: time.Duration(req.ExpirationS) * time.Second,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("srv.SetCooldown failed")
+		errLog := fmt.Errorf("srv.SetCooldown: %w", err)
+		logger.Error().Err(errLog).Msg("srv.SetCooldown failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "SetCooldown", map[string]interface{}{
+			"name":   req.Name,
+			"email":  req.Email,
+			"action": "set_cooldown",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 

@@ -5,18 +5,20 @@ import (
 	"strings"
 
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      Application       `mapstructure:"app"`
-	Engine   grpcEngine.Config `mapstructure:"engine"`
-	Database PostgresConfig   `mapstructure:"database"`
-	Redis    RedisConfig      `mapstructure:"redis"`
-	S3       S3                `mapstructure:"s3"`
-	Board    Board             `mapstructure:"board"`
-	Section  Section           `mapstructure:"section"`
-	Card     Card              `mapstructure:"card"`
+	App      Application         `mapstructure:"app"`
+	Engine   grpcEngine.Config   `mapstructure:"engine"`
+	Database PostgresConfig      `mapstructure:"database"`
+	Redis    RedisConfig         `mapstructure:"redis"`
+	S3       S3                  `mapstructure:"s3"`
+	Board    Board               `mapstructure:"board"`
+	Section  Section             `mapstructure:"section"`
+	Card     Card                `mapstructure:"card"`
+	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
 }
 
 func DefaultConfig() Config {
@@ -27,6 +29,7 @@ func DefaultConfig() Config {
 		Card:     DefaultCardConfig(),
 		Database: DefaultPostgresConfig(),
 		Redis:    DefaultRedisConfig(),
+		Sentry:   DefaultSentryConfig(),
 	}
 }
 
@@ -47,6 +50,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	SetupEnvPostgres(v)
 	SetupEnvRedis(v)
 	SetupEnvS3(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }
