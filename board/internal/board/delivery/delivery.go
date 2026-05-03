@@ -169,7 +169,7 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 
 func (h *BoardHandler) CreateBoard(ctx context.Context, req *pb.CreateBoardRequest) (*pb.CreateBoardResponse, error) {
 	logger := zerolog.Ctx(ctx)
-	panic("PANNIC")
+
 	rawUserLink := req.GetUserLink()
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
