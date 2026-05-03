@@ -107,6 +107,9 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, common.ErrorNotNullValue):
 			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
 			return
+		case errors.Is(err, common.ErrInvalidCategory):
+			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+			return
 		}
 
 		errLog := fmt.Errorf("srv.CreateAppeal: %w", err)
@@ -300,6 +303,15 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		AppealLink: appealLink,
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
 		errLog := fmt.Errorf("srv.DeleteAppeal: %w", err)
 		logger.Error().Err(errLog).Msg("failed to delete appeal")
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAppeal", map[string]interface{}{
@@ -339,6 +351,12 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetStats(r.Context(), userLink)
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		}
+
 		errLog := fmt.Errorf("srv.GetStats: %w", err)
 		logger.Error().Err(errLog).Msg("cannot get appeal stats")
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetStats", map[string]interface{}{
@@ -409,6 +427,15 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 		NewStatus:  request.NewStatus,
 	})
 	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
 		errLog := fmt.Errorf("srv.ChangeAppealStatus: %w", err)
 		logger.Error().Err(errLog).Msg("cannot change appeal status")
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "ChangeAppealStatus", map[string]interface{}{

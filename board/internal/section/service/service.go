@@ -115,6 +115,7 @@ func (s *Service) GetCards(ctx context.Context, sectionLink uuid.UUID, userLink 
 			Title:        card.Title,
 			DeadLine:     card.DeadLine,
 			Subtasks:     card.Subtasks,
+			Position:    card.Position,
 		})
 	}
 

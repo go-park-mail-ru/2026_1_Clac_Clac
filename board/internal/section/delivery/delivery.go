@@ -211,9 +211,9 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 
 	cardsResponse := make([]*pb.CardInfo, 0, len(cards))
 	for _, card := range cards {
-		var deadline timestamppb.Timestamp
+		var deadline *timestamppb.Timestamp
 		if card.DeadLine != nil {
-			deadline = *timestamppb.New(*card.DeadLine)
+			deadline = timestamppb.New(*card.DeadLine)
 		}
 
 		var subtasks []*pb.SubtaskInfo
@@ -237,8 +237,9 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			Link:         card.CardLink.String(),
 			ExecutorLink: executorLink,
 			Title:        card.Title,
-			Deadline:     &deadline,
-			Subtasks:     subtasks,
+			Deadline:     deadline,
+			Subtasks:    subtasks,
+			Position:   int64(card.Position),
 		})
 	}
 

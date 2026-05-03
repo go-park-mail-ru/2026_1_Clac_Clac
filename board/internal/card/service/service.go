@@ -59,10 +59,11 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 
 	return dto.InfoCard{
 		Description:   card.Description,
-		Title:         card.Title,
-		ExecutorLink:  card.ExecutorLink,
-		DataDeadLine:  card.DataDeadLine,
-		Subtasks:      card.Subtasks,
+		Title:        card.Title,
+		ExecutorLink: card.ExecutorLink,
+		DataDeadLine: card.DataDeadLine,
+		Subtasks:     card.Subtasks,
+		Position:    card.Position,
 	}, nil
 }
 

@@ -168,9 +168,12 @@ func (r *Repository) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppe
 		WHERE appeal_link = $3;
 	`
 
-	_, err := r.pool.Exec(ctx, query, info.Status, info.SupporterLink, info.AppealLink)
+	tag, err := r.pool.Exec(ctx, query, info.Status, info.SupporterLink, info.AppealLink)
 	if err != nil {
 		return fmt.Errorf("change appeal status: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return common.ErrorAppealNotFound
 	}
 
 	return nil

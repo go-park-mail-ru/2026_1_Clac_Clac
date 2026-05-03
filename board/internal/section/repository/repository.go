@@ -82,6 +82,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 		COALESCE(t.executer_link, '00000000-0000-0000-0000-000000000000'::uuid) as executer_link,
 		t.title,
 		t.due_date,
+		t.position,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
@@ -118,6 +119,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 			&execLink,
 			&card.Title,
 			&card.DeadLine,
+			&card.Position,
 			&subtasks,
 		)
 

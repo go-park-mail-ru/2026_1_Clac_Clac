@@ -9,10 +9,11 @@ import (
 
 type InfoCard struct {
 	Description   string
-	Title         string
-	ExecutorLink  *uuid.UUID
-	DataDeadLine  *time.Time
-	Subtasks      []models.SubtaskInfo
+	Title        string
+	ExecutorLink *uuid.UUID
+	DataDeadLine *time.Time
+	Subtasks     []models.SubtaskInfo
+	Position    int
 }
 
 type UpdatingCardDetails struct {

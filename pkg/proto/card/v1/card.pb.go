@@ -30,6 +30,7 @@ type CardInfo struct {
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
 	Subtasks      []*SubtaskInfo         `protobuf:"bytes,6,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
+	Position      int64                  `protobuf:"varint,7,opt,name=position,proto3" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -104,6 +105,13 @@ func (x *CardInfo) GetSubtasks() []*SubtaskInfo {
 		return x.Subtasks
 	}
 	return nil
+}
+
+func (x *CardInfo) GetPosition() int64 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
 }
 
 type SubtaskInfo struct {
@@ -1519,14 +1527,15 @@ var File_proto_card_v1_card_proto protoreflect.FileDescriptor
 
 const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x94\x02\n" +
+	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb0\x02\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
 	"\rexecutor_link\x18\x02 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
 	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x126\n" +
-	"\bsubtasks\x18\x06 \x03(\v2\x1a.proto.card.v1.SubtaskInfoR\bsubtasksB\x10\n" +
+	"\bsubtasks\x18\x06 \x03(\v2\x1a.proto.card.v1.SubtaskInfoR\bsubtasks\x12\x1a\n" +
+	"\bposition\x18\a \x01(\x03R\bpositionB\x10\n" +
 	"\x0e_executor_linkB\v\n" +
 	"\t_deadline\"\x87\x01\n" +
 	"\vSubtaskInfo\x12!\n" +

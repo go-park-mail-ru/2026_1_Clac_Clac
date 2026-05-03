@@ -30,8 +30,8 @@ type CreateAppealResponse struct {
 }
 
 type GetAppealsResponse struct {
-	Role    string
-	Appeals []AppealInfo
+	Role    string       `json:"role"`
+	Appeals []AppealInfo `json:"appeals"`
 }
 
 type UploadAttachmentInfo struct {

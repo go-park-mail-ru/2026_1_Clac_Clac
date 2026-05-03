@@ -62,6 +62,7 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 		Description:  resp.CardInfo.Description,
 		Deadline:     convertTimestamppbToTime(resp.CardInfo.Deadline),
 		Subtasks:     subtasks,
+		Position:    int(resp.CardInfo.Position),
 	}, nil
 }
 
