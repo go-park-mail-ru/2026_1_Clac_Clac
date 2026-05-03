@@ -41,8 +41,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "subtasks"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).

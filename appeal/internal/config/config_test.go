@@ -26,8 +26,9 @@ func TestConfigReading(t *testing.T) {
 			GracefulShutdownTimeout: 25,
 		},
 		Database: config.DefaultPostgresConfig(),
-		S3:     config.S3{},
-		Appeal: config.DefaultAppealConfig(),
+		S3:       config.S3{},
+		Appeal:   config.DefaultAppealConfig(),
+		Sentry:   config.DefaultSentryConfig(),
 	}
 
 	var yamlTest = []byte(`
