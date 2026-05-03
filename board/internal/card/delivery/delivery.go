@@ -554,11 +554,15 @@ func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRe
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
 	}
 
+	logger.Info().Str("task link", taskLink.String()).Str("user link", userLink.String()).Msg("create subtask")
+
 	subtask, err := h.srv.CreateSubtask(ctx, serviceDto.CreateSubtaskInfo{
 		TaskLink:    taskLink,
 		Description: req.Description,
 	}, userLink)
 	if err != nil {
+		logger.Error().Err(err).Msg("CardService.CreateSubtask")
+
 		switch {
 		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
@@ -566,7 +570,6 @@ func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRe
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.CreateSubtask")
 		return nil, status.Error(codes.Internal, ErrCannotCreateSubtask.Error())
 	}
 

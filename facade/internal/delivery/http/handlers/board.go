@@ -141,8 +141,12 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("board usecase GetBoard")
@@ -237,8 +241,12 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("board usecase DeleteBoard")
@@ -298,8 +306,12 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		Background:  req.Background,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("board usecase UpdateBoard")
@@ -352,7 +364,7 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile(h.conf.MultipartBackgroundFileKey)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot find background key")
+		logger.Error().Err(err).Str("expected key", h.conf.MultipartBackgroundFileKey).Msg("cannot find background key")
 		api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
 		return
 	}
@@ -368,8 +380,12 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		Filename:  header.Filename,
 	}, file)
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("board usecase UploadBackground")
@@ -419,8 +435,12 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("board usecase GetMembers")

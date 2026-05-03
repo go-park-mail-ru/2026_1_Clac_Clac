@@ -537,15 +537,40 @@ func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.Up
 }
 
 func (r *Repository) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo) (models.SubtaskInfo, error) {
-	query := `
-		INSERT INTO subtask (task_link, subtask_link, description)
-		VALUES ($1, $2, $3)
-		RETURNING is_done, position
-	`
-	var isDone bool
-	var position int
+	logger := zerolog.Ctx(ctx)
 
-	err := r.pool.QueryRow(ctx, query, createInfo.TaskLink, createInfo.SubtaskLink, createInfo.Description).Scan(&isDone, &position)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("pool.Begin: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid rall back")
+			}
+		}
+	}()
+
+	queryPos := `
+		SELECT COALESCE(MAX(position), 0) + 1
+		FROM subtask
+		WHERE task_link = $1
+	`
+	var position int
+	err = tx.QueryRow(ctx, queryPos, createInfo.TaskLink).Scan(&position)
+	if err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	query := `
+		INSERT INTO subtask (task_link, subtask_link, description, position)
+		VALUES ($1, $2, $3, $4)
+		RETURNING subtask_link, is_done, position
+	`
+	var savedSubtaskLink uuid.UUID
+	var isDone bool
+	err = tx.QueryRow(ctx, query, createInfo.TaskLink, createInfo.SubtaskLink, createInfo.Description, position).Scan(&savedSubtaskLink, &isDone, &position)
 	if err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
@@ -556,12 +581,15 @@ func (r *Repository) CreateSubtask(ctx context.Context, createInfo dto.CreateSub
 				return models.SubtaskInfo{}, common.ErrInvalidReferenceCardData
 			}
 		}
+		return models.SubtaskInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+	}
 
-		return models.SubtaskInfo{}, fmt.Errorf("pool.QueryRow: %w", err)
+	if err = tx.Commit(ctx); err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return models.SubtaskInfo{
-		SubtaskLink: createInfo.SubtaskLink,
+		SubtaskLink: savedSubtaskLink,
 		Description: createInfo.Description,
 		IsDone:      isDone,
 		Position:    position,

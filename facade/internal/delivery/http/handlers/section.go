@@ -123,6 +123,14 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
 		logger.Error().Err(err).Msg("section usecase GetSections")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSections.Error())
 		return
@@ -173,8 +181,12 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("section usecase GetSection")
@@ -222,8 +234,12 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("section usecase GetCards")
@@ -324,8 +340,12 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("section usecase DeleteSection")
@@ -438,8 +458,12 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		MaxTasks:    req.MaxTasks,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		logger.Error().Err(err).Msg("section usecase UpdateSection")

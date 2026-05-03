@@ -151,7 +151,7 @@ func TestHandlerGetSection(t *testing.T) {
 			setContext:       true,
 			sectionLinkParam: testSectionLink.String(),
 			mockBehavior: func(m *mockSectionUC.SectionUsecase) {
-				m.On("GetSection", mock.Anything, mock.Anything).Return(domain.SectionInfo{}, common.ErrorNonexistentUser)
+				m.On("GetSection", mock.Anything, mock.Anything).Return(domain.SectionInfo{}, common.ErrorSectionNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -223,7 +223,7 @@ func TestHandlerGetCards(t *testing.T) {
 			setContext:       true,
 			sectionLinkParam: testSectionLink.String(),
 			mockBehavior: func(m *mockSectionUC.SectionUsecase) {
-				m.On("GetCards", mock.Anything, mock.Anything).Return([]domain.CardInfo(nil), common.ErrorNonexistentUser)
+				m.On("GetCards", mock.Anything, mock.Anything).Return([]domain.CardInfo(nil), common.ErrorSectionNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -391,7 +391,7 @@ func TestHandlerDeleteSection(t *testing.T) {
 			setContext:       true,
 			sectionLinkParam: testSectionLink.String(),
 			mockBehavior: func(m *mockSectionUC.SectionUsecase) {
-				m.On("DeleteSection", mock.Anything, mock.Anything).Return(common.ErrorNonexistentUser)
+				m.On("DeleteSection", mock.Anything, mock.Anything).Return(common.ErrorSectionNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
@@ -573,7 +573,7 @@ func TestHandlerUpdateSection(t *testing.T) {
 			sectionLinkParam: testSectionLink.String(),
 			request:          updateReq,
 			mockBehavior: func(m *mockSectionUC.SectionUsecase) {
-				m.On("UpdateSection", mock.Anything, mock.Anything).Return(common.ErrorNonexistentUser)
+				m.On("UpdateSection", mock.Anything, mock.Anything).Return(common.ErrorSectionNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
