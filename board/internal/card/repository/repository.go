@@ -88,6 +88,8 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 }
 
 func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
+	panic("PANNIC DELETE CARD")
+
 	query := `DELETE FROM task WHERE task_link = $1;`
 
 	commandTag, err := r.pool.Exec(ctx, query, linkCard)
