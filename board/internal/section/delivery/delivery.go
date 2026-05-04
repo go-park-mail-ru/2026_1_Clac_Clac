@@ -238,8 +238,8 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			ExecutorLink: executorLink,
 			Title:        card.Title,
 			Deadline:     deadline,
-			Subtasks:    subtasks,
-			Position:   int64(card.Position),
+			Subtasks:     subtasks,
+			Position:     int64(card.Position),
 		})
 	}
 
@@ -396,7 +396,6 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 	}
 
 	sectionInfo := dto.FullSectionInfo{
-		SectionLink: sectionLink,
 		SectionName: req.GetName(),
 		IsMandatory: req.GetIsMandatory(),
 		Color:       req.GetColor(),
