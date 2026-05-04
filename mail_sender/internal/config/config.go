@@ -16,6 +16,7 @@ type Config struct {
 	Sender          Sender              `mapstructure:"sender"`
 	RedisConnection RedisConnection     `mapstructure:"redis"`
 	Sentry          sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics         Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		Sender:          DefaultSenderConfig(),
 		RedisConnection: DefaultRedisConnection(),
 		Sentry:          DefaultSentryConfig(),
+		Metrics:         DefaultMetrics(),
 	}
 }
 

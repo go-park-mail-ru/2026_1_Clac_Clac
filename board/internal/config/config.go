@@ -19,6 +19,7 @@ type Config struct {
 	Section  Section             `mapstructure:"section"`
 	Card     Card                `mapstructure:"card"`
 	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics  Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -30,6 +31,7 @@ func DefaultConfig() Config {
 		Database: DefaultPostgresConfig(),
 		Redis:    DefaultRedisConfig(),
 		Sentry:   DefaultSentryConfig(),
+		Metrics:  DefaultMetrics(),
 	}
 }
 

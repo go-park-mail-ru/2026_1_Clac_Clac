@@ -16,6 +16,7 @@ type Config struct {
 	VkOAuth         VkOAuth             `mapstructure:"vk_oauth"`
 	Auth            Auth                `mapstructure:"auth"`
 	Sentry          sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics         Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		VkOAuth:         DefaultVkOAuthConfig(),
 		Auth:            DefaultAuthConfig(),
 		Sentry:          DefaultSentryConfig(),
+		Metrics:         DefaultMetrics(),
 	}
 }
 

@@ -22,3 +22,6 @@ sentry:
     team: "api-platform"
     protocol: "grpc"
   repanic: false
+
+metrics:
+  metrics_port: ":9091"

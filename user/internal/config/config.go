@@ -18,6 +18,7 @@ type Config struct {
 	S3           S3                  `mapstructure:"s3"`
 	S3Avatars    S3Avatars           `mapstructure:"s3_avatars"`
 	Database     PostgresConfig      `mapstructure:"database_raw"`
+	Metrics      Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -30,6 +31,7 @@ func DefaultConfig() Config {
 		S3Avatars:    DefaultS3AvatarsConfig(),
 		S3:           DefaultS3Config(),
 		Database:     DefaultPostgresConfig(),
+		Metrics:      DefaultMetrics(),
 	}
 }
 

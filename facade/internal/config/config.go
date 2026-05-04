@@ -16,6 +16,7 @@ type Config struct {
 	CSRF     CSRF                `mapstructure:"csrf"`
 	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
 	Services Services            `mapstructure:"services"`
+	Metrics  Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {

@@ -14,6 +14,7 @@ type Config struct {
 	Engine          enginegrpc.Config   `mapstructure:"engine"`
 	RedisConnection RedisConnection     `mapstructure:"redis"`
 	Sentry          sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics         Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -22,6 +23,7 @@ func DefaultConfig() Config {
 		Engine:          DefaultEngineConfig(),
 		RedisConnection: DefaultRedisConnection(),
 		Sentry:          DefaultSentryConfig(),
+		Metrics:         DefaultMetrics(),
 	}
 }
 

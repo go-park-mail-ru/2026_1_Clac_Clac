@@ -16,6 +16,7 @@ type Config struct {
 	S3       S3                  `mapstructure:"s3"`
 	Appeal   Appeal              `mapstructure:"appeal"`
 	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics  Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -24,6 +25,7 @@ func DefaultConfig() Config {
 		Appeal:   DefaultAppealConfig(),
 		Database: DefaultPostgresConfig(),
 		Sentry:   DefaultSentryConfig(),
+		Metrics:  DefaultMetrics(),
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -99,6 +100,7 @@ type Tools struct {
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
+	r.Use(middleware.PrometheusMiddleware())
 	r.Use(middleware.SentryHubMiddleware())
 	r.Use(middleware.RecoveryMiddleware(logger))
 	r.Use(middleware.LoggerMiddleware(logger))
@@ -108,6 +110,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
+	r.Handle("/metrics", promhttp.Handler())
 	r.HandleFunc("/healthcheck", healthcheck).Methods(http.MethodGet)
 
 	loginRateConf := conf.Services.RateLimiters.GetParameters(config.LogInUser)

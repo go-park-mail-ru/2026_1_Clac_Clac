@@ -31,3 +31,6 @@ sentry:
     team: "api-platform"
     protocol: "http_rest"
   repanic: true
+
+metrics:
+  metrics_port: ":9091"
