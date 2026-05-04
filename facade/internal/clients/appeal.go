@@ -136,6 +136,7 @@ func (a *Appeal) GetAppeal(ctx context.Context, userLink uuid.UUID) (string, []d
 			Category:      a.parseProtoCategory(appeal.GetCategory()),
 			Status:        a.parseProtoStatus(appeal.GetStatus()),
 			DisplayName:   appeal.GetDisplayName(),
+			Description:   appeal.GetDescription(),
 			AttachmentURL: appeal.GetAttachmentUrl(),
 			CreatedAt:     appeal.GetCreatedAt().AsTime(),
 		})
