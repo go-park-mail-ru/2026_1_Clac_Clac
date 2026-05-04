@@ -31,6 +31,6 @@ func (pt *PrometheusTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data
 		status = "error"
 	}
 
-	dbMetric.DbQueryDuration.Observe(duration)
+	dbMetric.DbQueryDuration.WithLabelValues("sql_query").Observe(duration)
 	dbMetric.DbQueriesTotal.WithLabelValues(status).Inc()
 }
