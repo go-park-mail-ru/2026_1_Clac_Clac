@@ -113,3 +113,6 @@ services:
       layer: "edge"
       team: "api-platform"
       protocol: "http_rest"
+
+metrics:
+  metrics_port: ":9091"
