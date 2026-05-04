@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -39,6 +39,13 @@ func NewRepository(pool DBEngine) *Repository {
 	}
 }
 
+type rawSubtask struct {
+	SubtaskLink string `json:"subtask_link"`
+	Description string `json:"description"`
+	IsDone      bool   `json:"is_done"`
+	Position    int    `json:"position"`
+}
+
 func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
 	query := `
 	SELECT
@@ -50,7 +57,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
-					'subtask_link', s.subtask_link,
+					'subtask_link', COALESCE(s.subtask_link, '00000000-0000-0000-0000-000000000000'::uuid),
                     'description', s.description,
                     'is_done', s.is_done,
                     'position', s.position
@@ -82,8 +89,20 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		return dto.InfoCard{}, fmt.Errorf("rep.QueryRow: %w", err)
 	}
 
-	if err := json.Unmarshal(subtasks, &infoCard.Subtasks); err != nil {
+	var rawSubtasks []rawSubtask
+	if err := json.Unmarshal(subtasks, &rawSubtasks); err != nil {
 		return dto.InfoCard{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
+	}
+
+	infoCard.Subtasks = make([]models.SubtaskInfo, 0, len(rawSubtasks))
+	for _, rs := range rawSubtasks {
+		link, _ := uuid.Parse(rs.SubtaskLink)
+		infoCard.Subtasks = append(infoCard.Subtasks, models.SubtaskInfo{
+			SubtaskLink: link,
+			Description: rs.Description,
+			IsDone:      rs.IsDone,
+			Position:    rs.Position,
+		})
 	}
 
 	return infoCard, nil
