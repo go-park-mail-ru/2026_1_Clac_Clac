@@ -86,6 +86,10 @@ func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User
 			return nil, status.Error(codes.InvalidArgument, msgWrongEmailOrPassword)
 		}
 
+		if errors.Is(err, common.ErrorNonexistentEmail) {
+			return nil, status.Error(codes.NotFound, msgUserDoesNotExists)
+		}
+
 		errLog := fmt.Errorf("GetUser: %w", err)
 		logger.Err(errLog).Msg("login user")
 
