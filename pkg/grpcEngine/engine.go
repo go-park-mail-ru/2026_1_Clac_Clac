@@ -9,24 +9,27 @@ import (
 	"syscall"
 	"time"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 type Engine struct {
-	config Config
-	logger *zerolog.Logger
-	// Хук, вызывается когда порт успешно открыт
-	Server   *grpc.Server
-	OnListen func(addr string)
+	config        Config
+	logger        *zerolog.Logger
+	Server        *grpc.Server
+	ServerOptions []grpc.ServerOption
+	SentryOptions sentrygrpc.ServerOptions
+	OnListen      func(addr string)
 }
 
-func New(config Config, logger *zerolog.Logger) *Engine {
+func New(config Config, logger *zerolog.Logger, opts ...grpc.ServerOption) *Engine {
 	return &Engine{
-		config: config,
-		logger: logger,
-		Server: grpc.NewServer(),
+		config:        config,
+		logger:        logger,
+		Server:        grpc.NewServer(opts...),
+		ServerOptions: opts,
 	}
 }
 

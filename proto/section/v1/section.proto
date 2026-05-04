@@ -24,11 +24,12 @@ message SubtaskInfo {
 
 message CardInfo {
   string link = 1;
-  optional string executor_name = 2;
+  optional string executor_link = 2;
   string title = 3;
   string description = 4;
   optional google.protobuf.Timestamp deadline = 5;
   repeated SubtaskInfo subtasks = 6;
+  int64 position = 7;
 }
 
 // GetSections

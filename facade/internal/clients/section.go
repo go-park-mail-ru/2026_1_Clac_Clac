@@ -30,7 +30,7 @@ func (s *Section) GetSections(ctx context.Context, sectionRequest domain.GetSect
 
 	res, err := s.client.GetSections(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("client.GetSections: %w", convertGRPCError(err))
+		return nil, fmt.Errorf("client.GetSections: %w", convertSectionGRPCError(err))
 	}
 
 	sections := make([]domain.SectionInfo, 0, len(res.SectionsInfo))
@@ -60,7 +60,7 @@ func (s *Section) GetSection(ctx context.Context, sectionRequest domain.GetSecti
 
 	res, err := s.client.GetSection(ctx, req)
 	if err != nil {
-		return domain.SectionInfo{}, fmt.Errorf("client.GetSection: %w", convertGRPCError(err))
+		return domain.SectionInfo{}, fmt.Errorf("client.GetSection: %w", convertSectionGRPCError(err))
 	}
 
 	link, err := uuid.Parse(res.SectionInfo.Link)
@@ -86,7 +86,7 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 
 	res, err := s.client.GetCards(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("client.GetCards: %w", convertGRPCError(err))
+		return nil, fmt.Errorf("client.GetCards: %w", convertSectionGRPCError(err))
 	}
 
 	cards := make([]domain.CardInfo, 0, len(res.CardsInfo))
@@ -116,17 +116,22 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			})
 		}
 
-		var executorName *string
-		if ci.ExecutorName != nil {
-			executorName = ci.ExecutorName
+		var executorLink *uuid.UUID
+		if ci.ExecutorLink != nil {
+			el, err := uuid.Parse(*ci.ExecutorLink)
+			if err != nil {
+				return nil, common.ErrorParseLink
+			}
+			executorLink = &el
 		}
 
 		cards = append(cards, domain.CardInfo{
 			CardLink:     link,
-			ExecutorName: executorName,
+			ExecutorLink: executorLink,
 			Title:        ci.Title,
 			Deadline:     deadline,
 			Subtasks:     subtasks,
+			Position:    int(ci.Position),
 		})
 	}
 
@@ -145,7 +150,7 @@ func (s *Section) CreateSection(ctx context.Context, sectionInfo domain.CreateSe
 
 	res, err := s.client.CreateSection(ctx, req)
 	if err != nil {
-		return domain.SectionInfo{}, fmt.Errorf("client.CreateSection: %w", convertGRPCError(err))
+		return domain.SectionInfo{}, fmt.Errorf("client.CreateSection: %w", convertSectionGRPCError(err))
 	}
 
 	link, err := uuid.Parse(res.SectionInfo.Link)
@@ -171,7 +176,7 @@ func (s *Section) DeleteSection(ctx context.Context, sectionInfo domain.DeleteSe
 
 	_, err := s.client.DeleteSection(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.DeleteSection: %w", convertGRPCError(err))
+		return fmt.Errorf("client.DeleteSection: %w", convertSectionGRPCError(err))
 	}
 
 	return nil
@@ -191,7 +196,7 @@ func (s *Section) ReorderSection(ctx context.Context, sectionInfo domain.Reorder
 
 	_, err := s.client.ReorderSection(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.ReorderSection: %w", convertGRPCError(err))
+		return fmt.Errorf("client.ReorderSection: %w", convertSectionGRPCError(err))
 	}
 
 	return nil
@@ -209,7 +214,7 @@ func (s *Section) UpdateSection(ctx context.Context, sectionInfo domain.UpdateSe
 
 	_, err := s.client.UpdateSection(ctx, req)
 	if err != nil {
-		return fmt.Errorf("client.UpdateSection: %w", convertGRPCError(err))
+		return fmt.Errorf("client.UpdateSection: %w", convertSectionGRPCError(err))
 	}
 
 	return nil

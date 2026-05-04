@@ -7,17 +7,20 @@ import (
 )
 
 // InfoCard представляет данные карточки, которые возвращаются клиенту.
-// @Description Полная информация о карточке задачи
+//
+//	@Description	Полная информация о карточке задачи
 type InfoCard struct {
 	LinkCard     uuid.UUID  `json:"link_card" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Title        string     `json:"title" example:"Написать отчет"`
 	Description  string     `json:"description" example:"Собрать метрики за Q3 и подготовить презентацию"`
 	NameExecutor *string    `json:"name_executor" example:"Иван Иванов"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-04-15T15:04:05Z"`
+	Position    int       `json:"position" example:"2"`
 }
 
 // NewCard используется для запросов на создание новой карточки.
-// @Description Данные для создания новой карточки
+//
+//	@Description	Данные для создания новой карточки
 type NewCard struct {
 	LinkAuthor   uuid.UUID  `json:"link_author" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Title        string     `json:"title" example:"Новая задача"`
@@ -28,7 +31,8 @@ type NewCard struct {
 }
 
 // UpdatingCardDetails используется для обновления текстовых данных и дедлайна карточки.
-// @Description Данные для изменения свойств карточки
+//
+//	@Description	Данные для изменения свойств карточки
 type UpdatingCardDetails struct {
 	LinkCard     uuid.UUID  `json:"link_card" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Title        string     `json:"title" example:"Обновленный заголовок"`
@@ -38,7 +42,8 @@ type UpdatingCardDetails struct {
 }
 
 // PlaceCard используется для изменения положения карточки на доске.
-// @Description Данные о новом местоположении карточки (секция и позиция)
+//
+//	@Description	Данные о новом местоположении карточки (секция и позиция)
 type PlaceCard struct {
 	LinkCard    uuid.UUID `json:"link_card" example:"123e4567-e89b-12d3-a456-426614174000"`
 	LinkSection uuid.UUID `json:"link_section" example:"987e6543-e21b-12d3-a456-426614174111"`

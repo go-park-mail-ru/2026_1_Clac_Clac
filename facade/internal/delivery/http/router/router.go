@@ -9,7 +9,10 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type AuthHandler interface {
@@ -97,6 +100,8 @@ type Tools struct {
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
+	r.Use(middleware.PrometheusMiddleware())
+	r.Use(middleware.SentryHubMiddleware())
 	r.Use(middleware.RecoveryMiddleware(logger))
 	r.Use(middleware.LoggerMiddleware(logger))
 	r.Use(middleware.CORSMiddleware(&conf.CORS))
@@ -105,6 +110,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
 
+	r.Handle("/metrics", promhttp.Handler())
 	r.HandleFunc("/healthcheck", healthcheck).Methods(http.MethodGet)
 
 	loginRateConf := conf.Services.RateLimiters.GetParameters(config.LogInUser)
@@ -191,9 +197,11 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
 	withImageLimit.HandleFunc("/appeals/{link}/attachment", deps.Appeal.UploadAttachment).Methods(http.MethodPut)
-	withTextLimit.HandleFunc("/appeal/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
+
+	r.PathPrefix("/docs/").Handler(httpSwagger.Handler())
 
 	return r
 }

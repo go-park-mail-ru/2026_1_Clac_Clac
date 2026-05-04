@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -105,7 +107,13 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardHandler.GetCard")
+		errLog := fmt.Errorf("srv.GetCard: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.GetCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetCard", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "get_card",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetCard.Error())
 	}
 
@@ -125,14 +133,21 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		})
 	}
 
+	var executorLink *string
+	if card.ExecutorLink != nil {
+		s := card.ExecutorLink.String()
+		executorLink = &s
+	}
+
 	return &pb.GetCardResponse{
 		CardInfo: &pb.CardInfo{
 			Link:         cardLink.String(),
 			Title:        card.Title,
 			Description:  card.Description,
-			ExecutorName: card.NameExecutor,
+			ExecutorLink: executorLink,
 			Deadline:     deadline,
-			Subtasks:     subtasks,
+			Subtasks:    subtasks,
+			Position:   int64(card.Position),
 		},
 	}, nil
 }
@@ -161,7 +176,13 @@ func (h *CardHandler) DeleteCard(ctx context.Context, req *pb.DeleteCardRequest)
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardHandler.DeleteCard")
+		errLog := fmt.Errorf("srv.DeleteCard: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.DeleteCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteCard", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "delete_card",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteCard.Error())
 	}
 
@@ -183,26 +204,28 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	var executorLink uuid.UUID
+	var executorLink *uuid.UUID
 	if req.ExecutorLink != nil {
 		rawExecutorLink := req.GetExecutorLink()
-		executorLink, err = uuid.Parse(rawExecutorLink)
+		parsed, err := uuid.Parse(rawExecutorLink)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ErrInvalidExecutorLink.Error())
 		}
+		executorLink = &parsed
 	}
 
-	var deadline time.Time
+	var deadline *time.Time
 	if req.Deadline != nil {
-		deadline = req.GetDeadline().AsTime()
+		d := req.GetDeadline().AsTime()
+		deadline = &d
 	}
 
 	updatingInfo := dto.UpdatingCardDetails{
 		LinkCard:     cardLink,
 		Title:        req.GetTitle(),
 		Description:  req.GetDescription(),
-		LinkExecutor: &executorLink,
-		DataDeadLine: &deadline,
+		LinkExecutor: executorLink,
+		DataDeadLine: deadline,
 	}
 
 	if !common.CheckCardNameLength(updatingInfo.Title, h.cnf.MaxLenTitle) {
@@ -234,7 +257,13 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardHandler.UpdateCardDetails")
+		errLog := fmt.Errorf("srv.UpdateCardDetails: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.UpdateCardDetails")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateCard", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "update_card",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateCard.Error())
 	}
 
@@ -285,7 +314,13 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardHandler.ReorderCard")
+		errLog := fmt.Errorf("srv.ReorderCard: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.ReorderCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ReorderCards", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "reorder_cards",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotReorderCards.Error())
 	}
 
@@ -317,26 +352,28 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrCardDescriptionIsTooBig.Error())
 	}
 
-	var executorLink uuid.UUID
+	var executorLink *uuid.UUID
 	if req.ExecutorLink != nil {
 		rawExecutorLink := req.GetExecutorLink()
-		executorLink, err = uuid.Parse(rawExecutorLink)
+		parsed, err := uuid.Parse(rawExecutorLink)
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, ErrInvalidExecutorLink.Error())
 		}
+		executorLink = &parsed
 	}
 
-	var deadline time.Time
+	var deadline *time.Time
 	if req.Deadline != nil {
-		deadline = req.GetDeadline().AsTime()
+		d := req.GetDeadline().AsTime()
+		deadline = &d
 	}
 
 	card, err := h.srv.CreateCard(ctx, serviceDto.NewCard{
 		LinkAuthor:   userLink,
 		Title:        title,
 		Description:  description,
-		LinkExecutor: &executorLink,
-		DataDeadLine: &deadline,
+		LinkExecutor: executorLink,
+		DataDeadLine: deadline,
 		LinkSection:  sectionLink,
 	})
 	if err != nil {
@@ -357,7 +394,13 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 			return nil, status.Error(codes.InvalidArgument, common.ErrTaskLimitReached.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardHandler.CreateCard")
+		errLog := fmt.Errorf("srv.CreateCard: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.CreateCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateCard", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"section_link": rawSectionLink,
+			"action":       "create_card",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateCard.Error())
 	}
 
@@ -392,7 +435,13 @@ func (h *CardHandler) GetComments(ctx context.Context, req *pb.GetCommentsReques
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.GetComments")
+		errLog := fmt.Errorf("srv.GetComments: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.GetComments")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetComments", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "get_comments",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetComments.Error())
 	}
 
@@ -408,6 +457,7 @@ func (h *CardHandler) GetComments(ctx context.Context, req *pb.GetCommentsReques
 			ParentLink:  &parentLink,
 			AuthorLink:  comment.AuthorLink.String(),
 			Text:        comment.Text,
+			CreatedAt:   timestamppb.New(comment.CreatedAt),
 		})
 	}
 
@@ -456,7 +506,13 @@ func (h *CardHandler) CreateComment(ctx context.Context, req *pb.CreateCommentRe
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.CreateComment")
+		errLog := fmt.Errorf("srv.CreateComment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.CreateComment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateComment", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "create_comment",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateComment.Error())
 	}
 
@@ -491,7 +547,13 @@ func (h *CardHandler) DeleteComment(ctx context.Context, req *pb.DeleteCommentRe
 			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.DeleteComment")
+		errLog := fmt.Errorf("srv.DeleteComment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.DeleteComment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteComment", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"comment_link": rawCommentLink,
+			"action":       "delete_comment",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteComment.Error())
 	}
 
@@ -528,7 +590,13 @@ func (h *CardHandler) UpdateComment(ctx context.Context, req *pb.UpdateCommentRe
 			return nil, status.Error(codes.PermissionDenied, common.ErrPermissionDenied.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.UpdateComment")
+		errLog := fmt.Errorf("srv.UpdateComment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.UpdateComment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateComment", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"comment_link": rawCommentLink,
+			"action":       "update_comment",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateComment.Error())
 	}
 
@@ -548,11 +616,15 @@ func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRe
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidSubtaskLink.Error())
 	}
 
+	logger.Info().Str("task link", taskLink.String()).Str("user link", userLink.String()).Msg("create subtask")
+
 	subtask, err := h.srv.CreateSubtask(ctx, serviceDto.CreateSubtaskInfo{
 		TaskLink:    taskLink,
 		Description: req.Description,
 	}, userLink)
 	if err != nil {
+		logger.Error().Err(err).Msg("CardService.CreateSubtask")
+
 		switch {
 		case errors.Is(err, common.ErrMissingRequiredField):
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
@@ -560,7 +632,13 @@ func (h *CardHandler) CreateSubtask(ctx context.Context, req *pb.CreateSubtaskRe
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.CreateSubtask")
+		errLog := fmt.Errorf("srv.CreateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.CreateSubtask")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateSubtask", map[string]interface{}{
+			"user_link": req.UserLink,
+			"card_link": req.CardLink,
+			"action":    "create_subtask",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateSubtask.Error())
 	}
 
@@ -593,7 +671,13 @@ func (h *CardHandler) DeleteSubtask(ctx context.Context, req *pb.DeleteSubtaskRe
 			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.DeleteSubtask")
+		errLog := fmt.Errorf("srv.DeleteSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.DeleteSubtask")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteSubtask", map[string]interface{}{
+			"user_link":    req.UserLink,
+			"subtask_link": req.SubtaskLink,
+			"action":       "delete_subtask",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteSubtask.Error())
 	}
 
@@ -623,7 +707,13 @@ func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRe
 			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("CardService.UpdateSubtask")
+		errLog := fmt.Errorf("srv.UpdateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.UpdateSubtask")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateSubtask", map[string]interface{}{
+			"user_link":    req.UserLink,
+			"subtask_link": req.SubtaskLink,
+			"action":       "update_subtask",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateSubtask.Error())
 	}
 

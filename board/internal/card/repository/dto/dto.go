@@ -8,11 +8,12 @@ import (
 )
 
 type InfoCard struct {
-	Description  string
+	Description   string
 	Title        string
-	NameExecutor *string
+	ExecutorLink *uuid.UUID
 	DataDeadLine *time.Time
 	Subtasks     []models.SubtaskInfo
+	Position    int
 }
 
 type UpdatingCardDetails struct {
@@ -44,6 +45,7 @@ type CommentInfo struct {
 	ParentLink *uuid.UUID
 	AuthorLink uuid.UUID
 	Text       string
+	CreatedAt  time.Time
 }
 
 type CreateCommentInfo struct {

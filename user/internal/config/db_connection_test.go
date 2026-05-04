@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -25,6 +26,8 @@ func TestDatabaseConnectionConfig(t *testing.T) {
 		t.Setenv("DATABASE_NAME", expected.Name)
 
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
 
 		SetupEnvDbConnection(v)
 

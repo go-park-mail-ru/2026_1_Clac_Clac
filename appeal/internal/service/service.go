@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/appeal/internal/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/appealRbac"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockery --name=AppealRepository --output mock_appeal_rep
@@ -79,11 +80,9 @@ func (s *Service) DeleteAppeal(ctx context.Context, appealLink uuid.UUID, userLi
 func (s *Service) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealStatusInfo) error {
 	err := s.permissionChecker.CheckPermission(ctx, info.SupporterLink, rbac.Actions.ChangeStatus)
 	if err != nil {
-		if errors.Is(err, rbac.ErrActionDenied) {
-			return rbac.ErrActionDenied
-		}
-
-		return fmt.Errorf("s.CheckPermission: %w", err)
+		logger := zerolog.Ctx(ctx)
+		logger.Error().Err(err).Msg("permission check failed for ChangeAppealStatus, returning ErrActionDenied")
+		return rbac.ErrActionDenied
 	}
 
 	err = s.rep.ChangeAppealStatus(ctx, repositoryDto.ChangeAppealStatusInfo{
@@ -101,11 +100,9 @@ func (s *Service) ChangeAppealStatus(ctx context.Context, info dto.ChangeAppealS
 func (s *Service) GetStats(ctx context.Context, userLink uuid.UUID) (dto.AppealStats, error) {
 	err := s.permissionChecker.CheckPermission(ctx, userLink, rbac.Actions.ViewStats)
 	if err != nil {
-		if errors.Is(err, rbac.ErrActionDenied) {
-			return dto.AppealStats{}, rbac.ErrActionDenied
-		}
-
-		return dto.AppealStats{}, fmt.Errorf("s.CheckPermission: %w", err)
+		logger := zerolog.Ctx(ctx)
+		logger.Error().Err(err).Msg("permission check failed for GetStats, returning ErrActionDenied")
+		return dto.AppealStats{}, rbac.ErrActionDenied
 	}
 
 	stats, err := s.rep.GetStats(ctx)

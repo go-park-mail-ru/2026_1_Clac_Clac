@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/section/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -86,7 +88,13 @@ func (h *SectionHandler) GetSections(ctx context.Context, req *pb.GetSectionsReq
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.GetAllSections")
+		errLog := fmt.Errorf("srv.GetSections: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.GetAllSections")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetSections", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_sections",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetSections.Error())
 	}
 
@@ -137,7 +145,13 @@ func (h *SectionHandler) GetSection(ctx context.Context, req *pb.GetSectionReque
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.GetSectionInfo")
+		errLog := fmt.Errorf("srv.GetSection: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.GetSectionInfo")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetSection", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"section_link": rawSectionLink,
+			"action":       "get_section",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetSection.Error())
 	}
 
@@ -185,15 +199,21 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			return nil, status.Error(codes.NotFound, common.ErrSectionNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.GetCards")
+		errLog := fmt.Errorf("srv.GetCards: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.GetCards")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetCards", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"section_link": rawSectionLink,
+			"action":       "get_cards",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetCards.Error())
 	}
 
 	cardsResponse := make([]*pb.CardInfo, 0, len(cards))
 	for _, card := range cards {
-		var deadline timestamppb.Timestamp
+		var deadline *timestamppb.Timestamp
 		if card.DeadLine != nil {
-			deadline = *timestamppb.New(*card.DeadLine)
+			deadline = timestamppb.New(*card.DeadLine)
 		}
 
 		var subtasks []*pb.SubtaskInfo
@@ -207,12 +227,19 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			})
 		}
 
+		var executorLink *string
+		if card.ExecutorLink != nil {
+			s := card.ExecutorLink.String()
+			executorLink = &s
+		}
+
 		cardsResponse = append(cardsResponse, &pb.CardInfo{
 			Link:         card.CardLink.String(),
-			ExecutorName: card.ExecutorName,
+			ExecutorLink: executorLink,
 			Title:        card.Title,
-			Deadline:     &deadline,
+			Deadline:     deadline,
 			Subtasks:     subtasks,
+			Position:     int64(card.Position),
 		})
 	}
 
@@ -276,7 +303,13 @@ func (h *SectionHandler) CreateSection(ctx context.Context, req *pb.CreateSectio
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.CreateSection")
+		errLog := fmt.Errorf("srv.CreateSection: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.CreateSection")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateSection", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "create_section",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateSection.Error())
 	}
 
@@ -329,7 +362,13 @@ func (h *SectionHandler) DeleteSection(ctx context.Context, req *pb.DeleteSectio
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.DeleteSection")
+		errLog := fmt.Errorf("srv.DeleteSection: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.DeleteSection")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteSection", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"section_link": rawSectionLink,
+			"action":       "delete_section",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteSection.Error())
 	}
 
@@ -357,7 +396,6 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 	}
 
 	sectionInfo := dto.FullSectionInfo{
-		SectionLink: sectionLink,
 		SectionName: req.GetName(),
 		IsMandatory: req.GetIsMandatory(),
 		Color:       req.GetColor(),
@@ -402,7 +440,13 @@ func (h *SectionHandler) UpdateSection(ctx context.Context, req *pb.UpdateSectio
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.UpdateSection")
+		errLog := fmt.Errorf("srv.UpdateSection: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.UpdateSection")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateSection", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"section_link": rawSectionLink,
+			"action":       "update_section",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateSection.Error())
 	}
 
@@ -449,7 +493,13 @@ func (h *SectionHandler) ReorderSection(ctx context.Context, req *pb.ReorderSect
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		}
 
-		logger.Error().Err(err).Msg("SectionService.ReorderSection")
+		errLog := fmt.Errorf("srv.ReorderSection: %w", err)
+		logger.Error().Err(errLog).Msg("SectionService.ReorderSection")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ReorderSections", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "reorder_sections",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotReorderSections.Error())
 	}
 

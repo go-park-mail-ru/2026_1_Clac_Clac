@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -56,17 +57,17 @@ func NewMailSender(mailSender MailSenderUsecase, coolDown CoolDownUsecase, geter
 
 // SendRecoveryEmail отправляет код восстановления пароля
 //
-//	@Summary		Отправить код восстановления
-//	@Tags			Auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		dto.PasswordRecoveryRequest	true	"Email пользователя"
-//	@Success		200		{object}	api.Response				"OK"
-//	@Failure		400		{object}	api.ErrorResponse			"Invalid email"
-//	@Failure		404		{object}	api.ErrorResponse			"User does not exist"
-//	@Failure		429		{object}	api.ErrorResponse			"Too many requests"
-//	@Failure		500		{object}	api.ErrorResponse			"Cannot send recovery code"
-//	@Router			/api/forgot-password [post]
+//	@Summary	Отправить код восстановления
+//	@Tags		Auth
+//	@Accept		json
+//	@Produce	json
+//	@Param		input	body		dto.PasswordRecoveryRequest	true	"Email пользователя"
+//	@Success	200		{object}	api.Response				"OK"
+//	@Failure	400		{object}	api.ErrorResponse			"Invalid email"
+//	@Failure	404		{object}	api.ErrorResponse			"User does not exist"
+//	@Failure	429		{object}	api.ErrorResponse			"Too many requests"
+//	@Failure	500		{object}	api.ErrorResponse			"Cannot send recovery code"
+//	@Router		/forgot-password [post]
 func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -88,6 +89,10 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 		ExpirationS: ms.cfg.CoolDownExpirationSec,
 	})
 	if err != nil {
+		sentryLogger.CaptureFromContext(r.Context(), err, "SendRecoveryEmail", map[string]interface{}{
+			"email":  request.Email,
+			"action": "check_cool_down",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -105,7 +110,12 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
-		logger.Err(fmt.Errorf("GetUserLink: %w", err)).Msg("send recovery code")
+		errLog := fmt.Errorf("GetUserLink: %w", err)
+		logger.Err(errLog).Msg("send recovery code")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "SendRecoveryEmail", map[string]interface{}{
+			"email":  request.Email,
+			"action": "get_user_link",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -115,7 +125,12 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
-		logger.Err(fmt.Errorf("auth.SendRecoveryCode: %w", err)).Msg("send recovery code")
+		errLog := fmt.Errorf("auth.SendRecoveryCode: %w", err)
+		logger.Err(errLog).Msg("send recovery code")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "SendRecoveryEmail", map[string]interface{}{
+			"email":  request.Email,
+			"action": "send_recovery_code",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotSendRecoveryCode.Error())
 		return
 	}
@@ -125,15 +140,15 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 
 // CheckRecoveryCode проверяет отправленный на почту код
 //
-//	@Summary		Проверить код восстановления
-//	@Tags			Auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			input	body		dto.RecoveryCodeRequest	true	"Код из письма"
-//	@Success		200		{object}	api.Response			"OK"
-//	@Failure		400		{object}	api.ErrorResponse		"Invalid request schema"
-//	@Failure		500		{object}	api.ErrorResponse		"Internal server error"
-//	@Router			/api/check-code [post]
+//	@Summary	Проверить код восстановления
+//	@Tags		Auth
+//	@Accept		json
+//	@Produce	json
+//	@Param		input	body		dto.RecoveryCodeRequest	true	"Код из письма"
+//	@Success	200		{object}	api.Response			"OK"
+//	@Failure	400		{object}	api.ErrorResponse		"Invalid request schema"
+//	@Failure	500		{object}	api.ErrorResponse		"Internal server error"
+//	@Router		/check-code [post]
 func (ms *MailSender) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -144,11 +159,15 @@ func (ms *MailSender) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := ms.mailSender.CheckRecoveryCode(r.Context(), request.Code); err != nil {
-		logger.Error().Err(err).Msg("auth.CheckRecoveryCode failed")
+		errLog := fmt.Errorf("mailSender.CheckRecoveryCode: %w", err)
+		logger.Error().Err(errLog).Msg("auth.CheckRecoveryCode failed")
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
 			return
 		}
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CheckRecoveryCode", map[string]interface{}{
+			"action": "check_recovery_code",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}

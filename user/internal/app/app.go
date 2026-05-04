@@ -4,34 +4,55 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	db "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db"
-	engine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/interceptors"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/config"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 )
 
 type App struct {
-	Config  *config.Config
-	Logger  *zerolog.Logger
-	Store   *Store
-	Manager *Manager
-	Engine  *engine.Engine
+	Config        *config.Config
+	Logger        *zerolog.Logger
+	Store         *Store
+	Manager       *Manager
+	Engine        *enginegrpc.Engine
+	MetricsServer *http.Server
 }
 
 // Создает приложение, настраивает его компоненты
 func NewApp(conf *config.Config) (*App, error) {
 	logger := setupLogger(&conf.App)
 
-	engine := setupEngine(conf.Engine, logger)
+	err := setupSentry(conf)
+	if err != nil {
+		return nil, fmt.Errorf("setupSelery: %w", err)
+	}
+
+	metricsServer := setupMetricsServer(conf)
+	go func() {
+		logger.Info().Msg(fmt.Sprintf("Metrics server listening on: %s", metricsServer.Addr))
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			sentryLogger.CaptureError(err, "listen and serve Prometheous", map[string]interface{}{"component": "prometheous"})
+		}
+	}()
+
+	engine := setupEngine(conf.Engine, conf.Sentry, logger)
 
 	store, err := setupStore(conf, logger)
 	if err != nil {
+		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "connector"})
 		return nil, fmt.Errorf("setupStore: %w", err)
 	}
 
@@ -41,17 +62,26 @@ func NewApp(conf *config.Config) (*App, error) {
 	delivery.Register(engine.Server)
 
 	return &App{
-		Config:  conf,
-		Logger:  logger,
-		Store:   store,
-		Manager: manager,
-		Engine:  engine,
+		Config:        conf,
+		Logger:        logger,
+		Store:         store,
+		Manager:       manager,
+		Engine:        engine,
+		MetricsServer: metricsServer,
 	}, nil
 }
 
 // Запуск приложения
 func (a *App) Run() {
 	defer func() {
+		if a.MetricsServer != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := a.MetricsServer.Shutdown(ctx); err != nil {
+				a.Logger.Err(err).Msg("metrics server shutdown error")
+			}
+		}
+
 		if err := a.Store.Close(); err != nil {
 			a.Logger.Err(err).Msg("close store error")
 		}
@@ -62,8 +92,38 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf engine.Config, logger *zerolog.Logger) *engine.Engine {
-	return engine.New(conf, logger)
+func setupEngine(conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger *zerolog.Logger) *enginegrpc.Engine {
+	sentryOpts := sentrygrpc.ServerOptions{
+		Repanic: sentryConf.Repanic,
+	}
+
+	opts := []grpc.ServerOption{
+		grpc.ChainUnaryInterceptor(
+			interceptors.PrometheusUnaryInterceptor(),
+			interceptors.UnaryAccessLog(logger),
+			interceptors.UnaryPanicRecovery(logger),
+			sentrygrpc.UnaryServerInterceptor(sentryOpts),
+		),
+		grpc.ChainStreamInterceptor(
+			interceptors.PrometheusStreamInterceptor(),
+			interceptors.StreamAccessLog(logger),
+			interceptors.StreamPanicRecovery(logger),
+			sentrygrpc.StreamServerInterceptor(sentryOpts),
+		),
+	}
+	return enginegrpc.New(conf, logger, opts...)
+}
+
+func setupMetricsServer(conf *config.Config) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	metricsServer := &http.Server{
+		Addr:    conf.Metrics.MetricsPort,
+		Handler: mux,
+	}
+
+	return metricsServer
 }
 
 // Настройка логера
@@ -151,4 +211,8 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 
 func setupDelivery(m *Manager, conf *config.Config) *Delivery {
 	return NewDelivery(m, conf)
+}
+
+func setupSentry(config *config.Config) error {
+	return sentryLogger.Init(config.Sentry)
 }

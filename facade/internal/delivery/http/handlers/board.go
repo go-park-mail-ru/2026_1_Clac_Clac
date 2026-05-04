@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -73,7 +75,7 @@ func boardInfoToDTO(b domain.BoardInfo) dto.BoardInfo {
 
 // @Summary		Получить список досок пользователя
 // @Description	Возвращает все доски, к которым у авторизованного пользователя есть доступ
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Success		200	{object}	api.OkResponse[[]dto.BoardInfo]
 // @Failure		401	{object}	api.ErrorResponse	"unauthorized"
@@ -90,7 +92,12 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 	boards, err := h.srv.GetBoards(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("board usecase GetBoards")
+		errLog := fmt.Errorf("srv.GetBoards: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetBoards")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetBoards", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_boards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
@@ -105,7 +112,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить информацию о доске
 // @Description	Возвращает информацию о доске по её UUID ссылке
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Param			link	path		string	true	"UUID доски"	Format(uuid)
 // @Success		200		{object}	api.OkResponse[dto.BoardInfo]
@@ -141,11 +148,21 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase GetBoard")
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
@@ -155,7 +172,7 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Создать новую доску
 // @Description	Создает новую доску на основе переданных данных
-// @Tags			boards
+// @Tags			Boards
 // @Accept			json
 // @Produce		json
 // @Param			request	body		dto.CreateBoardRequest	true	"DTO для создания доски"
@@ -191,7 +208,12 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		Background:  req.Background,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("board usecase CreateBoard")
+		errLog := fmt.Errorf("srv.CreateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase CreateBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateBoard", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "create_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateBoard.Error())
 		return
 	}
@@ -201,7 +223,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Удалить доску
 // @Description	Удаляет доску по её UUID ссылке
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
 // @Param			link	path		string				true	"UUID доски для удаления"	Format(uuid)
 // @Success		200		{object}	api.Response		"status ok"
@@ -237,11 +259,21 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase DeleteBoard")
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.DeleteBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase DeleteBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "delete_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteBoard.Error())
 		return
 	}
@@ -251,7 +283,7 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Обновить информацию о доске
 // @Description	Обновляет метаданные доски (имя, описание, фон)
-// @Tags			boards
+// @Tags			Boards
 // @Accept			json
 // @Produce		json
 // @Param			link	path		string					true	"UUID доски"	Format(uuid)
@@ -298,11 +330,21 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		Background:  req.Background,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase UpdateBoard")
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.UpdateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase UpdateBoard")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateBoard", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "update_board",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
 		return
 	}
@@ -312,7 +354,7 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Загрузить фон для доски
 // @Description	Загружает изображение (multipart/form-data) и устанавливает его как фон доски
-// @Tags			boards
+// @Tags			Boards
 // @Accept			multipart/form-data
 // @Produce		json
 // @Param			link		path		string	true	"UUID доски"	Format(uuid)
@@ -352,7 +394,7 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile(h.conf.MultipartBackgroundFileKey)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot find background key")
+		logger.Error().Err(err).Str("expected key", h.conf.MultipartBackgroundFileKey).Msg("cannot find background key")
 		api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
 		return
 	}
@@ -368,11 +410,21 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		Filename:  header.Filename,
 	}, file)
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase UploadBackground")
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.UploadBackground: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase UploadBackground")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadBackground", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "upload_background",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		return
 	}
@@ -384,14 +436,14 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить пользователей доски
 // @Description	Возвращает массив UUID всех пользователей, имеющих доступ к доске
-// @Tags			boards
+// @Tags			Boards
 // @Produce		json
-// @Param			link	path		string						true	"UUID доски"	Format(uuid)
+// @Param			link	path		string	true	"UUID доски"	Format(uuid)
 // @Success		200		{object}	api.OkResponse[dto.GetMembersResponse]
-// @Failure		400		{object}	api.ErrorResponse			"invalid board link / board link missing"
-// @Failure		401		{object}	api.ErrorResponse			"unauthorized"
-// @Failure		404		{object}	api.ErrorResponse			"board not found"
-// @Failure		500		{object}	api.ErrorResponse			"cannot get members"
+// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"board not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get members"
 // @Router			/boards/{link}/users [get]
 func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -419,11 +471,21 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("board usecase GetMembers")
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetMembers: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetMembers")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetMembers", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_members",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetMembers.Error())
 		return
 	}

@@ -14,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -61,18 +62,19 @@ func NewAppeal(service AppealUsecase, conf AppealConfig) *Appeal {
 }
 
 // CreateAppeal godoc
-// @Summary      Создать обращение
-// @Description  Создает новое обращение (тикет) от лица авторизованного пользователя
-// @Tags         appeals
-// @Accept       json
-// @Produce      json
-// @Param        request body dto.EntityAppealRequest true "Данные обращения"
-// @Success      200  {object} object{appeal_link=string} "Appeal link UUID"
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals [post]
+//
+//	@Summary		Создать обращение
+//	@Description	Создает новое обращение (тикет) от лица авторизованного пользователя
+//	@Tags			Appeals
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.CreateAppealRequest		true	"Данные обращения"
+//	@Success		200		{object}	object{appeal_link=string}	"Appeal link UUID"
+//	@Failure		400		{string}	string						"Bad Request"
+//	@Failure		401		{string}	string						"Unauthorized"
+//	@Failure		500		{string}	string						"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals [post]
 func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -105,9 +107,17 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, common.ErrorNotNullValue):
 			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
 			return
+		case errors.Is(err, common.ErrInvalidCategory):
+			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+			return
 		}
 
-		logger.Error().Err(fmt.Errorf("srv.CreateAppeal: %w", err)).Msg("failed to create appeal")
+		errLog := fmt.Errorf("srv.CreateAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to create appeal")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateAppeal", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "create_appeal",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateAppeal.Error())
 		return
 	}
@@ -118,15 +128,16 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetAppeals godoc
-// @Summary      Получить список обращений
-// @Description  Возвращает все обращения, созданные текущим авторизованным пользователем
-// @Tags         appeals
-// @Produce      json
-// @Success      200  {object} dto.Appeals "Успешный ответ со списком обращений"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals [get]
+//
+//	@Summary		Получить список обращений
+//	@Description	Возвращает все обращения, созданные текущим авторизованным пользователем
+//	@Tags			Appeals
+//	@Produce		json
+//	@Success		200	{object}	dto.GetAppealsResponse	"Успешный ответ со списком обращений"
+//	@Failure		401	{string}	string					"Unauthorized"
+//	@Failure		500	{string}	string					"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals [get]
 func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -140,7 +151,12 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 
 	role, appeals, err := h.service.GetAppeal(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.GetAppeal: %w", err)).Msg("failed to get user appeals")
+		errLog := fmt.Errorf("srv.GetAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to get user appeals")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetAppeals", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_appeals",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetAppeals.Error())
 		return
 	}
@@ -168,19 +184,20 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadAttachment godoc
-// @Summary      Загрузить вложение к обращению
-// @Description  Загружает изображение (multipart/form-data) и прикрепляет его к обращению
-// @Tags         appeals
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        link        path      string  true  "UUID обращения"  format(uuid)
-// @Param        attachment  formData  file    true  "Файл вложения (PNG/JPEG)"
-// @Success      200  {object} api.OkResponse[dto.UploadAttachmentResponse]
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link}/attachment [put]
+//
+//	@Summary		Загрузить вложение к обращению
+//	@Description	Загружает изображение (multipart/form-data) и прикрепляет его к обращению
+//	@Tags			Appeals
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			link		path		string	true	"UUID обращения"	format(uuid)
+//	@Param			attachment	formData	file	true	"Файл вложения (PNG/JPEG)"
+//	@Success		200			{object}	api.OkResponse[dto.UploadAttachmentResponse]
+//	@Failure		400			{string}	string	"Bad Request"
+//	@Failure		401			{string}	string	"Unauthorized"
+//	@Failure		500			{string}	string	"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link}/attachment [put]
 func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -229,7 +246,13 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		Filename:   header.Filename,
 	}, file)
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
+		errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("failed to upload attachment")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadAttachment", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "upload_attachment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
 		return
 	}
@@ -240,16 +263,17 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteAppeal godoc
-// @Summary      Удалить обращение
-// @Description  Удаляет конкретное обращение по его UUID
-// @Tags         appeals
-// @Param        link path      string  true  "UUID обращения" format(uuid)
-// @Success      200  {string}  string  "OK"
-// @Failure      400  {string}  string  "Bad Request (невалидный UUID)"
-// @Failure      401  {string}  string  "Unauthorized"
-// @Failure      500  {string}  string  "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link} [delete]
+//
+//	@Summary		Удалить обращение
+//	@Description	Удаляет конкретное обращение по его UUID
+//	@Tags			Appeals
+//	@Param			link	path		string	true	"UUID обращения"	format(uuid)
+//	@Success		200		{string}	string	"OK"
+//	@Failure		400		{string}	string	"Bad Request (невалидный UUID)"
+//	@Failure		401		{string}	string	"Unauthorized"
+//	@Failure		500		{string}	string	"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link} [delete]
 func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -279,7 +303,22 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 		AppealLink: appealLink,
 	})
 	if err != nil {
-		logger.Error().Err(fmt.Errorf("srv.DeleteAppeal: %w", err)).Msg("failed to delete appeal")
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.DeleteAppeal: %w", err)
+		logger.Error().Err(errLog).Msg("failed to delete appeal")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAppeal", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "delete_appeal",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteAppeal.Error())
 		return
 	}
@@ -288,16 +327,17 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetStats godoc
-// @Summary      Получить статистику обращений
-// @Description  Возвращает количество обращений по статусам (доступно только для support/admin)
-// @Tags         appeals
-// @Produce      json
-// @Success      200  {object} dto.AppealStats "Успешный ответ со статистикой"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/stats [get]
+//
+//	@Summary		Получить статистику обращений
+//	@Description	Возвращает количество обращений по статусам (доступно только для support/admin)
+//	@Tags			Appeals
+//	@Produce		json
+//	@Success		200	{object}	dto.AppealsStats	"Успешный ответ со статистикой"
+//	@Failure		401	{string}	string				"Unauthorized"
+//	@Failure		403	{string}	string				"Forbidden (Недостаточно прав)"
+//	@Failure		500	{string}	string				"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/stats [get]
 func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -311,7 +351,18 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetStats(r.Context(), userLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot get appeal stats")
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.GetStats: %w", err)
+		logger.Error().Err(errLog).Msg("cannot get appeal stats")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetStats", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_stats",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetStats.Error())
 		return
 	}
@@ -324,20 +375,21 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // ChangeAppealStatus godoc
-// @Summary      Изменить статус обращения
-// @Description  Меняет статус существующего обращения (доступно только для support/admin)
-// @Tags         appeals
-// @Accept       json
-// @Produce      json
-// @Param        link    path string                 true "UUID обращения" format(uuid)
-// @Param        request body dto.ChangeAppealStatus true "Новый статус"
-// @Success      200  {string} string "OK"
-// @Failure      400  {string} string "Bad Request"
-// @Failure      401  {string} string "Unauthorized"
-// @Failure      403  {string} string "Forbidden (Недостаточно прав)"
-// @Failure      500  {string} string "Internal Server Error"
-// @Security     BearerAuth
-// @Router       /appeals/{link} [patch]
+//
+//	@Summary		Изменить статус обращения
+//	@Description	Меняет статус существующего обращения (доступно только для support/admin)
+//	@Tags			Appeals
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string						true	"UUID обращения"	format(uuid)
+//	@Param			request	body		dto.ChangeAppealStatusInfo	true	"Новый статус"
+//	@Success		200		{string}	string						"OK"
+//	@Failure		400		{string}	string						"Bad Request"
+//	@Failure		401		{string}	string						"Unauthorized"
+//	@Failure		403		{string}	string						"Forbidden (Недостаточно прав)"
+//	@Failure		500		{string}	string						"Internal Server Error"
+//	@Security		BearerAuth
+//	@Router			/appeals/{link} [patch]
 func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -375,7 +427,22 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 		NewStatus:  request.NewStatus,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot change appeal status")
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			return
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.ChangeAppealStatus: %w", err)
+		logger.Error().Err(errLog).Msg("cannot change appeal status")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ChangeAppealStatus", map[string]interface{}{
+			"user_link":   userLink,
+			"appeal_link": appealLink,
+			"action":      "change_appeal_status",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotChangeStatus.Error())
 		return
 	}

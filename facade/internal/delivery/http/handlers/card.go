@@ -13,6 +13,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -82,7 +83,7 @@ func NewCard(card CardUsecase, cfg CardConfig) *Card {
 //
 //	@Summary		Получить карточку
 //	@Description	Возвращает полную информацию о карточке по её UUID: заголовок, описание, дедлайн, подзадачи.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Produce		json
 //	@Param			link	path		string								true	"UUID карточки"
@@ -92,7 +93,7 @@ func NewCard(card CardUsecase, cfg CardConfig) *Card {
 //	@Failure		403		{object}	api.ErrorResponse					"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse					"Карточка не найдена"
 //	@Failure		500		{object}	api.ErrorResponse					"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link} [get]
+//	@Router			/cards/{link} [get]
 func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -119,7 +120,13 @@ func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.GetCard failed")
+		errLog := fmt.Errorf("card.GetCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.GetCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "get_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetCard)
 		return
 	}
@@ -131,17 +138,17 @@ func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Удалить карточку
 //	@Description	Удаляет карточку по UUID. Требует прав на удаление.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Param			link	path		string			true	"UUID карточки"
-//	@Success		200		{object}	api.Response	"Карточка удалена"
+//	@Param			link	path		string				true	"UUID карточки"
+//	@Success		200		{object}	api.Response		"Карточка удалена"
 //	@Failure		400		{object}	api.ErrorResponse	"Некорректный UUID"
 //	@Failure		401		{object}	api.ErrorResponse	"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse	"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse	"Карточка не найдена"
 //	@Failure		500		{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link} [delete]
+//	@Router			/cards/{link} [delete]
 func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -168,7 +175,13 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteCard failed")
+		errLog := fmt.Errorf("card.DeleteCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "delete_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteCard)
 		return
 	}
@@ -180,7 +193,7 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Обновить карточку
 //	@Description	Обновляет заголовок, описание, исполнителя и дедлайн карточки.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
@@ -193,7 +206,7 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{object}	api.ErrorResponse		"Карточка не найдена"
 //	@Failure		409		{object}	api.ErrorResponse		"Карточка уже существует"
 //	@Failure		500		{object}	api.ErrorResponse		"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link} [put]
+//	@Router			/cards/{link} [put]
 func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -260,7 +273,13 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateCard failed")
+		errLog := fmt.Errorf("card.UpdateCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateCard", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateCard)
 		return
 	}
@@ -272,19 +291,19 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Переместить карточку
 //	@Description	Изменяет позицию карточки внутри секции.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
-//	@Param			link	path		string						true	"UUID карточки"
-//	@Param			input	body		dto.ReorderCardsRequest		true	"Данные для перемещения"
-//	@Success		200		{object}	api.Response				"Карточка перемещена"
-//	@Failure		400		{object}	api.ErrorResponse			"Некорректные данные"
-//	@Failure		401		{object}	api.ErrorResponse			"Пользователь не авторизован"
-//	@Failure		403		{object}	api.ErrorResponse			"Нет прав доступа"
-//	@Failure		404		{object}	api.ErrorResponse			"Карточка или секция не найдены"
-//	@Failure		500		{object}	api.ErrorResponse			"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link}/reorder [patch]
+//	@Param			link	path		string					true	"UUID карточки"
+//	@Param			input	body		dto.ReorderCardsRequest	true	"Данные для перемещения"
+//	@Success		200		{object}	api.Response			"Карточка перемещена"
+//	@Failure		400		{object}	api.ErrorResponse		"Некорректные данные"
+//	@Failure		401		{object}	api.ErrorResponse		"Пользователь не авторизован"
+//	@Failure		403		{object}	api.ErrorResponse		"Нет прав доступа"
+//	@Failure		404		{object}	api.ErrorResponse		"Карточка или секция не найдены"
+//	@Failure		500		{object}	api.ErrorResponse		"Внутренняя ошибка сервера"
+//	@Router			/cards/{link}/reorder [patch]
 func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -333,7 +352,13 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.ReorderCards failed")
+		errLog := fmt.Errorf("card.ReorderCards: %w", err)
+		logger.Error().Err(errLog).Msg("card.ReorderCards failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ReorderCards", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "reorder_cards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailReorderCards)
 		return
 	}
@@ -345,7 +370,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Создать карточку
 //	@Description	Создаёт новую карточку в указанной секции.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
@@ -357,7 +382,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{object}	api.ErrorResponse						"Секция не найдена"
 //	@Failure		409		{object}	api.ErrorResponse						"Карточка уже существует"
 //	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
-//	@Router			/api/cards [post]
+//	@Router			/cards [post]
 func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -429,7 +454,13 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateCard failed")
+		errLog := fmt.Errorf("card.CreateCard: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateCard failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateCard", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "create_card",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateCard)
 		return
 	}
@@ -441,7 +472,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Получить комментарии
 //	@Description	Возвращает все комментарии к указанной карточке.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Produce		json
 //	@Param			link	path		string									true	"UUID карточки"
@@ -451,7 +482,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 //	@Failure		403		{object}	api.ErrorResponse						"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse						"Карточка не найдена"
 //	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link}/comments [get]
+//	@Router			/cards/{link}/comments [get]
 func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -478,7 +509,13 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.GetComments failed")
+		errLog := fmt.Errorf("card.GetComments: %w", err)
+		logger.Error().Err(errLog).Msg("card.GetComments failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetComments", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "get_comments",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetComments)
 		return
 	}
@@ -490,7 +527,7 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Создать комментарий
 //	@Description	Добавляет комментарий к карточке. Может быть ответом на другой комментарий.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
@@ -502,7 +539,7 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 //	@Failure		403		{object}	api.ErrorResponse							"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse							"Карточка не найдена"
 //	@Failure		500		{object}	api.ErrorResponse							"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link}/comments [post]
+//	@Router			/cards/{link}/comments [post]
 func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -553,7 +590,13 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateComment failed")
+		errLog := fmt.Errorf("card.CreateComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateComment", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "create_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateComment)
 		return
 	}
@@ -565,17 +608,17 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Удалить комментарий
 //	@Description	Удаляет комментарий по UUID.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Param			comment_link	path		string			true	"UUID комментария"
-//	@Success		200				{object}	api.Response	"Комментарий удалён"
+//	@Param			comment_link	path		string				true	"UUID комментария"
+//	@Success		200				{object}	api.Response		"Комментарий удалён"
 //	@Failure		400				{object}	api.ErrorResponse	"Некорректный UUID"
 //	@Failure		401				{object}	api.ErrorResponse	"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse	"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse	"Комментарий не найден"
 //	@Failure		500				{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router			/api/comments/{comment_link} [delete]
+//	@Router			/comments/{comment_link} [delete]
 func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -604,7 +647,13 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteComment failed")
+		errLog := fmt.Errorf("card.DeleteComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteComment", map[string]interface{}{
+			"user_link":    userLink,
+			"comment_link": commentLink,
+			"action":       "delete_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteComment)
 		return
 	}
@@ -616,7 +665,7 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Обновить комментарий
 //	@Description	Изменяет текст существующего комментария.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
@@ -628,7 +677,7 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Комментарий не найден"
 //	@Failure		500				{object}	api.ErrorResponse			"Внутренняя ошибка сервера"
-//	@Router			/api/comments/{comment_link} [put]
+//	@Router			/comments/{comment_link} [put]
 func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -670,7 +719,13 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateComment failed")
+		errLog := fmt.Errorf("card.UpdateComment: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateComment failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateComment", map[string]interface{}{
+			"user_link":    userLink,
+			"comment_link": commentLink,
+			"action":       "update_comment",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateComment)
 		return
 	}
@@ -682,19 +737,19 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Создать подзадачу
 //	@Description	Добавляет подзадачу к карточке.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
-//	@Param			link	path		string									true	"UUID карточки"
-//	@Param			input	body		dto.CreateSubtaskRequest				true	"Данные подзадачи"
-//	@Success		200		{object}	api.OkResponse[dto.SubtaskResponse]		"Подзадача создана"
-//	@Failure		400		{object}	api.ErrorResponse						"Некорректные данные"
-//	@Failure		401		{object}	api.ErrorResponse						"Пользователь не авторизован"
-//	@Failure		403		{object}	api.ErrorResponse						"Нет прав доступа"
-//	@Failure		404		{object}	api.ErrorResponse						"Карточка не найдена"
-//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
-//	@Router			/api/cards/{link}/subtasks [post]
+//	@Param			link	path		string								true	"UUID карточки"
+//	@Param			input	body		dto.CreateSubtaskRequest			true	"Данные подзадачи"
+//	@Success		200		{object}	api.OkResponse[dto.SubtaskResponse]	"Подзадача создана"
+//	@Failure		400		{object}	api.ErrorResponse					"Некорректные данные"
+//	@Failure		401		{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		403		{object}	api.ErrorResponse					"Нет прав доступа"
+//	@Failure		404		{object}	api.ErrorResponse					"Карточка не найдена"
+//	@Failure		500		{object}	api.ErrorResponse					"Внутренняя ошибка сервера"
+//	@Router			/cards/{link}/subtasks [post]
 func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -734,7 +789,13 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.CreateSubtask failed")
+		errLog := fmt.Errorf("card.CreateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateSubtask", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "create_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailCreateSubtask)
 		return
 	}
@@ -746,7 +807,7 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Обновить подзадачу
 //	@Description	Изменяет описание и статус выполнения подзадачи.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Accept			json
 //	@Produce		json
@@ -758,7 +819,7 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Подзадача не найдена"
 //	@Failure		500				{object}	api.ErrorResponse			"Внутренняя ошибка сервера"
-//	@Router			/api/subtasks/{subtask_link} [put]
+//	@Router			/subtasks/{subtask_link} [put]
 func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -801,7 +862,13 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
-		logger.Error().Err(err).Msg("card.UpdateSubtask failed")
+		errLog := fmt.Errorf("card.UpdateSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateSubtask", map[string]interface{}{
+			"user_link":    userLink,
+			"subtask_link": subtaskLink,
+			"action":       "update_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateSubtask)
 		return
 	}
@@ -813,17 +880,17 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 //
 //	@Summary		Удалить подзадачу
 //	@Description	Удаляет подзадачу по UUID.
-//	@Tags			Card
+//	@Tags			Cards
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Param			subtask_link	path		string			true	"UUID подзадачи"
-//	@Success		200				{object}	api.Response	"Подзадача удалена"
+//	@Param			subtask_link	path		string				true	"UUID подзадачи"
+//	@Success		200				{object}	api.Response		"Подзадача удалена"
 //	@Failure		400				{object}	api.ErrorResponse	"Некорректный UUID"
 //	@Failure		401				{object}	api.ErrorResponse	"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse	"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse	"Подзадача не найдена"
 //	@Failure		500				{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
-//	@Router			/api/subtasks/{subtask_link} [delete]
+//	@Router			/subtasks/{subtask_link} [delete]
 func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -852,7 +919,13 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
-		logger.Error().Err(err).Msg("card.DeleteSubtask failed")
+		errLog := fmt.Errorf("card.DeleteSubtask: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteSubtask failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteSubtask", map[string]interface{}{
+			"user_link":    userLink,
+			"subtask_link": subtaskLink,
+			"action":       "delete_subtask",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteSubtask)
 		return
 	}
@@ -890,13 +963,20 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 			Position:    int(s.Position),
 		})
 	}
+	var executorLink *string
+	if card.ExecutorLink != nil {
+		s := card.ExecutorLink.String()
+		executorLink = &s
+	}
+
 	return dto.CardResponse{
 		CardLink:     cardLink,
-		ExecutorName: card.ExecutorName,
+		ExecutorLink: executorLink,
 		Title:        card.Title,
 		Description:  card.Description,
 		Deadline:     card.Deadline,
 		Subtasks:     subtasks,
+		Position:     card.Position,
 	}
 }
 
@@ -908,6 +988,7 @@ func convertToCommentsResponse(resp domain.GetCommentsResponse) dto.CommentsResp
 			ParentLink:  c.ParentLink,
 			AuthorLink:  c.AuthorLink,
 			Text:        c.Text,
+			CreatedAt:   c.CreatedAt,
 		})
 	}
 	return dto.CommentsResponse{Comments: comments}

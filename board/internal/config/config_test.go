@@ -20,8 +20,10 @@ func TestConfigReading(t *testing.T) {
 			Addr:                    ":8080",
 			GracefulShutdownTimeout: 25,
 		},
-		S3:    config.S3{},
-		Board: config.DefaultBoardConfig(),
+		Database: config.DefaultPostgresConfig(),
+		Redis:    config.DefaultRedisConfig(),
+		S3:       config.S3{},
+		Board:    config.DefaultBoardConfig(),
 		Section: config.Section{
 			Handler: config.SectionHandler{
 				MaxQuantityTasks:  100,
@@ -36,6 +38,7 @@ func TestConfigReading(t *testing.T) {
 				MaxLenDescription: 500,
 			},
 		},
+		Sentry: config.DefaultSentryConfig(),
 	}
 
 	var yamlTest = []byte(`

@@ -1,7 +1,7 @@
 package config
 
 type BoardHandler struct {
-	MultipartBackgroundFileKey string `json:"multipart_background_file_key"`
+	MultipartBackgroundFileKey string `mapstructure:"multipart_background_file_key"`
 }
 
 type ClientBoard struct {

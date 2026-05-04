@@ -58,11 +58,12 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 	}
 
 	return dto.InfoCard{
-		Description:  card.Description,
+		Description:   card.Description,
 		Title:        card.Title,
-		NameExecutor: card.NameExecutor,
+		ExecutorLink: card.ExecutorLink,
 		DataDeadLine: card.DataDeadLine,
 		Subtasks:     card.Subtasks,
+		Position:    card.Position,
 	}, nil
 }
 
@@ -184,6 +185,7 @@ func (s *Service) GetComments(ctx context.Context, cardLink uuid.UUID, userLink 
 			ParentLink: comment.ParentLink,
 			AuthorLink: comment.AuthorLink,
 			Text:       comment.Text,
+			CreatedAt:  comment.CreatedAt,
 		})
 	}
 

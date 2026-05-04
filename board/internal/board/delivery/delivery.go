@@ -18,6 +18,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/google/uuid"
@@ -56,6 +57,7 @@ type BoardService interface {
 }
 
 type Config struct {
+	BaseBackgroundURL          string
 	MultipartBackgroundFileKey string
 	MaxBackgroundSize          int64
 }
@@ -85,7 +87,12 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 
 	boards, err := h.srv.GetBoards(ctx, userLink)
 	if err != nil {
-		logger.Error().Err(err).Msg("board service GetBoards")
+		errLog := fmt.Errorf("srv.GetBoards: %w", err)
+		logger.Error().Err(errLog).Msg("board service GetBoards")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetBoards", map[string]interface{}{
+			"user_link": rawUserLink,
+			"action":    "get_boards",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetBoards.Error())
 	}
 
@@ -135,7 +142,13 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("board service GetBoard")
+		errLog := fmt.Errorf("srv.GetBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board service GetBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetBoard", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_board",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetBoards.Error())
 	}
 
@@ -184,7 +197,12 @@ func (h *BoardHandler) CreateBoard(ctx context.Context, req *pb.CreateBoardReque
 			return nil, status.Error(codes.InvalidArgument, common.ErrUserAlreadyMember.Error())
 		}
 
-		logger.Error().Err(err).Msg("board service CreateBoard")
+		errLog := fmt.Errorf("srv.CreateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board service CreateBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateBoard", map[string]interface{}{
+			"user_link": rawUserLink,
+			"action":    "create_board",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateBoard.Error())
 	}
 
@@ -223,7 +241,13 @@ func (h *BoardHandler) DeleteBoard(ctx context.Context, req *pb.DeleteBoardReque
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("board service DeleteBoard")
+		errLog := fmt.Errorf("srv.DeleteBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board service DeleteBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteBoard", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "delete_board",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotDeleteBoard.Error())
 	}
 
@@ -265,7 +289,13 @@ func (h *BoardHandler) UpdateBoard(ctx context.Context, req *pb.UpdateBoardReque
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidBoardReference.Error())
 		}
 
-		logger.Error().Err(err).Msg("board service UpdateBoard")
+		errLog := fmt.Errorf("srv.UpdateBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board service UpdateBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateBoard", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "update_board",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
 
@@ -303,12 +333,18 @@ func (h *BoardHandler) UploadBackground(ctx context.Context, req *pb.UploadBackg
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("board service UpdateBackground")
+		errLog := fmt.Errorf("srv.UpdateBackground: %w", err)
+		logger.Error().Err(errLog).Msg("board service UpdateBackground")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UploadBackground", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "upload_background",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
 	}
 
 	return &pb.UploadBackgroundResponse{
-		BackgroundKey: backgroundKey,
+		BackgroundKey: fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, backgroundKey),
 	}, nil
 }
 
@@ -333,7 +369,13 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
-		logger.Error().Err(err).Msg("BoardService.GetUsersOfBoard")
+		errLog := fmt.Errorf("srv.GetUsersOfBoard: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.GetUsersOfBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetMembers", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_members",
+		})
 		return nil, status.Error(codes.Internal, ErrCannotGetUsersOfBoard.Error())
 	}
 

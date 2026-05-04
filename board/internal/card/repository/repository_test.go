@@ -22,13 +22,13 @@ func TestRepositoryGetCard(t *testing.T) {
 	ctx := context.Background()
 	targetLink := uuid.New()
 	targetDeadLine := time.Now()
-	targetExecuter := "John Doe"
+	targetExecutorLink := uuid.New()
 
 	expectedInfo := dto.InfoCard{
 		Title:        "Test Task",
 		Description:  "Description",
 		DataDeadLine: &targetDeadLine,
-		NameExecutor: &targetExecuter,
+		ExecutorLink: &targetExecutorLink,
 		Subtasks:     []models.SubtaskInfo{},
 	}
 
@@ -41,8 +41,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "display_name", "subtasks"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.NameExecutor, []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -845,9 +845,9 @@ func TestRepositoryGetComments(t *testing.T) {
 		{
 			nameTest: "Success get comments with parent",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text"}).
-					AddRow(commentLink1, authorLink, &parentLink, "first comment").
-					AddRow(commentLink2, authorLink, nil, "second comment")
+				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text", "created_at"}).
+					AddRow(commentLink1, authorLink, &parentLink, "first comment", time.Now()).
+					AddRow(commentLink2, authorLink, nil, "second comment", time.Now())
 
 				m.ExpectQuery(`(?s)SELECT.*c.link.*FROM comment_task.*WHERE t.task_link = \$1`).
 					WithArgs(targetCardLink).
@@ -859,7 +859,7 @@ func TestRepositoryGetComments(t *testing.T) {
 		{
 			nameTest: "Success empty comments",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text"})
+				rows := pgxmock.NewRows([]string{"comment_link", "author_link", "parent_link", "text", "created_at"})
 
 				m.ExpectQuery(`(?s)SELECT.*c.link.*FROM comment_task.*WHERE t.task_link = \$1`).
 					WithArgs(targetCardLink).
@@ -1244,38 +1244,48 @@ func TestRepositoryCreateSubtask(t *testing.T) {
 		{
 			nameTest: "Success create subtask",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
-					WillReturnRows(pgxmock.NewRows([]string{"is_done", "position"}).AddRow(false, 1))
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*`).
+					WithArgs(taskLink, subtaskLink, "do something", 1).
+					WillReturnRows(pgxmock.NewRows([]string{"subtask_link", "is_done", "position"}).AddRow(subtaskLink, false, 1))
+				m.ExpectCommit()
 			},
 			expectedError: nil,
 		},
 		{
-			nameTest: "Error missing required field",
+			nameTest: "Error begin tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
-					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
 			},
-			expectedError: common.ErrMissingRequiredField,
+			expectedError: errors.New("pool.Begin: begin error"),
 		},
 		{
 			nameTest: "Error invalid reference data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectQuery(`(?s)INSERT INTO subtask.*`).
+					WithArgs(taskLink, subtaskLink, "do something", 1).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidReferenceCardData,
 		},
 		{
 			nameTest: "Error query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				m.ExpectQuery(`(?s)INSERT INTO subtask.*RETURNING is_done, position`).
-					WithArgs(taskLink, subtaskLink, "do something").
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
+					WithArgs(taskLink).
 					WillReturnError(errors.New("db disconnect"))
+				m.ExpectRollback()
 			},
-			expectedError: errors.New("pool.QueryRow: db disconnect"),
+			expectedError: errors.New("tx.QueryRow: db disconnect"),
 		},
 	}
 

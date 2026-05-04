@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	sentrygrpc "github.com/getsentry/sentry-go/grpc"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/clients"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/config"
 	"github.com/rs/zerolog"
@@ -47,6 +48,7 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		conn, err := grpc.NewClient(
 			addr,
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithUnaryInterceptor(sentrygrpc.UnaryClientInterceptor()),
 			grpc.WithDefaultServiceConfig(serviceConfig),
 		)
 

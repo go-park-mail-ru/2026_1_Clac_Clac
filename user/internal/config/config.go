@@ -5,18 +5,20 @@ import (
 	"strings"
 
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App          Application        `mapstructure:"app"`
-	Engine       enginegrpc.Config  `mapstructure:"engine"`
-	VkOAuth      VkOAuth            `mapstructure:"vk_oauth"`
-	DBConnection DatabaseConnection `mapstructure:"database"`
-	S3           S3                 `mapstructure:"s3"`
-	S3Avatars    S3Avatars          `mapstructure:"s3_avatars"`
-	Database    postgres.Config     `mapstructure:"database_raw"`
+	App          Application         `mapstructure:"app"`
+	Engine       enginegrpc.Config   `mapstructure:"engine"`
+	VkOAuth      VkOAuth             `mapstructure:"vk_oauth"`
+	Sentry       sentryLogger.Sentry `mapstructure:"sentry"`
+	DBConnection DatabaseConnection  `mapstructure:"database"`
+	S3           S3                  `mapstructure:"s3"`
+	S3Avatars    S3Avatars           `mapstructure:"s3_avatars"`
+	Database     PostgresConfig      `mapstructure:"database_raw"`
+	Metrics      Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -24,10 +26,12 @@ func DefaultConfig() Config {
 		App:          DefaultApplicationConfig(),
 		Engine:       DefaultEngineConfig(),
 		VkOAuth:      DefaultVkOAuthConfig(),
+		Sentry:       DefaultSentryConfig(),
 		DBConnection: DefaultDBConnectionConfog(),
 		S3Avatars:    DefaultS3AvatarsConfig(),
 		S3:           DefaultS3Config(),
-		Database:     postgres.Config{},
+		Database:     DefaultPostgresConfig(),
+		Metrics:      DefaultMetrics(),
 	}
 }
 
@@ -43,12 +47,14 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	SetupEnvVkOAuth(v)
 	SetupEnvS3(v)
 	SetupEnvS3Avatars(v)
-	postgres.SetupEnvPostgres(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
+	SetupEnvPostgres(v)
+	SetupEnvDbConnection(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

@@ -177,15 +177,15 @@ func TestGetCards(t *testing.T) {
 	targetUserLink := uuid.New()
 	cardLink := uuid.New()
 	subtaskLink := uuid.New()
-	executer := "John Doe"
+	executerLink := uuid.New()
 	deadline := time.Now().Add(24 * time.Hour)
 
 	serviceCards := []serviceDto.Card{
 		{
-			CardLink:     cardLink,
-			ExecutorName: &executer,
-			Title:        "Task 1",
-			DeadLine:     &deadline,
+			CardLink:      cardLink,
+			ExecutorLink:  &executerLink,
+			Title:         "Task 1",
+			DeadLine:      &deadline,
 			Subtasks: []models.SubtaskInfo{
 				{
 					SubtaskLink: subtaskLink,
@@ -219,7 +219,7 @@ func TestGetCards(t *testing.T) {
 				// Проверяем основные поля
 				assert.Equal(t, cardLink.String(), card.Link)
 				assert.Equal(t, "Task 1", card.Title)
-				assert.Equal(t, executer, *card.ExecutorName)
+				assert.Equal(t, executerLink.String(), card.GetExecutorLink())
 				assert.NotNil(t, card.Deadline)
 
 				// Проверяем маппинг подзадач

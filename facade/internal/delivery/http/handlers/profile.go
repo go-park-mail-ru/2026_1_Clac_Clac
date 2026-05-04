@@ -15,6 +15,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -69,16 +70,16 @@ func NewProfileHandler(profile ProfileUseCase, mailSender MailSenderUsecase, cfg
 
 // GetProfile возвращает профиль текущего пользователя
 //
-//	@Summary        Получить свой профиль
-//	@Description    Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Success        200 {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
-//	@Failure        401 {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404 {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        500 {object}    api.ErrorResponse                   "Внутренняя ошибка сервера при получении профиля"
-//	@Router         /api/profiles [get]
+//	@Summary		Получить свой профиль
+//	@Description	Возвращает полные данные профиля авторизованного пользователя: имя, описание, email, ссылка на аватар.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Success		200	{object}	api.OkResponse[dto.ProfileResponse]	"Профиль пользователя"
+//	@Failure		401	{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404	{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		500	{object}	api.ErrorResponse					"Внутренняя ошибка сервера при получении профиля"
+//	@Router			/profiles [get]
 func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -95,7 +96,12 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg("profile.GetProfile failed")
+		errLog := fmt.Errorf("profile.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.GetProfile failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetProfile", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -105,18 +111,18 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 // GetProfileByLink возвращает профиль пользователя по UUID
 //
-//	@Summary        Получить профиль по ссылке
-//	@Description    Возвращает публичный профиль любого пользователя по его UUID.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Param          user_link   path        string                              true    "UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-//	@Success        200         {object}    api.OkResponse[dto.ProfileResponse] "Профиль пользователя"
-//	@Failure        400         {object}    api.ErrorResponse                   "Некорректный формат UUID пользователя"
-//	@Failure        401         {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404         {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        500         {object}    api.ErrorResponse                   "Внутренняя ошибка сервера"
-//	@Router         /api/profiles/{user_link} [get]
+//	@Summary		Получить профиль по ссылке
+//	@Description	Возвращает публичный профиль любого пользователя по его UUID.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Param			user_link	path		string								true	"UUID пользователя (формат: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
+//	@Success		200			{object}	api.OkResponse[dto.ProfileResponse]	"Профиль пользователя"
+//	@Failure		400			{object}	api.ErrorResponse					"Некорректный формат UUID пользователя"
+//	@Failure		401			{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404			{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		500			{object}	api.ErrorResponse					"Внутренняя ошибка сервера"
+//	@Router			/profiles/{user_link} [get]
 func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -133,7 +139,12 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg("profile.GetProfileByLink failed")
+		errLog := fmt.Errorf("profile.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.GetProfileByLink failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetProfileByLink", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile_by_link",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
@@ -143,19 +154,19 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProfile обновляет текстовые данные профиля (имя, описание)
 //
-//	@Summary        Обновить профиль
-//	@Description    Изменяет display_name и description_user. Требует валидный CSRF-токен.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.UpdateProfileRequest    true    "Новые имя и описание"
-//	@Success        200     {object}    api.Response                "Профиль успешно обновлён"
-//	@Failure        400     {object}    api.ErrorResponse           "Некорректные данные: отсутствует обязательное поле или превышена длина"
-//	@Failure        401     {object}    api.ErrorResponse           "Пользователь не авторизован"
-//	@Failure        500     {object}    api.ErrorResponse           "Ошибка обновления профиля"
-//	@Router         /api/profiles/info [post]
+//	@Summary		Обновить профиль
+//	@Description	Изменяет display_name и description_user. Требует валидный CSRF-токен.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.UpdateProfileRequest	true	"Новые имя и описание"
+//	@Success		200		{object}	api.Response				"Профиль успешно обновлён"
+//	@Failure		400		{object}	api.ErrorResponse			"Некорректные данные: отсутствует обязательное поле или превышена длина"
+//	@Failure		401		{object}	api.ErrorResponse			"Пользователь не авторизован"
+//	@Failure		500		{object}	api.ErrorResponse			"Ошибка обновления профиля"
+//	@Router			/profiles/info [post]
 func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -198,7 +209,12 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidProfileData.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("profile.UpdateProfile failed")
+		errLog := fmt.Errorf("profile.UpdateProfile: %w", err)
+		logger.Error().Err(errLog).Msg("profile.UpdateProfile failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateProfile", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "update_profile",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateProfile)
 		return
 	}
@@ -208,22 +224,22 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 // UpdateAvatar загружает новый аватар
 //
-//	@Summary        Обновить аватар
-//	@Description    Загружает новое изображение. Допустимые форматы определяются по magic bytes.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Accept         multipart/form-data
-//	@Produce        json
-//	@Param          avatar  formData    file                                true    "Файл изображения (поле: avatar)"
-//	@Success        200     {object}    api.OkResponse[dto.AvatarResponse]  "Аватар загружен, возвращается URL"
-//	@Failure        400     {object}    api.ErrorResponse                   "Файл слишком большой или отсутствует поле avatar"
-//	@Failure        401     {object}    api.ErrorResponse                   "Пользователь не авторизован"
-//	@Failure        404     {object}    api.ErrorResponse                   "Пользователь не найден"
-//	@Failure        415     {object}    api.ErrorResponse                   "Недопустимый тип файла"
-//	@Failure        422     {object}    api.ErrorResponse                   "Невозможно обработать/прочитать файл"
-//	@Failure        500     {object}    api.ErrorResponse                   "Ошибка на сервере при сохранении аватара"
-//	@Router         /api/profiles/avatar [put]
+//	@Summary		Обновить аватар
+//	@Description	Загружает новое изображение. Допустимые форматы определяются по magic bytes.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			avatar	formData	file								true	"Файл изображения (поле: avatar)"
+//	@Success		200		{object}	api.OkResponse[dto.AvatarResponse]	"Аватар загружен, возвращается URL"
+//	@Failure		400		{object}	api.ErrorResponse					"Файл слишком большой или отсутствует поле avatar"
+//	@Failure		401		{object}	api.ErrorResponse					"Пользователь не авторизован"
+//	@Failure		404		{object}	api.ErrorResponse					"Пользователь не найден"
+//	@Failure		415		{object}	api.ErrorResponse					"Недопустимый тип файла"
+//	@Failure		422		{object}	api.ErrorResponse					"Невозможно обработать/прочитать файл"
+//	@Failure		500		{object}	api.ErrorResponse					"Ошибка на сервере при сохранении аватара"
+//	@Router			/profiles/avatar [put]
 func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -255,7 +271,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	sigBuf := make([]byte, p.cfg.SignatureTypeBytes)
 	n, err := file.Read(sigBuf)
 	if err != nil && !errors.Is(err, io.EOF) {
-		logger.Error().Err(err).Msg("failed to read signature bytes")
+		errLog := fmt.Errorf("file.Read signature: %w", err)
+		logger.Error().Err(errLog).Msg("failed to read signature bytes")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "read_signature_bytes",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgInvalidFile)
 		return
 	}
@@ -274,7 +295,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	fileData, err := io.ReadAll(file)
 	if err != nil {
-		logger.Error().Err(err).Msg("failed to read all file data")
+		errLog := fmt.Errorf("io.ReadAll avatar: %w", err)
+		logger.Error().Err(errLog).Msg("failed to read all file data")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "read_file_data",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
 		return
 	}
@@ -295,7 +321,12 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg(msgFailUpdateAvatar)
+		errLog := fmt.Errorf("profile.UpdateAvatar: %w", err)
+		logger.Error().Err(errLog).Msg(msgFailUpdateAvatar)
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "update_avatar",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateAvatar)
 		return
 	}
@@ -305,17 +336,17 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 // DeleteAvatar удаляет аватар пользователя
 //
-//	@Summary        Удалить аватар
-//	@Description    Удаляет текущий аватар пользователя из хранилища и сбрасывает поле avatar_url в профиле. Если аватара не было, всё равно возвращает 200.
-//	@Tags           Profile
-//	@Security       sessionCookie
-//	@Security       csrfToken
-//	@Produce        json
-//	@Success        200 {object}    api.Response        "Аватар удалён"
-//	@Failure        401 {object}    api.ErrorResponse   "Пользователь не авторизован"
-//	@Failure        404 {object}    api.ErrorResponse   "Пользователь не найден"
-//	@Failure        500 {object}    api.ErrorResponse   "Ошибка удаления аватара"
-//	@Router         /api/profiles/avatar [delete]
+//	@Summary		Удалить аватар
+//	@Description	Удаляет текущий аватар пользователя из хранилища и сбрасывает поле avatar_url в профиле. Если аватара не было, всё равно возвращает 200.
+//	@Tags			Profiles
+//	@Security		sessionCookie
+//	@Security		csrfToken
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"Аватар удалён"
+//	@Failure		401	{object}	api.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		404	{object}	api.ErrorResponse	"Пользователь не найден"
+//	@Failure		500	{object}	api.ErrorResponse	"Ошибка удаления аватара"
+//	@Router			/profiles/avatar [delete]
 func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -331,7 +362,12 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
-		logger.Error().Err(err).Msg(msgFailDeleteAvatar)
+		errLog := fmt.Errorf("profile.DeleteAvatar: %w", err)
+		logger.Error().Err(errLog).Msg(msgFailDeleteAvatar)
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAvatar", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "delete_avatar",
+		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAvatar)
 		return
 	}
@@ -341,17 +377,17 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 
 // ResetUserPassword устанавливает новый пароль
 //
-//	@Summary        Сброс пароля
-//	@Description    Устанавливает новый пароль, используя одноразовый token_id (код из письма). Токен инвалидируется после использования.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.NewPasswordRequest  true    "Новый пароль и одноразовый токен"
-//	@Success        200     {object}    api.Response            "Пароль успешно изменён"
-//	@Failure        400     {object}    api.ErrorResponse       "Пароли не совпадают, некорректная длина или токен не найден"
-//	@Failure        404     {object}    api.ErrorResponse       "Токен не существует/истёк или пользователь не найден"
-//	@Failure        500     {object}    api.ErrorResponse       "Внутренняя ошибка сервера при смене пароля"
-//	@Router         /api/reset-password [post]
+//	@Summary		Сброс пароля
+//	@Description	Устанавливает новый пароль, используя одноразовый token_id (код из письма). Токен инвалидируется после использования.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.NewPasswordRequest	true	"Новый пароль и одноразовый токен"
+//	@Success		200		{object}	api.Response			"Пароль успешно изменён"
+//	@Failure		400		{object}	api.ErrorResponse		"Пароли не совпадают, некорректная длина или токен не найден"
+//	@Failure		404		{object}	api.ErrorResponse		"Токен не существует/истёк или пользователь не найден"
+//	@Failure		500		{object}	api.ErrorResponse		"Внутренняя ошибка сервера при смене пароля"
+//	@Router			/reset-password [post]
 func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -367,13 +403,17 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.mailSender.CheckRecoveryCode(r.Context(), request.TokenID); err != nil {
-		logger.Error().Err(err).Msg("mailSender.CheckRecoveryCode failed")
+		errLog := fmt.Errorf("mailSender.CheckRecoveryCode: %w", err)
+		logger.Error().Err(errLog).Msg("mailSender.CheckRecoveryCode failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
 			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"action": "check_recovery_code",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}
@@ -382,13 +422,17 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		Token: request.TokenID,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("mailSender.ExchangeTokenForUser failed")
+		errLog := fmt.Errorf("mailSender.ExchangeTokenForUser: %w", err)
+		logger.Error().Err(errLog).Msg("mailSender.ExchangeTokenForUser failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrResetTokenNotExistOrExpired.Error())
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"action": "exchange_token_for_user",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -397,7 +441,8 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		UserLink: userLink,
 		Password: request.Password,
 	}); err != nil {
-		logger.Error().Err(err).Msg("profile.ResetPassword failed")
+		errLog := fmt.Errorf("profile.ResetPassword: %w", err)
+		logger.Error().Err(errLog).Msg("profile.ResetPassword failed")
 
 		if errors.Is(err, common.ErrorNotNullValue) {
 			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
@@ -409,6 +454,10 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "reset_password",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}

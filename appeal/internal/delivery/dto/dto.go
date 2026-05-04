@@ -9,7 +9,8 @@ import (
 )
 
 // EntityAppealRequest представляет входные данные для создания обращения
-// @Description Данные запроса на создание нового обращения (тикета)
+//
+//	@Description	Данные запроса на создание нового обращения (тикета)
 type EntityAppealRequest struct {
 	Mail        string          `json:"mail" example:"user@example.com"`
 	Category    common.Category `json:"category" example:"bug"`
@@ -18,7 +19,8 @@ type EntityAppealRequest struct {
 }
 
 // Appeal представляет сущность одного обращения
-// @Description Полная информация о созданном обращении
+//
+//	@Description	Полная информация о созданном обращении
 type Appeal struct {
 	AppealID      int             `json:"appeal_id" example:"42"`
 	AppealLink    uuid.UUID       `json:"appeal_link" example:"123e4567-e89b-12d3-a456-426614174000"`
@@ -32,20 +34,23 @@ type Appeal struct {
 }
 
 // Appeals представляет список обращений
-// @Description Ответ, содержащий массив обращений
+//
+//	@Description	Ответ, содержащий массив обращений
 type Appeals struct {
 	Role    rbac.Role `json:"role" example:"user"`
 	Appeals []Appeal  `json:"appeals"`
 }
 
 // ChangeAppealStatus представляет данные для обновления статуса
-// @Description Запрос на изменение статуса обращения
+//
+//	@Description	Запрос на изменение статуса обращения
 type ChangeAppealStatus struct {
 	Status common.Status `json:"status" example:"in_progress"`
 }
 
 // AppealStats представляет статистику по обращениям
-// @Description Статистика количества обращений по их текущему статусу
+//
+//	@Description	Статистика количества обращений по их текущему статусу
 type AppealStats struct {
 	Open   int `json:"open" example:"15"`
 	InWork int `json:"in_work" example:"4"`
@@ -53,7 +58,8 @@ type AppealStats struct {
 }
 
 // UploadAttachmentResponse содержит URL загруженного вложения
-// @Description Ответ после загрузки вложения
+//
+//	@Description	Ответ после загрузки вложения
 type UploadAttachmentResponse struct {
 	AttachmentURL string `json:"attachment_url" example:"https://bucket.endpoint/attachments/uuid.png"`
 }
