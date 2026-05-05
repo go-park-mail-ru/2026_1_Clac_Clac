@@ -14,7 +14,7 @@ setup-nginx:
 	sudo nginx -t && sudo systemctl restart nginx
 
 docker-create-network:
-	docker network create nexus-network
+	docker network create nexus-network || true
 
 docker-up-build:
 	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
