@@ -24,21 +24,68 @@ func NewAppealClient(connection *grpc.ClientConn) *Appeal {
 }
 
 func (a *Appeal) categoryToProto(c string) pb.Category {
-	val, ok := pb.Category_value[c]
-	if !ok {
-		return pb.Category_CATEGORY_UNSPECIFIED
+	switch c {
+	case "bug":
+		return pb.Category_CATEGORY_BUG
+	case "proposal":
+		return pb.Category_CATEGORY_PROPOSAL
+	case "complaint":
+		return pb.Category_CATEGORY_COMPLAINT
 	}
 
-	return pb.Category(val)
+	return pb.Category_CATEGORY_UNSPECIFIED
 }
 
 func (a *Appeal) statusToProto(s string) pb.Status {
-	val, ok := pb.Category_value[s]
-	if !ok {
-		return pb.Status_STATUS_UNSPECIFIED
+	switch s {
+	case "open", "new":
+		return pb.Status_STATUS_OPEN
+	case "in_work", "in_progress":
+		return pb.Status_STATUS_IN_WORK
+	case "close", "closed":
+		return pb.Status_STATUS_CLOSE
 	}
 
-	return pb.Status(val)
+	return pb.Status_STATUS_UNSPECIFIED
+}
+
+func (a *Appeal) parseProtoRole(role pb.Role) string {
+	switch role {
+	case pb.Role_ROLE_USER:
+		return "user"
+	case pb.Role_ROLE_SUPPORT:
+		return "support"
+	case pb.Role_ROLE_ADMIN:
+		return "admin"
+	}
+
+	return "unknown"
+}
+
+func (a *Appeal) parseProtoCategory(c pb.Category) string {
+	switch c {
+	case pb.Category_CATEGORY_BUG:
+		return "bug"
+	case pb.Category_CATEGORY_PROPOSAL:
+		return "proposal"
+	case pb.Category_CATEGORY_COMPLAINT:
+		return "complaint"
+	}
+
+	return "unknown"
+}
+
+func (a *Appeal) parseProtoStatus(s pb.Status) string {
+	switch s {
+	case pb.Status_STATUS_OPEN:
+		return "new"
+	case pb.Status_STATUS_IN_WORK:
+		return "in_progress"
+	case pb.Status_STATUS_CLOSE:
+		return "closed"
+	}
+
+	return "unknown"
 }
 
 func (a *Appeal) CreateAppeal(ctx context.Context, newAppeal domain.CreateAppealInfo) (uuid.UUID, error) {
@@ -52,7 +99,7 @@ func (a *Appeal) CreateAppeal(ctx context.Context, newAppeal domain.CreateAppeal
 
 	res, err := a.client.CreateAppeal(ctx, req)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("AppealClient.CreateAppeal: %w", convertGRPCError(err))
+		return uuid.Nil, fmt.Errorf("AppealClient.CreateAppeal: %w", convertAppealGRPCError(err))
 	}
 
 	rawAppealLink := res.GetAppealLink()
@@ -71,7 +118,7 @@ func (a *Appeal) GetAppeal(ctx context.Context, userLink uuid.UUID) (string, []d
 
 	res, err := a.client.GetAppeals(ctx, req)
 	if err != nil {
-		return "", []domain.AppealInfo{}, fmt.Errorf("AppealClient.GetAppeals: %w", convertGRPCError(err))
+		return "", []domain.AppealInfo{}, fmt.Errorf("AppealClient.GetAppeals: %w", convertAppealGRPCError(err))
 	}
 
 	appeals := make([]domain.AppealInfo, 0, len(res.AppealsInfo))
@@ -86,15 +133,16 @@ func (a *Appeal) GetAppeal(ctx context.Context, userLink uuid.UUID) (string, []d
 			AppealID:      appeal.GetAppealId(),
 			AppealLink:    appealLink,
 			Email:         appeal.GetEmail(),
-			Category:      appeal.GetCategory().String(),
-			Status:        appeal.GetStatus().String(),
+			Category:      a.parseProtoCategory(appeal.GetCategory()),
+			Status:        a.parseProtoStatus(appeal.GetStatus()),
 			DisplayName:   appeal.GetDisplayName(),
+			Description:   appeal.GetDescription(),
 			AttachmentURL: appeal.GetAttachmentUrl(),
 			CreatedAt:     appeal.GetCreatedAt().AsTime(),
 		})
 	}
 
-	return res.Role.String(), appeals, nil
+	return a.parseProtoRole(res.Role), appeals, nil
 }
 
 var bufferPool = sync.Pool{
@@ -122,7 +170,7 @@ func (a *Appeal) UploadAttachment(ctx context.Context, attachmentInfo domain.Upl
 
 	res, err := a.client.UploadAttachment(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("AppealService.UploadAttachment: %w", err)
+		return "", fmt.Errorf("AppealService.UploadAttachment: %w", convertAppealGRPCError(err))
 	}
 
 	return res.GetAttachmentUrl(), nil
@@ -136,7 +184,7 @@ func (a *Appeal) DeleteAppeal(ctx context.Context, deleteInfo domain.DeleteInfo)
 
 	_, err := a.client.DeleteAppeal(ctx, req)
 	if err != nil {
-		return fmt.Errorf("AppealClient.DeleteAppeal: %w", err)
+		return fmt.Errorf("AppealClient.DeleteAppeal: %w", convertAppealGRPCError(err))
 	}
 
 	return nil
@@ -149,7 +197,7 @@ func (a *Appeal) GetStats(ctx context.Context, userLink uuid.UUID) (domain.Appea
 
 	res, err := a.client.GetStats(ctx, req)
 	if err != nil {
-		return domain.AppealsStats{}, fmt.Errorf("AppealClient.GetStats: %w", err)
+		return domain.AppealsStats{}, fmt.Errorf("AppealClient.GetStats: %w", convertAppealGRPCError(err))
 	}
 
 	return domain.AppealsStats{
@@ -168,7 +216,7 @@ func (a *Appeal) ChangeAppealStatus(ctx context.Context, changeStatusInfo domain
 
 	_, err := a.client.ChangeAppealStatus(ctx, req)
 	if err != nil {
-		return fmt.Errorf("AppealClient.ChangeAppealStatus: %w", err)
+		return fmt.Errorf("AppealClient.ChangeAppealStatus: %w", convertAppealGRPCError(err))
 	}
 
 	return nil

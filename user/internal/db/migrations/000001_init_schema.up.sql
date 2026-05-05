@@ -15,7 +15,7 @@ CREATE TABLE "user" (
     password_hash TEXT NOT NULL,
     description_user TEXT DEFAULT '' NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    avatar_key TEXT DEFAULT '',
+    avatar_key TEXT DEFAULT '' NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL,

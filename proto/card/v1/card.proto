@@ -8,17 +8,18 @@ option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/
 
 message CardInfo {
   string link = 1;
-  optional string executor_name = 2;
+  optional string executor_link = 2;
   string title = 3;
   string description = 4;
   optional google.protobuf.Timestamp deadline = 5;
   repeated SubtaskInfo subtasks = 6;
+  int64 position = 7;
 }
 
 message SubtaskInfo {
   string subtask_link = 1;
   string description = 2;
-  bool isDone = 3;
+  bool is_done = 3;
   int64 position = 4;
 }
 
@@ -27,6 +28,7 @@ message CommentInfo {
   optional string parent_link = 2;
   string author_link = 3;
   string text = 4;
+  google.protobuf.Timestamp created_at = 5;
 }
 
 // GetCard

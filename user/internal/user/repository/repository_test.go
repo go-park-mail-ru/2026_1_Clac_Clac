@@ -644,7 +644,7 @@ func TestDeleteURLAvatar(t *testing.T) {
 			mockSetup: func(m pgxmock.PgxPoolIface) {
 				query := `UPDATE "user"\s+SET avatar_key = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 				m.ExpectExec(query).
-					WithArgs(nil, fixedUUID).
+					WithArgs("", fixedUUID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 			},
 		},
@@ -654,7 +654,7 @@ func TestDeleteURLAvatar(t *testing.T) {
 			mockSetup: func(m pgxmock.PgxPoolIface) {
 				query := `UPDATE "user"\s+SET avatar_key = \$1,\s+updated_at = NOW\(\)\s+WHERE link = \$2`
 				m.ExpectExec(query).
-					WithArgs(nil, fixedUUID).
+					WithArgs("", fixedUUID).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 			},
 			expectedError: common.ErrorNonexistentUser,

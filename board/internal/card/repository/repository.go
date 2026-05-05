@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -39,17 +39,25 @@ func NewRepository(pool DBEngine) *Repository {
 	}
 }
 
+type rawSubtask struct {
+	SubtaskLink string `json:"subtask_link"`
+	Description string `json:"description"`
+	IsDone      bool   `json:"is_done"`
+	Position    int    `json:"position"`
+}
+
 func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
 	query := `
 	SELECT
 		t.title,
 		t.description,
 		t.due_date,
-		u.display_name,
+		t.executer_link,
+		t.position,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
-					'subtask_link', s.subtask_link,
+					'subtask_link', COALESCE(s.subtask_link, '00000000-0000-0000-0000-000000000000'::uuid),
                     'description', s.description,
                     'is_done', s.is_done,
                     'position', s.position
@@ -59,7 +67,6 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 			WHERE s.task_link = t.task_link
 		) AS subtasks
 	FROM task_actual AS t
-	LEFT JOIN "user" u ON t.executer_link = u.link
 	WHERE t.task_link = $1
 	`
 
@@ -70,7 +77,8 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.Title,
 		&infoCard.Description,
 		&infoCard.DataDeadLine,
-		&infoCard.NameExecutor,
+		&infoCard.ExecutorLink,
+		&infoCard.Position,
 		&subtasks,
 	)
 	if err != nil {
@@ -81,8 +89,20 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		return dto.InfoCard{}, fmt.Errorf("rep.QueryRow: %w", err)
 	}
 
-	if err := json.Unmarshal(subtasks, &infoCard.Subtasks); err != nil {
+	var rawSubtasks []rawSubtask
+	if err := json.Unmarshal(subtasks, &rawSubtasks); err != nil {
 		return dto.InfoCard{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
+	}
+
+	infoCard.Subtasks = make([]models.SubtaskInfo, 0, len(rawSubtasks))
+	for _, rs := range rawSubtasks {
+		link, _ := uuid.Parse(rs.SubtaskLink)
+		infoCard.Subtasks = append(infoCard.Subtasks, models.SubtaskInfo{
+			SubtaskLink: link,
+			Description: rs.Description,
+			IsDone:      rs.IsDone,
+			Position:    rs.Position,
+		})
 	}
 
 	return infoCard, nil
@@ -412,7 +432,8 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 			c.link AS comment_link,
 			c.author_link,
 			p.link AS parent_link,
-			c.text
+			c.text,
+			c.created_at
 		FROM comment_task c
 		LEFT JOIN comment_task p ON p.comment_id = c.parent_id
 		JOIN task t ON t.task_id = c.task_id
@@ -430,7 +451,7 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 	for rows.Next() {
 		var comment dto.CommentInfo
 
-		err := rows.Scan(&comment.Link, &comment.AuthorLink, &comment.ParentLink, &comment.Text)
+		err := rows.Scan(&comment.Link, &comment.AuthorLink, &comment.ParentLink, &comment.Text, &comment.CreatedAt)
 		if err != nil {
 			return []dto.CommentInfo{}, fmt.Errorf("rows.Scan: %w", err)
 		}
@@ -538,15 +559,40 @@ func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.Up
 }
 
 func (r *Repository) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo) (models.SubtaskInfo, error) {
-	query := `
-		INSERT INTO subtask (task_link, subtask_link, description)
-		VALUES ($1, $2, $3)
-		RETURNING is_done, position
-	`
-	var isDone bool
-	var position int
+	logger := zerolog.Ctx(ctx)
 
-	err := r.pool.QueryRow(ctx, query, createInfo.TaskLink, createInfo.SubtaskLink, createInfo.Description).Scan(&isDone, &position)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("pool.Begin: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid rall back")
+			}
+		}
+	}()
+
+	queryPos := `
+		SELECT COALESCE(MAX(position), 0) + 1
+		FROM subtask
+		WHERE task_link = $1
+	`
+	var position int
+	err = tx.QueryRow(ctx, queryPos, createInfo.TaskLink).Scan(&position)
+	if err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	query := `
+		INSERT INTO subtask (task_link, subtask_link, description, position)
+		VALUES ($1, $2, $3, $4)
+		RETURNING subtask_link, is_done, position
+	`
+	var savedSubtaskLink uuid.UUID
+	var isDone bool
+	err = tx.QueryRow(ctx, query, createInfo.TaskLink, createInfo.SubtaskLink, createInfo.Description, position).Scan(&savedSubtaskLink, &isDone, &position)
 	if err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
@@ -557,12 +603,15 @@ func (r *Repository) CreateSubtask(ctx context.Context, createInfo dto.CreateSub
 				return models.SubtaskInfo{}, common.ErrInvalidReferenceCardData
 			}
 		}
+		return models.SubtaskInfo{}, fmt.Errorf("tx.QueryRow: %w", err)
+	}
 
-		return models.SubtaskInfo{}, fmt.Errorf("pool.QueryRow: %w", err)
+	if err = tx.Commit(ctx); err != nil {
+		return models.SubtaskInfo{}, fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return models.SubtaskInfo{
-		SubtaskLink: createInfo.SubtaskLink,
+		SubtaskLink: savedSubtaskLink,
 		Description: createInfo.Description,
 		IsDone:      isDone,
 		Position:    position,

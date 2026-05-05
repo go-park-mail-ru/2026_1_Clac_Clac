@@ -46,13 +46,23 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 		})
 	}
 
+	var executorLink *uuid.UUID
+	if resp.CardInfo.ExecutorLink != nil {
+		el, err := uuid.Parse(*resp.CardInfo.ExecutorLink)
+		if err != nil {
+			return domain.CardInfo{}, common.ErrorParseLink
+		}
+		executorLink = &el
+	}
+
 	return domain.CardInfo{
 		CardLink:     infoCard.CardLink,
-		ExecutorName: resp.CardInfo.ExecutorName,
+		ExecutorLink: executorLink,
 		Title:        resp.CardInfo.Title,
 		Description:  resp.CardInfo.Description,
 		Deadline:     convertTimestamppbToTime(resp.CardInfo.Deadline),
 		Subtasks:     subtasks,
+		Position:    int(resp.CardInfo.Position),
 	}, nil
 }
 
@@ -185,6 +195,7 @@ func (c *Card) GetComments(ctx context.Context, infoComments domain.GetCommentsR
 			ParentLink:  parentLink,
 			AuthorLink:  authorLink,
 			Text:        comment.Text,
+			CreatedAt:   comment.CreatedAt.AsTime(),
 		})
 	}
 

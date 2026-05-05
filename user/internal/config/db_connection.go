@@ -58,9 +58,9 @@ func SetupEnvDbConnection(v *viper.Viper) {
 	v.SetDefault("database.port", defaultValue)
 	v.SetDefault("database.name", defaultValue)
 
-	v.BindEnv("database.user", "DATABASE_USER")
-	v.BindEnv("database.password", "DATABASE_PASSWORD")
-	v.BindEnv("database.host", "DATABASE_HOST")
-	v.BindEnv("database.port", "DATABASE_PORT")
-	v.BindEnv("database.name", "DATABASE_NAME")
+	v.RegisterAlias("database.user", "database_user")
+	v.RegisterAlias("database.password", "database_password")
+	v.RegisterAlias("database.host", "database_host")
+	v.RegisterAlias("database.port", "database_port")
+	v.RegisterAlias("database.name", "database_name")
 }

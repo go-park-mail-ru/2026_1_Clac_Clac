@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api"
@@ -12,6 +13,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
@@ -79,23 +81,24 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 
 	return dto.Card{
 		Link:         c.CardLink,
-		ExecutorName: c.ExecutorName,
-		Title:        c.Title,
-		Description:  c.Description,
-		Deadline:     c.Deadline,
-		Subtasks:     subtasks,
+		ExecutorLink: c.ExecutorLink,
+		Title:       c.Title,
+		Description: c.Description,
+		Deadline:    c.Deadline,
+		Subtasks:   subtasks,
+		Position:   c.Position,
 	}
 }
 
 // @Summary		Получить все секции доски
 // @Description	Возвращает массив всех секций, привязанных к конкретной доске
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
 // @Param			board_link	path		string	true	"UUID доски"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[[]dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid board link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get sections"
+// @Success		200			{object}	api.OkResponse[[]dto.SectionInfo]
+// @Failure		400			{object}	api.ErrorResponse	"invalid board link"
+// @Failure		401			{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500			{object}	api.ErrorResponse	"cannot get sections"
 // @Router			/boards/{board_link}/sections [get]
 func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -123,7 +126,24 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 		BoardLink: boardLink,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase GetSections")
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.GetSections: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetSections")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetSections", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_sections",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSections.Error())
 		return
 	}
@@ -138,14 +158,14 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить секцию
 // @Description	Возвращает информацию о конкретной секции по её UUID
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
 // @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get section"
+// @Success		200		{object}	api.OkResponse[dto.SectionInfo]
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get section"
 // @Router			/sections/{link} [get]
 func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -173,11 +193,21 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase GetSection")
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "get_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSection.Error())
 		return
 	}
@@ -187,14 +217,14 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Получить карточки секции
 // @Description	Возвращает список всех карточек, находящихся в указанной секции
-// @Tags			cards
+// @Tags			Cards
 // @Produce		json
 // @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[dto.CardsResponse]
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot get cards"
+// @Success		200		{object}	api.OkResponse[dto.CardsResponse]
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot get cards"
 // @Router			/sections/{link}/cards [get]
 func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -222,11 +252,21 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase GetCards")
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetCards: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase GetCards")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetCards", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "get_cards",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetCards.Error())
 		return
 	}
@@ -241,14 +281,14 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Создать секцию
 // @Description	Создает новую секцию на доске
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
-// @Param		request	body		dto.CreateSectionRequest	true	"Данные для создания секции"
-// @Success		201	{object}	api.OkResponse[dto.SectionInfo]
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot create section"
+// @Param			request	body		dto.CreateSectionRequest	true	"Данные для создания секции"
+// @Success		201		{object}	api.OkResponse[dto.SectionInfo]
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500		{object}	api.ErrorResponse	"cannot create section"
 // @Router			/sections [post]
 func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -279,7 +319,13 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 		MaxTasks:    req.MaxTasks,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase CreateSection")
+		errLog := fmt.Errorf("srv.CreateSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase CreateSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateSection", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": req.BoardLink,
+			"action":     "create_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateSection.Error())
 		return
 	}
@@ -289,14 +335,14 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Удалить секцию
 // @Description	Удаляет секцию по её UUID
-// @Tags			sections
+// @Tags			Sections
 // @Produce		json
-// @Param			link	path		string	true	"UUID секции"	Format(uuid)
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid section link"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot delete section"
+// @Param			link	path		string				true	"UUID секции"	Format(uuid)
+// @Success		200		{object}	api.Response		"status ok"
+// @Failure		400		{object}	api.ErrorResponse	"invalid section link"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot delete section"
 // @Router			/sections/{link} [delete]
 func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -324,11 +370,21 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 		SectionLink: sectionLink,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase DeleteSection")
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.DeleteSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase DeleteSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "delete_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteSection.Error())
 		return
 	}
@@ -338,15 +394,15 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Переупорядочить секции
 // @Description	Обновляет порядок секций на доске
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
 // @Param			board_link	path		string				true	"UUID доски"	Format(uuid)
 // @Param			request		body		dto.ListSectionLink	true	"Новый порядок секций"
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		500	{object}	api.ErrorResponse	"cannot reorder sections"
+// @Success		200			{object}	api.Response		"status ok"
+// @Failure		400			{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401			{object}	api.ErrorResponse	"unauthorized"
+// @Failure		500			{object}	api.ErrorResponse	"cannot reorder sections"
 // @Router			/boards/{board_link}/sections/reorder [patch]
 func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -381,7 +437,13 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 		LinksList: req.List,
 	})
 	if err != nil {
-		logger.Error().Err(err).Msg("section usecase ReorderSection")
+		errLog := fmt.Errorf("srv.ReorderSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase ReorderSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "ReorderSections", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "reorder_sections",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotReorderSections.Error())
 		return
 	}
@@ -391,16 +453,16 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 
 // @Summary		Обновить секцию
 // @Description	Изменяет данные существующей секции
-// @Tags			sections
-// @Accept		json
+// @Tags			Sections
+// @Accept			json
 // @Produce		json
-// @Param			link	path		string					true	"UUID секции"	Format(uuid)
-// @Param			request	body		dto.SectionInfo			true	"Новые данные секции"
-// @Success		200	{object}	api.Response	"status ok"
-// @Failure		400	{object}	api.ErrorResponse	"invalid request schema"
-// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404	{object}	api.ErrorResponse	"section not found"
-// @Failure		500	{object}	api.ErrorResponse	"cannot update section"
+// @Param			link	path		string				true	"UUID секции"	Format(uuid)
+// @Param			request	body		dto.SectionInfo		true	"Новые данные секции"
+// @Success		200		{object}	api.Response		"status ok"
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		404		{object}	api.ErrorResponse	"section not found"
+// @Failure		500		{object}	api.ErrorResponse	"cannot update section"
 // @Router			/sections/{link} [put]
 func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -438,11 +500,21 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		MaxTasks:    req.MaxTasks,
 	})
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, err.Error())
+		if errors.Is(err, common.ErrorSectionNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
-		logger.Error().Err(err).Msg("section usecase UpdateSection")
+		if errors.Is(err, common.ErrorSectionPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.UpdateSection: %w", err)
+		logger.Error().Err(errLog).Msg("section usecase UpdateSection")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateSection", map[string]interface{}{
+			"user_link":    userLink,
+			"section_link": sectionLink,
+			"action":       "update_section",
+		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateSection.Error())
 		return
 	}

@@ -1,40 +1,15 @@
 COVERAGE_FILE=coverage.out
 MIN_COVERAGE=70
 # Автоматически собираем все пакеты из internal и исключаем моки
-COVERPKG := $(shell go list ./internal/... | grep -v /mock | paste -sd "," -)
+COVERPKG := $(shell go list ./... | grep -v /mock | paste -sd "," -)
 
-.PHONY: unit report cover ci
-
-define LOGO_TEXT
-  /$$$$$$$$$$$$  /$$$$                            /$$$$$$$$$$$$  /$$$$
- /$$$$__  $$$$| $$$$                           /$$$$__  $$$$| $$$$
-| $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$      | $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$
-| $$$$      | $$$$ |____  $$$$ /$$$$_____/      | $$$$      | $$$$ |____  $$$$ /$$$$_____/
-| $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$            | $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$
-| $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$            | $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$
-|  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$      |  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$
- \\______/ |__/ \\_______/ \\_______/       \\______/ |__/ \\_______/ \\_______/
-
- --- The best team ever
-endef
-export LOGO_TEXT
-
-all: help
-
-help:
-	@echo ""
-	@echo "$$LOGO_TEXT"
-	@echo ""
-	@echo "Доступные команды:"
-	@echo ""
-	@echo "  unit    - Запустить быстрые юнит-тесты с детектором гонок (-race)"
-	@echo "  cover   - Сгенерировать профиль покрытия для всех пакетов internal"
-	@echo "  report  - Открыть визуальный HTML-отчет о покрытии в браузере"
-	@echo "  ci      - Запустить тесты и проверить порог покрытия (минимум $(MIN_COVERAGE)%)"
-	@echo ""
+.PHONY: unit unit-only-fail cover report ci
 
 unit:
-	@go test -v -race ./internal/...
+	@go test -v -race ./...
+
+unit-only-fail:
+	@go test -v ./... | grep "FAIL"
 
 cover:
 	@go test -count=1 -timeout=5m -race -coverpkg=$(COVERPKG) -coverprofile=$(COVERAGE_FILE) ./internal/...

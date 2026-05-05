@@ -5,23 +5,28 @@ import (
 	"strings"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      Application   `mapstructure:"app"`
-	Engine   engine.Config `mapstructure:"engine"`
-	CORS     CORS          `mapstructure:"cors"`
-	CSRF     CSRF          `mapstructure:"csrf"`
-	Services Services      `mapstructure:"services"`
+	App      Application         `mapstructure:"app"`
+	Engine   engine.Config       `mapstructure:"engine"`
+	CORS     CORS                `mapstructure:"cors"`
+	CSRF     CSRF                `mapstructure:"csrf"`
+	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
+	Services Services            `mapstructure:"services"`
+	Metrics  Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:      DefaultApplicationConfig(),
-		Engine:   DefaultEngineConfig(),
-		CORS:     DefaultCORSConfig(),
-		CSRF:     DefaultCSRFConfig(),
+		App:    DefaultApplicationConfig(),
+		Engine: DefaultEngineConfig(),
+		CORS:   DefaultCORSConfig(),
+		CSRF:   DefaultCSRFConfig(),
+		Sentry: DefaultSentryConfig(),
+
 		Services: DefaultServicesConfig(),
 	}
 }
@@ -38,11 +43,11 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	engine.SetupEnvEngine(v)
 	SetupEnvCORS(v)
 	SetupEnvCSRFConfig(v)
-	SetupEnvAuth(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

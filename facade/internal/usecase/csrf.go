@@ -13,7 +13,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 )
 
-
 const (
 	csrfTokenSeparator = ":"
 	csrfDefaultTTL     = 24 * time.Hour

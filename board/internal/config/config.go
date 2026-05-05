@@ -5,20 +5,21 @@ import (
 	"strings"
 
 	grpcEngine "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
-	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App      Application       `mapstructure:"app"`
-	Engine   grpcEngine.Config `mapstructure:"engine"`
-	Database postgres.Config   `mapstructure:"database"`
-	Redis    pkgredis.Config   `mapstructure:"redis"`
-	S3       S3                `mapstructure:"s3"`
-	Board    Board             `mapstructure:"board"`
-	Section  Section           `mapstructure:"section"`
-	Card     Card              `mapstructure:"card"`
+	App      Application         `mapstructure:"app"`
+	Engine   grpcEngine.Config   `mapstructure:"engine"`
+	Database PostgresConfig      `mapstructure:"database"`
+	Redis    RedisConfig         `mapstructure:"redis"`
+	S3       S3                  `mapstructure:"s3"`
+	Board    Board               `mapstructure:"board"`
+	Section  Section             `mapstructure:"section"`
+	Card     Card                `mapstructure:"card"`
+	Sentry   sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics  Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
@@ -27,8 +28,10 @@ func DefaultConfig() Config {
 		Board:    DefaultBoardConfig(),
 		Section:  DefaultSectionConfig(),
 		Card:     DefaultCardConfig(),
-		Database: postgres.Config{},
-		Redis:    pkgredis.Config{},
+		Database: DefaultPostgresConfig(),
+		Redis:    DefaultRedisConfig(),
+		Sentry:   DefaultSentryConfig(),
+		Metrics:  DefaultMetrics(),
 	}
 }
 
@@ -44,11 +47,12 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
-	postgres.SetupEnvPostgres(v)
-	pkgredis.SetupEnvRedis(v)
-	grpcEngine.SetupEnvGrpcEngine(v)
+	SetupEnvPostgres(v)
+	SetupEnvRedis(v)
 	SetupEnvS3(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

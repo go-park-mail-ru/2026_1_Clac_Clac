@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +46,8 @@ func TestSetupEnvCSRFConfig(t *testing.T) {
 		t.Setenv("CSRF_SECRET", secret)
 
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
 
 		SetupEnvCSRFConfig(v)
 
@@ -59,6 +62,9 @@ func TestSetupEnvCSRFConfig(t *testing.T) {
 
 	t.Run("default secret is empty without env", func(t *testing.T) {
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
+
 		SetupEnvCSRFConfig(v)
 
 		assert.Equal(t, defaultCSRFSecret, v.GetString("csrf.secret"))

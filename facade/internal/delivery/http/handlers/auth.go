@@ -14,6 +14,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -59,14 +60,14 @@ func NewAuthHandler(auth AuthUsecase, user UserUsecase, cfg AuthConfig) *Auth {
 
 // MeHandler проверяет текущую сессию пользователя
 //
-//	@Summary        Проверка авторизации (Me)
-//	@Description    Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
-//	@Tags           Auth
-//	@Security       sessionCookie
-//	@Produce        json
-//	@Success        200 {object}    api.Response        "Пользователь авторизован"
-//	@Failure        401 {object}    api.ErrorResponse   "Сессия отсутствует или истекла"
-//	@Router         /api/me [get]
+//	@Summary		Проверка авторизации (Me)
+//	@Description	Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
+//	@Tags			Auth
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Success		200	{object}	api.Response		"Пользователь авторизован"
+//	@Failure		401	{object}	api.ErrorResponse	"Сессия отсутствует или истекла"
+//	@Router			/me [get]
 func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	_, ok := value.(uuid.UUID)
@@ -80,18 +81,18 @@ func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
 
 // LogInUser выполняет вход пользователя
 //
-//	@Summary        Вход (Login)
-//	@Description    Аутентифицирует пользователя по email и паролю. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в минуту.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.LogInRequest    true    "Email и пароль"
-//	@Success        200     {object}    api.OkResponse[dto.UserInfoResponse]    "Успешный вход, cookie session_id установлен"
-//	@Failure        400     {object}    api.ErrorResponse                       "Некорректный формат запроса, email или пароль"
-//	@Failure        404     {object}    api.ErrorResponse                       "Пользователь не найден или неверные учётные данные"
-//	@Failure        429     {object}    api.ErrorResponse                       "Слишком много попыток входа"
-//	@Failure        500     {object}    api.ErrorResponse                       "Внутренняя ошибка сервера"
-//	@Router         /api/login [post]
+//	@Summary		Вход (Login)
+//	@Description	Аутентифицирует пользователя по email и паролю. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в минуту.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.LogInRequest						true	"Email и пароль"
+//	@Success		200		{object}	api.OkResponse[dto.UserInfoResponse]	"Успешный вход, cookie session_id установлен"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email или пароль"
+//	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден или неверные учётные данные"
+//	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток входа"
+//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/login [post]
 func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -119,7 +120,14 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Err(fmt.Errorf("user.GetUser: %w", err)).Msg("get info user")
+		errLog := fmt.Errorf("user.GetUser: %w", err)
+		logger.Err(errLog).Msg("get info user")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+			"email":  request.Email,
+			"action": "get_db_user",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -127,12 +135,26 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := a.auth.CreateSession(r.Context(), user.UserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+			errLog := fmt.Errorf("auth.CreateSession user not found just after creation: %w", err)
+			logger.Err(errLog).Msg("create session")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+				"user_link": user.UserLink,
+				"action":    "create_session_anomaly",
+			})
+
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "LoginUser", map[string]interface{}{
+			"user_link": user.UserLink,
+			"action":    "create_session_anomaly",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -152,19 +174,19 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 // RegisterUser регистрирует нового пользователя
 //
-//	@Summary        Регистрация
-//	@Description    Создаёт новый аккаунт. Пароли должны совпадать, email должен быть уникальным. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в час.
-//	@Tags           Auth
-//	@Accept         json
-//	@Produce        json
-//	@Param          input   body        dto.RegisterRequest                     true    "Данные для регистрации"
-//	@Success        201     {object}    api.OkResponse[dto.UserInfoResponse]    "Аккаунт создан, cookie session_id установлен"
-//	@Failure        400     {object}    api.ErrorResponse                       "Некорректный формат запроса, email/пароль; пароли не совпадают"
-//	@Failure        404     {object}    api.ErrorResponse                       "Пользователь не найден (ошибка при создании сессии)"
-//	@Failure        409     {object}    api.ErrorResponse                       "Пользователь с таким email уже существует"
-//	@Failure        429     {object}    api.ErrorResponse                       "Слишком много попыток регистрации"
-//	@Failure        500     {object}    api.ErrorResponse                       "Внутренняя ошибка сервера"
-//	@Router         /api/register [post]
+//	@Summary		Регистрация
+//	@Description	Создаёт новый аккаунт. Пароли должны совпадать, email должен быть уникальным. При успехе устанавливает session_id cookie. Rate limit: 5 попыток в час.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RegisterRequest						true	"Данные для регистрации"
+//	@Success		201		{object}	api.OkResponse[dto.UserInfoResponse]	"Аккаунт создан, cookie session_id установлен"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают"
+//	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден (ошибка при создании сессии)"
+//	@Failure		409		{object}	api.ErrorResponse						"Пользователь с таким email уже существует"
+//	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток регистрации"
+//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/register [post]
 func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -197,7 +219,14 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logger.Err(fmt.Errorf("user.CreateUser: %w", err)).Msg("create user")
+		errLog := fmt.Errorf("user.CreateUser: %w", err)
+		logger.Err(errLog).Str("email", request.Email).Msg("failed to create user")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
+			"email":        request.Email,
+			"display_name": request.DisplayName,
+			"action":       "create_db_record",
+		})
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -205,12 +234,26 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := a.auth.CreateSession(r.Context(), user.UserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+			errLog := fmt.Errorf("auth.CreateSession user not found just after creation: %w", err)
+			logger.Err(errLog).Msg("create session")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
+				"user_link": user.UserLink,
+				"action":    "create_session_anomaly",
+			})
+
 			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "RegisterUser", map[string]interface{}{
+			"user_link": user.UserLink,
+			"action":    "create_session_redis",
+		})
+
 		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
@@ -230,19 +273,24 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 // LogOutUser удаляет сессию пользователя
 //
-//	@Summary        Выход (Logout)
-//	@Description    Инвалидирует текущую сессию и очищает cookie session_id. Если cookie отсутствует, всё равно возвращает 200 — endpoint идемпотентен.
-//	@Tags           Auth
-//	@Produce        json
-//	@Success        200 {object}    api.Response    "Сессия завершена"
-//	@Router         /api/logout [post]
+//	@Summary		Выход (Logout)
+//	@Description	Инвалидирует текущую сессию и очищает cookie session_id. Если cookie отсутствует, всё равно возвращает 200 — endpoint идемпотентен.
+//	@Tags			Auth
+//	@Produce		json
+//	@Success		200	{object}	api.Response	"Сессия завершена"
+//	@Router			/logout [post]
 func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	cookie, err := r.Cookie(middleware.SessiondIdKey)
 	if err == nil && cookie != nil {
 		if errDeleteSession := a.auth.DeleteSession(r.Context(), cookie.Value); errDeleteSession != nil {
-			logger.Err(fmt.Errorf("usecase.Logout: %w", errDeleteSession)).Msg("logout user")
+			errLog := fmt.Errorf("usecase.Logout: %w", errDeleteSession)
+			logger.Err(errLog).Msg("logout user")
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "LogOutUser Context", map[string]interface{}{
+				"action": "delete_session_redis",
+			})
 		}
 	}
 
@@ -252,13 +300,13 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 
 // VkOAuthCallback обрабатывает коллбэк от VK
 //
-//	@Summary        VK OAuth Коллбэк
-//	@Description    Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
-//	@Tags           Auth
-//	@Param          code    query   string  true    "Временный OAuth-код от VK"
-//	@Success        302     "Редирект: ?code=200&message=success (cookie session_id установлен)"
-//	@Failure        302     "Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
-//	@Router         /api/oauth/vk [get]
+//	@Summary		VK OAuth Коллбэк
+//	@Description	Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
+//	@Tags			Auth
+//	@Param			code	query	string	true	"Временный OAuth-код от VK"
+//	@Success		302		"Редирект: ?code=200&message=success (cookie session_id установлен)"
+//	@Failure		302		"Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
+//	@Router			/oauth/vk [get]
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -271,12 +319,18 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	accessToken, email, err := a.auth.ExchangeVKCode(r.Context(), code)
 	if err != nil {
-		logger.Error().Err(err).Msg("vk oauth callback: exchange code failed")
+		errLog := fmt.Errorf("auth.ExchangeVKCode: %w", err)
+		logger.Err(errLog).Msg("vk oauth callback: exchange code failed")
 
 		outErr := handlerCommon.ErrOAuthExchangeFailed
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
 			outErr = handlerCommon.ErrOAuthUnavailable
 		}
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+			"action":            "exchange_code",
+			"is_vk_unavailable": errors.Is(err, common.ErrorVKOAuthUnavailable),
+		})
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
 		return
@@ -284,12 +338,18 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	userLink, err := a.user.ProcessUserWithVK(r.Context(), accessToken, email)
 	if err != nil {
-		logger.Error().Err(err).Msg("vk oauth callback: user processing failed")
+		errLog := fmt.Errorf("user.ProcessUserWithVK: %w", err)
+		logger.Err(errLog).Msg("vk oauth callback: user processing failed")
 
 		outErr := handlerCommon.ErrOAuthInternalServerError
 		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
 			outErr = handlerCommon.ErrOAuthCannotRequestUserData
 		}
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+			"email":  email,
+			"action": "process_vk_user",
+		})
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
 		return
@@ -297,11 +357,22 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, err := a.auth.CreateSession(r.Context(), userLink)
 	if err != nil {
-		logger.Err(fmt.Errorf("auth.CreateSession: %w", err)).Msg("create session")
+		errLog := fmt.Errorf("auth.CreateSession: %w", err)
+		logger.Err(errLog).Msg("create session in vk oauth")
 
 		outErr := handlerCommon.ErrInternalServerError
 		if errors.Is(err, common.ErrorNonexistentUser) {
 			outErr = handlerCommon.ErrUserDoesNotExists
+
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+				"user_link": userLink,
+				"action":    "create_session_anomaly",
+			})
+		} else {
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+				"user_link": userLink,
+				"action":    "create_session_redis",
+			})
 		}
 
 		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())

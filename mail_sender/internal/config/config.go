@@ -5,26 +5,29 @@ import (
 	"strings"
 
 	enginegrpc "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/grpcEngine"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App             Application     `mapstructure:"app"`
-	Engine         enginegrpc.Config `mapstructure:"engine"`
-	Mail          Mail           `mapstructure:"mail"`
-	Sender        Sender         `mapstructure:"sender"`
-	Redis         redis.Config   `mapstructure:"redis"`
-	RedisConnection RedisConnection `mapstructure:"-"`
+	App             Application         `mapstructure:"app"`
+	Engine          enginegrpc.Config   `mapstructure:"engine"`
+	Mail            Mail                `mapstructure:"mail"`
+	Sender          Sender              `mapstructure:"sender"`
+	RedisConnection RedisConnection     `mapstructure:"redis"`
+	Sentry          sentryLogger.Sentry `mapstructure:"sentry"`
+	Metrics         Metrics             `mapstructure:"metrics"`
 }
 
 func DefaultConfig() Config {
 	return Config{
-		App:    DefaultApplicationConfig(),
-		Engine: DefaultEngineConfig(),
-		Mail:   DefaultMailConfig(),
-		Sender: DefaultSenderConfig(),
-		Redis:  redis.Config{},
+		App:             DefaultApplicationConfig(),
+		Engine:          DefaultEngineConfig(),
+		Mail:            DefaultMailConfig(),
+		Sender:          DefaultSenderConfig(),
+		RedisConnection: DefaultRedisConnection(),
+		Sentry:          DefaultSentryConfig(),
+		Metrics:         DefaultMetrics(),
 	}
 }
 
@@ -40,10 +43,11 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	}
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
 
 	SetupEnvMailSender(v)
-	redis.SetupEnvRedis(v)
-	enginegrpc.SetupEnvGrpcEngine(v)
+	SetupEnvRedisConnection(v)
+	SetupEnvSentryConfig(v)
 
 	return v, nil
 }

@@ -33,11 +33,11 @@ type Store struct {
 func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 	store := &Store{}
 
-	if err := store.setupPostgresPool(&conf.Database, logger); err != nil {
+	if err := store.setupPostgresPool(conf.Database.ToPkg(), logger); err != nil {
 		return nil, fmt.Errorf("store.setupPostgresPool: %w", err)
 	}
 
-	if err := store.setupRedis(conf.Redis, logger); err != nil {
+	if err := store.setupRedis(conf.Redis.ToPkg(), logger); err != nil {
 		return nil, fmt.Errorf("store.setupRedis: %w", err)
 	}
 

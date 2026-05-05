@@ -19,11 +19,10 @@ type AppealInfo struct {
 }
 
 type CreateAppealRequest struct {
-	UserLink    uuid.UUID `json:"user_link"`
-	Email       string    `json:"email"`
-	Category    string    `json:"category"`
-	Description string    `json:"description"`
-	DisplayName string    `json:"display_name"`
+	Email       string `json:"email"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	DisplayName string `json:"display_name"`
 }
 
 type CreateAppealResponse struct {
@@ -31,12 +30,11 @@ type CreateAppealResponse struct {
 }
 
 type GetAppealsResponse struct {
-	Role    string
-	Appeals []AppealInfo
+	Role    string       `json:"role"`
+	Appeals []AppealInfo `json:"appeals"`
 }
 
 type UploadAttachmentInfo struct {
-	UserLink   uuid.UUID `json:"user_link"`
 	AppealLink uuid.UUID `json:"appeal_link"`
 	Filename   string    `json:"filename"`
 }
@@ -46,7 +44,6 @@ type UploadAttachmentResponse struct {
 }
 
 type DeleteInfo struct {
-	UserLink   uuid.UUID `json:"user_link"`
 	AppealLink uuid.UUID `json:"appeal_link"`
 }
 
@@ -57,7 +54,6 @@ type AppealsStats struct {
 }
 
 type ChangeAppealStatusInfo struct {
-	UserLink   uuid.UUID `json:"user_link"`
 	AppealLink uuid.UUID `json:"appeal_link"`
 	NewStatus  string    `json:"new_status"`
 }

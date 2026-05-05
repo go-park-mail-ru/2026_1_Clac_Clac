@@ -43,8 +43,9 @@ type SectionsInfo struct {
 
 type Card struct {
 	CardLink     uuid.UUID
-	ExecutorName *string
+	ExecutorLink *uuid.UUID
 	Title        string
 	DeadLine     *time.Time
 	Subtasks     []models.SubtaskInfo
+	Position    int
 }

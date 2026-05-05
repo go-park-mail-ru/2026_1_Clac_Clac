@@ -41,3 +41,17 @@ card:
   handler:
     max_len_title: 128
     max_len_description: 500
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "board"
+  traces_sample_rate: 1.0
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false
+
+metrics:
+  metrics_port: ":9091"

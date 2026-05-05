@@ -111,10 +111,11 @@ func (s *Service) GetCards(ctx context.Context, sectionLink uuid.UUID, userLink 
 	for _, card := range cards {
 		convertCards = append(convertCards, dto.Card{
 			CardLink:     card.CardLink,
-			ExecutorName: card.ExecutorName,
+			ExecutorLink: card.ExecutorLink,
 			Title:        card.Title,
 			DeadLine:     card.DeadLine,
 			Subtasks:     card.Subtasks,
+			Position:     card.Position,
 		})
 	}
 
@@ -214,15 +215,6 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 		}
 
 		return fmt.Errorf("SectionService.CheckPermissionOnSection: %w", err)
-	}
-
-	info, err := s.rep.GetSection(ctx, updatingSection.SectionLink)
-	if err != nil {
-		return fmt.Errorf("SectionRepository.GetSectionInfo: %w", err)
-	}
-
-	if info.Position == 1 {
-		return common.ErrCannotUpdateBacklog
 	}
 
 	err = s.rep.UpdateSection(ctx, repositoryDto.FullSectionInfo{

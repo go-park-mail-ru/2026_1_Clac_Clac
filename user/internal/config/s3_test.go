@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -29,6 +30,8 @@ func TestS3Config(t *testing.T) {
 		t.Setenv("S3_CONNECT_TIMEOUT", want.ConnectTimeout)
 
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
 
 		SetupEnvS3(v)
 
@@ -44,6 +47,9 @@ func TestS3Config(t *testing.T) {
 
 	t.Run("test default values", func(t *testing.T) {
 		v := viper.New()
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.AutomaticEnv()
+
 		SetupEnvS3(v)
 
 		var conf struct {

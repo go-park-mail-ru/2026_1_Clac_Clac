@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/mail_sender/internal/common"
+	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/mail_sender/v1"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -37,6 +39,8 @@ func NewHandler(srv ServiceSender) *Handler {
 }
 
 func (h *Handler) SendRecoveryCode(ctx context.Context, req *pb.SendRecoveryCodeRequest) (*pb.SendRecoveryCodeResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
 	convertedUserLink, err := uuid.Parse(req.UserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, msgInvalidInput)
@@ -44,6 +48,13 @@ func (h *Handler) SendRecoveryCode(ctx context.Context, req *pb.SendRecoveryCode
 
 	err = h.srv.SendRecoveryCode(ctx, convertedUserLink, req.Email)
 	if err != nil {
+		errLog := fmt.Errorf("srv.SendRecoveryCode: %w", err)
+		logger.Error().Err(errLog).Msg("srv.SendRecoveryCode failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "SendRecoveryCode", map[string]interface{}{
+			"user_link": req.UserLink,
+			"email":     req.Email,
+			"action":    "send_recovery_code",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -59,7 +70,11 @@ func (h *Handler) CheckRecoveryCode(ctx context.Context, req *pb.CheckRecoveryCo
 			return nil, status.Error(codes.NotFound, msgDoesNotExistResetToken)
 		}
 
-		logger.Error().Err(err).Msg("srv.CheckRecoveryCode failed")
+		errLog := fmt.Errorf("srv.CheckRecoveryCode: %w", err)
+		logger.Error().Err(errLog).Msg("srv.CheckRecoveryCode failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CheckRecoveryCode", map[string]interface{}{
+			"action": "check_recovery_code",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
@@ -75,7 +90,11 @@ func (h *Handler) ExchangeTokenForUser(ctx context.Context, req *pb.ExchangeToke
 			return nil, status.Error(codes.NotFound, msgDoesNotExistResetToken)
 		}
 
-		logger.Error().Err(err).Msg("srv.GetUserLink failed")
+		errLog := fmt.Errorf("srv.GetUserLink: %w", err)
+		logger.Error().Err(errLog).Msg("srv.GetUserLink failed")
+		sentryLogger.CaptureFromContext(ctx, errLog, "ExchangeTokenForUser", map[string]interface{}{
+			"action": "get_user_link_by_token",
+		})
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
