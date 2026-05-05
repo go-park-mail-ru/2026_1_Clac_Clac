@@ -333,6 +333,10 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
+		if errors.Is(err, common.ErrorTaskLimitReached) {
+			api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
+		}
+
 		logger.Error().Err(err).Msg("card.ReorderCards failed")
 		api.RespondError(w, http.StatusInternalServerError, msgFailReorderCards)
 		return
