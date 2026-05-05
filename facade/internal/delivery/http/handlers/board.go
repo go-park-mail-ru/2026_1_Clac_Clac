@@ -346,7 +346,12 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseMultipartForm(h.conf.MaxBackgroundSize); err != nil {
 		logger.Error().Err(err).Msg("parse multipart form")
-		api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+		} else {
+			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		}
 		return
 	}
 
@@ -368,12 +373,15 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		Filename:  header.Filename,
 	}, file)
 	if err != nil {
-		if errors.Is(err, common.ErrorNonexistentUser) {
+		switch {
+		case errors.Is(err, common.ErrorNonexistentUser):
 			api.RespondError(w, http.StatusNotFound, err.Error())
-			return
+		case errors.Is(err, common.ErrorInvalidInput):
+			api.RespondError(w, http.StatusBadRequest, err.Error())
+		default:
+			logger.Error().Err(err).Msg("board usecase UploadBackground")
+			api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		}
-		logger.Error().Err(err).Msg("board usecase UploadBackground")
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		return
 	}
 
