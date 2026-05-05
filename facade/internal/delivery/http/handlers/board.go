@@ -378,6 +378,8 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, err.Error())
 		case errors.Is(err, common.ErrorInvalidInput):
 			api.RespondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, common.ErrorInvalidContentType):
+			api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
 		default:
 			logger.Error().Err(err).Msg("board usecase UploadBackground")
 			api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())

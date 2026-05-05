@@ -17,11 +17,12 @@ const (
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
 
-	identifierCardNotFound    = "card not found"
-	identifierSectionNotFound = "section not found"
-	identifierCommentNotFound = "comment not found"
-	identifierSubtaskNotFound = "sub task not found"
-	identifierTaskLimitError  = "task limit reached"
+	identifierCardNotFound      = "card not found"
+	identifierSectionNotFound   = "section not found"
+	identifierCommentNotFound   = "comment not found"
+	identifierSubtaskNotFound   = "sub task not found"
+	identifierTaskLimitError    = "task limit reached"
+	identifierIncorrectTypeFile = "invalid content type"
 )
 
 func convertGRPCError(err error) error {
@@ -51,6 +52,8 @@ func convertGRPCError(err error) error {
 			return common.ErrorWrongCredentials
 		case strings.Contains(msg, identifierNullFieldError):
 			return common.ErrorNotNullValue
+		case strings.Contains(msg, identifierIncorrectTypeFile):
+			return common.ErrorInvalidContentType
 		default:
 			return common.ErrorInvalidInput
 		}

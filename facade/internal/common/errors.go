@@ -16,6 +16,7 @@ var (
 	ErrorVKOAuthUnavailable   = errors.New("vk oauth service unavailable")
 	ErrorMissingRequiredField = errors.New("required field is missing")
 	ErrorInvalidProfileData   = errors.New("incorrect profile data")
+	ErrorInvalidContentType   = errors.New("incorrect content type file")
 
 	ErrorCardNotFound      = errors.New("card not found")
 	ErrorSectionNotFound   = errors.New("section not found")
