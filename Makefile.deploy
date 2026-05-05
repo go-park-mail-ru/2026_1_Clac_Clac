@@ -1,45 +1,10 @@
-USER = $(shell whoami)
-HOME_DIR = $(shell echo $$HOME)
 ROOT_DIR = $(CURDIR)
-
-BINARY_NAME=main
-WORKING_DIR = $(ROOT_DIR)
-BINARY_PATH = $(ROOT_DIR)/bin/$(BINARY_NAME)
-
-SERVICE_NAME = backend.service
 
 NGINX_CONF_NAME = nginx.conf
 NGINX_CONF_FILE = $(ROOT_DIR)/nginx/$(NGINX_CONF_NAME)
 NGINX_SITE_ENABLED_FILE = /etc/nginx/sites-enabled/$(NGINX_CONF_NAME)
 
-.PHONY: help deploy reload create-service setup-nginx up-build down
-
-define LOGO_TEXT
-  /$$$$$$$$$$$$  /$$$$                            /$$$$$$$$$$$$  /$$$$
- /$$$$__  $$$$| $$$$                           /$$$$__  $$$$| $$$$
-| $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$      | $$$$  \\__/| $$$$  /$$$$$$$$$$$$   /$$$$$$$$$$$$$$
-| $$$$      | $$$$ |____  $$$$ /$$$$_____/      | $$$$      | $$$$ |____  $$$$ /$$$$_____/
-| $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$            | $$$$      | $$$$  /$$$$$$$$$$$$$$| $$$$
-| $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$            | $$$$    $$$$| $$$$ /$$$$__  $$$$| $$$$
-|  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$      |  $$$$$$$$$$$$/| $$$$|  $$$$$$$$$$$$$$|  $$$$$$$$$$$$$$
- \\______/ |__/ \\_______/ \\_______/       \\______/ |__/ \\_______/ \\_______/
-
- --- The best team ever
-endef
-export LOGO_TEXT
-
-help:
-	@echo ""
-	@echo "$$LOGO_TEXT"
-	@echo ""
-	@echo "Доступные команды:"
-	@echo ""
-	@echo "  deploy          - Задеплоить проект"
-	@echo "  reload          - Перезапустить и добавить в автозагрузку"
-	@echo "  setup-nginx     - Настроить nginx"
-	@echo ""
-
-deploy: reload setup-nginx
+.PHONY: setup-nginx docker-create-network docker-up-build docker-down
 
 setup-nginx:
 	@echo "Create symlink..."
@@ -48,14 +13,10 @@ setup-nginx:
 	@echo "Check and restart..."
 	sudo nginx -t && sudo systemctl restart nginx
 
-reload:
-	@echo "Reload service..."
-	sudo systemctl daemon-reload
-	sudo systemctl enable $(SERVICE_NAME)
-	sudo systemctl restart $(SERVICE_NAME)
+docker-create-network:
+	docker network create nexus-network
 
-up-build:
-	docker network create nexus-network 2>/dev/null || true
+docker-up-build:
 	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
 	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env up -d --build
 	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env up -d --build
@@ -63,8 +24,9 @@ up-build:
 	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env up -d --build
 	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env up -d --build
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env up -d
 
-down:
+docker-down:
 	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env down
 	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env down
 	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env down
@@ -72,3 +34,59 @@ down:
 	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env down
 	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env down
 	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env down
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env down
+
+
+.PHONY: up-appeal up-auth up-board up-mail-sender up-rate-limiter up-user up-facade
+
+up-appeal:
+	docker compose -f deployments/appeal/docker-compose.yaml --env-file=./appeal/.env up -d --build
+
+up-auth:
+	docker compose -f deployments/authorization/docker-compose.yaml --env-file=./authorization/.env up -d --build
+
+up-board:
+	docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env up -d --build
+
+up-mail-sender:
+	docker compose -f deployments/mail_sender/docker-compose.yaml --env-file=./mail_sender/.env up -d --build
+
+up-rate-limiter:
+	docker compose -f deployments/rate_limiter/docker-compose.yaml --env-file=./rate_limiter/.env up -d --build
+
+up-user:
+	docker compose -f deployments/user/docker-compose.yaml --env-file=./user/.env up -d --build
+
+up-facade:
+	docker compose -f deployments/facade/docker-compose.yaml --env-file=./facade/.env up -d --build
+
+up-monitoring:
+	docker compose -f deployments/monitoring/docker-compose.yaml --env-file=./deployments/monitoring/.env up -d
+
+
+
+
+logs-facade:
+	docker logs -f nexus-facade
+
+logs-user:
+	docker logs -f nexus-user
+
+logs-rate-limiter:
+	docker logs -f nexus-rate-limiter
+
+logs-appeal:
+	docker logs -f nexus-appeal
+
+logs-auth:
+	docker logs -f nexus-authorization
+
+logs-board:
+	docker logs -f nexus-board
+
+logs-mail-sender:
+	docker logs -f nexus-mail-sender
+
+logs-monitoring:
+	docker logs -f nexus-prometheus
+	docker logs -f nexus-grafana
