@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
+
 	httpMetric "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/metrics/http"
 )
 
@@ -33,8 +35,15 @@ func PrometheusMiddleware() func(http.Handler) http.Handler {
 			duration := time.Since(start).Seconds()
 			statusStrc := strconv.Itoa(rec.statusCode)
 
-			httpMetric.HttpRequestDuration.WithLabelValues(r.Method).Observe(duration)
-			httpMetric.HttpRequestTotal.WithLabelValues(statusStrc, r.Method).Inc()
+			path := "unknown"
+			if route := mux.CurrentRoute(r); route != nil {
+				if tmpl, err := route.GetPathTemplate(); err == nil {
+					path = tmpl
+				}
+			}
+
+			httpMetric.HttpRequestDuration.WithLabelValues(r.Method, path).Observe(duration)
+			httpMetric.HttpRequestTotal.WithLabelValues(statusStrc, r.Method, path).Inc()
 		})
 	}
 }
