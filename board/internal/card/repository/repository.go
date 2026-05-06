@@ -438,6 +438,7 @@ func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto
 		LEFT JOIN comment_task p ON p.comment_id = c.parent_id
 		JOIN task t ON t.task_id = c.task_id
 		WHERE t.task_link = $1
+		ORDER BY c.created_at ASC
 	`
 
 	rows, err := r.pool.Query(ctx, getCommentsQuery, cardLink)
@@ -543,10 +544,9 @@ func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.Up
 	query := `
 		UPDATE comment_task
 		SET
-			text = $1
+			text = $1,
 			updated_at = now()
-		WHERE link = $2
-		ORDER BY created_at ASC;
+		WHERE link = $2;
 	`
 
 	commandTag, err := r.pool.Exec(ctx, query, updateCommentInfo.Text, updateCommentInfo.CommentLink)
