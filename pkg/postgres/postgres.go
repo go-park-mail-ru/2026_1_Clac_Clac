@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/db/tracer"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
@@ -26,6 +27,7 @@ func NewPoolPostgres(dsn string, conf *Config, logger *zerolog.Logger) (*pgxpool
 		return nil, fmt.Errorf("cannot parse dsn: %w", err)
 	}
 
+	poolConfig.ConnConfig.Tracer = &tracer.PrometheusTracer{}
 	poolConfig.MinConns = conf.MinConnections
 	poolConfig.MaxConns = conf.MaxConnections
 	poolConfig.MaxConnLifetime = conf.MaxConnectionLifetime

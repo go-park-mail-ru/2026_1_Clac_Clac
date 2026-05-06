@@ -29,6 +29,7 @@ func TestConfigReading(t *testing.T) {
 		S3:       config.S3{},
 		Appeal:   config.DefaultAppealConfig(),
 		Sentry:   config.DefaultSentryConfig(),
+		Metrics:  config.DefaultMetrics(),
 	}
 
 	var yamlTest = []byte(`

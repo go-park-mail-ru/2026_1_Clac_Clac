@@ -18,7 +18,7 @@ var (
 		prometheus.HistogramOpts{
 			Name:    "db_query_duration_seconds",
 			Help:    "Duration of DB queries in seconds",
-			Buckets: []float64{0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+			Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
 		},
 		[]string{"method"},
 	)

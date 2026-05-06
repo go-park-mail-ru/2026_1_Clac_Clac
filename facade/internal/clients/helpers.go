@@ -17,12 +17,14 @@ const (
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
 
-	identifierCardNotFound    = "card not found"
-	identifierSectionNotFound = "section not found"
-	identifierBoardNotFound   = "board not found"
-	identifierCommentNotFound = "comment not found"
-	identifierSubtaskNotFound = "sub task not found"
-	identifierTaskLimitError  = "task limit reached"
+	identifierCardNotFound         = "card not found"
+	identifierSectionNotFound      = "section not found"
+	identifierBoardNotFound        = "board not found"
+	identifierCommentNotFound      = "comment not found"
+	identifierSubtaskNotFound      = "sub task not found"
+	identifierTaskLimitError       = "task limit"
+	identifierLostMandatorySection = "mandatory section"
+	identifierIncorrectTypeFile    = "invalid content type"
 
 	identifierAppealNotFound  = "appeal not found"
 	identifierInvalidCategory = "invalid category"
@@ -55,6 +57,8 @@ func convertGRPCError(err error) error {
 			return common.ErrorWrongCredentials
 		case strings.Contains(msg, identifierNullFieldError):
 			return common.ErrorNotNullValue
+		case strings.Contains(msg, identifierIncorrectTypeFile):
+			return common.ErrorInvalidContentType
 		default:
 			return common.ErrorInvalidInput
 		}
@@ -90,9 +94,13 @@ func convertCardGRPCError(err error) error {
 	case codes.AlreadyExists:
 		return common.ErrorCardAlreadyExists
 	case codes.InvalidArgument:
-		if strings.Contains(msg, identifierTaskLimitError) {
+		switch {
+		case strings.Contains(msg, identifierTaskLimitError):
 			return common.ErrorTaskLimitReached
+		case strings.Contains(msg, identifierLostMandatorySection):
+			return common.ErrCannotSkipMandatorySection
 		}
+
 		return common.ErrorInvalidInput
 	default:
 		return err
@@ -114,6 +122,13 @@ func convertBoardGRPCError(err error) error {
 			return common.ErrorSectionNotFound
 		default:
 			return common.ErrorNonexistentUser
+		}
+	case codes.InvalidArgument:
+		switch {
+		case strings.Contains(msg, identifierIncorrectTypeFile):
+			return common.ErrorInvalidContentType
+		default:
+			return common.ErrorInvalidInput
 		}
 	case codes.PermissionDenied:
 		return common.ErrorBoardPermissionDenied

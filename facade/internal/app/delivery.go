@@ -45,6 +45,7 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 
 	boardConfig := handlers.BoardConfig{
 		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
+		MaxBackgroundSize:          conf.App.MaxUploadImageSize,
 	}
 	appealConfig := handlers.AppealConfig{
 		MultipartAttachmentFileKey: conf.Services.Appeal.Handler.MultipartAttachmentFileKey,

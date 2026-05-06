@@ -388,7 +388,12 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseMultipartForm(h.conf.MaxBackgroundSize); err != nil {
 		logger.Error().Err(err).Msg("parse multipart form")
-		api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+		} else {
+			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		}
 		return
 	}
 
@@ -410,22 +415,27 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		Filename:  header.Filename,
 	}, file)
 	if err != nil {
-		if errors.Is(err, common.ErrorBoardNotFound) {
+		switch {
+		case errors.Is(err, common.ErrorNonexistentUser):
+			api.RespondError(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, common.ErrorBoardNotFound):
 			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
-			return
-		}
-		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+		case errors.Is(err, common.ErrorBoardPermissionDenied):
 			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
-			return
+		case errors.Is(err, common.ErrorInvalidInput):
+			api.RespondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, common.ErrorInvalidContentType):
+			api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
+		default:
+			errLog := fmt.Errorf("srv.UploadBackground: %w", err)
+			logger.Error().Err(errLog).Msg("board usecase UploadBackground")
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadBackground", map[string]interface{}{
+				"user_link":  userLink,
+				"board_link": boardLink,
+				"action":     "upload_background",
+			})
+			api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		}
-		errLog := fmt.Errorf("srv.UploadBackground: %w", err)
-		logger.Error().Err(errLog).Msg("board usecase UploadBackground")
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadBackground", map[string]interface{}{
-			"user_link":  userLink,
-			"board_link": boardLink,
-			"action":     "upload_background",
-		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		return
 	}
 
