@@ -33,8 +33,8 @@ func PrometheusMiddleware() func(http.Handler) http.Handler {
 			duration := time.Since(start).Seconds()
 			statusStrc := strconv.Itoa(rec.statusCode)
 
-			httpMetric.HttpRequestDuration.Observe(duration)
-			httpMetric.HttpRequestTotal.WithLabelValues(statusStrc).Inc()
+			httpMetric.HttpRequestDuration.WithLabelValues(r.Method).Observe(duration)
+			httpMetric.HttpRequestTotal.WithLabelValues(statusStrc, r.Method).Inc()
 		})
 	}
 }

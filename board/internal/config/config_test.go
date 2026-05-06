@@ -38,7 +38,8 @@ func TestConfigReading(t *testing.T) {
 				MaxLenDescription: 500,
 			},
 		},
-		Sentry: config.DefaultSentryConfig(),
+		Sentry:  config.DefaultSentryConfig(),
+		Metrics: config.DefaultMetrics(),
 	}
 
 	var yamlTest = []byte(`
