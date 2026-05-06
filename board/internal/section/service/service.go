@@ -217,6 +217,15 @@ func (s *Service) UpdateSection(ctx context.Context, updatingSection dto.FullSec
 		return fmt.Errorf("SectionService.CheckPermissionOnSection: %w", err)
 	}
 
+	info, err := s.rep.GetSection(ctx, updatingSection.SectionLink)
+	if err != nil {
+		return fmt.Errorf("SectionRepository.GetSectionInfo: %w", err)
+	}
+
+	if info.Position == 1 {
+		return common.ErrCannotUpdateBacklog
+	}
+
 	err = s.rep.UpdateSection(ctx, repositoryDto.FullSectionInfo{
 		SectionLink: updatingSection.SectionLink,
 		SectionName: updatingSection.SectionName,
