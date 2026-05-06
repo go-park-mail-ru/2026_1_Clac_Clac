@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
-	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
+	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -542,8 +542,11 @@ func (r *Repository) DeleteComment(ctx context.Context, commentLink uuid.UUID) e
 func (r *Repository) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
 	query := `
 		UPDATE comment_task
-		SET text = $1
+		SET
+			text = $1
+			updated_at = now()
 		WHERE link = $2
+		ORDER BY created_at ASC;
 	`
 
 	commandTag, err := r.pool.Exec(ctx, query, updateCommentInfo.Text, updateCommentInfo.CommentLink)

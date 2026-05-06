@@ -17,13 +17,14 @@ const (
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
 
-	identifierCardNotFound      = "card not found"
-	identifierSectionNotFound   = "section not found"
-	identifierBoardNotFound     = "board not found"
-	identifierCommentNotFound   = "comment not found"
-	identifierSubtaskNotFound   = "sub task not found"
-	identifierTaskLimitError    = "task limit reached"
-	identifierIncorrectTypeFile = "invalid content type"
+	identifierCardNotFound         = "card not found"
+	identifierSectionNotFound      = "section not found"
+	identifierBoardNotFound        = "board not found"
+	identifierCommentNotFound      = "comment not found"
+	identifierSubtaskNotFound      = "sub task not found"
+	identifierTaskLimitError       = "task limit"
+	identifierLostMandatorySection = "mandatory section"
+	identifierIncorrectTypeFile    = "invalid content type"
 
 	identifierAppealNotFound  = "appeal not found"
 	identifierInvalidCategory = "invalid category"
@@ -93,9 +94,13 @@ func convertCardGRPCError(err error) error {
 	case codes.AlreadyExists:
 		return common.ErrorCardAlreadyExists
 	case codes.InvalidArgument:
-		if strings.Contains(msg, identifierTaskLimitError) {
+		switch {
+		case strings.Contains(msg, identifierTaskLimitError):
 			return common.ErrorTaskLimitReached
+		case strings.Contains(msg, identifierLostMandatorySection):
+			return common.ErrCannotSkipMandatorySection
 		}
+
 		return common.ErrorInvalidInput
 	default:
 		return err

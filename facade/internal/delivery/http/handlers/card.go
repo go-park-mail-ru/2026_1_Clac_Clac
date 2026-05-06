@@ -39,14 +39,15 @@ const (
 	commentLinkKey = "comment_link"
 	subtaskLinkKey = "subtask_link"
 
-	msgCardNotFound      = "card not found"
-	msgSectionNotFound   = "section not found"
-	msgCommentNotFound   = "comment not found"
-	msgSubtaskNotFound   = "subtask not found"
-	msgPermissionDenied  = "permission denied"
-	msgCardAlreadyExists = "card already exists"
-	msgTaskLimitReached  = "task limit reached"
-	msgInvalidInput      = "invalid input"
+	msgCardNotFound         = "card not found"
+	msgSectionNotFound      = "section not found"
+	msgCommentNotFound      = "comment not found"
+	msgSubtaskNotFound      = "subtask not found"
+	msgPermissionDenied     = "permission denied"
+	msgCardAlreadyExists    = "card already exists"
+	msgTaskLimitReached     = "task limit reached"
+	msgMissMandatorySection = "miss mandatory section"
+	msgInvalidInput         = "invalid input"
 
 	msgFailGetCard       = "cannot get card"
 	msgFailDeleteCard    = "cannot delete card"
@@ -354,6 +355,11 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, common.ErrorTaskLimitReached) {
 			api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
+			return
+		}
+		if errors.Is(err, common.ErrCannotSkipMandatorySection) {
+			api.RespondError(w, http.StatusBadRequest, msgMissMandatorySection)
+			return
 		}
 
 		errLog := fmt.Errorf("card.ReorderCards: %w", err)
