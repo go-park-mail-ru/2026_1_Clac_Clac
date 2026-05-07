@@ -3,7 +3,7 @@ DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./
 .PHONY: docs proto
 
 docs:
-	swag init -g facade/cmd/api/main.go -o docs --parseDependency
+	swag init -g facade/cmd/api/main.go -o facade/docs --parseDependency
 
 proto:
 	protoc --proto_path=. --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_Clac_Clac \
