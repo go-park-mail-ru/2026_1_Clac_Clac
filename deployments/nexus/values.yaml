@@ -11,20 +11,20 @@ frontend:
   static: /home/ubuntu/public
   resources:
     limits:
-      memory: "128Mi"
-      cpu: "250m"
+      memory: "64Mi"
+      cpu: "10m"
 
 postgres:
   image: postgres:17-alpine
   port: 5432
   resources:
-    limits: { memory: "512Mi", cpu: "500m" }
+    limits: { memory: "256Mi", cpu: "100m" }
 
 redis:
   image: redis:7-alpine
   port: 6379
   resources:
-    limits: { memory: "512Mi", cpu: "500m" }
+    limits: { memory: "256Mi", cpu: "100m" }
 
 services:
   facade:
@@ -39,7 +39,7 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "500m"
+        cpu: "100m"
 
   rate-limiter:
     enabled: true
@@ -55,4 +55,4 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "500m"
+        cpu: "100m"
