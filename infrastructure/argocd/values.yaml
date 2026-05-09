@@ -17,6 +17,7 @@ server:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/service.serversscheme: http
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
     pathType: Prefix
     paths:
       - /
