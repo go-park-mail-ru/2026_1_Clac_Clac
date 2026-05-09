@@ -1,31 +1,31 @@
-{{- range .Values.services }}
-{{- if .enabled }}
+{{- range $svcName, $svc := .Values.services }}
+{{- if $svc.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $.Chart.Name }}-{{ .name }}
+  name: {{ $.Chart.Name }}-{{ $svcName }}
   namespace: {{ $.Values.namespace }}
   labels:
-    app: {{ .name }}
+    app: {{ $svcName }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .name }}
+      app: {{ $svcName }}
   template:
     metadata:
       labels:
-        app: {{ .name }}
+        app: {{ $svcName }}
     spec:
       containers:
-        - name: {{ .name }}
-          image: {{ .image }}
+        - name: {{ $svcName }}
+          image: {{ $svc.image }}
           ports:
-            - containerPort: {{ .port }}
+            - containerPort: {{ $svc.port }}
               name: http
 
-          {{- with .resources }}
+          {{- with $svc.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}

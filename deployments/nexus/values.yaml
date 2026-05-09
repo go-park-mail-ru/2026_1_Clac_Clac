@@ -27,7 +27,7 @@ redis:
     limits: { memory: "512Mi", cpu: "500m" }
 
 services:
-  - name: facade
+  facade:
     enabled: true
     image: nisakoo/nexus-facade:latest
     port: 8080
@@ -39,7 +39,8 @@ services:
       limits:
         memory: "256Mi"
         cpu: "500m"
-  - name: rate-limiter
+
+  rate-limiter:
     enabled: true
     image: nisakoo/nexus-rate_limiter
     port: 8080

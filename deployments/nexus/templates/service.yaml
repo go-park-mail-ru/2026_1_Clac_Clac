@@ -1,16 +1,16 @@
-{{- range .Values.services }}
-{{- if .enabled }}
+{{- range $svcName, $svc := .Values.services }}
+{{- if $svc.enabled }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Chart.Name }}-{{ .name }}-service
+  name: {{ $.Chart.Name }}-{{ $svcName }}-service
   namespace: {{ $.Values.namespace }}
 spec:
   selector:
-    app: {{ .name }}
+    app: {{ $svcName }}
   ports:
-    - port: {{ .port }}
+    - port: {{ $svc.port }}
       targetPort: http
       name: http
   type: ClusterIP
