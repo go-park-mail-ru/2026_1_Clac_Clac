@@ -29,5 +29,19 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+
+          volumeMounts:
+            {{- if $svc.appConfig }}
+            - name: config-volume
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            {{- end }}
+
+      volumes:
+        {{- if $svc.appConfig }}
+        - name: config-volume
+          configMap:
+            name: {{ $serviceName }}-config
+        {{- end }}
 {{- end }}
 {{- end }}
