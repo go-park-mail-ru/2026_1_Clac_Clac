@@ -1,21 +1,26 @@
 global:
-  domain: clac-clac.mooo.com
+  domain: argocd.clac-clac.ru
 
 configs:
   params:
     server.insecure: "true"
-    server.basehref: "/argocd"
-    server.rootpath: "/argocd"
+    server.basehref: "/"
+    server.rootpath: ""
 
 server:
   ingress:
     enabled: true
     ingressClassName: traefik
+    hosts:
+      - argocd.clac-clac.ru
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/service.serversscheme: http
-      traefik.ingress.kubernetes.io/router.priority: "100"
     pathType: Prefix
     paths:
-      - /argocd
+      - /
+    tls:
+      - hosts:
+          - argocd.clac-clac.ru
+        secretName: argocd-server-tls

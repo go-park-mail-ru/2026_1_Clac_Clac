@@ -2,7 +2,7 @@ namespace: "nexus-prod"
 
 ingress:
   enabled: true
-  host: clac-clac.mooo.com
+  host: clac-clac.ru
 
 frontend:
   enabled: true
