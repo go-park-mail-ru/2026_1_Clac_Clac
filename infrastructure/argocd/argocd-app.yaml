@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://argo.github.io/argo-helm
+    - repoURL: https://argoproj.github.io/argo-helm
       chart: argo-cd
       targetRevision: 9.5.13
       helm:

@@ -5,4 +5,7 @@ metadata:
   namespace: kube-system
 spec:
   valuesContent: |-
-    additionalArguments:
+    ports:
+      web:
+        redirectTo:
+          port: websecure
