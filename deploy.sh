@@ -14,21 +14,6 @@ SERVICES=("appeal" "authorization" "board" "facade" "mail_sender" "rate_limiter"
 DOCKER_USER=${DOCKER_USER:-"nisakoo"}
 
 # Логика
-
-# Работает нестабильно
-# check_auth() {
-#     if [ "$DRY_RUN" = true ]; then
-#         info "docker auth skip"
-#     else
-#         if docker login > /dev/null 2>&1; then
-#             ok "docker auth ready"
-#         else
-#             error "DOCKER AUTH FAILED"
-#             exit 1
-#         fi
-#     fi
-# }
-
 # $1 -- Таргет для билдинга
 build_service() {
     local svc=$1
@@ -44,9 +29,6 @@ build_service() {
 
 # Основной код
 [ "$DRY_RUN" = true ] && error "--- DRY RUN MODE ENABLED ---"
-
-# Проверяем выполнен ли вход в docker (Работает нестабильно)
-# check_auth
 
 # Первый параметр -- относительно чего делаем git diff
 BASE_DIFF_REF="$1"
