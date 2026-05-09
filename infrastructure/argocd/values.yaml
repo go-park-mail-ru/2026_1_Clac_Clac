@@ -14,8 +14,8 @@ server:
     annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
       traefik.ingress.kubernetes.io/service.serversscheme: http
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
     tls:
       - secretName: argocd-server-tls
         hosts:
