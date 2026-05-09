@@ -7,7 +7,8 @@ metadata:
   annotations:
       traefik.ingress.kubernetes.io/router.entrypoints: websecure
       traefik.ingress.kubernetes.io/router.tls: "true"
-      traefik.ingress.kubernetes.io/router.certResolver: letsencrypt
+      traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+      traefik.ingress.kubernetes.io/service.serversscheme: http
 spec:
   ingressClassName: traefik
   tls:
