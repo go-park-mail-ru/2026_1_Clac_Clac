@@ -14,6 +14,7 @@ spec:
   tls:
   - hosts:
     - {{ .Values.ingress.host }}
+    secretName: {{ .Chart.Name }}-tls-cert
   rules:
   - host: {{ .Values.ingress.host }}
     http:
