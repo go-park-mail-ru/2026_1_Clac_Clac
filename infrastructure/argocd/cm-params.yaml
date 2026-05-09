@@ -10,4 +10,3 @@ data:
   server.insecure: "true"
   server.basehref: "/argocd"
   server.rootpath: "/argocd"
-  server.external.url: "https://clac-clac.mooo.com/argocd"
