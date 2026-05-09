@@ -30,6 +30,7 @@ services:
   facade:
     enabled: true
     hasConfig: true
+    hasSecrets: true
     image: nisakoo/nexus-facade:latest
     port: 8080
     database:
@@ -44,13 +45,13 @@ services:
   rate-limiter:
     enabled: true
     hasConfig: true
+    hasSecrets: true
     image: nisakoo/nexus-rate_limiter
     port: 8080
     database:
       enabled: false
     redis:
       enabled: true
-      password: changeme
       db: 0
     resources:
       limits:

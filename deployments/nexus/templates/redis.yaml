@@ -1,6 +1,15 @@
 {{- range $svcName, $svc := .Values.services }}
 {{- if and $svc.enabled $svc.redis.enabled }}
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis-conf
+  namespace: {{ $.Values.namespace }}
+data:
+  redis.conf: |
+    requirepass $(REDIS_PASSWORD)
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,13 +30,28 @@ spec:
       containers:
         - name: {{ $svcName }}
           image: {{ $.Values.redis.image }}
+          args: ["redis-server", "/usr/local/etc/redis/redis.conf"]
           ports:
             - containerPort: {{ $.Values.redis.port }}
               name: redis
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: REDIS_PASSWORD
+          volumeMounts:
+            - name: redis-conf
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
           {{- with $.Values.redis.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      volumes:
+        - name: redis-conf
+          configMap:
+            name: {{ $.Chart.Name }}-{{ $svcName }}-redis-conf
 ---
 apiVersion: v1
 kind: Service

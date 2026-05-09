@@ -30,6 +30,15 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
 
+          {{- if and $svc.hasSecrets $svc.redis.enabled }}
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: REDIS_PASSWORD
+          {{- end }}
+
           {{- if $svc.hasConfig }}
           volumeMounts:
             - name: config-volume
