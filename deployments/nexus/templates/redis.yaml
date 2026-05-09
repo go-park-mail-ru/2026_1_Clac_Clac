@@ -1,25 +1,25 @@
-{{- range .Values.services }}
-{{- if and .enabled .redis.enabled }}
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.redis.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $.Chart.Name }}-{{ .name }}-redis
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis
   namespace: {{ $.Values.namespace }}
   labels:
-    app: {{ .name }}-redis
+    app: {{ $svcName }}-redis
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .name }}-redis
+      app: {{ $svcName }}-redis
   template:
     metadata:
       labels:
-        app: {{ .name }}-redis
+        app: {{ $svcName }}-redis
     spec:
       containers:
-        - name: {{ .name }}
+        - name: {{ $svcName }}
           image: {{ $.Values.redis.image }}
           ports:
             - containerPort: {{ $.Values.redis.port }}
@@ -32,11 +32,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Chart.Name }}-{{ .name }}-redis-service
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis-service
   namespace: {{ $.Values.namespace }}
 spec:
   selector:
-    app: {{ .name }}-redis
+    app: {{ $svcName }}-redis
   ports:
     - port: {{ $.Values.redis.port }}
       targetPort: redis
