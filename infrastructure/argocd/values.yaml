@@ -1,3 +1,6 @@
+global:
+  domain: clac-clac.mooo.com
+
 configs:
   params:
     server.insecure: "true"
@@ -13,8 +16,6 @@ server:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
       traefik.ingress.kubernetes.io/service.serversscheme: http
-    hosts:
-      - clac-clac.mooo.com
     tls:
       - secretName: argocd-server-tls
         hosts:
