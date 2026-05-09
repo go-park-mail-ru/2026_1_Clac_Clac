@@ -29,6 +29,7 @@ redis:
 services:
   facade:
     enabled: true
+    hasConfig: true
     image: nisakoo/nexus-facade:latest
     port: 8080
     database:
@@ -42,6 +43,7 @@ services:
 
   rate-limiter:
     enabled: true
+    hasConfig: true
     image: nisakoo/nexus-rate_limiter
     port: 8080
     database:
