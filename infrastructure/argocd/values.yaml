@@ -16,6 +16,7 @@ server:
       traefik.ingress.kubernetes.io/router.tls: "true"
       traefik.ingress.kubernetes.io/service.serversscheme: http
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      traefik.ingress.kubernetes.io/router.priority: "100"
     tls:
       - secretName: argocd-server-tls
         hosts:
