@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: https://argo.github.io/argo-helm
+      chart: argo-cd
+      targetRevision: 9.5.13
+      helm:
+        valueFiles:
+          - $values/infrastructure/argocd/values.yaml
+    - repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
+      targetRevision: feat/k3s
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
