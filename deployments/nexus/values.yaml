@@ -1,0 +1,55 @@
+namespace: "nexus-prod"
+
+ingress:
+  enabled: true
+  host: clac-clac.mooo.com
+
+frontend:
+  enabled: true
+  image: nginx:alpine
+  port: 80
+  static: /home/ubuntu/public
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "250m"
+
+postgres:
+  image: postgres:17-alpine
+  port: 5432
+  resources:
+    limits: { memory: "512Mi", cpu: "500m" }
+
+redis:
+  image: redis:7-alpine
+  port: 6379
+  resources:
+    limits: { memory: "512Mi", cpu: "500m" }
+
+services:
+  - name: facade
+    enabled: true
+    image: nisakoo/nexus-facade:latest
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+  - name: rate-limiter
+    enabled: true
+    image: nisakoo/nexus-rate_limiter
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
+      password: changeme
+      db: 0
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "500m"

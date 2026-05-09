@@ -1,0 +1,9 @@
+apiVersion: traefik.containo.io/v1alpha1
+kind: Middleware
+metadata:
+  name: argocd-stripprefix
+  namespace: argocd
+spec:
+  stripPrefix:
+    prefixes:
+      - /argocd

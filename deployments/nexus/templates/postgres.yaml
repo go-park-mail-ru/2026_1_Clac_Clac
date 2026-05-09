@@ -1,0 +1,65 @@
+{{- range .Values.services }}
+{{- if and .enabled .database.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Chart.Name }}-{{ .name }}-db
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ .name }}-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .name }}-db
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}-db
+    spec:
+      containers:
+        - name: {{ .name }}
+          image: {{ $.Values.postgres.image }}
+          ports:
+            - containerPort: {{ $.Values.postgres.port }}
+              name: postgres
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          volumes:
+            - name: postgres-data
+              persistentVolumeClaim:
+                claimName: {{ $.Chart.Name }}-{{ .name }}-db-pvc
+          {{- with $.Values.postgres.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Chart.Name }}-{{ .name }}-db-service
+  namespace: {{ $.Values.namespace }}
+spec:
+  selector:
+    app: {{ .name }}-db
+  ports:
+    - port: {{ $.Values.postgres.port }}
+      targetPort: postgres
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Chart.Name }}-{{ .name }}-db-pvc
+  namespace: {{ $.Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+{{- end }}
+{{- end }}
