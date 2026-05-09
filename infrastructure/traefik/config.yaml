@@ -6,7 +6,7 @@ metadata:
 spec:
   valuesContent: |-
     additionalArguments:
-      - "--certificatesresolvers.letsencrypt.acme.email=твой-email@mail.ru"
+      - "--certificatesresolvers.letsencrypt.acme.email=nexus_clacclac@mail.ru"
       - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"

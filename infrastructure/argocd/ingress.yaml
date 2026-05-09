@@ -12,6 +12,7 @@ spec:
   tls:
     - hosts:
         - clac-clac.mooo.com
+      secretName: argocd-server-tls
   rules:
     - host: clac-clac.mooo.com
       http:
