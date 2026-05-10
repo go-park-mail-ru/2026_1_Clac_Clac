@@ -12,6 +12,7 @@ spec:
       helm:
         values: |
           config:
+            checkInterval: 10m
             registries: []
           metrics:
             enabled: false

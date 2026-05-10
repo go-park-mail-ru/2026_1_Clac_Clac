@@ -45,7 +45,8 @@ spec:
               mountPath: /var/lib/grafana
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: grafana-pvc
 ---
 apiVersion: v1
 kind: Service
