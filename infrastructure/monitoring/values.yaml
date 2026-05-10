@@ -1,5 +1,12 @@
 grafana:
   enabled: true
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+    requests:
+      memory: "64Mi"
+      cpu: "10m"
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -20,6 +27,14 @@ grafana:
 
 prometheus:
   prometheusSpec:
+    retention: 2d
+    resources:
+      limits:
+        memory: "384Mi"
+        cpu: "200m"
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
     additionalScrapeConfigs:
       - job_name: "nexus-services"
         static_configs:
@@ -34,7 +49,33 @@ prometheus:
 
 nodeExporter:
   enabled: true
+  resources:
+    limits:
+      memory: "32Mi"
+      cpu: "50m"
+    requests:
+      memory: "16Mi"
+      cpu: "10m"
+
 kubeStateMetrics:
   enabled: true
+  resources:
+    limits:
+      memory: "64Mi"
+      cpu: "50m"
+    requests:
+      memory: "32Mi"
+      cpu: "10m"
+
 alertmanager:
   enabled: false
+
+# Disable other components to save RAM
+prometheusOperator:
+  resources:
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+    requests:
+      memory: "64Mi"
+      cpu: "10m"
