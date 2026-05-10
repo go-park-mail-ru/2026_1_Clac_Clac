@@ -71,3 +71,18 @@ services:
       limits:
         memory: "256Mi"
         cpu: "100m"
+
+  user:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-user
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "100m"

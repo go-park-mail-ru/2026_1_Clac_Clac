@@ -43,6 +43,29 @@ spec:
                   key: REDIS_PASSWORD
           {{- end }}
 
+          {{- if and $svc.hasSecrets $svc.database.enabled }}
+          env:
+            - name: DATABASE_HOST
+              value: {{ $.Chart.Name }}-{{ $svcName }}-db-service
+            - name: DATABASE_PORT
+              value: {{ $.Values.postgres.port | quote }}
+            - name: DATABASE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_PASSWORD
+          {{- end }}
+
           {{- if $svc.hasConfig }}
           volumeMounts:
             - name: config-volume
