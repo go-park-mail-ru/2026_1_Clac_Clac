@@ -18,13 +18,13 @@ postgres:
   image: postgres:17-alpine
   port: 5432
   resources:
-    limits: { memory: "256Mi", cpu: "100m" }
+    limits: { memory: "256Mi", cpu: "50m" }
 
 redis:
   image: redis:7-alpine
   port: 6379
   resources:
-    limits: { memory: "256Mi", cpu: "100m" }
+    limits: { memory: "256Mi", cpu: "50m" }
 
 services:
   facade:
@@ -40,7 +40,7 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "100m"
+        cpu: "50m"
 
   rate-limiter:
     enabled: true
@@ -55,7 +55,7 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "100m"
+        cpu: "50m"
 
   authorization:
     enabled: true
@@ -70,7 +70,7 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "100m"
+        cpu: "50m"
 
   user:
     enabled: true
@@ -85,7 +85,7 @@ services:
     resources:
       limits:
         memory: "256Mi"
-        cpu: "100m"
+        cpu: "50m"
 
   mail-sender:
     enabled: true
@@ -99,5 +99,5 @@ services:
       enabled: true
     resources:
       limits:
-        memory: "256Mi"
-        cpu: "100m"
+        memory: "128Mi"
+        cpu: "50m"
