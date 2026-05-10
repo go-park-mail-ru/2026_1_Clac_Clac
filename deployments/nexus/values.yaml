@@ -101,3 +101,18 @@ services:
       limits:
         memory: "128Mi"
         cpu: "50m"
+
+  board:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-board:latest
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "50m"
