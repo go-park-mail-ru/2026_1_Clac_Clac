@@ -116,3 +116,18 @@ services:
       limits:
         memory: "128Mi"
         cpu: "50m"
+
+  appeal:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-appeal:latest
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "50m"
