@@ -27,14 +27,33 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_PASSWORD
+
+          {{- with $.Values.postgres.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: {{ $.Chart.Name }}-{{ $svcName }}-db-pvc
-      {{- with $.Values.postgres.resources }}
-      resources:
-        {{- toYaml . | nindent 12 }}
-      {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -60,6 +79,5 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: standard
 {{- end }}
 {{- end }}
