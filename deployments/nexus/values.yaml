@@ -52,7 +52,21 @@ services:
       enabled: false
     redis:
       enabled: true
-      db: 0
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "100m"
+
+  authorization:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-authorization
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
     resources:
       limits:
         memory: "256Mi"
