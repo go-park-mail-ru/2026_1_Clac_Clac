@@ -3,6 +3,30 @@ kind: Application
 metadata:
   name: nexus
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/write-back-method: annotation
+    argocd-image-updater.argoproj.io/image-list: >-
+      facade=nisakoo/nexus-facade,
+      rate-limiter=nisakoo/nexus-rate_limiter,
+      authorization=nisakoo/nexus-authorization,
+      user=nisakoo/nexus-user,
+      mail-sender=nisakoo/nexus-mail_sender,
+      board=nisakoo/nexus-board,
+      appeal=nisakoo/nexus-appeal
+    argocd-image-updater.argoproj.io/facade.update-strategy: digest
+    argocd-image-updater.argoproj.io/facade.helm.image-spec: services.facade.image
+    argocd-image-updater.argoproj.io/rate-limiter.update-strategy: digest
+    argocd-image-updater.argoproj.io/rate-limiter.helm.image-spec: services.rate-limiter.image
+    argocd-image-updater.argoproj.io/authorization.update-strategy: digest
+    argocd-image-updater.argoproj.io/authorization.helm.image-spec: services.authorization.image
+    argocd-image-updater.argoproj.io/user.update-strategy: digest
+    argocd-image-updater.argoproj.io/user.helm.image-spec: services.user.image
+    argocd-image-updater.argoproj.io/mail-sender.update-strategy: digest
+    argocd-image-updater.argoproj.io/mail-sender.helm.image-spec: services.mail-sender.image
+    argocd-image-updater.argoproj.io/board.update-strategy: digest
+    argocd-image-updater.argoproj.io/board.helm.image-spec: services.board.image
+    argocd-image-updater.argoproj.io/appeal.update-strategy: digest
+    argocd-image-updater.argoproj.io/appeal.helm.image-spec: services.appeal.image
 spec:
   project: default
   source:
