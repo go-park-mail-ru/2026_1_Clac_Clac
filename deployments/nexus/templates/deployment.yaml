@@ -24,6 +24,8 @@ spec:
           ports:
             - containerPort: {{ $svc.port }}
               name: http
+            - containerPort: 9091
+              name: metrics
 
           {{- with $svc.resources }}
           resources:

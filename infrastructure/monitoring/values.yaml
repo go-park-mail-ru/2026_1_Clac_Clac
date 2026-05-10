@@ -1,0 +1,40 @@
+grafana:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - monitor.clac-clac.ru
+    tls:
+      - secretName: monitoring-tls-cert
+        hosts:
+          - monitor.clac-clac.ru
+  grafana.ini:
+    server:
+      domain: monitor.clac-clac.ru
+      root_url: https://monitor.clac-clac.ru
+
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+      - job_name: "nexus-services"
+        static_configs:
+          - targets:
+              - "nexus-facade-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-user-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-board-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-appeal-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-authorization-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-mail-sender-service.nexus-prod.svc.cluster.local:9091"
+              - "nexus-rate-limiter-service.nexus-prod.svc.cluster.local:9091"
+
+nodeExporter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+alertmanager:
+  enabled: false

@@ -13,6 +13,9 @@ spec:
     - port: {{ $svc.port }}
       targetPort: http
       name: http
+    - port: 9091
+      targetPort: metrics
+      name: metrics
   type: ClusterIP
 {{- end }}
 {{- end }}
