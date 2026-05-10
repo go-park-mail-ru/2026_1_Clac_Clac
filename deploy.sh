@@ -35,7 +35,7 @@ build_service() {
     if [ "$DRY_RUN" = true ]; then
         info "$svc build skip"
     else
-        docker build -f "$DEPLOYMENT_DIR/$svc/Dockerfile" -t "$DOCKER_USER/nexus-$svc:latest" . || { error "build failed for $svc"; exit 1; }
+        docker build --platform linux/amd64 -f "$DEPLOYMENT_DIR/$svc/Dockerfile" -t "$DOCKER_USER/nexus-$svc:latest" . || { error "build failed for $svc"; exit 1; }
         docker push "$DOCKER_USER/nexus-$svc:latest" || { error "push failed for $svc"; exit 1; }
     fi
 
