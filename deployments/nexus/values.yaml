@@ -46,7 +46,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-rate_limiter
+    image: nisakoo/nexus-rate_limiter:latest
     port: 8080
     database:
       enabled: false

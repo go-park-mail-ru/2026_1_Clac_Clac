@@ -5,6 +5,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ $svcName }}-config
+  namespace: {{ $.Values.namespace }}
 data:
   config.yaml: |-
 {{ $.Files.Get (printf "configs/%s.yaml" $svcName) | indent 4 }}
