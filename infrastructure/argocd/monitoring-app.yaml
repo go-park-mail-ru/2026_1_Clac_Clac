@@ -5,16 +5,10 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  sources:
-    - repoURL: https://prometheus-community.github.io/helm-charts
-      chart: kube-prometheus-stack
-      targetRevision: 84.5.0
-      helm:
-        valueFiles:
-          - $values/infrastructure/monitoring/values.yaml
-    - repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
-      targetRevision: feat/k3s
-      ref: values
+  source:
+    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
+    targetRevision: feat/k3s
+    path: infrastructure/monitoring/minimal
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
