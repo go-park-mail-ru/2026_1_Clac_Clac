@@ -2,10 +2,10 @@ grafana:
   enabled: true
   resources:
     limits:
-      memory: "512Mi"
+      memory: "256Mi"
       cpu: "200m"
     requests:
-      memory: "256Mi"
+      memory: "128Mi"
       cpu: "50m"
   readinessProbe:
     initialDelaySeconds: 60
@@ -31,13 +31,15 @@ grafana:
 prometheus:
   prometheusSpec:
     retention: 2d
+    retentionSize: "2GB"
+    scrapeInterval: 30s
     resources:
       limits:
         memory: "512Mi"
-        cpu: "200m"
+        cpu: "500m"
       requests:
         memory: "256Mi"
-        cpu: "50m"
+        cpu: "100m"
     additionalScrapeConfigs:
       - job_name: "nexus-services"
         static_configs:
@@ -50,14 +52,28 @@ prometheus:
               - "nexus-mail-sender-service.nexus-prod.svc.cluster.local:9091"
               - "nexus-rate-limiter-service.nexus-prod.svc.cluster.local:9091"
 
+alertmanager:
+  enabled: false
+
+coreDns:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
 nodeExporter:
   enabled: true
   resources:
     limits:
-      memory: "32Mi"
+      memory: "64Mi"
       cpu: "50m"
     requests:
-      memory: "16Mi"
+      memory: "32Mi"
       cpu: "10m"
 
 kubeStateMetrics:
@@ -70,15 +86,11 @@ kubeStateMetrics:
       memory: "32Mi"
       cpu: "10m"
 
-alertmanager:
-  enabled: false
-
-# Disable other components to save RAM
 prometheusOperator:
   resources:
     limits:
-      memory: "128Mi"
-      cpu: "100m"
+      memory: "256Mi"
+      cpu: "200m"
     requests:
-      memory: "64Mi"
-      cpu: "10m"
+      memory: "128Mi"
+      cpu: "50m"
