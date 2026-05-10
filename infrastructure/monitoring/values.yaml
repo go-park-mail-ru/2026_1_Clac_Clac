@@ -2,11 +2,14 @@ grafana:
   enabled: true
   resources:
     limits:
-      memory: "128Mi"
-      cpu: "100m"
+      memory: "512Mi"
+      cpu: "200m"
     requests:
-      memory: "64Mi"
-      cpu: "10m"
+      memory: "256Mi"
+      cpu: "50m"
+  readinessProbe:
+    initialDelaySeconds: 60
+    failureThreshold: 10
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -30,10 +33,10 @@ prometheus:
     retention: 2d
     resources:
       limits:
-        memory: "384Mi"
+        memory: "512Mi"
         cpu: "200m"
       requests:
-        memory: "128Mi"
+        memory: "256Mi"
         cpu: "50m"
     additionalScrapeConfigs:
       - job_name: "nexus-services"
