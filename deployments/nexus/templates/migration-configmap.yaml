@@ -1,0 +1,22 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.database.enabled }}
+
+{{- $migrations := $.Files.Glob (printf "migrations/%s/*.sql" $svcName) }}
+{{- if $migrations }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $svcName }}-migrations
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+data:
+  {{- range $path, $bytes := $migrations }}
+  {{ base $path }}: |-
+{{ $bytes | toString | indent 4 }}
+  {{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}
