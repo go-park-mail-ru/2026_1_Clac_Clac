@@ -32,7 +32,6 @@ type App struct {
 }
 
 func NewApp(conf config.Config) (*App, error) {
-	// TODO: delete this comment
 	app := &App{
 		Config: conf,
 	}

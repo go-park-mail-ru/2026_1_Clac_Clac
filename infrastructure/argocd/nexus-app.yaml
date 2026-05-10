@@ -6,13 +6,13 @@ metadata:
   annotations:
     argocd-image-updater.argoproj.io/write-back-method: annotation
     argocd-image-updater.argoproj.io/image-list: >-
-      facade=nisakoo/nexus-facade,
-      rate-limiter=nisakoo/nexus-rate_limiter,
-      authorization=nisakoo/nexus-authorization,
-      user=nisakoo/nexus-user,
-      mail-sender=nisakoo/nexus-mail_sender,
-      board=nisakoo/nexus-board,
-      appeal=nisakoo/nexus-appeal
+      facade=nisakoo/nexus-facade:latest,
+      rate-limiter=nisakoo/nexus-rate_limiter:latest,
+      authorization=nisakoo/nexus-authorization:latest,
+      user=nisakoo/nexus-user:latest,
+      mail-sender=nisakoo/nexus-mail_sender:latest,
+      board=nisakoo/nexus-board:latest,
+      appeal=nisakoo/nexus-appeal:latest
     argocd-image-updater.argoproj.io/facade.update-strategy: digest
     argocd-image-updater.argoproj.io/facade.helm.image-spec: services.facade.image
     argocd-image-updater.argoproj.io/rate-limiter.update-strategy: digest
