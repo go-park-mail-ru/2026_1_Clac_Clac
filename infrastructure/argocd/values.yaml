@@ -25,3 +25,21 @@ server:
       - hosts:
           - argocd.clac-clac.ru
         secretName: argocd-server-tls
+
+repoServer:
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+
+controller:
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
