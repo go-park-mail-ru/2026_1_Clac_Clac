@@ -86,3 +86,18 @@ services:
       limits:
         memory: "256Mi"
         cpu: "100m"
+
+  mail-sender:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-mail_sender:latest
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "256Mi"
+        cpu: "100m"
