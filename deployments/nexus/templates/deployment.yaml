@@ -32,6 +32,10 @@ spec:
 
           {{- if and $svc.hasSecrets $svc.redis.enabled }}
           env:
+            - name: REDIS_HOST
+              value: {{ $svcName }}-redis
+            - name: REDIS_PORT
+              value: {{ $.Values.redis.port }}
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
