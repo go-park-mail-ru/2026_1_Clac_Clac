@@ -45,10 +45,14 @@ type SubtaskResponse struct {
 	Position    int       `json:"position"`
 }
 
+// AttachmentResponse описывает вложение карточки.
+//
+//	@Description	Информация о вложении карточки
 type AttachmentResponse struct {
-	AttachmentLink uuid.UUID `json:"attachment_link"`
-	AttachmentPath string    `json:"attachment_path"`
-	Position       int       `json:"position"`
+	AttachmentLink uuid.UUID `json:"attachment_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Path           string    `json:"attachment_path" example:"https://s3.example.com/cards/file.pdf"`
+	DisplayName    string    `json:"display_name"   example:"report.pdf"`
+	Position       int       `json:"position"       example:"1"`
 }
 
 // CardResponse describes full card info.

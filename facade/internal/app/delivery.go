@@ -41,6 +41,9 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	cardConfig := handlers.CardConfig{
 		MaxLenTitle:       conf.Services.Card.Handler.MaxLenTitle,
 		MaxLenDescription: conf.Services.Card.Handler.MaxLenDescription,
+
+		MultipartAttachmentFileKey: conf.Services.Card.Handler.MultipartAttachmentFileKey,
+		MaxAttachmentSize:          conf.App.MaxFileSize,
 	}
 
 	boardConfig := handlers.BoardConfig{

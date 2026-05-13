@@ -31,11 +31,15 @@ type CardUsecase interface {
 	UpdateComment(ctx context.Context, infoComment domain.UpdateCommentRequest) error
 	CreateSubtask(ctx context.Context, infoSubtask domain.CreateSubtaskRequest) (domain.SubtaskInfo, error)
 	UpdateSubtask(ctx context.Context, infoSubtask domain.UpdateSubtaskRequest) error
-	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error
+	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error
+	CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error)
+	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
 }
 
 const (
-	cardLinkKey    = "link"
+	cardLinkKey = "link"
+
+	attachmentLink = "attachment_link"
 	commentLinkKey = "comment_link"
 	subtaskLinkKey = "subtask_link"
 
@@ -43,29 +47,35 @@ const (
 	msgSectionNotFound      = "section not found"
 	msgCommentNotFound      = "comment not found"
 	msgSubtaskNotFound      = "subtask not found"
+	msgAttachmentNotFound   = "attachment not found"
 	msgPermissionDenied     = "permission denied"
 	msgCardAlreadyExists    = "card already exists"
 	msgTaskLimitReached     = "task limit reached"
 	msgMissMandatorySection = "miss mandatory section"
 	msgInvalidInput         = "invalid input"
 
-	msgFailGetCard       = "cannot get card"
-	msgFailDeleteCard    = "cannot delete card"
-	msgFailUpdateCard    = "cannot update card"
-	msgFailReorderCards  = "cannot reorder cards"
-	msgFailCreateCard    = "cannot create card"
-	msgFailGetComments   = "cannot get comments"
-	msgFailCreateComment = "cannot create comment"
-	msgFailDeleteComment = "cannot delete comment"
-	msgFailUpdateComment = "cannot update comment"
-	msgFailCreateSubtask = "cannot create subtask"
-	msgFailUpdateSubtask = "cannot update subtask"
-	msgFailDeleteSubtask = "cannot delete subtask"
+	msgFailGetCard          = "cannot get card"
+	msgFailDeleteCard       = "cannot delete card"
+	msgFailUpdateCard       = "cannot update card"
+	msgFailReorderCards     = "cannot reorder cards"
+	msgFailCreateCard       = "cannot create card"
+	msgFailGetComments      = "cannot get comments"
+	msgFailCreateComment    = "cannot create comment"
+	msgFailDeleteComment    = "cannot delete comment"
+	msgFailUpdateComment    = "cannot update comment"
+	msgFailCreateSubtask    = "cannot create subtask"
+	msgFailUpdateSubtask    = "cannot update subtask"
+	msgFailDeleteSubtask    = "cannot delete subtask"
+	msgFailCreateAttachment = "cannot create attachment"
+	msgFailDeleteAttachment = "cannot delete attachment"
 )
 
 type CardConfig struct {
 	MaxLenTitle       int
 	MaxLenDescription int
+
+	MultipartAttachmentFileKey string
+	MaxAttachmentSize          int64
 }
 
 type Card struct {
@@ -916,7 +926,7 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.card.DeleteSubtask(r.Context(), domain.DeleteSubtask{
+	err = c.card.DeleteSubtask(r.Context(), domain.DeleteSubtaskRequest{
 		UserLink:    userLink,
 		SubtaskLink: subtaskLink,
 	})
@@ -937,6 +947,156 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 			"action":       "delete_subtask",
 		})
 		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteSubtask)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
+// CreateAttachment загружает вложение к карточке
+//
+//	@Summary		Загрузить вложение
+//	@Description	Загружает файл как вложение к карточке. Формат запроса: multipart/form-data.
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			link		path		string									true	"UUID карточки"
+//	@Param			attachment	formData	file									true	"Загружаемый файл"
+//	@Success		200			{object}	api.OkResponse[dto.AttachmentResponse]	"Вложение загружено"
+//	@Failure		400			{object}	api.ErrorResponse						"Некорректный UUID или формат данных"
+//	@Failure		401			{object}	api.ErrorResponse						"Пользователь не авторизован"
+//	@Failure		403			{object}	api.ErrorResponse						"Нет прав доступа"
+//	@Failure		404			{object}	api.ErrorResponse						"Карточка не найдена"
+//	@Failure		413			{object}	api.ErrorResponse						"Файл слишком большой"
+//	@Failure		500			{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/cards/{link}/attachments [post]
+func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	cardLink, ok := parseCardLink(w, r)
+	if !ok {
+		return
+	}
+
+	if err := r.ParseMultipartForm(c.cfg.MaxAttachmentSize); err != nil {
+		logger.Error().Err(err).Msg("parse multipart form")
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+		} else {
+			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		}
+		return
+	}
+
+	file, header, err := r.FormFile(c.cfg.MultipartAttachmentFileKey)
+	if err != nil {
+		logger.Error().Err(err).Str("expected key", c.cfg.MultipartAttachmentFileKey).Msg("cannot find attachment key")
+		api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
+		return
+	}
+
+	defer func() {
+		if err := file.Close(); err != nil {
+			logger.Error().Err(err).Msg("CardHandler.CreateAttachment close file")
+		}
+	}()
+
+	attachment, err := c.card.CreateAttachment(r.Context(), domain.CreateAttachmentRequest{
+		UserLink:   userLink,
+		TaskLink:   cardLink,
+		Attachment: file,
+		Filename:   header.Filename,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		case errors.Is(err, common.ErrorInvalidInput):
+			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			return
+		case errors.Is(err, common.ErrorCardNotFound):
+			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			return
+		}
+
+		errLog := fmt.Errorf("card.CreateAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("card.CreateAttachment fail")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateAttachment", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "create_attachment",
+		})
+		api.RespondError(w, http.StatusInternalServerError, msgFailCreateAttachment)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, dto.AttachmentResponse{
+		AttachmentLink: attachment.AttachmentLink,
+		Path:           attachment.Path,
+		DisplayName:    attachment.DisplayName,
+		Position:       attachment.Position,
+	}))
+}
+
+// DeleteAttachment удаляет вложение карточки
+//
+//	@Summary		Удалить вложение
+//	@Description	Удаляет вложение карточки по его UUID.
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Param			attachment_link	path		string				true	"UUID вложения"
+//	@Success		200				{object}	api.Response		"Вложение удалено"
+//	@Failure		400				{object}	api.ErrorResponse	"Некорректный UUID"
+//	@Failure		401				{object}	api.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		403				{object}	api.ErrorResponse	"Нет прав доступа"
+//	@Failure		404				{object}	api.ErrorResponse	"Вложение не найдено"
+//	@Failure		500				{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/attachments/{attachment_link} [delete]
+func (c *Card) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	rawAttachmentLink := mux.Vars(r)[attachmentLink]
+	parsedAttachmentLink, err := uuid.Parse(rawAttachmentLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	err = c.card.DeleteAttachment(r.Context(), domain.DeleteAttachmentRequest{
+		UserLink:       userLink,
+		AttachmentLink: parsedAttachmentLink,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorAttachmentNotFound):
+			api.RespondError(w, http.StatusNotFound, msgAttachmentNotFound)
+			return
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+
+		errLog := fmt.Errorf("card.DeleteAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("card.DeleteAttachment fail")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "DeleteAttachment", map[string]interface{}{
+			"user_link":       userLink,
+			"attachment_link": parsedAttachmentLink,
+			"action":          "delete_attachment",
+		})
+		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAttachment)
 		return
 	}
 
@@ -978,7 +1138,8 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.Car
 	for _, attachment := range card.Attachments {
 		attachments = append(attachments, dto.AttachmentResponse{
 			AttachmentLink: attachment.AttachmentLink,
-			AttachmentPath: attachment.Path,
+			Path:           attachment.Path,
+			DisplayName:    attachment.DisplayName,
 			Position:       attachment.Position,
 		})
 	}

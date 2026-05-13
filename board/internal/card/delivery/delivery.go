@@ -777,13 +777,15 @@ func (h *CardHandler) CreateAttachment(ctx context.Context, req *pb.CreateAttach
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		case errors.Is(err, common.ErrInvalidReferenceCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
 		errLog := fmt.Errorf("CardService.CreateAttachment: %w", err)
 		logger.Error().Err(errLog).Msg("CardService.CreateAttachment")
 		sentryLogger.CaptureFromContext(ctx, errLog, "CreateAttachment", map[string]interface{}{
 			"user_link": req.UserLink,
-			"action":    "create_attacment",
+			"action":    "create_attachment",
 		})
 
 		return nil, status.Error(codes.Internal, ErrCannotCreateAttachment.Error())

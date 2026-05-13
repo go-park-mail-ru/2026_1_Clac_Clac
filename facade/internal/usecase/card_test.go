@@ -13,20 +13,21 @@ import (
 )
 
 var (
-	fixedCardLink    = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-	fixedCommentLink = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
-	fixedSubtaskLink = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
-	fixedUserLink    = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	cardTestError    = errors.New("card client error")
+	fixedCardLink       = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	fixedCommentLink    = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	fixedSubtaskLink    = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	fixedUserLink       = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	fixedAttachmentLink = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
+	cardTestError       = errors.New("card client error")
 )
 
 type mockCardClient struct {
 	mock.Mock
 }
 
-func (m *mockCardClient) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (m *mockCardClient) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	args := m.Called(ctx, infoCard)
-	return args.Get(0).(domain.CardInfo), args.Error(1)
+	return args.Get(0).(domain.CardFullInfo), args.Error(1)
 }
 
 func (m *mockCardClient) DeleteCard(ctx context.Context, infoCard domain.DeleteCardRequest) error {
@@ -79,19 +80,29 @@ func (m *mockCardClient) UpdateSubtask(ctx context.Context, infoSubtask domain.U
 	return args.Error(0)
 }
 
-func (m *mockCardClient) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error {
+func (m *mockCardClient) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error {
 	args := m.Called(ctx, infoSubtask)
+	return args.Error(0)
+}
+
+func (m *mockCardClient) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
+	args := m.Called(ctx, infoAttachment)
+	return args.Get(0).(domain.AttachmentInfo), args.Error(1)
+}
+
+func (m *mockCardClient) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
+	args := m.Called(ctx, infoAttachment)
 	return args.Error(0)
 }
 
 func TestCardUsecase_GetCard(t *testing.T) {
 	req := domain.GetCardRequest{UserLink: fixedUserLink, CardLink: fixedCardLink}
-	expectedCard := domain.CardInfo{CardLink: fixedCardLink, Title: "Test Card"}
+	expectedCard := domain.CardFullInfo{CardLink: fixedCardLink, Title: "Test Card"}
 
 	tests := []struct {
 		name         string
 		mockBehavior func(m *mockCardClient)
-		expectedCard domain.CardInfo
+		expectedCard domain.CardFullInfo
 		expectError  bool
 	}{
 		{
@@ -105,9 +116,9 @@ func TestCardUsecase_GetCard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("GetCard", mock.Anything, req).Return(domain.CardInfo{}, cardTestError)
+				m.On("GetCard", mock.Anything, req).Return(domain.CardFullInfo{}, cardTestError)
 			},
-			expectedCard: domain.CardInfo{},
+			expectedCard: domain.CardFullInfo{},
 			expectError:  true,
 		},
 	}
@@ -606,7 +617,7 @@ func TestCardUsecase_UpdateSubtask(t *testing.T) {
 }
 
 func TestCardUsecase_DeleteSubtask(t *testing.T) {
-	req := domain.DeleteSubtask{UserLink: fixedUserLink, SubtaskLink: fixedSubtaskLink}
+	req := domain.DeleteSubtaskRequest{UserLink: fixedUserLink, SubtaskLink: fixedSubtaskLink}
 
 	tests := []struct {
 		name         string
@@ -635,6 +646,105 @@ func TestCardUsecase_DeleteSubtask(t *testing.T) {
 			tc.mockBehavior(m)
 
 			err := NewCard(m).DeleteSubtask(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, cardTestError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardUsecase_CreateAttachment(t *testing.T) {
+	req := domain.CreateAttachmentRequest{
+		UserLink: fixedUserLink,
+		TaskLink: fixedCardLink,
+		Filename: "photo.png",
+	}
+	expectedAttachment := domain.AttachmentInfo{
+		AttachmentLink: fixedAttachmentLink,
+		DisplayName:    "photo.png",
+		Path:           "https://s3.example.com/file.png",
+		Position:       1,
+	}
+
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockCardClient)
+		expected     domain.AttachmentInfo
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("CreateAttachment", mock.Anything, req).Return(expectedAttachment, nil)
+			},
+			expected:    expectedAttachment,
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("CreateAttachment", mock.Anything, req).Return(domain.AttachmentInfo{}, cardTestError)
+			},
+			expected:    domain.AttachmentInfo{},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardClient)
+			tc.mockBehavior(m)
+
+			result, err := NewCard(m).CreateAttachment(context.Background(), req)
+
+			assert.Equal(t, tc.expected, result)
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, cardTestError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardUsecase_DeleteAttachment(t *testing.T) {
+	req := domain.DeleteAttachmentRequest{
+		UserLink:       fixedUserLink,
+		AttachmentLink: fixedAttachmentLink,
+	}
+
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockCardClient)
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("DeleteAttachment", mock.Anything, req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("DeleteAttachment", mock.Anything, req).Return(cardTestError)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardClient)
+			tc.mockBehavior(m)
+
+			err := NewCard(m).DeleteAttachment(context.Background(), req)
 
 			if tc.expectError {
 				require.Error(t, err)

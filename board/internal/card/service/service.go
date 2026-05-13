@@ -12,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockery --name=CardRepository --output=mock_card_rep
@@ -373,13 +374,15 @@ func (s *Service) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtas
 }
 
 func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAttachment) (dto.AttachmentInfo, error) {
+	logger := zerolog.Ctx(ctx)
+
 	err := s.permissionChecker.CheckPermissionOnCard(ctx, createInfo.TaskLink, createInfo.UserLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return dto.AttachmentInfo{}, rbac.ErrActionDenied
 		}
 
-		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.CreateAttachment: %w", err)
+		return dto.AttachmentInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
 	}
 
 	filePath := uuid.New().String() + createInfo.Extension
@@ -390,7 +393,7 @@ func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAtt
 		ContentType: createInfo.ContentType,
 	})
 	if err != nil {
-		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.UploadAttachment")
+		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.UploadAttachment: %w", err)
 	}
 
 	attachment, err := s.rep.CreateAttachment(ctx, repositoryDto.CreateAttachment{
@@ -400,7 +403,10 @@ func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAtt
 		Name:           createInfo.DisplayName,
 	})
 	if err != nil {
-		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.CreateAttachment")
+		if rollbackErr := s.rep.DeleteAttachmentFromS3(ctx, key); rollbackErr != nil {
+			logger.Error().Err(rollbackErr).Msg("roll back attachment from S3 fail")
+		}
+		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.CreateAttachment: %w", err)
 	}
 
 	fullKey, err := url.JoinPath(s.cfg.BaseURLAttachment, key)

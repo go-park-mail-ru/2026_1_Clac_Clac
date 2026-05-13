@@ -22,6 +22,7 @@ var (
 	ErrorSectionNotFound          = errors.New("section not found")
 	ErrorCommentNotFound          = errors.New("comment not found")
 	ErrorSubtaskNotFound          = errors.New("subtask not found")
+	ErrorAttachmentNotFound       = errors.New("attachment not found")
 	ErrorPermissionDenied         = errors.New("permission denied")
 	ErrorCardAlreadyExists        = errors.New("card already exists")
 	ErrorTaskLimitReached         = errors.New("task limit reached")

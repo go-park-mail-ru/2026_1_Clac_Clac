@@ -905,6 +905,7 @@ func TestCreateAttachment(t *testing.T) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("UploadAttachment", mock.Anything, mock.Anything).Return(s3Key, nil)
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(models.AttachmentInfo{}, errors.New("db error"))
+				m.On("DeleteAttachmentFromS3", mock.Anything, s3Key).Return(nil)
 			},
 			expectedError: errors.New("db error"),
 		},

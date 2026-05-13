@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -122,7 +123,19 @@ type UpdateSubtaskRequest struct {
 	Description string
 }
 
-type DeleteSubtask struct {
+type DeleteSubtaskRequest struct {
 	UserLink    uuid.UUID
 	SubtaskLink uuid.UUID
+}
+
+type CreateAttachmentRequest struct {
+	UserLink   uuid.UUID
+	TaskLink   uuid.UUID
+	Attachment io.Reader
+	Filename   string
+}
+
+type DeleteAttachmentRequest struct {
+	UserLink       uuid.UUID
+	AttachmentLink uuid.UUID
 }
