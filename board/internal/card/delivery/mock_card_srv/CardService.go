@@ -287,6 +287,52 @@ func (_m *CardService) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateS
 	return r0
 }
 
+// CreateAttachment provides a mock function with given fields: ctx, createInfo
+func (_m *CardService) CreateAttachment(ctx context.Context, createInfo dto.CreateAttachment) (dto.AttachmentInfo, error) {
+	ret := _m.Called(ctx, createInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAttachment")
+	}
+
+	var r0 dto.AttachmentInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateAttachment) (dto.AttachmentInfo, error)); ok {
+		return rf(ctx, createInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateAttachment) dto.AttachmentInfo); ok {
+		r0 = rf(ctx, createInfo)
+	} else {
+		r0 = ret.Get(0).(dto.AttachmentInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CreateAttachment) error); ok {
+		r1 = rf(ctx, createInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteAttachment provides a mock function with given fields: ctx, deleteInfo
+func (_m *CardService) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAttachment) error {
+	ret := _m.Called(ctx, deleteInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.DeleteAttachment) error); ok {
+		r0 = rf(ctx, deleteInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewCardService creates a new instance of CardService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewCardService(t interface {

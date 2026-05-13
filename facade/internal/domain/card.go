@@ -6,6 +6,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type CardFullInfo struct {
+	CardLink     uuid.UUID
+	ExecutorLink *uuid.UUID
+	Title        string
+	Description  string
+	Deadline     *time.Time
+	Subtasks     []SubtaskInfo
+	Position     int
+	Attachments  []AttachmentInfo
+}
+
+type AttachmentInfo struct {
+	AttachmentLink uuid.UUID
+	DisplayName    string
+	Path           string
+	Position       int
+}
+
 type GetCardRequest struct {
 	UserLink uuid.UUID
 	CardLink uuid.UUID

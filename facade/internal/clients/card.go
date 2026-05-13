@@ -21,7 +21,7 @@ func NewCardClient(connection *grpc.ClientConn) *Card {
 	}
 }
 
-func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	req := &pb.GetCardRequest{
 		UserLink: infoCard.UserLink.String(),
 		CardLink: infoCard.CardLink.String(),
@@ -29,14 +29,28 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 
 	resp, err := c.client.GetCard(ctx, req)
 	if err != nil {
-		return domain.CardInfo{}, fmt.Errorf("CardClient.GetCard: %w", convertCardGRPCError(err))
+		return domain.CardFullInfo{}, fmt.Errorf("CardClient.GetCard: %w", convertCardGRPCError(err))
+	}
+
+	attachments := make([]domain.AttachmentInfo, 0, len(resp.CardInfo.Attachments))
+	for _, attachment := range resp.CardInfo.Attachments {
+		attachmentLink, err := uuid.Parse(attachment.AttachmentLink)
+		if err != nil {
+			return domain.CardFullInfo{}, common.ErrorParseLink
+		}
+		attachments = append(attachments, domain.AttachmentInfo{
+			AttachmentLink: attachmentLink,
+			DisplayName:    attachment.Name,
+			Path:           attachment.Path,
+			Position:       int(attachment.Position),
+		})
 	}
 
 	subtasks := make([]domain.SubtaskInfo, 0, len(resp.CardInfo.Subtasks))
 	for _, subtask := range resp.CardInfo.Subtasks {
 		subtaskLink, err := uuid.Parse(subtask.SubtaskLink)
 		if err != nil {
-			return domain.CardInfo{}, common.ErrorParseLink
+			return domain.CardFullInfo{}, common.ErrorParseLink
 		}
 		subtasks = append(subtasks, domain.SubtaskInfo{
 			SubtaskLink: subtaskLink,
@@ -50,19 +64,20 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 	if resp.CardInfo.ExecutorLink != nil {
 		el, err := uuid.Parse(*resp.CardInfo.ExecutorLink)
 		if err != nil {
-			return domain.CardInfo{}, common.ErrorParseLink
+			return domain.CardFullInfo{}, common.ErrorParseLink
 		}
 		executorLink = &el
 	}
 
-	return domain.CardInfo{
+	return domain.CardFullInfo{
 		CardLink:     infoCard.CardLink,
 		ExecutorLink: executorLink,
 		Title:        resp.CardInfo.Title,
 		Description:  resp.CardInfo.Description,
 		Deadline:     convertTimestamppbToTime(resp.CardInfo.Deadline),
 		Subtasks:     subtasks,
-		Position:    int(resp.CardInfo.Position),
+		Position:     int(resp.CardInfo.Position),
+		Attachments:  attachments,
 	}, nil
 }
 
@@ -312,3 +327,5 @@ func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubta
 
 	return nil
 }
+
+func (c *Card) CreateAttachment(ctx context.Context)

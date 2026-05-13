@@ -109,6 +109,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
+	fileLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxFileSize)
 
 	r.Handle("/metrics", promhttp.Handler())
 	r.HandleFunc("/healthcheck", healthcheck).Methods(http.MethodGet)
@@ -155,6 +156,9 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImageLimit := csrfProtected.PathPrefix("/").Subrouter()
 	withImageLimit.Use(imageLimit)
 
+	withFileLimit := csrfProtected.PathPrefix("/").Subrouter()
+	withFileLimit.Use(fileLimit)
+
 	withTextLimit.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)
 
 	withTextLimit.HandleFunc("/profiles", deps.Profile.GetProfile).Methods(http.MethodGet)
@@ -177,6 +181,10 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/cards/{link}/subtasks", deps.Card.CreateSubtask).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
+
+	withFileLimit.HandleFunc("/cards/{link}/files")
+	withFileLimit.HandleFunc("/cards/{link}/files")
+	withFileLimit.HandleFunc("/cards/{link}/files")
 
 	withTextLimit.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)

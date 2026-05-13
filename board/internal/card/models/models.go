@@ -8,3 +8,10 @@ type SubtaskInfo struct {
 	IsDone      bool
 	Position    int
 }
+
+type AttachmentInfo struct {
+	AttachmentLink uuid.UUID
+	Path           string
+	Name           string
+	Position       int
+}

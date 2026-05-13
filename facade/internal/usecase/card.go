@@ -8,7 +8,7 @@ import (
 )
 
 type CardClient interface {
-	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error)
+	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error)
 	DeleteCard(ctx context.Context, infoCard domain.DeleteCardRequest) error
 	UpdateCard(ctx context.Context, infoCard domain.UpdateCardRequest) error
 	ReorderCards(ctx context.Context, infoCard domain.ReorderCardsRequest) error
@@ -32,10 +32,10 @@ func NewCard(card CardClient) *Card {
 	}
 }
 
-func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	cardInfo, err := c.card.GetCard(ctx, infoCard)
 	if err != nil {
-		return domain.CardInfo{}, fmt.Errorf("card.GetCard: %w", err)
+		return domain.CardFullInfo{}, fmt.Errorf("card.GetCard: %w", err)
 	}
 
 	return cardInfo, nil

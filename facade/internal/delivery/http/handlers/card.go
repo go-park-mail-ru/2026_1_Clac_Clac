@@ -20,7 +20,7 @@ import (
 )
 
 type CardUsecase interface {
-	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error)
+	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error)
 	DeleteCard(ctx context.Context, infoCard domain.DeleteCardRequest) error
 	UpdateCard(ctx context.Context, infoCard domain.UpdateCardRequest) error
 	ReorderCards(ctx context.Context, infoCard domain.ReorderCardsRequest) error
@@ -963,7 +963,7 @@ func getUserLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	return userLink, true
 }
 
-func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardResponse {
+func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.CardResponse {
 	subtasks := make([]dto.SubtaskResponse, 0, len(card.Subtasks))
 	for _, s := range card.Subtasks {
 		subtasks = append(subtasks, dto.SubtaskResponse{
@@ -973,6 +973,16 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 			Position:    int(s.Position),
 		})
 	}
+
+	attachments := make([]dto.AttachmentResponse, 0, len(card.Attachments))
+	for _, attachment := range card.Attachments {
+		attachments = append(attachments, dto.AttachmentResponse{
+			AttachmentLink: attachment.AttachmentLink,
+			AttachmentPath: attachment.Path,
+			Position:       attachment.Position,
+		})
+	}
+
 	var executorLink *string
 	if card.ExecutorLink != nil {
 		s := card.ExecutorLink.String()
@@ -987,6 +997,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardInfo) dto.CardRes
 		Deadline:     card.Deadline,
 		Subtasks:     subtasks,
 		Position:     card.Position,
+		Attachments:  attachments,
 	}
 }
 

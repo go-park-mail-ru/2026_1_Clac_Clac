@@ -1,9 +1,12 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"path/filepath"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -46,6 +49,10 @@ var (
 	ErrCannotCreateSubtask = errors.New("cannot create subtask")
 	ErrCannotDeleteSubtask = errors.New("cannot delete subtask")
 	ErrCannotUpdateSubtask = errors.New("cannot upadate subtask")
+
+	ErrInvalidAttachment      = errors.New("invalid attachment link")
+	ErrCannotCreateAttachment = errors.New("cannot create attachment")
+	ErrCannotDeleteAttachment = errors.New("cannot delete attachment")
 )
 
 //go:generate mockery --name=CardService --output mock_card_srv
@@ -62,6 +69,8 @@ type CardService interface {
 	CreateSubtask(ctx context.Context, createInfo serviceDto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error)
 	DeleteSubtask(ctx context.Context, deleteInfo serviceDto.DeleteSubtask, userLink uuid.UUID) error
 	UpdateSubtask(ctx context.Context, updateInfo serviceDto.UpdateSubtask, userLink uuid.UUID) error
+	CreateAttachment(ctx context.Context, createInfo serviceDto.CreateAttachment) (serviceDto.AttachmentInfo, error)
+	DeleteAttachment(ctx context.Context, deleteInfo serviceDto.DeleteAttachment) error
 }
 
 type Config struct {
@@ -122,8 +131,17 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		deadline = timestamppb.New(*card.DataDeadLine)
 	}
 
-	subtasks := make([]*pb.SubtaskInfo, 0, len(card.Subtasks))
+	attachments := make([]*pb.AttachmentInfo, 0, len(card.Attachments))
+	for _, attachment := range card.Attachments {
+		attachments = append(attachments, &pb.AttachmentInfo{
+			AttachmentLink: attachment.AttachmentLink.String(),
+			Path:           attachment.Path,
+			Name:           attachment.Name,
+			Position:       int64(attachment.Position),
+		})
+	}
 
+	subtasks := make([]*pb.SubtaskInfo, 0, len(card.Subtasks))
 	for _, subtask := range card.Subtasks {
 		subtasks = append(subtasks, &pb.SubtaskInfo{
 			SubtaskLink: subtask.SubtaskLink.String(),
@@ -146,8 +164,9 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Description:  card.Description,
 			ExecutorLink: executorLink,
 			Deadline:     deadline,
-			Subtasks:    subtasks,
-			Position:   int64(card.Position),
+			Subtasks:     subtasks,
+			Position:     int64(card.Position),
+			Attachments:  attachments,
 		},
 	}, nil
 }
@@ -221,7 +240,6 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 	}
 
 	updatingInfo := dto.UpdatingCardDetails{
-		LinkCard:     cardLink,
 		Title:        req.GetTitle(),
 		Description:  req.GetDescription(),
 		LinkExecutor: executorLink,
@@ -718,4 +736,103 @@ func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRe
 	}
 
 	return &pb.UpdateSubtaskResponse{}, nil
+}
+
+func (h *CardHandler) CreateAttachment(ctx context.Context, req *pb.CreateAttachmentRequest) (*pb.CreateAttachmentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	rawTaskLink := req.GetTaskLink()
+	taskLink, err := uuid.Parse(rawTaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	data := req.GetData()
+
+	contentType := http.DetectContentType(data)
+
+	fileName := req.GetName()
+	extension := filepath.Ext(fileName)
+
+	attachment, err := h.srv.CreateAttachment(ctx, serviceDto.CreateAttachment{
+		TaskLink:    taskLink,
+		UserLink:    userLink,
+		Data:        bytes.NewReader(data),
+		ContentType: contentType,
+		Extension:   extension,
+		DisplayName: fileName,
+	})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrMissingRequiredField):
+			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
+			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		}
+
+		errLog := fmt.Errorf("CardService.CreateAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.CreateAttachment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateAttachment", map[string]interface{}{
+			"user_link": req.UserLink,
+			"action":    "create_attacment",
+		})
+
+		return nil, status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
+	}
+
+	return &pb.CreateAttachmentResponse{
+		AttachmentLink: attachment.AttachmentLink.String(),
+		Path:           attachment.Path,
+		Name:           attachment.DisplayName,
+		Position:       int64(attachment.Position),
+	}, nil
+}
+
+func (h *CardHandler) DeleteAttachment(ctx context.Context, req *pb.DeleteAttachmentRequest) (*pb.DeleteAttachmentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawAttachmentLink := req.GetAttachmentLink()
+	attachmentLink, err := uuid.Parse(rawAttachmentLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidAttachment.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.DeleteAttachment(ctx, serviceDto.DeleteAttachment{
+		AttachmentLink: attachmentLink,
+		UserLink:       userLink,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrAttachmentNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrAttachmentNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.DeleteAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.DeleteAttachment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteAttachment", map[string]interface{}{
+			"user_link":       req.UserLink,
+			"attachment_link": req.AttachmentLink,
+			"action":          "delete_attachment",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotDeleteAttachment.Error())
+	}
+
+	return &pb.DeleteAttachmentResponse{}, nil
 }

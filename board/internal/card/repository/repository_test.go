@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -30,6 +31,7 @@ func TestRepositoryGetCard(t *testing.T) {
 		DataDeadLine: &targetDeadLine,
 		ExecutorLink: &targetExecutorLink,
 		Subtasks:     []models.SubtaskInfo{},
+		Attachments:  []models.AttachmentInfo{},
 	}
 
 	tests := []struct {
@@ -41,8 +43,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, []byte("[]"), []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -85,7 +87,7 @@ func TestRepositoryGetCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.GetCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -157,7 +159,7 @@ func TestRepositoryDeleteCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.DeleteCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -299,7 +301,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.UpdateCardDetails(ctx, updatingCard)
 
 			if test.expectedError != nil {
@@ -535,7 +537,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 
 			var updateDto dto.PlaceCard
 			if test.nameTest == "Success reorder same section" ||
@@ -802,7 +804,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.CreateCard(ctx, newCard)
 
 			if test.expectedError != nil {
@@ -889,7 +891,7 @@ func TestRepositoryGetComments(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.GetComments(ctx, targetCardLink)
 
 			if test.expectedError != nil {
@@ -975,7 +977,7 @@ func TestRepositoryCreateComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.CreateComment(ctx, createInfo)
 
 			if test.expectedError != nil {
@@ -1063,7 +1065,7 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.IsCommentAuthor(ctx, targetCommentLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -1132,7 +1134,7 @@ func TestRepositoryDeleteComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.DeleteComment(ctx, targetCommentLink)
 
 			if test.expectedError != nil {
@@ -1205,7 +1207,7 @@ func TestRepositoryUpdateComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.UpdateComment(ctx, updateInfo)
 
 			if test.expectedError != nil {
@@ -1299,7 +1301,7 @@ func TestRepositoryCreateSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			result, err := repo.CreateSubtask(ctx, createInfo)
 
 			if test.expectedError != nil {
@@ -1375,7 +1377,7 @@ func TestRepositoryDeleteSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.DeleteSubtask(ctx, deleteInfo)
 
 			if test.expectedError != nil {
@@ -1449,7 +1451,7 @@ func TestRepositoryUpdateSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB)
+			repo := NewRepository(mockDB, nil)
 			err = repo.UpdateSubtask(ctx, updateInfo)
 
 			if test.expectedError != nil {
@@ -1465,6 +1467,302 @@ func TestRepositoryUpdateSubtask(t *testing.T) {
 			}
 
 			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+// --- S3 mock ---
+
+type mockS3Bucket struct {
+	putFunc    func(ctx context.Context, key string) (string, error)
+	deleteFunc func(ctx context.Context, key string) error
+}
+
+func (m *mockS3Bucket) Put(ctx context.Context, data io.Reader, key string, contentType string) (string, error) {
+	if m.putFunc != nil {
+		return m.putFunc(ctx, key)
+	}
+	return key, nil
+}
+
+func (m *mockS3Bucket) Delete(ctx context.Context, key string) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, key)
+	}
+	return nil
+}
+
+func TestRepositoryUploadAttachment(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		nameTest      string
+		s3Behavior    func() *mockS3Bucket
+		expectedKey   string
+		expectedError error
+	}{
+		{
+			nameTest: "Success upload",
+			s3Behavior: func() *mockS3Bucket {
+				return &mockS3Bucket{
+					putFunc: func(ctx context.Context, key string) (string, error) {
+						return "uploads/file.png", nil
+					},
+				}
+			},
+			expectedKey:   "uploads/file.png",
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error S3 put fails",
+			s3Behavior: func() *mockS3Bucket {
+				return &mockS3Bucket{
+					putFunc: func(ctx context.Context, key string) (string, error) {
+						return "", errors.New("s3 unavailable")
+					},
+				}
+			},
+			expectedKey:   "",
+			expectedError: errors.New("s3 unavailable"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			s3 := test.s3Behavior()
+			repo := NewRepository(mockDB, s3)
+
+			key, err := repo.UploadAttachment(ctx, dto.UploadAttachment{
+				FilePath:    "some-uuid.png",
+				ContentType: "image/png",
+			})
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, test.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedKey, key)
+			}
+		})
+	}
+}
+
+func TestRepositoryCreateAttachment(t *testing.T) {
+	ctx := context.Background()
+	taskLink := uuid.New()
+	attachmentLink := uuid.New()
+
+	createInfo := dto.CreateAttachment{
+		AttachmentLink: attachmentLink,
+		TaskLink:       taskLink,
+		Key:            "uploads/file.png",
+		Name:           "photo.png",
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedError error
+	}{
+		{
+			nameTest: "Success create attachment",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectExec(`(?s)INSERT INTO attachment.*`).
+					WithArgs(attachmentLink, taskLink, "photo.png", "uploads/file.png", 1).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectCommit()
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error begin tx fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin().WillReturnError(errors.New("begin error"))
+			},
+			expectedError: errors.New("CreateAttachment pool.Begin: begin error"),
+		},
+		{
+			nameTest: "Error position query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnError(errors.New("db disconnect"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("db disconnect"),
+		},
+		{
+			nameTest: "Error insert fk violation",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectExec(`(?s)INSERT INTO attachment.*`).
+					WithArgs(attachmentLink, taskLink, "photo.png", "uploads/file.png", 1).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrInvalidReferenceCardData,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+			repo := NewRepository(mockDB, nil)
+			result, err := repo.CreateAttachment(ctx, createInfo)
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, attachmentLink, result.AttachmentLink)
+				assert.Equal(t, 1, result.Position)
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryDeleteAttachmentFromDB(t *testing.T) {
+	ctx := context.Background()
+	attachmentLink := uuid.New()
+	s3Key := "uploads/file.png"
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedKey   string
+		expectedError error
+	}{
+		{
+			nameTest: "Success delete",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)DELETE FROM attachment WHERE attachment_link = \$1 RETURNING attachment_path`).
+					WithArgs(attachmentLink).
+					WillReturnRows(pgxmock.NewRows([]string{"attachment_path"}).AddRow(s3Key))
+			},
+			expectedKey:   s3Key,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)DELETE FROM attachment WHERE attachment_link = \$1 RETURNING attachment_path`).
+					WithArgs(attachmentLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expectedKey:   "",
+			expectedError: common.ErrAttachmentNotFound,
+		},
+		{
+			nameTest: "Error query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)DELETE FROM attachment WHERE attachment_link = \$1 RETURNING attachment_path`).
+					WithArgs(attachmentLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedKey:   "",
+			expectedError: errors.New("db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+			repo := NewRepository(mockDB, nil)
+			key, err := repo.DeleteAttachmentFromDB(ctx, attachmentLink)
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+				if errors.Is(test.expectedError, common.ErrAttachmentNotFound) {
+					assert.ErrorIs(t, err, common.ErrAttachmentNotFound)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedKey, key)
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryDeleteAttachmentFromS3(t *testing.T) {
+	ctx := context.Background()
+	s3Key := "uploads/file.png"
+
+	tests := []struct {
+		nameTest      string
+		s3Behavior    func() *mockS3Bucket
+		expectedError error
+	}{
+		{
+			nameTest: "Success delete from S3",
+			s3Behavior: func() *mockS3Bucket {
+				return &mockS3Bucket{
+					deleteFunc: func(ctx context.Context, key string) error { return nil },
+				}
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error S3 delete fails",
+			s3Behavior: func() *mockS3Bucket {
+				return &mockS3Bucket{
+					deleteFunc: func(ctx context.Context, key string) error {
+						return errors.New("s3 unavailable")
+					},
+				}
+			},
+			expectedError: errors.New("s3 unavailable"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			s3 := test.s3Behavior()
+			repo := NewRepository(mockDB, s3)
+			err = repo.DeleteAttachmentFromS3(ctx, s3Key)
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, test.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
