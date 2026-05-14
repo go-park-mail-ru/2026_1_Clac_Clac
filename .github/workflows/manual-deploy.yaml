@@ -2,15 +2,6 @@ name: Manual Deploy
 
 on:
   workflow_dispatch:
-    inputs:
-      deploy_to:
-        description: 'Where to deploy?'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 jobs:
   build-and-push:
@@ -46,23 +37,17 @@ jobs:
           ./deploy.sh HEAD~1
 
       - name: Update ArgoCD Target Revision on Deploy Branch
-        if: ${{ github.event.inputs.deploy_to == 'staging' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Клонируем только ветку deploy в отдельную папку
           git clone --branch deploy --single-branch https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} deploy-repo
-          
-          # Обновляем targetRevision в ветке deploy
-          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" deploy-repo/infrastructure/argocd/nexus-staging.yaml
-          
+          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" deploy-repo/infrastructure/argocd/nexus-app.yaml
           cd deploy-repo
-          git add infrastructure/argocd/nexus-staging.yaml
+          git add infrastructure/argocd/nexus-app.yaml
           if git diff --staged --quiet; then
-            echo "No changes to staging config"
+            echo "No changes to deployment config"
           else
-            git commit -m "chore: redirect staging to ${GITHUB_REF_NAME} [skip ci]"
+            git commit -m "chore: redirect nexus to ${GITHUB_REF_NAME} [skip ci]"
             git push origin deploy
           fi
 

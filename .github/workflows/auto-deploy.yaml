@@ -42,6 +42,21 @@ jobs:
           chmod +x ./deploy.sh
           ./deploy.sh ${{ github.event.before }}
 
+      - name: Reset ArgoCD Target Revision to main
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git clone --branch deploy --single-branch https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} deploy-repo
+          sed -i "s|targetRevision:.*|targetRevision: main|g" deploy-repo/infrastructure/argocd/nexus-app.yaml
+          cd deploy-repo
+          git add infrastructure/argocd/nexus-app.yaml
+          if git diff --staged --quiet; then
+            echo "Already pointing to main"
+          else
+            git commit -m "chore: reset nexus to main [skip ci]"
+            git push origin deploy
+          fi
+
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
