@@ -18,13 +18,19 @@ var attachmentBufferPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
 
-type Card struct {
-	client pb.CardServiceClient
+type CardConfig struct {
+	MaxAttachmentBufferSize int
 }
 
-func NewCardClient(connection *grpc.ClientConn) *Card {
+type Card struct {
+	client pb.CardServiceClient
+	cfg    CardConfig
+}
+
+func NewCardClient(connection *grpc.ClientConn, cfg CardConfig) *Card {
 	return &Card{
 		client: pb.NewCardServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
@@ -338,7 +344,11 @@ func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubta
 func (c *Card) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
 	buf := attachmentBufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer attachmentBufferPool.Put(buf)
+	defer func() {
+		if buf.Cap() <= c.cfg.MaxAttachmentBufferSize {
+			attachmentBufferPool.Put(buf)
+		}
+	}()
 
 	if _, err := io.Copy(buf, infoAttachment.Attachment); err != nil {
 		return domain.AttachmentInfo{}, fmt.Errorf("read attachment into buffer: %w", err)

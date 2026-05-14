@@ -4,6 +4,7 @@ DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./
 
 generate:
 	easyjson -all -pkg facade/internal/delivery/http/dto
+	easyjson -all -pkg facade/internal/api/dto
 
 docs:
 	swag init -g facade/cmd/api/main.go -o facade/docs --parseDependency
