@@ -8,7 +8,7 @@ frontend:
   enabled: true
   image: nginx:alpine
   port: 80
-  static: /home/ubuntu/public
+  static: /home/ubuntu
   resources:
     limits:
       memory: "64Mi"
