@@ -13,6 +13,9 @@ spec:
       labels:
         app: grafana
     spec:
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
       containers:
         - name: grafana
           image: grafana/grafana:latest
@@ -29,7 +32,9 @@ spec:
             - name: GF_SERVER_DOMAIN
               value: "monitor.clac-clac.ru"
             - name: GF_SERVER_ROOT_URL
-              value: "https://monitor.clac-clac.ru"
+              value: "https://monitor.clac-clac.ru/"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "false"
             - name: GF_SECURITY_ADMIN_USER
               valueFrom:
                 secretKeyRef:
