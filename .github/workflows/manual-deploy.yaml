@@ -2,6 +2,15 @@ name: Manual Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_to:
+        description: 'Where to deploy?'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
   build-and-push:
@@ -36,14 +45,21 @@ jobs:
           # При ручном запуске сравниваем с предыдущим коммитом, чтобы понять что собирать
           ./deploy.sh HEAD~1
 
+      - name: Update ArgoCD Target Revision
+        if: ${{ github.event.inputs.deploy_to == 'staging' }}
+        run: |
+          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" infrastructure/argocd/nexus-staging.yaml
+          echo "Redirected nexus-staging to branch ${GITHUB_REF_NAME}"
+
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add deployments/nexus/values.yaml
+          git add infrastructure/argocd/nexus-staging.yaml
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore(manual): update image tags to ${IMAGE_TAG} [skip ci]"
+            git commit -m "chore(manual): deploy ${GITHUB_REF_NAME} to ${{ github.event.inputs.deploy_to }} [skip ci]"
             git push
           fi

@@ -1,18 +1,23 @@
-# Production Application
+# Staging/Test Application (Switchable)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nexus
+  name: nexus-staging
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac
     path: deployments/nexus
-    targetRevision: main
+    targetRevision: feat/k3s
+    helm:
+      values: |
+        namespace: "nexus-test"
+        ingress:
+          host: "test.clac-clac.ru"
   destination:
     server: https://kubernetes.default.svc
-    namespace: nexus-prod
+    namespace: nexus-test
   syncPolicy:
     automated:
       prune: true
