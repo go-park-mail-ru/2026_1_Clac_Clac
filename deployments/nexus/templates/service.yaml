@@ -6,6 +6,8 @@ kind: Service
 metadata:
   name: {{ $.Chart.Name }}-{{ $svcName }}-service
   namespace: {{ $.Values.namespace }}
+  annotations:
+    prometheus.io/scrape: "true"
 spec:
   selector:
     app: {{ $svcName }}
