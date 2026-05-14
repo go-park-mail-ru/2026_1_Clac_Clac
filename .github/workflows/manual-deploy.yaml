@@ -61,3 +61,4 @@ jobs:
           else
             git commit -m "chore(manual): update image tags for ${GITHUB_REF_NAME} [skip ci]"
             git push origin HEAD:${{ github.ref }}
+          fi
