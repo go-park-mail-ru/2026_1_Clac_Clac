@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -87,7 +87,7 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request dto.CreateAppealRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -415,7 +415,7 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request dto.ChangeAppealStatusInfo
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		logger.Error().Err(err).Msg("can not decode status")
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return

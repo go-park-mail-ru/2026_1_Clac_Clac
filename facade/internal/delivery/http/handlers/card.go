@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -233,7 +233,7 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateCardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -330,7 +330,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.ReorderCardsRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -418,7 +418,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateCardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -580,7 +580,7 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateCommentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -720,7 +720,7 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateCommentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -790,7 +790,7 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateSubtaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -862,7 +862,7 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateSubtaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}

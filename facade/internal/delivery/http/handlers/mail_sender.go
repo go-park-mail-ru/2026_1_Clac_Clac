@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -72,7 +72,7 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	logger := zerolog.Ctx(r.Context())
 
 	var request dto.PasswordRecoveryRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -153,7 +153,7 @@ func (ms *MailSender) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 	logger := zerolog.Ctx(r.Context())
 
 	var request dto.RecoveryCodeRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}

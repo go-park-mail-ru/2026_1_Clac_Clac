@@ -1,3 +1,4 @@
 bin
 .env
 coverage.out
+dto_easyjson.go
