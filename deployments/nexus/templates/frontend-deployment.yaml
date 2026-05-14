@@ -25,7 +25,7 @@ spec:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
             - name: static-files
-              mountPath: /usr/share/nginx/html
+              mountPath: /var/www
           {{- with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
