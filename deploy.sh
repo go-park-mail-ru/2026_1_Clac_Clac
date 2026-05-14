@@ -15,38 +15,30 @@ DOCKER_USER=${DOCKER_USER:-"nisakoo"}
 
 # Логика
 
-# Работает нестабильно
-# check_auth() {
-#     if [ "$DRY_RUN" = true ]; then
-#         info "docker auth skip"
-#     else
-#         if docker login > /dev/null 2>&1; then
-#             ok "docker auth ready"
-#         else
-#             error "DOCKER AUTH FAILED"
-#             exit 1
-#         fi
-#     fi
-# }
-
 # $1 -- Таргет для билдинга
 build_service() {
     local svc=$1
+    local tag=${IMAGE_TAG:-"latest"}
     if [ "$DRY_RUN" = true ]; then
-        info "$svc build skip"
+        info "$svc build skip (tag: $tag)"
     else
-        docker build --platform linux/amd64 -f "$DEPLOYMENT_DIR/$svc/Dockerfile" -t "$DOCKER_USER/nexus-$svc:latest" . || { error "build failed for $svc"; exit 1; }
-        docker push "$DOCKER_USER/nexus-$svc:latest" || { error "push failed for $svc"; exit 1; }
+        docker build --platform linux/amd64 -f "$DEPLOYMENT_DIR/$svc/Dockerfile" -t "$DOCKER_USER/nexus-$svc:$tag" . || { error "build failed for $svc"; exit 1; }
+        docker push "$DOCKER_USER/nexus-$svc:$tag" || { error "push failed for $svc"; exit 1; }
+
+        # Обновляем values.yaml для ArgoCD
+        if [ -f "deployments/nexus/values.yaml" ]; then
+            # Экранируем слеши в имени пользователя для sed
+            local escaped_user=$(echo $DOCKER_USER | sed 's/\//\\\//g')
+            sed -i "s|image: $escaped_user/nexus-$svc:.*|image: $DOCKER_USER/nexus-$svc:$tag|g" deployments/nexus/values.yaml
+            info "updated values.yaml for $svc with tag $tag"
+        fi
     fi
 
-    ok "done $svc"
+    ok "done $svc (tag: $tag)"
 }
 
 # Основной код
 [ "$DRY_RUN" = true ] && error "--- DRY RUN MODE ENABLED ---"
-
-# Проверяем выполнен ли вход в docker (Работает нестабильно)
-# check_auth
 
 # Первый параметр -- относительно чего делаем git diff
 BASE_DIFF_REF="$1"
