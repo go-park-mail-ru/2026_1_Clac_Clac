@@ -71,6 +71,10 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		return nil, fmt.Errorf("failed to connect to User service: %w", err)
 	}
 
+	configUser := clients.ConfigUser{
+		MaxUserAvatarBytesSize: int(app.MaxUploadImageSize),
+	}
+
 	authConn, err := connect(config.Auth.Client.Addr, config.Auth.Client.TimeOut, config.Auth.Client.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
@@ -94,21 +98,34 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Board service: %w", err)
 	}
+
+	configBoard := clients.ConfigBoard{
+		MaxBackgroundBytesSize: int(app.MaxUploadImageSize),
+	}
+
+	configCard := clients.CardConfig{
+		MaxAttachmentBufferSize: int(app.MaxFileSize),
+	}
+
 	appealConn, err := connect(config.Appeal.Client.Addr, config.Appeal.Client.TimeOut, config.Appeal.Client.Retries, int(app.MaxFileSize))
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Appeal service: %w", err)
 	}
 
+	configAppeal := clients.ConfigAppeal{
+		MaxAppealAttachmentBytesSize: int(app.MaxFileSize),
+	}
+
 	return &Connector{
-		User:        clients.NewUserClient(userConn),
+		User:        clients.NewUserClient(userConn, configUser),
 		Auth:        clients.NewAuthClient(authConn),
 		MailSender:  clients.NewMailSenderClient(mailSenderConn),
 		RateLimiter: clients.NewRateLimiterClient(rateLimiterConn),
-		Board:       clients.NewBoardClient(boardConn),
+		Board:       clients.NewBoardClient(boardConn, configBoard),
 		Section:     clients.NewSectionClient(boardConn),
-		Card:        clients.NewCardClient(boardConn),
-		Appeal:      clients.NewAppealClient(appealConn),
+		Card:        clients.NewCardClient(boardConn, configCard),
+		Appeal:      clients.NewAppealClient(appealConn, configAppeal),
 		logger:      logger,
 		conns:       activeConns,
 	}, nil

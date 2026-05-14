@@ -1,8 +1,10 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
@@ -11,13 +13,23 @@ import (
 	"google.golang.org/grpc"
 )
 
-type User struct {
-	client pb.UserServiceClient
+var avatarBufferPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
 }
 
-func NewUserClient(connection *grpc.ClientConn) *User {
+type ConfigUser struct {
+	MaxUserAvatarBytesSize int
+}
+
+type User struct {
+	client pb.UserServiceClient
+	cfg    ConfigUser
+}
+
+func NewUserClient(connection *grpc.ClientConn, cfg ConfigUser) *User {
 	return &User{
 		client: pb.NewUserServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
@@ -61,6 +73,15 @@ func (u *User) UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo
 }
 
 func (u *User) UpdateAvatar(ctx context.Context, avatarInfo domain.AvatarInfo) (string, error) {
+	buf := avatarBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+
+	defer func() {
+		if buf.Cap() <= u.cfg.MaxUserAvatarBytesSize {
+			avatarBufferPool.Put(buf)
+		}
+	}()
+
 	req := &pb.UpdateAvatarRequest{
 		UserLink:      avatarInfo.UserLink.String(),
 		FileData:      avatarInfo.FileData,
