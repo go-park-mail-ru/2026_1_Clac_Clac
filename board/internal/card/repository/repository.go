@@ -83,7 +83,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 					'attachment_link', COALESCE(a.attachment_link, '00000000-0000-0000-0000-000000000000'::uuid),
 					'attachment_path', a.attachment_path,
 					'attachment_name', a.attachment_name,
-					'position', a.position
+					'position', a.position,
 				)
 			), '[]'::jsonb)
 			FROM attachment a
@@ -255,8 +255,8 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 	defer func() {
 		if err != nil {
 			errRollBack := tx.Rollback(ctx)
-			if errRollBack != nil {
-				logger.Error().Msg("invalid rall back")
+			if errRollBack != nil && !errors.Is(errRollBack, pgx.ErrTxClosed) {
+				logger.Error().Err(errRollBack).Msg("failed to rollback transaction")
 			}
 		}
 	}()
@@ -319,18 +319,54 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 			return common.ErrCannotSkipMandatorySection
 		}
 
-		queryPos := `
-			SELECT COALESCE(MAX(position), 0) + 1
-			FROM task_version
-			WHERE section_link = $1 AND valid_to IS NULL;
+		queryDownPos := `
+			UPDATE task_version 
+			SET position = position - 1
+			WHERE section_link = $1 AND valid_to IS NULL AND position > $2;
 		`
-		err = tx.QueryRow(ctx, queryPos, updatingPlaceCard.LinkSection).Scan(&position)
+		_, err = tx.Exec(ctx, queryDownPos, oldSectionLink, position)
 		if err != nil {
-			return fmt.Errorf("tx.QueryRow: %w", err)
+			return fmt.Errorf("tx.Exec: %w", err)
 		}
-	} else if updatingPlaceCard.Position != 0 {
+
+		queryUpPos := `
+			UPDATE task_version 
+			SET position = position + 1
+			WHERE section_link = $1 AND valid_to IS NULL AND position >= $2;
+		`
+		_, err = tx.Exec(ctx, queryUpPos, updatingPlaceCard.LinkSection, updatingPlaceCard.Position)
+		if err != nil {
+			return fmt.Errorf("tx.Exec: %w", err)
+		}
+
 		position = updatingPlaceCard.Position
+	} else if updatingPlaceCard.Position != position {
+		if updatingPlaceCard.Position > position {
+			queryDownPos := `
+				UPDATE task_version
+				SET position = position - 1
+				WHERE section_link = $1 AND valid_to IS NULL
+				AND position > $2 AND position <= $3
+			`
+			_, err = tx.Exec(ctx, queryDownPos, updatingPlaceCard.LinkSection, position, updatingPlaceCard.Position)
+			if err != nil {
+				return fmt.Errorf("tx.Exec: %w", err)
+			}
+		} else {
+			queryUpPos := `
+				UPDATE task_version
+				SET position = position + 1
+				WHERE section_link = $1 AND valid_to IS NULL
+				AND position < $2 AND position >= $3
+			`
+			_, err = tx.Exec(ctx, queryUpPos, updatingPlaceCard.LinkSection, position, updatingPlaceCard.Position)
+			if err != nil {
+				return fmt.Errorf("tx.Exec: %w", err)
+			}
+		}
 	}
+
+	position = updatingPlaceCard.Position
 
 	queryInsert := `
 		INSERT INTO task_version (

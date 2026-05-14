@@ -56,6 +56,7 @@ const (
 
 	msgFailGetCard          = "cannot get card"
 	msgFailDeleteCard       = "cannot delete card"
+	msgInvalidPositionCard  = "invalid position card in section"
 	msgFailUpdateCard       = "cannot update card"
 	msgFailReorderCards     = "cannot reorder cards"
 	msgFailCreateCard       = "cannot create card"
@@ -337,6 +338,11 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 	sectionLink, err := uuid.Parse(req.SectionLink)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.Position <= 0 {
+		api.RespondError(w, http.StatusBadRequest, msgInvalidPositionCard)
 		return
 	}
 

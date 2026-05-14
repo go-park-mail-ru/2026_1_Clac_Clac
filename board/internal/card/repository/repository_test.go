@@ -350,6 +350,11 @@ func TestRepositoryReorderCard(t *testing.T) {
 		expectedError error
 	}{
 		{
+			// card moves from oldSection(pos=1) to newSection(target pos=2):
+			// 1. close old version
+			// 2. shift cards in old section down (pos > 1 → pos-1)
+			// 3. shift cards in new section up   (pos >= 2 → pos+1)
+			// 4. insert at target position=2
 			nameTest: "Success reorder different section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -363,9 +368,12 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
-				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
-					WithArgs(newSectionLink).
-					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(2))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2`).
+					WithArgs(oldSectionLink, 1).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position \+ 1.*position >= \$2`).
+					WithArgs(newSectionLink, 2).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, newSectionLink, 2, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -374,6 +382,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			// card moves within same section from pos=1 to pos=4 (moving down):
+			// cards between old(1) and new(4) shift down by 1
 			nameTest: "Success reorder same section",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -381,6 +391,9 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
+					WithArgs(oldSectionLink, 1, 4).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -458,7 +471,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 			expectedError: common.ErrCannotSkipMandatorySection,
 		},
 		{
-			nameTest: "Error query max position fail",
+			// different section: queryDownPos (shift old section) fails
+			nameTest: "Error shift old section positions fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
@@ -471,14 +485,31 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectQuery(`(?s)WITH positions AS.*SELECT EXISTS.*`).
 					WithArgs(oldSectionLink, newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
-				m.ExpectQuery(`(?s)SELECT COALESCE.*`).
-					WithArgs(newSectionLink).
-					WillReturnError(errors.New("position query failed"))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2`).
+					WithArgs(oldSectionLink, 1).
+					WillReturnError(errors.New("shift down failed"))
 				m.ExpectRollback()
 			},
-			expectedError: errors.New("tx.QueryRow: position query failed"),
+			expectedError: errors.New("tx.Exec: shift down failed"),
 		},
 		{
+			// same section, card moves down (pos 1→4): shift query fails
+			nameTest: "Error shift same section positions fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
+					WithArgs(oldSectionLink, 1, 4).
+					WillReturnError(errors.New("shift same section failed"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("tx.Exec: shift same section failed"),
+		},
+		{
+			// same section, card moves down (pos 1→4): INSERT fails with check violation
 			nameTest: "Error check violation data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -486,6 +517,9 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
+					WithArgs(oldSectionLink, 1, 4).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
@@ -494,6 +528,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 			expectedError: common.ErrInvalidCardData,
 		},
 		{
+			// same section, card moves down (pos 1→4): INSERT fails with not-null violation
 			nameTest: "Error missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -501,6 +536,9 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
+					WithArgs(oldSectionLink, 1, 4).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
@@ -509,6 +547,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 			expectedError: common.ErrMissingRequiredField,
 		},
 		{
+			// same section, card moves down (pos 1→4): commit fails
 			nameTest: "Error commit tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
@@ -516,6 +555,9 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(targetCardLink).
 					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
 						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
+					WithArgs(oldSectionLink, 1, 4).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
 					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
@@ -541,6 +583,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 
 			var updateDto dto.PlaceCard
 			if test.nameTest == "Success reorder same section" ||
+				test.nameTest == "Error shift same section positions fail" ||
 				test.nameTest == "Error commit tx fail" ||
 				test.nameTest == "Error check violation data" ||
 				test.nameTest == "Error missing required field" {
