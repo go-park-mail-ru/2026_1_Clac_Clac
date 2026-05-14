@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/mailru/easyjson"
+	"github.com/mailru/easyjson/jwriter"
 )
 
 // HTTP заголовки
@@ -61,6 +64,11 @@ func SetContentType(w http.ResponseWriter, contentType string) {
 // Возвращает ошибку, если маршалинг или запись в ответ не удалась.
 // Устанавливает Content-Type и записывает статус
 func respond[T any](w http.ResponseWriter, statusCode int, response T) (http.ResponseWriter, error) {
+	if _, ok := any(response).(easyjson.Marshaler); ok {
+		jw := &jwriter.Writer{}
+
+	}
+
 	bytes, err := json.Marshal(response)
 	if err != nil {
 		return w, fmt.Errorf("cannot marshal object to json: %w", err)
