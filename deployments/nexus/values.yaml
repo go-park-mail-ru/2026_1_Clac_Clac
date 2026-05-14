@@ -141,7 +141,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-appeal:latest
+    image: nisakoo/nexus-appeal:sha-c4ce60d
     port: 8080
     database:
       enabled: true
