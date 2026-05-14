@@ -36,11 +36,11 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 				"name": [{"service": ""}],
 				"timeout": "%fs",
 				"retryPolicy": {
-					"MaxAttempts": %d,
-					"InitialBackoff": "0.1s",
-					"MaxBackoff": "2s",
-					"BackoffMultiplier": 2.0,
-					"RetryableStatusCodes": ["UNAVAILABLE", "DEADLINE_EXCEEDED"]
+					"maxAttempts": %d,
+					"initialBackoff": "0.1s",
+					"maxBackoff": "2s",
+					"backoffMultiplier": 2.0,
+					"retryableStatusCodes": ["UNAVAILABLE", "DEADLINE_EXCEEDED"]
 				}
 			}]
 		}`, timeout.Seconds(), retries)

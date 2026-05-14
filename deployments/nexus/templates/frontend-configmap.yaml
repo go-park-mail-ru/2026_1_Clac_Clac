@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-frontend-nginx
+  namespace: {{ .Values.namespace }}
+data:
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name _;
+        location / {
+          root /usr/share/nginx/html;
+          index index.html;
+          try_files $uri $uri/ /index.html;
+        }
+    }

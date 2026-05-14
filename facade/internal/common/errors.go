@@ -14,6 +14,7 @@ var (
 	ErrorSessionNotFound      = errors.New("session not found or expired")
 	ErrorResetTokenNotFound   = errors.New("reset token not found or expired")
 	ErrorVKOAuthUnavailable   = errors.New("vk oauth service unavailable")
+	ErrorServiceUnavailable   = errors.New("service temporarily unavailable")
 	ErrorMissingRequiredField = errors.New("required field is missing")
 	ErrorInvalidProfileData   = errors.New("incorrect profile data")
 	ErrorInvalidContentType   = errors.New("incorrect content type file")

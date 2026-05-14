@@ -65,7 +65,7 @@ func convertGRPCError(err error) error {
 			return common.ErrorInvalidInput
 		}
 	case codes.Unavailable:
-		return common.ErrorVKOAuthUnavailable
+		return common.ErrorServiceUnavailable
 	default:
 		return err
 	}
