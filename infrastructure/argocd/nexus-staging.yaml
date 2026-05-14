@@ -7,7 +7,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac
+    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
     path: deployments/nexus
     targetRevision: feat/k3s
     helm:

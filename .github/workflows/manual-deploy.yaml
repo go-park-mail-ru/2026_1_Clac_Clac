@@ -45,21 +45,34 @@ jobs:
           # При ручном запуске сравниваем с предыдущим коммитом, чтобы понять что собирать
           ./deploy.sh HEAD~1
 
-      - name: Update ArgoCD Target Revision
+      - name: Update ArgoCD Target Revision on Deploy Branch
         if: ${{ github.event.inputs.deploy_to == 'staging' }}
         run: |
-          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" infrastructure/argocd/nexus-staging.yaml
-          echo "Redirected nexus-staging to branch ${GITHUB_REF_NAME}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Клонируем только ветку deploy в отдельную папку
+          git clone --branch deploy --single-branch https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} deploy-repo
+          
+          # Обновляем targetRevision в ветке deploy
+          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" deploy-repo/infrastructure/argocd/nexus-staging.yaml
+          
+          cd deploy-repo
+          git add infrastructure/argocd/nexus-staging.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to staging config"
+          else
+            git commit -m "chore: redirect staging to ${GITHUB_REF_NAME} [skip ci]"
+            git push origin deploy
+          fi
 
-      - name: Commit and Push changes
+      - name: Commit and Push Image Tags to Current Branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add deployments/nexus/values.yaml
-          git add infrastructure/argocd/nexus-staging.yaml
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No changes to image tags"
           else
-            git commit -m "chore(manual): deploy ${GITHUB_REF_NAME} to ${{ github.event.inputs.deploy_to }} [skip ci]"
-            git push
-          fi
+            git commit -m "chore(manual): update image tags for ${GITHUB_REF_NAME} [skip ci]"
+            git push origin HEAD:${{ github.ref }}

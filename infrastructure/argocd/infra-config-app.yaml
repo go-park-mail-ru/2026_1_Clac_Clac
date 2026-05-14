@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
-    targetRevision: feat/k3s
+    targetRevision: main
     path: infrastructure/cert-manager
   destination:
     server: https://kubernetes.default.svc

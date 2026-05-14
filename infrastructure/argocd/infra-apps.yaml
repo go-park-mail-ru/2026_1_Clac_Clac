@@ -1,20 +1,19 @@
+# Root Application (App-of-Apps)
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: nexus
+  name: infra-apps
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac
-    path: deployments/nexus
-    targetRevision: main
+    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
+    targetRevision: deploy
+    path: infrastructure/argocd
   destination:
     server: https://kubernetes.default.svc
-    namespace: nexus-prod
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

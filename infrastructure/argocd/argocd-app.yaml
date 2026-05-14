@@ -13,7 +13,7 @@ spec:
         valueFiles:
           - $values/infrastructure/argocd/values.yaml
     - repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
-      targetRevision: feat/k3s
+      targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc
