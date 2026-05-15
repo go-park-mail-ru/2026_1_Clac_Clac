@@ -3,6 +3,7 @@ app:
   max_text_request_size: 10240
   max_upload_image_size: 10485760
   request_timeout: 5s
+  max_file_size: 10485760
 
 engine:
   addr: 0.0.0.0:8080

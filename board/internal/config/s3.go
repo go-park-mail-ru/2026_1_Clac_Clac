@@ -31,7 +31,7 @@ func SetupEnvS3(v *viper.Viper) {
 	v.RegisterAlias("s3.secret_key", "s3_secret_key")
 	v.RegisterAlias("s3.boards_backgrounds_bucket", "s3_boards_backgrounds_bucket")
 	v.RegisterAlias("s3.boards_backgrounds_prefix", "s3_boards_backgrounds_prefix")
-	v.RegisterAlias("s3.cards_attathcment_bucket", "s3_cards_attathcment_bucket")
-	v.RegisterAlias("s3.cards_attathcment_prefix", "s3_cards_attathcment_prefix")
+	v.RegisterAlias("s3.cards_attachments_bucket", "s3_cards_attachments_bucket")
+	v.RegisterAlias("s3.cards_attachments_prefix", "s3_cards_attachments_prefix")
 	v.RegisterAlias("s3.connect_timeout", "s3_connect_timeout")
 }
