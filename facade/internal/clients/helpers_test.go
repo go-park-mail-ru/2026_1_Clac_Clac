@@ -61,7 +61,7 @@ func TestConvertGRPCError(t *testing.T) {
 		{
 			name:     "Unavailable",
 			input:    status.Error(codes.Unavailable, "service unavailable"),
-			expected: common.ErrorVKOAuthUnavailable,
+			expected: common.ErrorServiceUnavailable,
 		},
 		{
 			name:     "Unknown gRPC code returns error as-is",
