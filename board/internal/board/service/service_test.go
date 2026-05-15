@@ -47,6 +47,11 @@ func (m *mockRbacService) CheckPermissionOnSubtask(ctx context.Context, subtaskL
 	return args.Error(0)
 }
 
+func (m *mockRbacService) CheckPermissionOnAttachment(ctx context.Context, attachmentLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, attachmentLink, userLink, action)
+	return args.Error(0)
+}
+
 func TestGetBoards(t *testing.T) {
 	userLink := uuid.New()
 	ctx := context.Background()

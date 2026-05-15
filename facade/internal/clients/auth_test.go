@@ -280,7 +280,7 @@ func TestExchangeVKCode(t *testing.T) {
 			mockErr:       status.Error(codes.Unavailable, "vk unavailable"),
 			expectedToken: "",
 			expectedEmail: "",
-			expectedErr:   common.ErrorVKOAuthUnavailable,
+			expectedErr:   common.ErrorServiceUnavailable,
 		},
 	}
 

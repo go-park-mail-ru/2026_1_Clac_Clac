@@ -1,0 +1,57 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.database.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $svcName }}-migrate-{{ randAlphaNum 5 | lower }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ $.Chart.Name }}-{{ $svcName }}-db-service 5432; do echo waiting for db; sleep 2; done;']
+
+      containers:
+        - name: migrate
+          image: migrate/migrate:v4.16.2
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASS}@{{ $.Chart.Name }}-{{ $svcName }}-db-service:5432/${DB_NAME}?sslmode=disable" up
+
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_NAME
+
+          volumeMounts:
+            - name: migrations-volume
+              mountPath: /migrations
+
+      restartPolicy: Never
+
+      volumes:
+        - name: migrations-volume
+          configMap:
+            name: {{ $svcName }}-migrations
+{{- end }}
+{{- end }}

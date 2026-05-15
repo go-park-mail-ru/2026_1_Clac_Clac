@@ -6,16 +6,19 @@ const (
 )
 
 const (
-	defaultLogLevel = DebugLevel
+	defaultLogLevel           = DebugLevel
+	defaultMaxUploadImageSize = 10 * 1024 * 1024
 )
 
 type Application struct {
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel           string `mapstructure:"log_level"`
+	MaxUploadImageSize int64  `mapstructure:"max_upload_image_size"`
 }
 
 func DefaultApplicationConfig() Application {
 	return Application{
-		LogLevel: defaultLogLevel,
+		LogLevel:           defaultLogLevel,
+		MaxUploadImageSize: defaultMaxUploadImageSize,
 	}
 }
 

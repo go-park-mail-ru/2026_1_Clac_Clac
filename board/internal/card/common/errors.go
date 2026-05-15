@@ -13,5 +13,6 @@ var (
 	ErrTaskLimitReached           = errors.New("task limit reached")
 	ErrCommentNotFound            = errors.New("comment not found")
 	ErrSubtaskNotFound            = errors.New("sub task not found")
+	ErrAttachmentNotFound         = errors.New("attachment not found")
 	ErrPermissionDenied           = errors.New("permission denied")
 )

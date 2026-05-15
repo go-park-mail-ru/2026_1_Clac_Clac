@@ -1,0 +1,64 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.redis.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis-conf
+  namespace: {{ $.Values.namespace }}
+data:
+  redis.conf: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $svcName }}-redis
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ $svcName }}-redis
+  template:
+    metadata:
+      labels:
+        app: {{ $svcName }}-redis
+    spec:
+      containers:
+        - name: {{ $svcName }}
+          image: {{ $.Values.redis.image }}
+          args:
+            - "redis-server"
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+          ports:
+            - containerPort: {{ $.Values.redis.port }}
+              name: redis
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: REDIS_PASSWORD
+          {{- with $.Values.redis.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-redis-service
+  namespace: {{ $.Values.namespace }}
+spec:
+  selector:
+    app: {{ $svcName }}-redis
+  ports:
+    - port: {{ $.Values.redis.port }}
+      targetPort: redis
+  type: ClusterIP
+{{- end }}
+{{- end }}

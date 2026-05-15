@@ -14,12 +14,20 @@ message CardInfo {
   optional google.protobuf.Timestamp deadline = 5;
   repeated SubtaskInfo subtasks = 6;
   int64 position = 7;
+  repeated AttachmentInfo attachments = 8;
 }
 
 message SubtaskInfo {
   string subtask_link = 1;
   string description = 2;
   bool is_done = 3;
+  int64 position = 4;
+}
+
+message AttachmentInfo {
+  string attachment_link = 1;
+  string path = 2;
+  string name = 3;
   int64 position = 4;
 }
 
@@ -155,6 +163,27 @@ message DeleteSubtaskRequest {
 
 message DeleteSubtaskResponse {}
 
+message CreateAttachmentRequest {
+  string task_link = 1;
+  string user_link = 2;
+  bytes data = 3;
+  string name = 4;
+}
+
+message CreateAttachmentResponse {
+  string attachment_link = 1;
+  string path = 2;
+  int64 position = 3;
+  string name = 4;
+}
+
+message DeleteAttachmentRequest {
+  string user_link = 1;
+  string attachment_link = 2;
+}
+
+message DeleteAttachmentResponse {}
+
 service CardService {
   rpc GetCard(GetCardRequest) returns (GetCardResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
@@ -168,4 +197,6 @@ service CardService {
   rpc CreateSubtask(CreateSubtaskRequest) returns (CreateSubtaskResponse);
   rpc UpdateSubtask(UpdateSubtaskRequest) returns (UpdateSubtaskResponse);
   rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
-}
+  rpc CreateAttachment(CreateAttachmentRequest) returns (CreateAttachmentResponse);
+  rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse);
+ }

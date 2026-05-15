@@ -16,6 +16,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Image Tag
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -29,4 +33,32 @@ jobs:
       - name: Run Deploy Script
         run: |
           chmod +x ./deploy.sh
-          ./deploy.sh ${{ github.event.before }}
+          # При ручном запуске сравниваем с предыдущим коммитом, чтобы понять что собирать
+          ./deploy.sh HEAD~1
+
+      - name: Update ArgoCD Target Revision on Deploy Branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git clone --branch deploy --single-branch https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} deploy-repo
+          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" deploy-repo/infrastructure/argocd/nexus-app.yaml
+          cd deploy-repo
+          git add infrastructure/argocd/nexus-app.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to deployment config"
+          else
+            git commit -m "chore: redirect nexus to ${GITHUB_REF_NAME} [skip ci]"
+            git push origin deploy
+          fi
+
+      - name: Commit and Push Image Tags to Current Branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add deployments/nexus/values.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to image tags"
+          else
+            git commit -m "chore(manual): update image tags for ${GITHUB_REF_NAME} [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+          fi
