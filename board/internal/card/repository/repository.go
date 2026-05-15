@@ -83,7 +83,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 					'attachment_link', COALESCE(a.attachment_link, '00000000-0000-0000-0000-000000000000'::uuid),
 					'attachment_path', a.attachment_path,
 					'attachment_name', a.attachment_name,
-					'position', a.position,
+					'position', a.position
 				)
 			), '[]'::jsonb)
 			FROM attachment a
