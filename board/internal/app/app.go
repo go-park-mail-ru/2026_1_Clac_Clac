@@ -167,6 +167,8 @@ func (a *App) setupEngine(logger *zerolog.Logger) {
 			interceptors.StreamPanicRecovery(logger),
 			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
+		grpc.MaxRecvMsgSize(int(a.Config.App.MaxUploadImageSize)),
+		grpc.MaxSendMsgSize(int(a.Config.App.MaxUploadImageSize)),
 	}
 	a.Engine = grpcEngine.New(a.Config.Engine, logger, opts...)
 }

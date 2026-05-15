@@ -1,5 +1,6 @@
 app:
   log_level: info
+  max_file_size: 10485760
 
 engine:
   addr: 0.0.0.0:8080

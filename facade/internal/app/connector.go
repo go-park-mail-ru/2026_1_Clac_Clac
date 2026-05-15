@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const defaultGRPCMsgSize = 4 * 1024 * 1024
+
 type Connector struct {
 	User        *clients.User
 	Auth        *clients.Auth
@@ -27,10 +29,10 @@ type Connector struct {
 	conns  []*grpc.ClientConn
 }
 
-func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, error) {
+func NewConnector(app *config.Application, config *config.Services, logger *zerolog.Logger) (*Connector, error) {
 	var activeConns []*grpc.ClientConn
 
-	connect := func(addr string, timeout time.Duration, retries int) (*grpc.ClientConn, error) {
+	connect := func(addr string, timeout time.Duration, retries int, maxSizeConn int) (*grpc.ClientConn, error) {
 		serviceConfig := fmt.Sprintf(`{
 			"methodConfig": [{
 				"name": [{"service": ""}],
@@ -50,6 +52,10 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithUnaryInterceptor(sentrygrpc.UnaryClientInterceptor()),
 			grpc.WithDefaultServiceConfig(serviceConfig),
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallRecvMsgSize(maxSizeConn),
+				grpc.MaxCallSendMsgSize(maxSizeConn),
+			),
 		)
 
 		if err != nil {
@@ -59,36 +65,36 @@ func NewConnector(config *config.Services, logger *zerolog.Logger) (*Connector, 
 		return conn, nil
 	}
 
-	userConn, err := connect(config.User.Client.Addr, config.User.Client.TimeOut, config.User.Client.Retries)
+	userConn, err := connect(config.User.Client.Addr, config.User.Client.TimeOut, config.User.Client.Retries, int(app.MaxUploadImageSize))
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to User service: %w", err)
 	}
 
-	authConn, err := connect(config.Auth.Client.Addr, config.Auth.Client.TimeOut, config.Auth.Client.Retries)
+	authConn, err := connect(config.Auth.Client.Addr, config.Auth.Client.TimeOut, config.Auth.Client.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Auth service: %w", err)
 	}
 
-	mailSenderConn, err := connect(config.MailSender.Addr, config.MailSender.TimeOut, config.MailSender.Retries)
+	mailSenderConn, err := connect(config.MailSender.Addr, config.MailSender.TimeOut, config.MailSender.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to MailSender service: %w", err)
 	}
 
-	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.ClientConfig.TimeOut, config.RateLimiters.ClientConfig.Retries)
+	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.ClientConfig.TimeOut, config.RateLimiters.ClientConfig.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to RateLimiter service: %w", err)
 	}
 
-	boardConn, err := connect(config.Board.Client.Addr, config.Board.Client.TimeOut, config.Board.Client.Retries)
+	boardConn, err := connect(config.Board.Client.Addr, config.Board.Client.TimeOut, config.Board.Client.Retries, int(app.MaxUploadImageSize))
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Board service: %w", err)
 	}
-	appealConn, err := connect(config.Appeal.Client.Addr, config.Appeal.Client.TimeOut, config.Appeal.Client.Retries)
+	appealConn, err := connect(config.Appeal.Client.Addr, config.Appeal.Client.TimeOut, config.Appeal.Client.Retries, int(app.MaxFileSize))
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to Appeal service: %w", err)

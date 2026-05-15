@@ -41,7 +41,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		}
 	}()
 
-	connector, err := setupConnector(&conf.Services, logger)
+	connector, err := setupConnector(&conf.App, &conf.Services, logger)
 	if err != nil {
 		sentryLogger.CaptureError(err, "Setup connector", map[string]interface{}{"component": "connector"})
 		return nil, fmt.Errorf("NewConnector: %w", err)
@@ -113,8 +113,8 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 	return &logger
 }
 
-func setupConnector(config *config.Services, logger *zerolog.Logger) (*Connector, error) {
-	return NewConnector(config, logger)
+func setupConnector(app *config.Application, config *config.Services, logger *zerolog.Logger) (*Connector, error) {
+	return NewConnector(app, config, logger)
 }
 
 func setupManager(connector *Connector, config *config.Config) *Manager {
