@@ -48,7 +48,7 @@ func SetContentType(w http.ResponseWriter, contentType string) {
 // Возвращает ошибку, если маршалинг или запись в ответ не удалась.
 // Устанавливает Content-Type и записывает статус
 func respond(w http.ResponseWriter, statusCode int, response any) (http.ResponseWriter, error) {
-	if marshaler, ok := any(response).(easyjson.Marshaler); ok {
+	if marshaler, ok := response.(easyjson.Marshaler); ok {
 		var jw jwriter.Writer
 		marshaler.MarshalEasyJSON(&jw)
 
@@ -95,14 +95,14 @@ func Respond(w http.ResponseWriter, statusCode int, status string) (http.Respons
 // Всегда возвращает 200-ку, принимает любые данные, которые можно маршалить
 func RespondOk[T any](w http.ResponseWriter, data T) (http.ResponseWriter, error) {
 	if m, ok := any(data).(easyjson.Marshaler); ok {
-		var innerJw jwriter.Writer
-		m.MarshalEasyJSON(&innerJw)
+		var innerJW jwriter.Writer
+		m.MarshalEasyJSON(&innerJW)
 
-		if innerJw.Error != nil {
-			return w, fmt.Errorf("inner marshal error: %w", innerJw.Error)
+		if innerJW.Error != nil {
+			return w, fmt.Errorf("inner marshal error: %w", innerJW.Error)
 		}
 
-		rawBytes, _ := innerJw.BuildBytes()
+		rawBytes, _ := innerJW.BuildBytes()
 
 		fastResp := &dto.OkResponseFast{
 			Status: StatusOK,
