@@ -9,7 +9,7 @@ data:
         listen 80;
         server_name _;
         location / {
-          root /usr/share/nginx/html;
+          root /var/www/public;
           index index.html;
           try_files $uri $uri/ /index.html;
         }
