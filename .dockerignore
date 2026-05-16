@@ -1,7 +1,0 @@
-bin/
-.DS_Store
-.git
-.env
-Dockerfile
-Dockerfile.small
-docker-compose.yaml
