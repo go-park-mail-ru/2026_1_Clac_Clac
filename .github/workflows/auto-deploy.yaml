@@ -70,7 +70,7 @@ jobs:
     uses: ./.github/workflows/build-and-update-chart.yaml
     with:
       matrix_services: ${{ needs.detect-changes.outputs.matrix }}
-      target_revision: "main"
+      target_revision: "fix/ci-cd-deploy-workflows"
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
