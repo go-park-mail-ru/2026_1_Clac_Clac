@@ -130,6 +130,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		if err != nil {
 			return dto.InfoCard{}, fmt.Errorf("SubtaskLink uuid.Parse: %w", err)
 		}
+
 		infoCard.Subtasks = append(infoCard.Subtasks, models.SubtaskInfo{
 			SubtaskLink: link,
 			Description: rs.Description,
