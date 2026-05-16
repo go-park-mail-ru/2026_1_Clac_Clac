@@ -346,6 +346,8 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Position += 1
+
 	err = c.card.ReorderCards(r.Context(), domain.ReorderCardsRequest{
 		UserLink:    userLink,
 		CardLink:    cardLink,
