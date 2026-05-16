@@ -69,9 +69,9 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
 					'subtask_link', COALESCE(s.subtask_link, '00000000-0000-0000-0000-000000000000'::uuid),
-                    'description', s.description,
-                    'is_done', s.is_done,
-                    'position', s.position
+					'description', s.description,
+					'is_done', s.is_done,
+					'position', s.position
 				)
 			), '[]'::jsonb)
 			FROM subtask s
@@ -90,7 +90,7 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 			WHERE a.task_link = t.task_link
 		) AS attachments
 	FROM task_actual AS t
-	WHERE t.task_link = $1
+	WHERE t.task_link = $1;
 	`
 
 	var infoCard dto.InfoCard
