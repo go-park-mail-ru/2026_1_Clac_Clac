@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// TODO: Delete cooment
+// TODO: Delete coome
 type App struct {
 	Config        *config.Config
 	Logger        *zerolog.Logger

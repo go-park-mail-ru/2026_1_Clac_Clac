@@ -58,7 +58,7 @@ type rawAttachment struct {
 }
 
 func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
-	// TODO: Delete comment
+	// TODO: Delete comme
 	query := `
 	SELECT
 		t.title,
