@@ -1,0 +1,32 @@
+name: "Update ArgoCD Target Revision"
+description: "Updates the targetRevision in the ArgoCD app manifest on the deploy branch"
+
+inputs:
+  target_revision:
+    description: "Branch or tag which ArgoCD should track"
+    required: true
+  github_token:
+    description: "Token for cloning and pushing"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout Deploy Branch
+      uses: actions/checkout@v6
+      with:
+        ref: deploy
+        path: deploy-repo
+        token: ${{ inputs.github_token }}
+
+    - name: Update Target Revision
+      shell: bash
+      run: |
+        echo "Redirecting ArgoCD to branch: ${{ inputs.target_revision }}"
+        sed -i "s|targetRevision:.*|targetRevision: ${{ inputs.target_revision }}|g" deploy-repo/infrastructure/argocd/nexus-app.yaml
+
+    - name: Commit and Push changes
+      uses: stefanzweifel/git-auto-commit-action@v7
+      with:
+        commit_message: "chore: redirect nexus to ${{ inputs.target_revision }} [skip ci]"
+        repository: ./deploy-repo

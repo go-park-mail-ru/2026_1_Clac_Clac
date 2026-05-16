@@ -1,0 +1,77 @@
+name: Build Images and Update Helm Chart
+
+on:
+  workflow_call:
+    inputs:
+      matrix_services:
+        description: "JSON array with services to build"
+        required: true
+        type: string
+      target_revision:
+        description: "Revision branch for ArgoCD"
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(inputs.matrix_services) }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set Image Tag
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push ${{ matrix.service }}
+        run: |
+          docker build --platform linux/amd64 -f "deployments/${{ matrix.service }}/Dockerfile" -t "${{ secrets.DOCKERHUB_USERNAME }}/nexus-${{ matrix.service }}:${{ env.IMAGE_TAG }}" .
+          docker push "${{ secrets.DOCKERHUB_USERNAME }}/nexus-${{ matrix.service }}:${{ env.IMAGE_TAG }}"
+
+  update-manifests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Image Tag
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Update ArgoCD Target Revision
+        uses: ./.github/actions/update-argocd
+        with:
+          target_revision: ${{ inputs.target_revision }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update values.yaml
+        run: |
+          SERVICES="${{ join(fromJSON(inputs.matrix_services), ' ') }}"
+
+          for SVC in $SERVICES; do
+            sed -i "s|image: .*/nexus-$SVC:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/nexus-$SVC:${{ env.IMAGE_TAG }}|g" deployments/nexus/values.yaml
+          done
+
+      - name: Commit and Push Image Tags
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore(deploy): update image tags to ${{ env.IMAGE_TAG }} [skip ci]"
+          file_pattern: deployments/nexus/values.yaml
+          branch: ${{ inputs.target_revision }}
