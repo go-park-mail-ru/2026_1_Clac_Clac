@@ -3,7 +3,7 @@ name: Auto Deploy
 on:
   push:
     branches:
-      - main
+      - fix/ci-cd-deploy-workflows
     paths:
       - "deployments/**"
       - "pkg/**"
