@@ -19,7 +19,7 @@ func NewManager(store *Store, conf *config.Config) *Manager {
 	permissionChecker := rbac.NewCachedService(store.PermissionChecker, store.RedisClient)
 
 	configCard := card.Config{
-		BaseURLAttachment: s3.GetURL(conf.S3.Endpoint, conf.S3.CardsAppachmentBucket),
+		BaseURLAttachment: s3.GetURL(conf.S3.Endpoint, conf.S3.CardsAttachmentBucket),
 	}
 
 	return &Manager{

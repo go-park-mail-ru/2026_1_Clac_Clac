@@ -60,8 +60,8 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 	store.Card = card.NewRepository(
 		store.PostgresPool,
 		store.S3Client.NewBucket(
-			conf.S3.CardsAppachmentBucket,
-			conf.S3.CardsAppachmentPrefix,
+			conf.S3.CardsAttachmentBucket,
+			conf.S3.CardsAttachmentPrefix,
 			s3.ACL.PublicRead,
 		),
 	)

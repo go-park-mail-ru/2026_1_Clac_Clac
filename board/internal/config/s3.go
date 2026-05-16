@@ -9,8 +9,8 @@ type S3 struct {
 	SecretKey               string `mapstructure:"secret_key"`
 	BoardsBackgroundsBucket string `mapstructure:"boards_backgrounds_bucket"`
 	BoardsBackgroundsPrefix string `mapstructure:"boards_backgrounds_prefix"`
-	CardsAppachmentBucket   string `mapstructure:"cards_attachments_bucket"`
-	CardsAppachmentPrefix   string `mapstructure:"cards_attachments_prefix"`
+	CardsAttachmentBucket   string `mapstructure:"cards_attachments_bucket"`
+	CardsAttachmentPrefix   string `mapstructure:"cards_attachments_prefix"`
 	ConnectTimeout          string `mapstructure:"connect_timeout"`
 }
 

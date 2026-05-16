@@ -341,7 +341,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Position <= 0 {
+	if req.Position < 0 {
 		api.RespondError(w, http.StatusBadRequest, msgInvalidPositionCard)
 		return
 	}
