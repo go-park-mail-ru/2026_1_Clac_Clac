@@ -3,7 +3,7 @@ name: Auto Deploy
 on:
   push:
     branches:
-      - fix/ci-cd-deploy-workflows
+      - main
     paths:
       - "deployments/**"
       - "pkg/**"
@@ -70,7 +70,7 @@ jobs:
     uses: ./.github/workflows/build-and-update-chart.yaml
     with:
       matrix_services: ${{ needs.detect-changes.outputs.matrix }}
-      target_revision: "fix/ci-cd-deploy-workflows"
+      target_revision: "main"
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
