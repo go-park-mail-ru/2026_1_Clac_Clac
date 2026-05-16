@@ -2,4 +2,3 @@ bin
 .env
 coverage.out
 secrets.yaml
-dto_easyjson.go
