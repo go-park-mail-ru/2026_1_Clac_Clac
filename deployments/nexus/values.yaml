@@ -33,7 +33,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-646932f
+    image: nisakoo/nexus-facade:sha-23929d6
     port: 8080
     database:
       enabled: false
@@ -51,7 +51,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-rate_limiter:sha-646932f
+    image: nisakoo/nexus-rate_limiter:sha-23929d6
     port: 8080
     database:
       enabled: false
@@ -123,7 +123,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-646932f
+    image: nisakoo/nexus-board:sha-23929d6
     port: 8080
     database:
       enabled: true
@@ -141,7 +141,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-appeal:sha-646932f
+    image: nisakoo/nexus-appeal:sha-23929d6
     port: 8080
     database:
       enabled: true
