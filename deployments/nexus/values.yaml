@@ -33,7 +33,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-23929d6
+    image: nisakoo/nexus-facade:sha-b43847e
     port: 8080
     database:
       enabled: false
