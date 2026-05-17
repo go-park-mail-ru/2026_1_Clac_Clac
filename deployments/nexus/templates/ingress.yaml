@@ -13,24 +13,28 @@ spec:
   ingressClassName: traefik
   tls:
   - hosts:
-    - {{ .Values.ingress.host }}
+    {{- range .Values.ingress.hosts }}
+    - {{ . }}
+    {{- end }}
     secretName: {{ .Chart.Name }}-tls-cert
   rules:
-  - host: {{ .Values.ingress.host }}
+  {{- range .Values.ingress.hosts }}
+  - host: {{ . }}
     http:
       paths:
       - path: /api
         pathType: Prefix
         backend:
           service:
-            name: {{ .Chart.Name }}-facade-service
+            name: {{ $.Chart.Name }}-facade-service
             port:
               name: http
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ .Chart.Name }}-frontend-service
+            name: {{ $.Chart.Name }}-frontend-service
             port:
               name: http
+  {{- end }}
 {{- end }}
