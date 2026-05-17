@@ -2,63 +2,76 @@ name: Manual Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      all:
+        description: "build all services"
+        type: boolean
+        default: false
+      appeal:
+        description: "appeal"
+        type: boolean
+        default: false
+      authorization:
+        description: "authorization"
+        type: boolean
+        default: false
+      board:
+        description: "board"
+        type: boolean
+        default: false
+      facade:
+        description: "facade"
+        type: boolean
+        default: false
+      mail_sender:
+        description: "mail_sender"
+        type: boolean
+        default: false
+      rate_limiter:
+        description: "rate_limiter"
+        type: boolean
+        default: false
+      user:
+        description: "user"
+        type: boolean
+        default: false
 
 jobs:
-  build-and-push:
+  setup-build:
     runs-on: ubuntu-latest
-
-    env:
-      DRY_RUN: false
-      DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set Image Tag
-        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Run Deploy Script
+      - name: Generate Build Matrix
+        id: set-matrix
         run: |
-          chmod +x ./deploy.sh
-          # При ручном запуске сравниваем с предыдущим коммитом, чтобы понять что собирать
-          ./deploy.sh HEAD~1
-
-      - name: Update ArgoCD Target Revision on Deploy Branch
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git clone --branch deploy --single-branch https://x-token-auth:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} deploy-repo
-          sed -i "s|targetRevision:.*|targetRevision: ${GITHUB_REF_NAME}|g" deploy-repo/infrastructure/argocd/nexus-app.yaml
-          cd deploy-repo
-          git add infrastructure/argocd/nexus-app.yaml
-          if git diff --staged --quiet; then
-            echo "No changes to deployment config"
+          if [[ "${{ inputs.all }}" == 'true' ]]; then
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
           else
-            git commit -m "chore: redirect nexus to ${GITHUB_REF_NAME} [skip ci]"
-            git push origin deploy
+            SERVICES=()
+            [[ "${{ inputs.appeal }}" == 'true' ]] && SERVICES+=('"appeal"')
+            [[ "${{ inputs.authorization }}" == 'true' ]] && SERVICES+=('"authorization"')
+            [[ "${{ inputs.board }}" == 'true' ]] && SERVICES+=('"board"')
+            [[ "${{ inputs.facade }}" == 'true' ]] && SERVICES+=('"facade"')
+            [[ "${{ inputs.mail_sender }}" == 'true' ]] && SERVICES+=('"mail_sender"')
+            [[ "${{ inputs.rate_limiter }}" == 'true' ]] && SERVICES+=('"rate_limiter"')
+            [[ "${{ inputs.user }}" == 'true' ]] && SERVICES+=('"user"')
+
+            if [ ${#SERVICES[@]} -eq 0 ]; then
+              echo "Error: nothing to build"
+              exit 1
+            fi
+
+            MATRIX_JSON="[$(IFS=,; echo "${SERVICES[*]}")]"
+            echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and Push Image Tags to Current Branch
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add deployments/nexus/values.yaml
-          if git diff --staged --quiet; then
-            echo "No changes to image tags"
-          else
-            git commit -m "chore(manual): update image tags for ${GITHUB_REF_NAME} [skip ci]"
-            git push origin HEAD:${{ github.ref }}
-          fi
+  run-deployment:
+    needs: setup-build
+    uses: ./.github/workflows/build-and-update-chart.yaml
+    with:
+      matrix_services: ${{ needs.setup-build.outputs.matrix }}
+      target_revision: ${{ github.ref_name }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
