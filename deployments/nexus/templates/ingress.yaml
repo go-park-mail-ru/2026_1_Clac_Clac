@@ -13,10 +13,12 @@ spec:
   ingressClassName: traefik
   tls:
   - hosts:
-    - {{ .Values.ingress.host }}
+    {{- range .Values.ingress.hosts }}
+    - {{ . }}
+    {{- end }}
     secretName: {{ .Chart.Name }}-tls-cert
   rules:
-  - host: {{ .Values.ingress.host }}
+  - host: clac-clac.ru
     http:
       paths:
       - path: /api
@@ -24,6 +26,23 @@ spec:
         backend:
           service:
             name: {{ .Chart.Name }}-facade-service
+            port:
+              name: http
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Chart.Name }}-frontend-service
+            port:
+              name: http
+  - host: clac-clac.mooo.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Chart.Name }}-frontend-service
             port:
               name: http
       - path: /
