@@ -147,7 +147,7 @@ func setupLogger(conf *config.Application) *zerolog.Logger {
 
 // Настройка подключения к базе данных
 func setupDatabase(dbConnection *config.DatabaseConnection, logger *zerolog.Logger) (*pgxpool.Pool, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&application_name=nexus-user",
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		dbConnection.User,
 		dbConnection.Password,
 		dbConnection.Host,
