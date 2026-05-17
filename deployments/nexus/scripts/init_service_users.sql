@@ -32,7 +32,7 @@ SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L', :'service_user', :'servic
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'service_user')
 \gexec
 
-GRANT CONNECT ON DATABASE current_database() TO :"service_user";
+SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'service_user') \gexec
 GRANT USAGE ON SCHEMA public TO :"service_user";
 
 SELECT format('GRANT %s ON ALL TABLES IN SCHEMA public TO %I', :'permissions', :'service_user') \gexec
