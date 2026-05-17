@@ -9,7 +9,6 @@ data:
         listen 80;
         server_name _;
 
-        # VK OAuth locked to old domain — redirect all non-API traffic to main domain
         if ($host = "clac-clac.mooo.com") {
             return 301 https://clac-clac.ru$request_uri;
         }
