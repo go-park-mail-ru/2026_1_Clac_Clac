@@ -90,7 +90,7 @@ func (s *Store) setupRedis(conf pkgredis.Config, logger *zerolog.Logger) error {
 }
 
 func (s *Store) setupPostgresPool(conf *postgres.Config, logger *zerolog.Logger) error {
-	DSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&application_name=nexus-board",
+	DSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		conf.User,
 		conf.Password,
 		conf.Host,
