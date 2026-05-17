@@ -22,12 +22,17 @@ spec:
       containers:
         - name: {{ $svcName }}
           image: {{ $.Values.postgres.image }}
+          args: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
           ports:
             - containerPort: {{ $.Values.postgres.port }}
               name: postgres
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+            - name: postgres-config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+              readOnly: true
 
           env:
             - name: POSTGRES_DB
@@ -55,6 +60,9 @@ spec:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: {{ $.Chart.Name }}-{{ $svcName }}-db-pvc
+        - name: postgres-config
+          configMap:
+            name: postgres-config
 ---
 apiVersion: v1
 kind: Service

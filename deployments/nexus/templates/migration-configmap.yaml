@@ -34,3 +34,15 @@ data:
   init_service_users.sql: |-
 {{ $initScript | indent 4 }}
 {{- end }}
+---
+{{- $pgConf := .Files.Get "configs/postgresql.conf" }}
+{{- if $pgConf }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: {{ .Values.namespace }}
+data:
+  postgresql.conf: |-
+{{ $pgConf | indent 4 }}
+{{- end }}

@@ -53,7 +53,7 @@ func (s *Store) Close() error {
 }
 
 func (s *Store) setupPostgresPool(conf *postgres.Config, logger *zerolog.Logger) error {
-	DSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	DSN := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&application_name=nexus-appeal",
 		conf.User,
 		conf.Password,
 		conf.Host,
