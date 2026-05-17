@@ -446,4 +446,3 @@ s3:
 | S3-хранилище | ✅ | AWS SDK v2, unit-тесты с моками |
 | `listen_addresses` | ✅ | `'*'` внутри кластера K3s, порт не exposed наружу |
 | Sentry | ✅ | Отслеживание ошибок рантайма |
-| Unit-тесты БД | ✅ | `pkg/postgres/postgres_test.go`, моки S3 |
