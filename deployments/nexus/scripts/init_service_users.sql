@@ -23,36 +23,27 @@
 --        -v permissions="'SELECT, INSERT, UPDATE'" \
 --        -f init_service_users.sql
 
--- Значение по умолчанию для permissions
 \if :{?permissions}
 \else
-    \set permissions '\'SELECT, INSERT, UPDATE, DELETE\''
+    \set permissions 'SELECT, INSERT, UPDATE, DELETE'
 \endif
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :service_user) THEN
-        EXECUTE format('CREATE USER %I WITH PASSWORD %L', :service_user, :service_password);
-        RAISE NOTICE 'Created user: %', :service_user;
-    ELSE
-        RAISE NOTICE 'User already exists: %', :service_user;
-    END IF;
-END
-$$;
+SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L', :'service_user', :'service_password')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'service_user')
+\gexec
 
-GRANT CONNECT ON DATABASE current_database() TO :service_user;
-GRANT USAGE ON SCHEMA public TO :service_user;
+GRANT CONNECT ON DATABASE current_database() TO :"service_user";
+GRANT USAGE ON SCHEMA public TO :"service_user";
 
-EXECUTE format('GRANT %s ON ALL TABLES IN SCHEMA public TO %I', :permissions, :service_user);
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO :service_user;
+SELECT format('GRANT %s ON ALL TABLES IN SCHEMA public TO %I', :'permissions', :'service_user') \gexec
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO :"service_user";
 
-EXECUTE format(
+
+SELECT format(
     'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT %s ON TABLES TO %I',
-    :admin_user, :permissions, :service_user
-);
-EXECUTE format(
+    :'admin_user', :'permissions', :'service_user'
+) \gexec
+SELECT format(
     'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO %I',
-    :admin_user, :service_user
-);
-
-RAISE NOTICE 'Service user % configured with permissions: %', :service_user, :permissions;
+    :'admin_user', :'service_user'
+) \gexec

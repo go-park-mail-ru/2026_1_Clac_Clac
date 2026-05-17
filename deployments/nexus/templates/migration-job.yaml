@@ -31,11 +31,11 @@ spec:
                 -h {{ $.Chart.Name }}-{{ $svcName }}-db-service \
                 -U ${DB_USER} \
                 -d ${DB_NAME} \
-                -v service_user="'{{ $svcName }}_service'" \
-                -v service_password="'${DB_SERVICE_PASSWORD}'" \
-                -v admin_user="'${DB_USER}'" \
+                -v service_user={{ $svcName }}_service \
+                -v service_password=${DB_SERVICE_PASSWORD} \
+                -v admin_user=${DB_USER} \
                 {{- if eq $svcName "user" }}
-                -v permissions="'SELECT, INSERT, UPDATE'" \
+                -v permissions='SELECT, INSERT, UPDATE' \
                 {{- end }}
                 -f /init_service_users.sql && \
               echo "Service user configured."

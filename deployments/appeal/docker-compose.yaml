@@ -66,9 +66,9 @@ services:
           -h appeal-db \
           -U $${DATABASE_USER} \
           -d $${DATABASE_NAME} \
-          -v service_user="'appeal_service'" \
-          -v service_password="'$${DATABASE_SERVICE_PASSWORD}'" \
-          -v admin_user="'$${DATABASE_USER}'" \
+          -v service_user=appeal_service \
+          -v service_password=$${DATABASE_SERVICE_PASSWORD} \
+          -v admin_user=$${DATABASE_USER} \
           -f /init_service_users.sql
     env_file:
       - ../../appeal/.env
