@@ -18,23 +18,38 @@ spec:
     {{- end }}
     secretName: {{ .Chart.Name }}-tls-cert
   rules:
-  {{- range .Values.ingress.hosts }}
-  - host: {{ . }}
+  - host: clac-clac.ru
     http:
       paths:
       - path: /api
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Chart.Name }}-facade-service
+            name: {{ .Chart.Name }}-facade-service
             port:
               name: http
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: {{ $.Chart.Name }}-frontend-service
+            name: {{ .Chart.Name }}-frontend-service
             port:
               name: http
-  {{- end }}
+  - host: clac-clac.mooo.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Chart.Name }}-frontend-service
+            port:
+              name: http
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Chart.Name }}-frontend-service
+            port:
+              name: http
 {{- end }}
