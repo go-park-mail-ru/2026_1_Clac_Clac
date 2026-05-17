@@ -24,7 +24,21 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASS}@{{ $.Chart.Name }}-{{ $svcName }}-db-service:5432/${DB_NAME}?sslmode=disable" up
+              migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASS}@{{ $.Chart.Name }}-{{ $svcName }}-db-service:5432/${DB_NAME}?sslmode=disable" up && \
+              echo "Migrations completed. Setting up service user..." && \
+              apk add --no-cache postgresql-client && \
+              PGPASSWORD=${DB_PASS} psql \
+                -h {{ $.Chart.Name }}-{{ $svcName }}-db-service \
+                -U ${DB_USER} \
+                -d ${DB_NAME} \
+                -v service_user="'{{ $svcName }}_service'" \
+                -v service_password="'${DB_SERVICE_PASSWORD}'" \
+                -v admin_user="'${DB_USER}'" \
+                {{- if eq $svcName "user" }}
+                -v permissions="'SELECT, INSERT, UPDATE'" \
+                {{- end }}
+                -f /init_service_users.sql && \
+              echo "Service user configured."
 
           env:
             - name: DB_USER
@@ -42,10 +56,18 @@ spec:
                 secretKeyRef:
                   name: {{ $svcName }}-secret
                   key: DATABASE_NAME
+            - name: DB_SERVICE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_PASSWORD
 
           volumeMounts:
             - name: migrations-volume
               mountPath: /migrations
+            - name: init-script-volume
+              mountPath: /init_service_users.sql
+              subPath: init_service_users.sql
 
       restartPolicy: Never
 
@@ -53,5 +75,8 @@ spec:
         - name: migrations-volume
           configMap:
             name: {{ $svcName }}-migrations
+        - name: init-script-volume
+          configMap:
+            name: nexus-init-scripts
 {{- end }}
 {{- end }}

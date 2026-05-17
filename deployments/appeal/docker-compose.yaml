@@ -12,11 +12,13 @@ services:
     env_file:
       - ../../appeal/.env
     environment:
+      - DATABASE_USER=${DATABASE_SERVICE_USER}
+      - DATABASE_PASSWORD=${DATABASE_SERVICE_PASSWORD}
       - DATABASE_HOST=appeal-db
       - DATABASE_PORT=5432
     restart: unless-stopped
     depends_on:
-      appeal-migrate:
+      appeal-db-init:
         condition: service_completed_successfully
     networks:
       - default
@@ -49,6 +51,30 @@ services:
     depends_on:
       appeal-db:
         condition: service_healthy
+
+  appeal-db-init:
+    image: postgres:17-alpine
+    container_name: nexus-appeal-db-init
+    volumes:
+      - ../../deployments/nexus/scripts/init_service_users.sql:/init_service_users.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        PGPASSWORD=$${DATABASE_PASSWORD} psql \
+          -h appeal-db \
+          -U $${DATABASE_USER} \
+          -d $${DATABASE_NAME} \
+          -v service_user="'appeal_service'" \
+          -v service_password="'$${DATABASE_SERVICE_PASSWORD}'" \
+          -v admin_user="'$${DATABASE_USER}'" \
+          -f /init_service_users.sql
+    env_file:
+      - ../../appeal/.env
+    depends_on:
+      appeal-migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
 
 volumes:
   appeal_db_data:

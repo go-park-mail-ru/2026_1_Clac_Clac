@@ -309,6 +309,10 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
+	if req.GetPosition() < 1 {
+		return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCardData.Error())
+	}
+
 	err = h.srv.ReorderCard(ctx, serviceDto.PlaceCard{
 		LinkCard:    cardLink,
 		LinkSection: sectionLink,

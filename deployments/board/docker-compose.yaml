@@ -12,13 +12,15 @@ services:
     env_file:
       - ../../board/.env
     environment:
+      - DATABASE_USER=${DATABASE_SERVICE_USER}
+      - DATABASE_PASSWORD=${DATABASE_SERVICE_PASSWORD}
       - DATABASE_HOST=board-db
       - DATABASE_PORT=5432
       - REDIS_HOST=board-redis
       - REDIS_PORT=6379
     restart: unless-stopped
     depends_on:
-      board-migrate:
+      board-db-init:
         condition: service_completed_successfully
       board-redis:
         condition: service_healthy
@@ -53,6 +55,30 @@ services:
     depends_on:
       board-db:
         condition: service_healthy
+
+  board-db-init:
+    image: postgres:17-alpine
+    container_name: nexus-board-db-init
+    volumes:
+      - ../../deployments/nexus/scripts/init_service_users.sql:/init_service_users.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        PGPASSWORD=$${DATABASE_PASSWORD} psql \
+          -h board-db \
+          -U $${DATABASE_USER} \
+          -d $${DATABASE_NAME} \
+          -v service_user="'board_service'" \
+          -v service_password="'$${DATABASE_SERVICE_PASSWORD}'" \
+          -v admin_user="'$${DATABASE_USER}'" \
+          -f /init_service_users.sql
+    env_file:
+      - ../../board/.env
+    depends_on:
+      board-migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
 
   board-redis:
     image: redis:7-alpine

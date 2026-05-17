@@ -341,12 +341,10 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Position < 0 {
+	if req.Position < 1 {
 		api.RespondError(w, http.StatusBadRequest, msgInvalidPositionCard)
 		return
 	}
-
-	req.Position += 1
 
 	err = c.card.ReorderCards(r.Context(), domain.ReorderCardsRequest{
 		UserLink:    userLink,

@@ -46,6 +46,16 @@ spec:
               value: {{ $.Chart.Name }}-{{ $svcName }}-db-service
             - name: DATABASE_PORT
               value: {{ $.Values.postgres.port | quote }}
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_PASSWORD
             {{- end }}
             {{- if and $svc.hasSecrets $svc.redis.enabled }}
             - name: REDIS_HOST

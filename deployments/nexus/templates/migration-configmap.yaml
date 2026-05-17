@@ -20,3 +20,17 @@ data:
 
 {{- end }}
 {{- end }}
+---
+{{- $initScript := .Files.Get "scripts/init_service_users.sql" }}
+{{- if $initScript }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-init-scripts
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+data:
+  init_service_users.sql: |-
+{{ $initScript | indent 4 }}
+{{- end }}
