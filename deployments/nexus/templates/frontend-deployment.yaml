@@ -24,8 +24,6 @@ spec:
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
-            - name: static-files
-              mountPath: /var/www
           {{- with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -35,8 +33,4 @@ spec:
         - name: nginx-config
           configMap:
             name: {{ .Chart.Name }}-frontend-nginx
-        - name: static-files
-          hostPath:
-            path: {{ .Values.frontend.static }}
-            type: Directory
 {{- end }}
