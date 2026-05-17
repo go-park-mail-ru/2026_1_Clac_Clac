@@ -14,13 +14,14 @@ import (
 	mockCardSrv "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/delivery/mock_card_srv"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// testCardService extends the generated mock with subtask methods missing from it.
+// testCardService extends the generated mock with methods missing from it.
 type testCardService struct {
 	*mockCardSrv.CardService
 }
@@ -37,6 +38,16 @@ func (m *testCardService) DeleteSubtask(ctx context.Context, deleteInfo serviceD
 
 func (m *testCardService) UpdateSubtask(ctx context.Context, updateInfo serviceDto.UpdateSubtask, userLink uuid.UUID) error {
 	args := m.Called(ctx, updateInfo, userLink)
+	return args.Error(0)
+}
+
+func (m *testCardService) CreateAttachment(ctx context.Context, createInfo serviceDto.CreateAttachment) (serviceDto.AttachmentInfo, error) {
+	args := m.Called(ctx, createInfo)
+	return args.Get(0).(serviceDto.AttachmentInfo), args.Error(1)
+}
+
+func (m *testCardService) DeleteAttachment(ctx context.Context, deleteInfo serviceDto.DeleteAttachment) error {
+	args := m.Called(ctx, deleteInfo)
 	return args.Error(0)
 }
 
@@ -1094,6 +1105,179 @@ func TestUpdateSubtask(t *testing.T) {
 
 			handler := NewHandler(mockService, Config{})
 			_, err := handler.UpdateSubtask(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+		})
+	}
+}
+
+func TestCreateAttachment(t *testing.T) {
+	targetTaskLink := uuid.New()
+	targetUserLink := uuid.New()
+	attachmentLink := uuid.New()
+
+	validReq := &pb.CreateAttachmentRequest{
+		TaskLink: targetTaskLink.String(),
+		UserLink: targetUserLink.String(),
+		Data:     []byte("fake-image-data"),
+		Name:     "photo.png",
+	}
+
+	serviceResult := serviceDto.AttachmentInfo{
+		AttachmentLink: attachmentLink,
+		Path:           "https://s3.example.com/file.png",
+		Position:       1,
+		DisplayName:    "photo.png",
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.CreateAttachmentRequest
+		mockBehavior func(m *testCardService)
+		expectedCode codes.Code
+		checkResp    func(t *testing.T, resp *pb.CreateAttachmentResponse)
+	}{
+		{
+			nameTest: "Success create attachment",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceResult, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.CreateAttachmentResponse) {
+				assert.NotNil(t, resp)
+				assert.Equal(t, attachmentLink.String(), resp.AttachmentLink)
+				assert.Equal(t, "https://s3.example.com/file.png", resp.Path)
+				assert.Equal(t, int64(1), resp.Position)
+				assert.Equal(t, "photo.png", resp.Name)
+			},
+		},
+		{
+			nameTest:     "Error invalid task uuid",
+			req:          &pb.CreateAttachmentRequest{TaskLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.CreateAttachmentRequest{TaskLink: targetTaskLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error permission denied",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, rbac.ErrActionDenied)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			nameTest: "Error missing required field",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, common.ErrMissingRequiredField)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, errors.New("s3 error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := newTestCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			resp, err := handler.CreateAttachment(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			if test.checkResp != nil {
+				test.checkResp(t, resp)
+			}
+		})
+	}
+}
+
+func TestDeleteAttachment(t *testing.T) {
+	targetAttachmentLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	validReq := &pb.DeleteAttachmentRequest{
+		AttachmentLink: targetAttachmentLink.String(),
+		UserLink:       targetUserLink.String(),
+	}
+
+	tests := []struct {
+		nameTest     string
+		req          *pb.DeleteAttachmentRequest
+		mockBehavior func(m *testCardService)
+		expectedCode codes.Code
+	}{
+		{
+			nameTest: "Success delete attachment",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(nil)
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			nameTest:     "Error invalid attachment uuid",
+			req:          &pb.DeleteAttachmentRequest{AttachmentLink: "invalid", UserLink: targetUserLink.String()},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest:     "Error invalid user uuid",
+			req:          &pb.DeleteAttachmentRequest{AttachmentLink: targetAttachmentLink.String(), UserLink: "invalid"},
+			mockBehavior: nil,
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			nameTest: "Error permission denied",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(rbac.ErrActionDenied)
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			nameTest: "Error attachment not found",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(common.ErrAttachmentNotFound)
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			nameTest: "Error internal server",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(errors.New("s3 error"))
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockService := newTestCardService(t)
+			if test.mockBehavior != nil {
+				test.mockBehavior(mockService)
+			}
+
+			handler := NewHandler(mockService, Config{})
+			_, err := handler.DeleteAttachment(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 		})

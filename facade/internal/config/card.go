@@ -3,11 +3,14 @@ package config
 const (
 	cardConfigDefaultMaxLenTitle       = 128
 	cardConfigDefaultMaxLenDescription = 500
+	cardConfigDefaultAttachmentFileKey = "attachment"
 )
 
 type CardHandler struct {
 	MaxLenTitle       int `mapstructure:"max_len_title"`
 	MaxLenDescription int `mapstructure:"max_len_description"`
+
+	MultipartAttachmentFileKey string `mapstructure:"multipart_attachment_file_key"`
 }
 
 type CardClient struct {
@@ -25,8 +28,9 @@ func DefaultCardConfig() Card {
 			ClientConfig: DefaultClientConfig(),
 		},
 		Handler: CardHandler{
-			MaxLenTitle:       cardConfigDefaultMaxLenTitle,
-			MaxLenDescription: cardConfigDefaultMaxLenDescription,
+			MaxLenTitle:                cardConfigDefaultMaxLenTitle,
+			MaxLenDescription:          cardConfigDefaultMaxLenDescription,
+			MultipartAttachmentFileKey: cardConfigDefaultAttachmentFileKey,
 		},
 	}
 }

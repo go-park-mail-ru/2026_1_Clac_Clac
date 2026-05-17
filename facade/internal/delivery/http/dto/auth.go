@@ -6,10 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// UserInfoResponse содержит базовую информацию о пользователе.
+//
+//	@Description	Информация о пользователе после авторизации
 type UserInfoResponse struct {
-	Link        uuid.UUID `json:"link"`
-	DisplayName string    `json:"display_name"         example:"Ivan Ivanov"`
-	Email       string    `json:"email"                example:"ivan@mail.com"`
+	Link        uuid.UUID `json:"link"            example:"123e4567-e89b-12d3-a456-426614174000"`
+	DisplayName string    `json:"display_name"    example:"Ivan Ivanov"`
+	Email       string    `json:"email"           example:"ivan@mail.com"`
 	Avatar      string    `json:"avatar,omitempty" example:"https://example.com/avatar.jpg"`
 }
 

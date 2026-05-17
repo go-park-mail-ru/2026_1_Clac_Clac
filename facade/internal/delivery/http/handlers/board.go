@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -191,7 +191,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateBoardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -317,7 +317,7 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateBoardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}

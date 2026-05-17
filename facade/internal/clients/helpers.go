@@ -17,11 +17,13 @@ const (
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
 
-	identifierCardNotFound         = "card not found"
-	identifierSectionNotFound      = "section not found"
-	identifierBoardNotFound        = "board not found"
-	identifierCommentNotFound      = "comment not found"
-	identifierSubtaskNotFound      = "sub task not found"
+	identifierCardNotFound       = "card not found"
+	identifierSectionNotFound    = "section not found"
+	identifierBoardNotFound      = "board not found"
+	identifierCommentNotFound    = "comment not found"
+	identifierSubtaskNotFound    = "sub task not found"
+	identifierAttachmentNotFound = "attachment not found"
+
 	identifierTaskLimitError       = "task limit"
 	identifierLostMandatorySection = "mandatory section"
 	identifierIncorrectTypeFile    = "invalid content type"
@@ -63,7 +65,7 @@ func convertGRPCError(err error) error {
 			return common.ErrorInvalidInput
 		}
 	case codes.Unavailable:
-		return common.ErrorVKOAuthUnavailable
+		return common.ErrorServiceUnavailable
 	default:
 		return err
 	}
@@ -86,6 +88,8 @@ func convertCardGRPCError(err error) error {
 			return common.ErrorCommentNotFound
 		case strings.Contains(msg, identifierSubtaskNotFound):
 			return common.ErrorSubtaskNotFound
+		case strings.Contains(msg, identifierAttachmentNotFound):
+			return common.ErrorAttachmentNotFound
 		default:
 			return common.ErrorNonexistentUser
 		}

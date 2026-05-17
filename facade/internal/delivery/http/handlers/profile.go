@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +17,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -178,7 +178,7 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateProfileRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -392,7 +392,7 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
 	var request dto.NewPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}

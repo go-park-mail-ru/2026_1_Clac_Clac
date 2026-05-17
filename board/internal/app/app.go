@@ -53,7 +53,7 @@ func NewApp(conf config.Config) (*App, error) {
 		return nil, fmt.Errorf("app.setupStore: %w", err)
 	}
 
-	app.setupManager(app.Store)
+	app.setupManager(app.Store, &conf)
 	app.setupEngine(&app.Logger)
 	app.registerServices(app.Engine, app.Manager)
 
@@ -124,8 +124,8 @@ func (a *App) setupStore(logger *zerolog.Logger) error {
 	return nil
 }
 
-func (a *App) setupManager(store *Store) {
-	a.Manager = NewManager(store)
+func (a *App) setupManager(store *Store, conf *config.Config) {
+	a.Manager = NewManager(store, conf)
 }
 
 func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
@@ -167,6 +167,8 @@ func (a *App) setupEngine(logger *zerolog.Logger) {
 			interceptors.StreamPanicRecovery(logger),
 			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
+		grpc.MaxRecvMsgSize(int(a.Config.App.MaxUploadImageSize)),
+		grpc.MaxSendMsgSize(int(a.Config.App.MaxUploadImageSize)),
 	}
 	a.Engine = grpcEngine.New(a.Config.Engine, logger, opts...)
 }

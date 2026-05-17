@@ -1,0 +1,19 @@
+# Root Application (App-of-Apps)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac.git
+    targetRevision: deploy
+    path: infrastructure/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,10 +1,29 @@
 package domain
 
 import (
+	"io"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type CardFullInfo struct {
+	CardLink     uuid.UUID
+	ExecutorLink *uuid.UUID
+	Title        string
+	Description  string
+	Deadline     *time.Time
+	Subtasks     []SubtaskInfo
+	Position     int
+	Attachments  []AttachmentInfo
+}
+
+type AttachmentInfo struct {
+	AttachmentLink uuid.UUID
+	DisplayName    string
+	Path           string
+	Position       int
+}
 
 type GetCardRequest struct {
 	UserLink uuid.UUID
@@ -104,7 +123,19 @@ type UpdateSubtaskRequest struct {
 	Description string
 }
 
-type DeleteSubtask struct {
+type DeleteSubtaskRequest struct {
 	UserLink    uuid.UUID
 	SubtaskLink uuid.UUID
+}
+
+type CreateAttachmentRequest struct {
+	UserLink   uuid.UUID
+	TaskLink   uuid.UUID
+	Attachment io.Reader
+	Filename   string
+}
+
+type DeleteAttachmentRequest struct {
+	UserLink       uuid.UUID
+	AttachmentLink uuid.UUID
 }

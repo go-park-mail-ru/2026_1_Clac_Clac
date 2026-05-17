@@ -614,7 +614,7 @@ func TestProcessUserWithVK(t *testing.T) {
 			mockResp:     nil,
 			mockErr:      status.Error(codes.Unavailable, "vk unavailable"),
 			expectedLink: uuid.Nil,
-			expectedErr:  common.ErrorVKOAuthUnavailable,
+			expectedErr:  common.ErrorServiceUnavailable,
 		},
 		{
 			name:         "invalid uuid in response",
