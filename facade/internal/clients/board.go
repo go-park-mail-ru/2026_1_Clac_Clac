@@ -264,3 +264,69 @@ func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRe
 
 	return nil
 }
+
+func (b *Board) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	resp := &pb.UpdateMemberRoleRequest{
+		UserLink:       req.UserLink.String(),
+		BoardLink:      req.BoardLink.String(),
+		TargetUserLink: req.TargetUserLink.String(),
+		NewRole:        req.NewRole,
+	}
+
+	_, err := b.client.UpdateMemberRole(ctx, resp)
+	if err != nil {
+		return fmt.Errorf("client.UpdateMemberRole: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (b *Board) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	resp := &pb.RemoveMemberFromBoardRequest{
+		UserLink:       req.UserLink.String(),
+		BoardLink:      req.BoardLink.String(),
+		TargetUserLink: req.TargetUserLink.String(),
+	}
+
+	_, err := b.client.RemoveMemberFromBoard(ctx, resp)
+	if err != nil {
+		return fmt.Errorf("client.RemoveMemberFromBoard: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (b *Board) GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	resp := &pb.GetActiveInvitesRequest{
+		UserLink:  userLink.String(),
+		BoardLink: boardLink.String(),
+	}
+
+	res, err := b.client.GetActiveInvites(ctx, resp)
+	if err != nil {
+		return nil, fmt.Errorf("client.GetActiveInvites: %w", convertBoardGRPCError(err))
+	}
+
+	invites := make([]domain.InviteInfo, 0, len(res.Invites))
+	for _, inv := range res.Invites {
+		info := domain.InviteInfo{
+			InviteLink:  inv.InviteLink,
+			BoardLink:   inv.BoardLink,
+			DefaultRole: inv.DefaultRole,
+			Status:      inv.Status,
+			CreatedAt:   inv.CreatedAt,
+		}
+
+		if inv.TargetUserLink != nil {
+			info.TargetUserLink = inv.TargetUserLink
+		}
+
+		if inv.ExpireAt != 0 {
+			info.ExpireAt = &inv.ExpireAt
+		}
+
+		invites = append(invites, info)
+	}
+
+	return invites, nil
+}

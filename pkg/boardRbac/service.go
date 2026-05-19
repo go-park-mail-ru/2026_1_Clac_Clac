@@ -14,6 +14,7 @@ type Service interface {
 	CheckPermissionOnComment(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID, action Action) error
 	CheckPermissionOnSubtask(ctx context.Context, subtaskLink uuid.UUID, userLink uuid.UUID, action Action) error
 	CheckPermissionOnAttachment(ctx context.Context, attachmentLink uuid.UUID, userLink uuid.UUID, action Action) error
+	InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error
 }
 
 type service struct {
@@ -101,5 +102,9 @@ func (s *service) CheckPermissionOnAttachment(ctx context.Context, attchmentLink
 		return ErrActionDenied
 	}
 
+	return nil
+}
+
+func (s *service) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
 	return nil
 }

@@ -32,6 +32,10 @@ type BoardRepository interface {
 	AddMemberToBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error
 	CloseInvite(ctx context.Context, inviteLink uuid.UUID) error
 	CloseInviteByBoardForUser(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
+
+	UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error
+	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
+	GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]repositoryDto.InviteEntry, error)
 }
 
 type Service struct {
@@ -253,6 +257,10 @@ func (s *Service) AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLi
 		return dto.InviteInfo{}, fmt.Errorf("rep.AddMemberToBoard: %w", err)
 	}
 
+	if invalidateErr := s.permissionChecker.InvalidateUserBoardRole(ctx, userLink, entry.BoardLink); invalidateErr != nil {
+		logger.Error().Err(invalidateErr).Msg("permissionChecker.InvalidateUserBoardRole")
+	}
+
 	if entry.UserLink != nil {
 		err = s.rep.CloseInvite(ctx, inviteLink)
 		if err != nil {
@@ -295,4 +303,82 @@ func (s *Service) CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLin
 	}
 
 	return nil
+}
+
+func (s *Service) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	err = s.rep.UpdateMemberRole(ctx, boardLink, userLink, newRole)
+	if err != nil {
+		if errors.Is(err, common.ErrBoardNotFound) {
+			return common.ErrBoardNotFound
+		}
+		return fmt.Errorf("rep.UpdateMemberRole: %w", err)
+	}
+
+	if invalidateErr := s.permissionChecker.InvalidateUserBoardRole(ctx, userLink, boardLink); invalidateErr != nil {
+		return fmt.Errorf("permissionChecker.InvalidateUserBoardRole: %w", invalidateErr)
+	}
+
+	return nil
+}
+
+func (s *Service) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	err = s.rep.RemoveMemberFromBoard(ctx, boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrBoardNotFound) {
+			return common.ErrBoardNotFound
+		}
+		return fmt.Errorf("rep.RemoveMemberFromBoard: %w", err)
+	}
+
+	if invalidateErr := s.permissionChecker.InvalidateUserBoardRole(ctx, userLink, boardLink); invalidateErr != nil {
+		return fmt.Errorf("permissionChecker.InvalidateUserBoardRole: %w", invalidateErr)
+	}
+
+	return nil
+}
+
+func (s *Service) GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]dto.InviteInfo, error) {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, rbac.ErrActionDenied
+		}
+		return nil, fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	entries, err := s.rep.GetActiveInvitesByBoard(ctx, boardLink)
+	if err != nil {
+		return nil, fmt.Errorf("rep.GetActiveInvitesByBoard: %w", err)
+	}
+
+	invites := make([]dto.InviteInfo, 0, len(entries))
+	for _, entry := range entries {
+		invites = append(invites, dto.InviteInfo{
+			InviteLink:  entry.InviteLink,
+			BoardLink:   entry.BoardLink,
+			TargetUser:  entry.UserLink,
+			DefaultRole: entry.DefaultRole,
+			Status:      entry.Status,
+			ExpireAt:    entry.ExpireTime,
+			CreatedAt:   entry.CreatedAt,
+		})
+	}
+
+	return invites, nil
 }

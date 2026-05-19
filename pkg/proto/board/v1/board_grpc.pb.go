@@ -19,16 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BoardService_GetBoards_FullMethodName        = "/proto.board.v1.BoardService/GetBoards"
-	BoardService_GetBoard_FullMethodName         = "/proto.board.v1.BoardService/GetBoard"
-	BoardService_CreateBoard_FullMethodName      = "/proto.board.v1.BoardService/CreateBoard"
-	BoardService_DeleteBoard_FullMethodName      = "/proto.board.v1.BoardService/DeleteBoard"
-	BoardService_UpdateBoard_FullMethodName      = "/proto.board.v1.BoardService/UpdateBoard"
-	BoardService_UploadBackground_FullMethodName = "/proto.board.v1.BoardService/UploadBackground"
-	BoardService_GetMembers_FullMethodName       = "/proto.board.v1.BoardService/GetMembers"
-	BoardService_CreateInvite_FullMethodName     = "/proto.board.v1.BoardService/CreateInvite"
-	BoardService_AcceptInvite_FullMethodName     = "/proto.board.v1.BoardService/AcceptInvite"
-	BoardService_CloseInvite_FullMethodName      = "/proto.board.v1.BoardService/CloseInvite"
+	BoardService_GetBoards_FullMethodName             = "/proto.board.v1.BoardService/GetBoards"
+	BoardService_GetBoard_FullMethodName              = "/proto.board.v1.BoardService/GetBoard"
+	BoardService_CreateBoard_FullMethodName           = "/proto.board.v1.BoardService/CreateBoard"
+	BoardService_DeleteBoard_FullMethodName           = "/proto.board.v1.BoardService/DeleteBoard"
+	BoardService_UpdateBoard_FullMethodName           = "/proto.board.v1.BoardService/UpdateBoard"
+	BoardService_UploadBackground_FullMethodName      = "/proto.board.v1.BoardService/UploadBackground"
+	BoardService_GetMembers_FullMethodName            = "/proto.board.v1.BoardService/GetMembers"
+	BoardService_CreateInvite_FullMethodName          = "/proto.board.v1.BoardService/CreateInvite"
+	BoardService_AcceptInvite_FullMethodName          = "/proto.board.v1.BoardService/AcceptInvite"
+	BoardService_CloseInvite_FullMethodName           = "/proto.board.v1.BoardService/CloseInvite"
+	BoardService_UpdateMemberRole_FullMethodName      = "/proto.board.v1.BoardService/UpdateMemberRole"
+	BoardService_RemoveMemberFromBoard_FullMethodName = "/proto.board.v1.BoardService/RemoveMemberFromBoard"
+	BoardService_GetActiveInvites_FullMethodName      = "/proto.board.v1.BoardService/GetActiveInvites"
 )
 
 // BoardServiceClient is the client API for BoardService service.
@@ -45,6 +48,9 @@ type BoardServiceClient interface {
 	CreateInvite(ctx context.Context, in *CreateInviteRequest, opts ...grpc.CallOption) (*CreateInviteResponse, error)
 	AcceptInvite(ctx context.Context, in *AcceptInviteRequest, opts ...grpc.CallOption) (*AcceptInviteResponse, error)
 	CloseInvite(ctx context.Context, in *CloseInviteRequest, opts ...grpc.CallOption) (*CloseInviteResponse, error)
+	UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error)
+	RemoveMemberFromBoard(ctx context.Context, in *RemoveMemberFromBoardRequest, opts ...grpc.CallOption) (*RemoveMemberFromBoardResponse, error)
+	GetActiveInvites(ctx context.Context, in *GetActiveInvitesRequest, opts ...grpc.CallOption) (*GetActiveInvitesResponse, error)
 }
 
 type boardServiceClient struct {
@@ -155,6 +161,36 @@ func (c *boardServiceClient) CloseInvite(ctx context.Context, in *CloseInviteReq
 	return out, nil
 }
 
+func (c *boardServiceClient) UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateMemberRoleResponse)
+	err := c.cc.Invoke(ctx, BoardService_UpdateMemberRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *boardServiceClient) RemoveMemberFromBoard(ctx context.Context, in *RemoveMemberFromBoardRequest, opts ...grpc.CallOption) (*RemoveMemberFromBoardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveMemberFromBoardResponse)
+	err := c.cc.Invoke(ctx, BoardService_RemoveMemberFromBoard_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *boardServiceClient) GetActiveInvites(ctx context.Context, in *GetActiveInvitesRequest, opts ...grpc.CallOption) (*GetActiveInvitesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetActiveInvitesResponse)
+	err := c.cc.Invoke(ctx, BoardService_GetActiveInvites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BoardServiceServer is the server API for BoardService service.
 // All implementations must embed UnimplementedBoardServiceServer
 // for forward compatibility.
@@ -169,6 +205,9 @@ type BoardServiceServer interface {
 	CreateInvite(context.Context, *CreateInviteRequest) (*CreateInviteResponse, error)
 	AcceptInvite(context.Context, *AcceptInviteRequest) (*AcceptInviteResponse, error)
 	CloseInvite(context.Context, *CloseInviteRequest) (*CloseInviteResponse, error)
+	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
+	RemoveMemberFromBoard(context.Context, *RemoveMemberFromBoardRequest) (*RemoveMemberFromBoardResponse, error)
+	GetActiveInvites(context.Context, *GetActiveInvitesRequest) (*GetActiveInvitesResponse, error)
 	mustEmbedUnimplementedBoardServiceServer()
 }
 
@@ -208,6 +247,15 @@ func (UnimplementedBoardServiceServer) AcceptInvite(context.Context, *AcceptInvi
 }
 func (UnimplementedBoardServiceServer) CloseInvite(context.Context, *CloseInviteRequest) (*CloseInviteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CloseInvite not implemented")
+}
+func (UnimplementedBoardServiceServer) UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMemberRole not implemented")
+}
+func (UnimplementedBoardServiceServer) RemoveMemberFromBoard(context.Context, *RemoveMemberFromBoardRequest) (*RemoveMemberFromBoardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveMemberFromBoard not implemented")
+}
+func (UnimplementedBoardServiceServer) GetActiveInvites(context.Context, *GetActiveInvitesRequest) (*GetActiveInvitesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetActiveInvites not implemented")
 }
 func (UnimplementedBoardServiceServer) mustEmbedUnimplementedBoardServiceServer() {}
 func (UnimplementedBoardServiceServer) testEmbeddedByValue()                      {}
@@ -410,6 +458,60 @@ func _BoardService_CloseInvite_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BoardService_UpdateMemberRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMemberRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BoardServiceServer).UpdateMemberRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BoardService_UpdateMemberRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BoardServiceServer).UpdateMemberRole(ctx, req.(*UpdateMemberRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BoardService_RemoveMemberFromBoard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveMemberFromBoardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BoardServiceServer).RemoveMemberFromBoard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BoardService_RemoveMemberFromBoard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BoardServiceServer).RemoveMemberFromBoard(ctx, req.(*RemoveMemberFromBoardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BoardService_GetActiveInvites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActiveInvitesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BoardServiceServer).GetActiveInvites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BoardService_GetActiveInvites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BoardServiceServer).GetActiveInvites(ctx, req.(*GetActiveInvitesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BoardService_ServiceDesc is the grpc.ServiceDesc for BoardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +558,18 @@ var BoardService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CloseInvite",
 			Handler:    _BoardService_CloseInvite_Handler,
+		},
+		{
+			MethodName: "UpdateMemberRole",
+			Handler:    _BoardService_UpdateMemberRole_Handler,
+		},
+		{
+			MethodName: "RemoveMemberFromBoard",
+			Handler:    _BoardService_RemoveMemberFromBoard_Handler,
+		},
+		{
+			MethodName: "GetActiveInvites",
+			Handler:    _BoardService_GetActiveInvites_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

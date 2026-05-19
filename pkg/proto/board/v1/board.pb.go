@@ -1091,7 +1091,7 @@ func (x *AcceptInviteResponse) GetRole() string {
 	return ""
 }
 
-// CloseInvite (for creator to close public invites)
+// CloseInvite
 type CloseInviteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
@@ -1178,6 +1178,397 @@ func (x *CloseInviteResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CloseInviteResponse.ProtoReflect.Descriptor instead.
 func (*CloseInviteResponse) Descriptor() ([]byte, []int) {
 	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{20}
+}
+
+// UpdateMemberRole
+type UpdateMemberRoleRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserLink       string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink      string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	TargetUserLink string                 `protobuf:"bytes,3,opt,name=target_user_link,json=targetUserLink,proto3" json:"target_user_link,omitempty"`
+	NewRole        string                 `protobuf:"bytes,4,opt,name=new_role,json=newRole,proto3" json:"new_role,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UpdateMemberRoleRequest) Reset() {
+	*x = UpdateMemberRoleRequest{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMemberRoleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMemberRoleRequest) ProtoMessage() {}
+
+func (x *UpdateMemberRoleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMemberRoleRequest.ProtoReflect.Descriptor instead.
+func (*UpdateMemberRoleRequest) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *UpdateMemberRoleRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *UpdateMemberRoleRequest) GetBoardLink() string {
+	if x != nil {
+		return x.BoardLink
+	}
+	return ""
+}
+
+func (x *UpdateMemberRoleRequest) GetTargetUserLink() string {
+	if x != nil {
+		return x.TargetUserLink
+	}
+	return ""
+}
+
+func (x *UpdateMemberRoleRequest) GetNewRole() string {
+	if x != nil {
+		return x.NewRole
+	}
+	return ""
+}
+
+type UpdateMemberRoleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMemberRoleResponse) Reset() {
+	*x = UpdateMemberRoleResponse{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMemberRoleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMemberRoleResponse) ProtoMessage() {}
+
+func (x *UpdateMemberRoleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMemberRoleResponse.ProtoReflect.Descriptor instead.
+func (*UpdateMemberRoleResponse) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{22}
+}
+
+// RemoveMemberFromBoard
+type RemoveMemberFromBoardRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserLink       string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink      string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	TargetUserLink string                 `protobuf:"bytes,3,opt,name=target_user_link,json=targetUserLink,proto3" json:"target_user_link,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RemoveMemberFromBoardRequest) Reset() {
+	*x = RemoveMemberFromBoardRequest{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMemberFromBoardRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMemberFromBoardRequest) ProtoMessage() {}
+
+func (x *RemoveMemberFromBoardRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMemberFromBoardRequest.ProtoReflect.Descriptor instead.
+func (*RemoveMemberFromBoardRequest) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RemoveMemberFromBoardRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *RemoveMemberFromBoardRequest) GetBoardLink() string {
+	if x != nil {
+		return x.BoardLink
+	}
+	return ""
+}
+
+func (x *RemoveMemberFromBoardRequest) GetTargetUserLink() string {
+	if x != nil {
+		return x.TargetUserLink
+	}
+	return ""
+}
+
+type RemoveMemberFromBoardResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveMemberFromBoardResponse) Reset() {
+	*x = RemoveMemberFromBoardResponse{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMemberFromBoardResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMemberFromBoardResponse) ProtoMessage() {}
+
+func (x *RemoveMemberFromBoardResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMemberFromBoardResponse.ProtoReflect.Descriptor instead.
+func (*RemoveMemberFromBoardResponse) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{24}
+}
+
+// GetActiveInvites
+type GetActiveInvitesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	BoardLink     string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetActiveInvitesRequest) Reset() {
+	*x = GetActiveInvitesRequest{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetActiveInvitesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetActiveInvitesRequest) ProtoMessage() {}
+
+func (x *GetActiveInvitesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetActiveInvitesRequest.ProtoReflect.Descriptor instead.
+func (*GetActiveInvitesRequest) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *GetActiveInvitesRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *GetActiveInvitesRequest) GetBoardLink() string {
+	if x != nil {
+		return x.BoardLink
+	}
+	return ""
+}
+
+type GetActiveInvitesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Invites       []*InviteInfo          `protobuf:"bytes,1,rep,name=invites,proto3" json:"invites,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetActiveInvitesResponse) Reset() {
+	*x = GetActiveInvitesResponse{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetActiveInvitesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetActiveInvitesResponse) ProtoMessage() {}
+
+func (x *GetActiveInvitesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetActiveInvitesResponse.ProtoReflect.Descriptor instead.
+func (*GetActiveInvitesResponse) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetActiveInvitesResponse) GetInvites() []*InviteInfo {
+	if x != nil {
+		return x.Invites
+	}
+	return nil
+}
+
+type InviteInfo struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	InviteLink     string                 `protobuf:"bytes,1,opt,name=invite_link,json=inviteLink,proto3" json:"invite_link,omitempty"`
+	BoardLink      string                 `protobuf:"bytes,2,opt,name=board_link,json=boardLink,proto3" json:"board_link,omitempty"`
+	TargetUserLink *string                `protobuf:"bytes,3,opt,name=target_user_link,json=targetUserLink,proto3,oneof" json:"target_user_link,omitempty"`
+	DefaultRole    string                 `protobuf:"bytes,4,opt,name=default_role,json=defaultRole,proto3" json:"default_role,omitempty"`
+	Status         string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	ExpireAt       int64                  `protobuf:"varint,6,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	CreatedAt      int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *InviteInfo) Reset() {
+	*x = InviteInfo{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InviteInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InviteInfo) ProtoMessage() {}
+
+func (x *InviteInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InviteInfo.ProtoReflect.Descriptor instead.
+func (*InviteInfo) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *InviteInfo) GetInviteLink() string {
+	if x != nil {
+		return x.InviteLink
+	}
+	return ""
+}
+
+func (x *InviteInfo) GetBoardLink() string {
+	if x != nil {
+		return x.BoardLink
+	}
+	return ""
+}
+
+func (x *InviteInfo) GetTargetUserLink() string {
+	if x != nil && x.TargetUserLink != nil {
+		return *x.TargetUserLink
+	}
+	return ""
+}
+
+func (x *InviteInfo) GetDefaultRole() string {
+	if x != nil {
+		return x.DefaultRole
+	}
+	return ""
+}
+
+func (x *InviteInfo) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *InviteInfo) GetExpireAt() int64 {
+	if x != nil {
+		return x.ExpireAt
+	}
+	return 0
+}
+
+func (x *InviteInfo) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
 }
 
 var File_proto_board_v1_board_proto protoreflect.FileDescriptor
@@ -1279,7 +1670,39 @@ const file_proto_board_v1_board_proto_rawDesc = "" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1f\n" +
 	"\vinvite_link\x18\x02 \x01(\tR\n" +
 	"inviteLink\"\x15\n" +
-	"\x13CloseInviteResponse2\x81\a\n" +
+	"\x13CloseInviteResponse\"\x9a\x01\n" +
+	"\x17UpdateMemberRoleRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
+	"\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\x12(\n" +
+	"\x10target_user_link\x18\x03 \x01(\tR\x0etargetUserLink\x12\x19\n" +
+	"\bnew_role\x18\x04 \x01(\tR\anewRole\"\x1a\n" +
+	"\x18UpdateMemberRoleResponse\"\x84\x01\n" +
+	"\x1cRemoveMemberFromBoardRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
+	"\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\x12(\n" +
+	"\x10target_user_link\x18\x03 \x01(\tR\x0etargetUserLink\"\x1f\n" +
+	"\x1dRemoveMemberFromBoardResponse\"U\n" +
+	"\x17GetActiveInvitesRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
+	"\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\"P\n" +
+	"\x18GetActiveInvitesResponse\x124\n" +
+	"\ainvites\x18\x01 \x03(\v2\x1a.proto.board.v1.InviteInfoR\ainvites\"\x87\x02\n" +
+	"\n" +
+	"InviteInfo\x12\x1f\n" +
+	"\vinvite_link\x18\x01 \x01(\tR\n" +
+	"inviteLink\x12\x1d\n" +
+	"\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\x12-\n" +
+	"\x10target_user_link\x18\x03 \x01(\tH\x00R\x0etargetUserLink\x88\x01\x01\x12!\n" +
+	"\fdefault_role\x18\x04 \x01(\tR\vdefaultRole\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x12\x1b\n" +
+	"\texpire_at\x18\x06 \x01(\x03R\bexpireAt\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\x03R\tcreatedAtB\x13\n" +
+	"\x11_target_user_link2\xc5\t\n" +
 	"\fBoardService\x12P\n" +
 	"\tGetBoards\x12 .proto.board.v1.GetBoardsRequest\x1a!.proto.board.v1.GetBoardsResponse\x12M\n" +
 	"\bGetBoard\x12\x1f.proto.board.v1.GetBoardRequest\x1a .proto.board.v1.GetBoardResponse\x12V\n" +
@@ -1291,7 +1714,10 @@ const file_proto_board_v1_board_proto_rawDesc = "" +
 	"GetMembers\x12!.proto.board.v1.GetMembersRequest\x1a\".proto.board.v1.GetMembersResponse\x12Y\n" +
 	"\fCreateInvite\x12#.proto.board.v1.CreateInviteRequest\x1a$.proto.board.v1.CreateInviteResponse\x12Y\n" +
 	"\fAcceptInvite\x12#.proto.board.v1.AcceptInviteRequest\x1a$.proto.board.v1.AcceptInviteResponse\x12V\n" +
-	"\vCloseInvite\x12\".proto.board.v1.CloseInviteRequest\x1a#.proto.board.v1.CloseInviteResponseB@Z>github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1b\x06proto3"
+	"\vCloseInvite\x12\".proto.board.v1.CloseInviteRequest\x1a#.proto.board.v1.CloseInviteResponse\x12e\n" +
+	"\x10UpdateMemberRole\x12'.proto.board.v1.UpdateMemberRoleRequest\x1a(.proto.board.v1.UpdateMemberRoleResponse\x12t\n" +
+	"\x15RemoveMemberFromBoard\x12,.proto.board.v1.RemoveMemberFromBoardRequest\x1a-.proto.board.v1.RemoveMemberFromBoardResponse\x12e\n" +
+	"\x10GetActiveInvites\x12'.proto.board.v1.GetActiveInvitesRequest\x1a(.proto.board.v1.GetActiveInvitesResponseB@Z>github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1b\x06proto3"
 
 var (
 	file_proto_board_v1_board_proto_rawDescOnce sync.Once
@@ -1305,61 +1731,75 @@ func file_proto_board_v1_board_proto_rawDescGZIP() []byte {
 	return file_proto_board_v1_board_proto_rawDescData
 }
 
-var file_proto_board_v1_board_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_proto_board_v1_board_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_proto_board_v1_board_proto_goTypes = []any{
-	(*BoardInfo)(nil),                // 0: proto.board.v1.BoardInfo
-	(*GetBoardsRequest)(nil),         // 1: proto.board.v1.GetBoardsRequest
-	(*GetBoardsResponse)(nil),        // 2: proto.board.v1.GetBoardsResponse
-	(*GetBoardRequest)(nil),          // 3: proto.board.v1.GetBoardRequest
-	(*GetBoardResponse)(nil),         // 4: proto.board.v1.GetBoardResponse
-	(*CreateBoardRequest)(nil),       // 5: proto.board.v1.CreateBoardRequest
-	(*CreateBoardResponse)(nil),      // 6: proto.board.v1.CreateBoardResponse
-	(*DeleteBoardRequest)(nil),       // 7: proto.board.v1.DeleteBoardRequest
-	(*DeleteBoardResponse)(nil),      // 8: proto.board.v1.DeleteBoardResponse
-	(*UpdateBoardRequest)(nil),       // 9: proto.board.v1.UpdateBoardRequest
-	(*UpdateBoardResponse)(nil),      // 10: proto.board.v1.UpdateBoardResponse
-	(*UploadBackgroundRequest)(nil),  // 11: proto.board.v1.UploadBackgroundRequest
-	(*UploadBackgroundResponse)(nil), // 12: proto.board.v1.UploadBackgroundResponse
-	(*GetMembersRequest)(nil),        // 13: proto.board.v1.GetMembersRequest
-	(*GetMembersResponse)(nil),       // 14: proto.board.v1.GetMembersResponse
-	(*CreateInviteRequest)(nil),      // 15: proto.board.v1.CreateInviteRequest
-	(*CreateInviteResponse)(nil),     // 16: proto.board.v1.CreateInviteResponse
-	(*AcceptInviteRequest)(nil),      // 17: proto.board.v1.AcceptInviteRequest
-	(*AcceptInviteResponse)(nil),     // 18: proto.board.v1.AcceptInviteResponse
-	(*CloseInviteRequest)(nil),       // 19: proto.board.v1.CloseInviteRequest
-	(*CloseInviteResponse)(nil),      // 20: proto.board.v1.CloseInviteResponse
-	(*timestamppb.Timestamp)(nil),    // 21: google.protobuf.Timestamp
+	(*BoardInfo)(nil),                     // 0: proto.board.v1.BoardInfo
+	(*GetBoardsRequest)(nil),              // 1: proto.board.v1.GetBoardsRequest
+	(*GetBoardsResponse)(nil),             // 2: proto.board.v1.GetBoardsResponse
+	(*GetBoardRequest)(nil),               // 3: proto.board.v1.GetBoardRequest
+	(*GetBoardResponse)(nil),              // 4: proto.board.v1.GetBoardResponse
+	(*CreateBoardRequest)(nil),            // 5: proto.board.v1.CreateBoardRequest
+	(*CreateBoardResponse)(nil),           // 6: proto.board.v1.CreateBoardResponse
+	(*DeleteBoardRequest)(nil),            // 7: proto.board.v1.DeleteBoardRequest
+	(*DeleteBoardResponse)(nil),           // 8: proto.board.v1.DeleteBoardResponse
+	(*UpdateBoardRequest)(nil),            // 9: proto.board.v1.UpdateBoardRequest
+	(*UpdateBoardResponse)(nil),           // 10: proto.board.v1.UpdateBoardResponse
+	(*UploadBackgroundRequest)(nil),       // 11: proto.board.v1.UploadBackgroundRequest
+	(*UploadBackgroundResponse)(nil),      // 12: proto.board.v1.UploadBackgroundResponse
+	(*GetMembersRequest)(nil),             // 13: proto.board.v1.GetMembersRequest
+	(*GetMembersResponse)(nil),            // 14: proto.board.v1.GetMembersResponse
+	(*CreateInviteRequest)(nil),           // 15: proto.board.v1.CreateInviteRequest
+	(*CreateInviteResponse)(nil),          // 16: proto.board.v1.CreateInviteResponse
+	(*AcceptInviteRequest)(nil),           // 17: proto.board.v1.AcceptInviteRequest
+	(*AcceptInviteResponse)(nil),          // 18: proto.board.v1.AcceptInviteResponse
+	(*CloseInviteRequest)(nil),            // 19: proto.board.v1.CloseInviteRequest
+	(*CloseInviteResponse)(nil),           // 20: proto.board.v1.CloseInviteResponse
+	(*UpdateMemberRoleRequest)(nil),       // 21: proto.board.v1.UpdateMemberRoleRequest
+	(*UpdateMemberRoleResponse)(nil),      // 22: proto.board.v1.UpdateMemberRoleResponse
+	(*RemoveMemberFromBoardRequest)(nil),  // 23: proto.board.v1.RemoveMemberFromBoardRequest
+	(*RemoveMemberFromBoardResponse)(nil), // 24: proto.board.v1.RemoveMemberFromBoardResponse
+	(*GetActiveInvitesRequest)(nil),       // 25: proto.board.v1.GetActiveInvitesRequest
+	(*GetActiveInvitesResponse)(nil),      // 26: proto.board.v1.GetActiveInvitesResponse
+	(*InviteInfo)(nil),                    // 27: proto.board.v1.InviteInfo
+	(*timestamppb.Timestamp)(nil),         // 28: google.protobuf.Timestamp
 }
 var file_proto_board_v1_board_proto_depIdxs = []int32{
-	21, // 0: proto.board.v1.BoardInfo.created_at:type_name -> google.protobuf.Timestamp
+	28, // 0: proto.board.v1.BoardInfo.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: proto.board.v1.GetBoardsResponse.boards_info:type_name -> proto.board.v1.BoardInfo
 	0,  // 2: proto.board.v1.GetBoardResponse.board_info:type_name -> proto.board.v1.BoardInfo
 	0,  // 3: proto.board.v1.CreateBoardResponse.board_info:type_name -> proto.board.v1.BoardInfo
-	1,  // 4: proto.board.v1.BoardService.GetBoards:input_type -> proto.board.v1.GetBoardsRequest
-	3,  // 5: proto.board.v1.BoardService.GetBoard:input_type -> proto.board.v1.GetBoardRequest
-	5,  // 6: proto.board.v1.BoardService.CreateBoard:input_type -> proto.board.v1.CreateBoardRequest
-	7,  // 7: proto.board.v1.BoardService.DeleteBoard:input_type -> proto.board.v1.DeleteBoardRequest
-	9,  // 8: proto.board.v1.BoardService.UpdateBoard:input_type -> proto.board.v1.UpdateBoardRequest
-	11, // 9: proto.board.v1.BoardService.UploadBackground:input_type -> proto.board.v1.UploadBackgroundRequest
-	13, // 10: proto.board.v1.BoardService.GetMembers:input_type -> proto.board.v1.GetMembersRequest
-	15, // 11: proto.board.v1.BoardService.CreateInvite:input_type -> proto.board.v1.CreateInviteRequest
-	17, // 12: proto.board.v1.BoardService.AcceptInvite:input_type -> proto.board.v1.AcceptInviteRequest
-	19, // 13: proto.board.v1.BoardService.CloseInvite:input_type -> proto.board.v1.CloseInviteRequest
-	2,  // 14: proto.board.v1.BoardService.GetBoards:output_type -> proto.board.v1.GetBoardsResponse
-	4,  // 15: proto.board.v1.BoardService.GetBoard:output_type -> proto.board.v1.GetBoardResponse
-	6,  // 16: proto.board.v1.BoardService.CreateBoard:output_type -> proto.board.v1.CreateBoardResponse
-	8,  // 17: proto.board.v1.BoardService.DeleteBoard:output_type -> proto.board.v1.DeleteBoardResponse
-	10, // 18: proto.board.v1.BoardService.UpdateBoard:output_type -> proto.board.v1.UpdateBoardResponse
-	12, // 19: proto.board.v1.BoardService.UploadBackground:output_type -> proto.board.v1.UploadBackgroundResponse
-	14, // 20: proto.board.v1.BoardService.GetMembers:output_type -> proto.board.v1.GetMembersResponse
-	16, // 21: proto.board.v1.BoardService.CreateInvite:output_type -> proto.board.v1.CreateInviteResponse
-	18, // 22: proto.board.v1.BoardService.AcceptInvite:output_type -> proto.board.v1.AcceptInviteResponse
-	20, // 23: proto.board.v1.BoardService.CloseInvite:output_type -> proto.board.v1.CloseInviteResponse
-	14, // [14:24] is the sub-list for method output_type
-	4,  // [4:14] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	27, // 4: proto.board.v1.GetActiveInvitesResponse.invites:type_name -> proto.board.v1.InviteInfo
+	1,  // 5: proto.board.v1.BoardService.GetBoards:input_type -> proto.board.v1.GetBoardsRequest
+	3,  // 6: proto.board.v1.BoardService.GetBoard:input_type -> proto.board.v1.GetBoardRequest
+	5,  // 7: proto.board.v1.BoardService.CreateBoard:input_type -> proto.board.v1.CreateBoardRequest
+	7,  // 8: proto.board.v1.BoardService.DeleteBoard:input_type -> proto.board.v1.DeleteBoardRequest
+	9,  // 9: proto.board.v1.BoardService.UpdateBoard:input_type -> proto.board.v1.UpdateBoardRequest
+	11, // 10: proto.board.v1.BoardService.UploadBackground:input_type -> proto.board.v1.UploadBackgroundRequest
+	13, // 11: proto.board.v1.BoardService.GetMembers:input_type -> proto.board.v1.GetMembersRequest
+	15, // 12: proto.board.v1.BoardService.CreateInvite:input_type -> proto.board.v1.CreateInviteRequest
+	17, // 13: proto.board.v1.BoardService.AcceptInvite:input_type -> proto.board.v1.AcceptInviteRequest
+	19, // 14: proto.board.v1.BoardService.CloseInvite:input_type -> proto.board.v1.CloseInviteRequest
+	21, // 15: proto.board.v1.BoardService.UpdateMemberRole:input_type -> proto.board.v1.UpdateMemberRoleRequest
+	23, // 16: proto.board.v1.BoardService.RemoveMemberFromBoard:input_type -> proto.board.v1.RemoveMemberFromBoardRequest
+	25, // 17: proto.board.v1.BoardService.GetActiveInvites:input_type -> proto.board.v1.GetActiveInvitesRequest
+	2,  // 18: proto.board.v1.BoardService.GetBoards:output_type -> proto.board.v1.GetBoardsResponse
+	4,  // 19: proto.board.v1.BoardService.GetBoard:output_type -> proto.board.v1.GetBoardResponse
+	6,  // 20: proto.board.v1.BoardService.CreateBoard:output_type -> proto.board.v1.CreateBoardResponse
+	8,  // 21: proto.board.v1.BoardService.DeleteBoard:output_type -> proto.board.v1.DeleteBoardResponse
+	10, // 22: proto.board.v1.BoardService.UpdateBoard:output_type -> proto.board.v1.UpdateBoardResponse
+	12, // 23: proto.board.v1.BoardService.UploadBackground:output_type -> proto.board.v1.UploadBackgroundResponse
+	14, // 24: proto.board.v1.BoardService.GetMembers:output_type -> proto.board.v1.GetMembersResponse
+	16, // 25: proto.board.v1.BoardService.CreateInvite:output_type -> proto.board.v1.CreateInviteResponse
+	18, // 26: proto.board.v1.BoardService.AcceptInvite:output_type -> proto.board.v1.AcceptInviteResponse
+	20, // 27: proto.board.v1.BoardService.CloseInvite:output_type -> proto.board.v1.CloseInviteResponse
+	22, // 28: proto.board.v1.BoardService.UpdateMemberRole:output_type -> proto.board.v1.UpdateMemberRoleResponse
+	24, // 29: proto.board.v1.BoardService.RemoveMemberFromBoard:output_type -> proto.board.v1.RemoveMemberFromBoardResponse
+	26, // 30: proto.board.v1.BoardService.GetActiveInvites:output_type -> proto.board.v1.GetActiveInvitesResponse
+	18, // [18:31] is the sub-list for method output_type
+	5,  // [5:18] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_proto_board_v1_board_proto_init() }
@@ -1369,13 +1809,14 @@ func file_proto_board_v1_board_proto_init() {
 	}
 	file_proto_board_v1_board_proto_msgTypes[15].OneofWrappers = []any{}
 	file_proto_board_v1_board_proto_msgTypes[16].OneofWrappers = []any{}
+	file_proto_board_v1_board_proto_msgTypes[27].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_board_v1_board_proto_rawDesc), len(file_proto_board_v1_board_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

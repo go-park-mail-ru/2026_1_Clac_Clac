@@ -103,3 +103,10 @@ type AcceptInviteResponse struct {
 	BoardLink string `json:"board_link" example:"123e4567-e89b-12d3-a456-426614174000"`
 	Role      string `json:"role" example:"editor"`
 }
+
+// UpdateMemberRoleRequest содержит данные для изменения роли пользователя на доске.
+//
+//	@Description	Данные для изменения роли
+type UpdateMemberRoleRequest struct {
+	NewRole string `json:"new_role" example:"editor"`
+}

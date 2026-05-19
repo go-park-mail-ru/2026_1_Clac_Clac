@@ -148,6 +148,36 @@ func (_m *BoardRepository) DeleteBoard(ctx context.Context, boardLink uuid.UUID)
 	return r0
 }
 
+// GetActiveInvitesByBoard provides a mock function with given fields: ctx, boardLink
+func (_m *BoardRepository) GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.InviteEntry, error) {
+	ret := _m.Called(ctx, boardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveInvitesByBoard")
+	}
+
+	var r0 []dto.InviteEntry
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.InviteEntry, error)); ok {
+		return rf(ctx, boardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.InviteEntry); ok {
+		r0 = rf(ctx, boardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.InviteEntry)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBoard provides a mock function with given fields: ctx, boardLink
 func (_m *BoardRepository) GetBoard(ctx context.Context, boardLink uuid.UUID) (dto.BoardEntry, error) {
 	ret := _m.Called(ctx, boardLink)
@@ -264,6 +294,24 @@ func (_m *BoardRepository) GetUsersOfBoard(ctx context.Context, boardLink uuid.U
 	return r0, r1
 }
 
+// RemoveMemberFromBoard provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardRepository) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveMemberFromBoard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateBackground provides a mock function with given fields: ctx, background, boardLink
 func (_m *BoardRepository) UpdateBackground(ctx context.Context, background string, boardLink uuid.UUID) error {
 	ret := _m.Called(ctx, background, boardLink)
@@ -293,6 +341,24 @@ func (_m *BoardRepository) UpdateBoard(ctx context.Context, boardInfo dto.Update
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateBoardInfo) error); ok {
 		r0 = rf(ctx, boardInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateMemberRole provides a mock function with given fields: ctx, boardLink, userLink, role
+func (_m *BoardRepository) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	ret := _m.Called(ctx, boardLink, userLink, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, rbac.Role) error); ok {
+		r0 = rf(ctx, boardLink, userLink, role)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -67,6 +67,10 @@ type BoardService interface {
 	CreateInvite(ctx context.Context, inviteInfo serviceDto.NewInviteInfo, creatorLink uuid.UUID) (serviceDto.InviteInfo, error)
 	AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) (serviceDto.InviteInfo, error)
 	CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) error
+
+	UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error
+	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
+	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
 }
 
 type Config struct {
@@ -576,4 +580,152 @@ func (h *BoardHandler) CloseInvite(ctx context.Context, req *pb.CloseInviteReque
 	}
 
 	return &pb.CloseInviteResponse{}, nil
+}
+
+func (h *BoardHandler) UpdateMemberRole(ctx context.Context, req *pb.UpdateMemberRoleRequest) (*pb.UpdateMemberRoleResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	rawTargetLink := req.GetTargetUserLink()
+	targetLink, err := uuid.Parse(rawTargetLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	role, err := rbac.ParseRole(req.GetNewRole())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidRole.Error())
+	}
+
+	err = h.srv.UpdateMemberRole(ctx, boardLink, targetLink, role, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+		}
+		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.UpdateMemberRole")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateMemberRole", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"board_link":   rawBoardLink,
+			"target_link":  rawTargetLink,
+			"action":       "update_member_role",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
+	}
+
+	return &pb.UpdateMemberRoleResponse{}, nil
+}
+
+func (h *BoardHandler) RemoveMemberFromBoard(ctx context.Context, req *pb.RemoveMemberFromBoardRequest) (*pb.RemoveMemberFromBoardResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	rawTargetLink := req.GetTargetUserLink()
+	targetLink, err := uuid.Parse(rawTargetLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	err = h.srv.RemoveMemberFromBoard(ctx, boardLink, targetLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+		}
+		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.RemoveMemberFromBoard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "RemoveMemberFromBoard", map[string]interface{}{
+			"user_link":    rawUserLink,
+			"board_link":   rawBoardLink,
+			"target_link":  rawTargetLink,
+			"action":       "remove_member",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
+	}
+
+	return &pb.RemoveMemberFromBoardResponse{}, nil
+}
+
+func (h *BoardHandler) GetActiveInvites(ctx context.Context, req *pb.GetActiveInvitesRequest) (*pb.GetActiveInvitesResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	invites, err := h.srv.GetActiveInvites(ctx, boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		errLog := fmt.Errorf("srv.GetActiveInvites: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.GetActiveInvites")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetActiveInvites", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_active_invites",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotGetBoards.Error())
+	}
+
+	pbInvites := make([]*pb.InviteInfo, 0, len(invites))
+	for _, inv := range invites {
+		info := &pb.InviteInfo{
+			InviteLink:  inv.InviteLink.String(),
+			BoardLink:   inv.BoardLink.String(),
+			DefaultRole: inv.DefaultRole.String(),
+			Status:      inv.Status.String(),
+			CreatedAt:   inv.CreatedAt.Unix(),
+		}
+
+		if inv.TargetUser != nil {
+			target := inv.TargetUser.String()
+			info.TargetUserLink = &target
+		}
+
+		if inv.ExpireAt != nil {
+			info.ExpireAt = inv.ExpireAt.Unix()
+		}
+
+		pbInvites = append(pbInvites, info)
+	}
+
+	return &pb.GetActiveInvitesResponse{
+		Invites: pbInvites,
+	}, nil
 }

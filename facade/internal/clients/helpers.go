@@ -35,7 +35,7 @@ const (
 	identifierInviteExpired      = "invite is expired"
 	identifierInviteClosed       = "invite is closed"
 	identifierInviteNotForUser   = "this invite targets another user"
-	identifierUserAlreadyMember  = "already a member"
+	identifierUserAlreadyMember  = "already"
 )
 
 func convertGRPCError(err error) error {

@@ -125,6 +125,45 @@ message CloseInviteRequest {
 
 message CloseInviteResponse {}
 
+// UpdateMemberRole
+message UpdateMemberRoleRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string target_user_link = 3;
+  string new_role = 4;
+}
+
+message UpdateMemberRoleResponse {}
+
+// RemoveMemberFromBoard
+message RemoveMemberFromBoardRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string target_user_link = 3;
+}
+
+message RemoveMemberFromBoardResponse {}
+
+// GetActiveInvites
+message GetActiveInvitesRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message GetActiveInvitesResponse {
+  repeated InviteInfo invites = 1;
+}
+
+message InviteInfo {
+  string invite_link = 1;
+  string board_link = 2;
+  optional string target_user_link = 3;
+  string default_role = 4;
+  string status = 5;
+  int64 expire_at = 6;
+  int64 created_at = 7;
+}
+
 service BoardService {
   rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
   rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
@@ -136,4 +175,7 @@ service BoardService {
   rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
   rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
   rpc CloseInvite(CloseInviteRequest) returns (CloseInviteResponse);
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
+  rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
+  rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
 }

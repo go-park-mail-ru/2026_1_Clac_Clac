@@ -11,6 +11,8 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+
 	uuid "github.com/google/uuid"
 )
 
@@ -139,6 +141,36 @@ func (_m *BoardService) DeleteBoard(ctx context.Context, boardLink uuid.UUID, us
 	return r0
 }
 
+// GetActiveInvites provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]dto.InviteInfo, error) {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveInvites")
+	}
+
+	var r0 []dto.InviteInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]dto.InviteInfo, error)); ok {
+		return rf(ctx, boardLink, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []dto.InviteInfo); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.InviteInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBoard provides a mock function with given fields: ctx, boardLink, userLink
 func (_m *BoardService) GetBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) (dto.BoardInfo, error) {
 	ret := _m.Called(ctx, boardLink, userLink)
@@ -227,6 +259,24 @@ func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID
 	return r0, r1
 }
 
+// RemoveMemberFromBoard provides a mock function with given fields: ctx, boardLink, userLink, callerLink
+func (_m *BoardService) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink, callerLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveMemberFromBoard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink, callerLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateBackground provides a mock function with given fields: ctx, file, contentType, extension, boardLink, userLink
 func (_m *BoardService) UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error) {
 	ret := _m.Called(ctx, file, contentType, extension, boardLink, userLink)
@@ -266,6 +316,24 @@ func (_m *BoardService) UpdateBoard(ctx context.Context, boardInfo dto.UpdateBoa
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateBoardInfo, uuid.UUID) error); ok {
 		r0 = rf(ctx, boardInfo, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateMemberRole provides a mock function with given fields: ctx, boardLink, userLink, newRole, callerLink
+func (_m *BoardService) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink, newRole, callerLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, rbac.Role, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink, newRole, callerLink)
 	} else {
 		r0 = ret.Error(0)
 	}

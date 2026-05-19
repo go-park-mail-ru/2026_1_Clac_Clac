@@ -76,3 +76,30 @@ type CloseInviteRequest struct {
 	UserLink   uuid.UUID
 	InviteLink string
 }
+
+type UpdateMemberRoleRequest struct {
+	UserLink      uuid.UUID
+	BoardLink     uuid.UUID
+	TargetUserLink uuid.UUID
+	NewRole       string
+}
+
+type RemoveMemberRequest struct {
+	UserLink      uuid.UUID
+	BoardLink     uuid.UUID
+	TargetUserLink uuid.UUID
+}
+
+type InviteInfo struct {
+	InviteLink     string
+	BoardLink      string
+	TargetUserLink *string
+	DefaultRole    string
+	Status         string
+	ExpireAt       *int64
+	CreatedAt      int64
+}
+
+type GetActiveInvitesResponse struct {
+	Invites []InviteInfo
+}

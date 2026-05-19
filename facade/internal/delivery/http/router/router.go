@@ -68,6 +68,9 @@ type BoardHandler interface {
 	CreateInvite(w http.ResponseWriter, r *http.Request)
 	AcceptInvite(w http.ResponseWriter, r *http.Request)
 	CloseInvite(w http.ResponseWriter, r *http.Request)
+	GetActiveInvites(w http.ResponseWriter, r *http.Request)
+	UpdateMemberRole(w http.ResponseWriter, r *http.Request)
+	RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request)
 }
 
 type SectionHandler interface {
@@ -207,10 +210,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
 
-	// Приглашения: принимающий может быть неавторизован? Нет, нужна сессия.
-	// Но CSRF не нужен, так как действие инициируется по ссылке.
 	protected.HandleFunc("/invite/{invite_link}", deps.Board.AcceptInvite).Methods(http.MethodPost)
 	csrfProtected.HandleFunc("/invite/{invite_link}/close", deps.Board.CloseInvite).Methods(http.MethodPost)
+
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.GetActiveInvites).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}/role", deps.Board.UpdateMemberRole).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}", deps.Board.RemoveMemberFromBoard).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)

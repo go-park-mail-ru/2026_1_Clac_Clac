@@ -99,6 +99,30 @@ func (m *mockBoardServiceClient) CloseInvite(ctx context.Context, in *pb.CloseIn
 	return args.Get(0).(*pb.CloseInviteResponse), args.Error(1)
 }
 
+func (m *mockBoardServiceClient) UpdateMemberRole(ctx context.Context, in *pb.UpdateMemberRoleRequest, opts ...grpc.CallOption) (*pb.UpdateMemberRoleResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.UpdateMemberRoleResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) RemoveMemberFromBoard(ctx context.Context, in *pb.RemoveMemberFromBoardRequest, opts ...grpc.CallOption) (*pb.RemoveMemberFromBoardResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.RemoveMemberFromBoardResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) GetActiveInvites(ctx context.Context, in *pb.GetActiveInvitesRequest, opts ...grpc.CallOption) (*pb.GetActiveInvitesResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetActiveInvitesResponse), args.Error(1)
+}
+
 func TestBoardCreateInvite(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()

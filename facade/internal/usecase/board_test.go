@@ -498,3 +498,138 @@ func TestBoardCloseInviteUsecase(t *testing.T) {
 		})
 	}
 }
+
+func TestBoardUpdateMemberRoleUsecase(t *testing.T) {
+	req := domain.UpdateMemberRoleRequest{
+		UserLink:       fixedUserLink,
+		BoardLink:      fixedBoardLink,
+		TargetUserLink: fixedUserLink,
+		NewRole:        "editor",
+	}
+
+	tests := []struct {
+		name        string
+		mockBehavior func(m *mockBoardClient.BoardClient)
+		expectError bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("UpdateMemberRole", context.Background(), req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("UpdateMemberRole", context.Background(), req).Return(boardTestErr)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			err := NewBoard(m).UpdateMemberRole(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestBoardRemoveMemberFromBoardUsecase(t *testing.T) {
+	req := domain.RemoveMemberRequest{
+		UserLink:       fixedUserLink,
+		BoardLink:      fixedBoardLink,
+		TargetUserLink: fixedUserLink,
+	}
+
+	tests := []struct {
+		name        string
+		mockBehavior func(m *mockBoardClient.BoardClient)
+		expectError bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("RemoveMemberFromBoard", context.Background(), req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("RemoveMemberFromBoard", context.Background(), req).Return(boardTestErr)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			err := NewBoard(m).RemoveMemberFromBoard(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestBoardGetActiveInvitesUsecase(t *testing.T) {
+	expected := []domain.InviteInfo{
+		{InviteLink: uuid.New().String(), BoardLink: fixedBoardLink.String(), DefaultRole: "editor", Status: "active"},
+	}
+
+	tests := []struct {
+		name        string
+		mockBehavior func(m *mockBoardClient.BoardClient)
+		expected    []domain.InviteInfo
+		expectError bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("GetActiveInvites", context.Background(), fixedUserLink, fixedBoardLink).Return(expected, nil)
+			},
+			expected:    expected,
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("GetActiveInvites", context.Background(), fixedUserLink, fixedBoardLink).Return(nil, boardTestErr)
+			},
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			result, err := NewBoard(m).GetActiveInvites(context.Background(), fixedUserLink, fixedBoardLink)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}

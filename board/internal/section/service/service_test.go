@@ -51,6 +51,11 @@ func (m *MockRbacService) CheckPermissionOnAttachment(ctx context.Context, attac
 	return args.Error(0)
 }
 
+func (m *MockRbacService) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
+	args := m.Called(ctx, userLink, boardLink)
+	return args.Error(0)
+}
+
 func TestServiceGetSection(t *testing.T) {
 	ctx := context.Background()
 	userLink := uuid.New()

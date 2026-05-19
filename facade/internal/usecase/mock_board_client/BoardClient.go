@@ -145,6 +145,36 @@ func (_m *BoardClient) DeleteBoard(ctx context.Context, boardInfo domain.GetBoar
 	return r0
 }
 
+// GetActiveInvites provides a mock function with given fields: ctx, userLink, boardLink
+func (_m *BoardClient) GetActiveInvites(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	ret := _m.Called(ctx, userLink, boardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveInvites")
+	}
+
+	var r0 []domain.InviteInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]domain.InviteInfo, error)); ok {
+		return rf(ctx, userLink, boardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []domain.InviteInfo); ok {
+		r0 = rf(ctx, userLink, boardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.InviteInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink, boardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBoard provides a mock function with given fields: ctx, boardInfo
 func (_m *BoardClient) GetBoard(ctx context.Context, boardInfo domain.GetBoardRequest) (domain.BoardInfo, error) {
 	ret := _m.Called(ctx, boardInfo)
@@ -231,6 +261,24 @@ func (_m *BoardClient) GetMembers(ctx context.Context, membersInfo domain.GetMem
 	return r0, r1
 }
 
+// RemoveMemberFromBoard provides a mock function with given fields: ctx, req
+func (_m *BoardClient) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveMemberFromBoard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.RemoveMemberRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateBoard provides a mock function with given fields: ctx, boardInfo
 func (_m *BoardClient) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardRequest) error {
 	ret := _m.Called(ctx, boardInfo)
@@ -242,6 +290,24 @@ func (_m *BoardClient) UpdateBoard(ctx context.Context, boardInfo domain.UpdateB
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdateBoardRequest) error); ok {
 		r0 = rf(ctx, boardInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateMemberRole provides a mock function with given fields: ctx, req
+func (_m *BoardClient) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdateMemberRoleRequest) error); ok {
+		r0 = rf(ctx, req)
 	} else {
 		r0 = ret.Error(0)
 	}

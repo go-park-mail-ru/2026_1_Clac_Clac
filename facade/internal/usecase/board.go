@@ -22,6 +22,10 @@ type BoardClient interface {
 	CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error)
 	AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error)
 	CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error
+
+	UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error
+	RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error
+	GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error)
 }
 
 type Board struct {
@@ -122,4 +126,31 @@ func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRe
 	}
 
 	return nil
+}
+
+func (b *Board) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	err := b.client.UpdateMemberRole(ctx, req)
+	if err != nil {
+		return fmt.Errorf("board.UpdateMemberRole: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Board) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	err := b.client.RemoveMemberFromBoard(ctx, req)
+	if err != nil {
+		return fmt.Errorf("board.RemoveMemberFromBoard: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Board) GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	invites, err := b.client.GetActiveInvites(ctx, userLink, boardLink)
+	if err != nil {
+		return nil, fmt.Errorf("board.GetActiveInvites: %w", err)
+	}
+
+	return invites, nil
 }

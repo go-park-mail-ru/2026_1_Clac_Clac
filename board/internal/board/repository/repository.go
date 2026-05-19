@@ -412,3 +412,77 @@ func (r *Repository) CloseInviteByBoardForUser(ctx context.Context, boardLink uu
 
 	return nil
 }
+
+func (r *Repository) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	updateRoleQuery := `
+		UPDATE member_board SET level_member = $3::user_level
+		WHERE board_link = $1 AND user_link = $2
+	`
+
+	tag, err := r.pool.Exec(ctx, updateRoleQuery, boardLink, userLink, role)
+	if err != nil {
+		return fmt.Errorf("update member role: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrBoardNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	deleteMemberQuery := `DELETE FROM member_board WHERE board_link = $1 AND user_link = $2`
+
+	tag, err := r.pool.Exec(ctx, deleteMemberQuery, boardLink, userLink)
+	if err != nil {
+		return fmt.Errorf("remove member from board: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrBoardNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.InviteEntry, error) {
+	getInvitesQuery := `
+		SELECT invite_link, board_link, user_link, default_role, expire_time, status, created_at
+		FROM invite
+		WHERE board_link = $1 AND status = 'active'
+		  AND (expire_time IS NULL OR expire_time > now())
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.pool.Query(ctx, getInvitesQuery, boardLink)
+	if err != nil {
+		return []dto.InviteEntry{}, fmt.Errorf("pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	invites := make([]dto.InviteEntry, 0)
+	for rows.Next() {
+		var entry dto.InviteEntry
+		err := rows.Scan(
+			&entry.InviteLink,
+			&entry.BoardLink,
+			&entry.UserLink,
+			&entry.DefaultRole,
+			&entry.ExpireTime,
+			&entry.Status,
+			&entry.CreatedAt,
+		)
+		if err != nil {
+			return []dto.InviteEntry{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+			entry.UserLink = nil
+		}
+
+		invites = append(invites, entry)
+	}
+
+	return invites, nil
+}
