@@ -535,7 +535,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 // @Failure	403	{object}	api.ErrorResponse	"action denied"
 // @Failure	404	{object}	api.ErrorResponse	"board not found"
 // @Failure	500	{object}	api.ErrorResponse	"cannot create invite"
-// @Router		/boards/{link}/invite [post]
+// @Router		/boards/{link}/invites [post]
 func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -630,7 +630,7 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 // @Failure	409	{object}	api.ErrorResponse	"user is already a member"
 // @Failure	412	{object}	api.ErrorResponse	"invite expired or closed"
 // @Failure	500	{object}	api.ErrorResponse	"cannot accept invite"
-// @Router		/invite/{invite_link} [post]
+// @Router		/invites/{invite_link} [post]
 func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -694,7 +694,7 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 // @Failure	403	{object}	api.ErrorResponse	"action denied"
 // @Failure	404	{object}	api.ErrorResponse	"invite not found"
 // @Failure	500	{object}	api.ErrorResponse	"cannot close invite"
-// @Router		/invite/{invite_link}/close [post]
+// @Router		/invites/{invite_link} [delete]
 func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 

@@ -206,12 +206,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
 	withImageLimit.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
-	withTextLimit.HandleFunc("/boards/{link}/invite", deps.Board.CreateInvite).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.CreateInvite).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
 
-	protected.HandleFunc("/invite/{invite_link}", deps.Board.AcceptInvite).Methods(http.MethodPost)
-	csrfProtected.HandleFunc("/invite/{invite_link}/close", deps.Board.CloseInvite).Methods(http.MethodPost)
+	protected.HandleFunc("/invites/{invite_link}", deps.Board.AcceptInvite).Methods(http.MethodPost)
+	csrfProtected.HandleFunc("/invites/{invite_link}", deps.Board.CloseInvite).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.GetActiveInvites).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}/role", deps.Board.UpdateMemberRole).Methods(http.MethodPut)
