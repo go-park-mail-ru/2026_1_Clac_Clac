@@ -12,7 +12,7 @@ import (
 
 // @title			NeXuS
 // @description	Наше API
-// @host			clac-clac.mooo.com
+// @host			clac-clac.ru
 // @BasePath		/api
 func main() {
 	const configPath = "."

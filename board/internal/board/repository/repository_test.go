@@ -23,6 +23,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 )
 
@@ -694,6 +695,219 @@ func TestGetUsersOfBoard(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.Expected, users)
 			}
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestCreateInviteRepo(t *testing.T) {
+	boardLink := uuid.New()
+	now := time.Now()
+
+	inviteInfo := dto.NewInviteInfo{
+		BoardLink:   boardLink,
+		UserLink:    nil,
+		DefaultRole: rbac.Roles.Editor,
+		ExpireTime:  &now,
+	}
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name: "foreign key violation",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery(`(?s)INSERT INTO invite.*`).
+					WithArgs(boardLink, (*uuid.UUID)(nil), rbac.Roles.Editor, &now).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+			},
+			ExpectedErr: common.ErrInvalidBoardReference,
+		},
+		{
+			Name: "not null violation",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery(`(?s)INSERT INTO invite.*`).
+					WithArgs(boardLink, (*uuid.UUID)(nil), rbac.Roles.Editor, &now).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
+			},
+			ExpectedErr: common.ErrNotNullValue,
+		},
+		{
+			Name: "db error",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery(`(?s)INSERT INTO invite.*`).
+					WithArgs(boardLink, (*uuid.UUID)(nil), rbac.Roles.Editor, &now).
+					WillReturnError(fmt.Errorf("connection timeout"))
+			},
+			ExpectedErr: fmt.Errorf("connection timeout"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			_, err = repo.CreateInvite(context.Background(), inviteInfo)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestGetInviteByLinkRepo(t *testing.T) {
+	inviteLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name: "not found",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectQuery(`(?s)SELECT.*FROM invite.*`).
+					WithArgs(inviteLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			ExpectedErr: common.ErrInviteNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			_, err = repo.GetInviteByLink(context.Background(), inviteLink)
+
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, tt.ExpectedErr)
+
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestAddMemberToBoardRepo(t *testing.T) {
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name: "success add member",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec(`(?s)INSERT INTO member_board.*`).
+					WithArgs(boardLink, userLink, rbac.Roles.Editor).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+			},
+		},
+		{
+			Name: "unique violation",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec(`(?s)INSERT INTO member_board.*`).
+					WithArgs(boardLink, userLink, rbac.Roles.Editor).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.UniqueViolation})
+			},
+			ExpectedErr: common.ErrUserAlreadyMember,
+		},
+		{
+			Name: "foreign key violation",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec(`(?s)INSERT INTO member_board.*`).
+					WithArgs(boardLink, userLink, rbac.Roles.Editor).
+					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
+			},
+			ExpectedErr: common.ErrInvalidBoardReference,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			err = repo.AddMemberToBoard(context.Background(), boardLink, userLink, rbac.Roles.Editor)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, dbMock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestCloseInviteRepo(t *testing.T) {
+	inviteLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(dbMock pgxmock.PgxPoolIface)
+		ExpectedErr error
+	}{
+		{
+			Name: "success close invite",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec(`(?s)UPDATE invite SET status.*`).
+					WithArgs(inviteLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+			},
+		},
+		{
+			Name: "not found (no rows affected)",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				dbMock.ExpectExec(`(?s)UPDATE invite SET status.*`).
+					WithArgs(inviteLink).
+					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			},
+			ExpectedErr: common.ErrInviteNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			dbMock, err := pgxmock.NewPool()
+			require.NoError(t, err)
+			defer dbMock.Close()
+
+			tt.MockSetup(dbMock)
+
+			repo := setupRepo(dbMock, new(MockS3Bucket))
+			err = repo.CloseInvite(context.Background(), inviteLink)
+
+			if tt.ExpectedErr != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
 			assert.NoError(t, dbMock.ExpectationsWereMet())
 		})
 	}

@@ -66,3 +66,40 @@ type GetMembersRequest struct {
 type GetMembersResponse struct {
 	UserLinks []uuid.UUID `json:"user_links"`
 }
+
+// CreateInviteRequest содержит данные для создания приглашения на доску.
+//
+//	@Description	Данные для создания приглашения
+type CreateInviteRequest struct {
+	UserLink       string  `json:"user_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DefaultRole    string  `json:"default_role" example:"editor"`
+	ExpireSeconds  int64   `json:"expire_seconds,omitempty" example:"86400"`
+}
+
+// CreateInviteResponse содержит информацию о созданном приглашении.
+//
+//	@Description	Информация о приглашении
+type CreateInviteResponse struct {
+	InviteLink     string  `json:"invite_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	BoardLink      string  `json:"board_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	TargetUserLink *string `json:"target_user_link,omitempty"`
+	DefaultRole    string  `json:"default_role" example:"editor"`
+	Status         string  `json:"status" example:"active"`
+	ExpireAt       *int64  `json:"expire_at,omitempty" example:"1712928000"`
+	CreatedAt      int64   `json:"created_at" example:"1712841600"`
+}
+
+// AcceptInviteRequest содержит данные для принятия приглашения.
+//
+//	@Description	Данные для принятия приглашения
+type AcceptInviteRequest struct {
+	InviteLink string `json:"-"`
+}
+
+// AcceptInviteResponse содержит данные о результате принятия приглашения.
+//
+//	@Description	Результат принятия приглашения
+type AcceptInviteResponse struct {
+	BoardLink string `json:"board_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Role      string `json:"role" example:"editor"`
+}

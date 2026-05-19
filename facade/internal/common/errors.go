@@ -43,4 +43,10 @@ var (
 	ErrCSRFTokenExpired               = errors.New("csrf token expired")
 	ErrCannotDecodeReceivedCSRFToken  = errors.New("cannot decode received csrf token")
 	ErrCSRFTokensDoNotEqual           = errors.New("csrf tokens do not equal")
+
+	ErrorInviteNotFound      = errors.New("invite not found")
+	ErrorInviteExpired       = errors.New("invite is expired")
+	ErrorInviteClosed        = errors.New("invite is closed")
+	ErrorInviteNotForUser    = errors.New("this invite targets another user")
+	ErrorUserAlreadyMember   = errors.New("user is already a member of this board")
 )

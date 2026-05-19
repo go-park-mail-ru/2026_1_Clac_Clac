@@ -19,6 +19,52 @@ type BoardService struct {
 	mock.Mock
 }
 
+// AcceptInvite provides a mock function with given fields: ctx, inviteLink, userLink
+func (_m *BoardService) AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) (dto.InviteInfo, error) {
+	ret := _m.Called(ctx, inviteLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AcceptInvite")
+	}
+
+	var r0 dto.InviteInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (dto.InviteInfo, error)); ok {
+		return rf(ctx, inviteLink, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) dto.InviteInfo); ok {
+		r0 = rf(ctx, inviteLink, userLink)
+	} else {
+		r0 = ret.Get(0).(dto.InviteInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, inviteLink, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CloseInvite provides a mock function with given fields: ctx, inviteLink, userLink
+func (_m *BoardService) CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, inviteLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CloseInvite")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, inviteLink, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateBoard provides a mock function with given fields: ctx, boardInfo, authorLink
 func (_m *BoardService) CreateBoard(ctx context.Context, boardInfo dto.NewBoardInfo, authorLink uuid.UUID) (dto.BoardInfo, error) {
 	ret := _m.Called(ctx, boardInfo, authorLink)
@@ -40,6 +86,34 @@ func (_m *BoardService) CreateBoard(ctx context.Context, boardInfo dto.NewBoardI
 
 	if rf, ok := ret.Get(1).(func(context.Context, dto.NewBoardInfo, uuid.UUID) error); ok {
 		r1 = rf(ctx, boardInfo, authorLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateInvite provides a mock function with given fields: ctx, inviteInfo, creatorLink
+func (_m *BoardService) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo, creatorLink uuid.UUID) (dto.InviteInfo, error) {
+	ret := _m.Called(ctx, inviteInfo, creatorLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateInvite")
+	}
+
+	var r0 dto.InviteInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.NewInviteInfo, uuid.UUID) (dto.InviteInfo, error)); ok {
+		return rf(ctx, inviteInfo, creatorLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.NewInviteInfo, uuid.UUID) dto.InviteInfo); ok {
+		r0 = rf(ctx, inviteInfo, creatorLink)
+	} else {
+		r0 = ret.Get(0).(dto.InviteInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.NewInviteInfo, uuid.UUID) error); ok {
+		r1 = rf(ctx, inviteInfo, creatorLink)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -48,3 +48,31 @@ type GetMembersRequest struct {
 type GetMembersResponse struct {
 	UserLinks []uuid.UUID
 }
+
+type CreateInviteRequest struct {
+	UserLink       uuid.UUID
+	BoardLink      uuid.UUID
+	TargetUserLink *uuid.UUID
+	DefaultRole    string
+	ExpireSeconds  int64
+}
+
+type CreateInviteResponse struct {
+	InviteLink     string
+	BoardLink      string
+	TargetUserLink *string
+	DefaultRole    string
+	Status         string
+	ExpireAt       *int64
+	CreatedAt      int64
+}
+
+type AcceptInviteRequest struct {
+	InviteLink  string
+	UserLink    uuid.UUID
+}
+
+type CloseInviteRequest struct {
+	UserLink   uuid.UUID
+	InviteLink string
+}

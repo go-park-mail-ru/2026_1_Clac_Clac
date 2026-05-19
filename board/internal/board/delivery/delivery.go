@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,6 +44,14 @@ var (
 	ErrCannotOperateWithFile  = errors.New("cannot operate with file")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetUsersOfBoard  = errors.New("cannot get users of board")
+
+	ErrInviteLinkRequired      = errors.New("invite link is required")
+	ErrInvalidInviteLink       = errors.New("invalid invite link")
+	ErrCannotCreateInvite      = errors.New("cannot create invite")
+	ErrCannotAcceptInvite      = errors.New("cannot accept invite")
+	ErrCannotCloseInvite       = errors.New("cannot close invite")
+	ErrRoleRequired            = errors.New("role is required")
+	ErrInvalidRole             = errors.New("invalid role")
 )
 
 //go:generate mockery --name=BoardService --output mock_board_srv
@@ -54,6 +63,10 @@ type BoardService interface {
 	UpdateBoard(ctx context.Context, boardInfo serviceDto.UpdateBoardInfo, userLink uuid.UUID) error
 	UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error)
 	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]uuid.UUID, error)
+
+	CreateInvite(ctx context.Context, inviteInfo serviceDto.NewInviteInfo, creatorLink uuid.UUID) (serviceDto.InviteInfo, error)
+	AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) (serviceDto.InviteInfo, error)
+	CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) error
 }
 
 type Config struct {
@@ -387,4 +400,180 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 	return &pb.GetMembersResponse{
 		UsersLinks: usersLinksStrings,
 	}, nil
+}
+
+func (h *BoardHandler) CreateInvite(ctx context.Context, req *pb.CreateInviteRequest) (*pb.CreateInviteResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	defaultRole := req.GetDefaultRole()
+	if defaultRole == "" {
+		return nil, status.Error(codes.InvalidArgument, ErrRoleRequired.Error())
+	}
+
+	role, err := rbac.ParseRole(defaultRole)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidRole.Error())
+	}
+
+	if !common.InviteAssignableRoles[role] {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidRole.Error())
+	}
+
+	var targetUserLink *uuid.UUID
+	if req.TargetUserLink != nil {
+		parsed, err := uuid.Parse(req.GetTargetUserLink())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, ErrInvalidBoardLink.Error())
+		}
+		targetUserLink = &parsed
+	}
+
+	var expireTime *time.Time
+	if req.ExpireSeconds > 0 {
+		t := time.Now().Add(time.Duration(req.ExpireSeconds) * time.Second)
+		expireTime = &t
+	}
+
+	inviteInfo := serviceDto.NewInviteInfo{
+		BoardLink:   boardLink,
+		UserLink:    targetUserLink,
+		DefaultRole: role,
+		ExpireTime:  expireTime,
+	}
+
+	invite, err := h.srv.CreateInvite(ctx, inviteInfo, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrInvalidBoardReference):
+			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+		case errors.Is(err, common.ErrNotNullValue):
+			return nil, status.Error(codes.InvalidArgument, common.ErrNotNullValue.Error())
+		}
+
+		errLog := fmt.Errorf("srv.CreateInvite: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.CreateInvite")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateInvite", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"board_link":  rawBoardLink,
+			"action":      "create_invite",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotCreateInvite.Error())
+	}
+
+	resp := &pb.CreateInviteResponse{
+		InviteLink:   invite.InviteLink.String(),
+		BoardLink:    invite.BoardLink.String(),
+		DefaultRole:  invite.DefaultRole.String(),
+		Status:       invite.Status.String(),
+		CreatedAt:    invite.CreatedAt.Unix(),
+	}
+
+	if invite.TargetUser != nil {
+		target := invite.TargetUser.String()
+		resp.TargetUserLink = &target
+	}
+
+	if invite.ExpireAt != nil {
+		resp.ExpireAt = invite.ExpireAt.Unix()
+	}
+
+	return resp, nil
+}
+
+func (h *BoardHandler) AcceptInvite(ctx context.Context, req *pb.AcceptInviteRequest) (*pb.AcceptInviteResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawInviteLink := req.GetInviteLink()
+	inviteLink, err := uuid.Parse(rawInviteLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInviteLinkRequired.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	invite, err := h.srv.AcceptInvite(ctx, inviteLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrInviteNotFound.Error())
+		case errors.Is(err, common.ErrInviteClosed):
+			return nil, status.Error(codes.FailedPrecondition, common.ErrInviteClosed.Error())
+		case errors.Is(err, common.ErrInviteExpired):
+			return nil, status.Error(codes.FailedPrecondition, common.ErrInviteExpired.Error())
+		case errors.Is(err, common.ErrInviteNotForUser):
+			return nil, status.Error(codes.PermissionDenied, common.ErrInviteNotForUser.Error())
+		case errors.Is(err, common.ErrUserAlreadyMember):
+			return nil, status.Error(codes.AlreadyExists, common.ErrUserAlreadyMember.Error())
+		}
+
+		errLog := fmt.Errorf("srv.AcceptInvite: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.AcceptInvite")
+		sentryLogger.CaptureFromContext(ctx, errLog, "AcceptInvite", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"invite_link": rawInviteLink,
+			"action":      "accept_invite",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotAcceptInvite.Error())
+	}
+
+	return &pb.AcceptInviteResponse{
+		BoardLink: invite.BoardLink.String(),
+		UserLink:  userLink.String(),
+		Role:      invite.DefaultRole.String(),
+	}, nil
+}
+
+func (h *BoardHandler) CloseInvite(ctx context.Context, req *pb.CloseInviteRequest) (*pb.CloseInviteResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawInviteLink := req.GetInviteLink()
+	inviteLink, err := uuid.Parse(rawInviteLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInviteLinkRequired.Error())
+	}
+
+	err = h.srv.CloseInvite(ctx, inviteLink, userLink)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrInviteNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.CloseInvite: %w", err)
+		logger.Error().Err(errLog).Msg("BoardService.CloseInvite")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CloseInvite", map[string]interface{}{
+			"user_link":   rawUserLink,
+			"invite_link": rawInviteLink,
+			"action":      "close_invite",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotCloseInvite.Error())
+	}
+
+	return &pb.CloseInviteResponse{}, nil
 }

@@ -18,6 +18,10 @@ type BoardClient interface {
 	UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardRequest) error
 	UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error)
 	GetMembers(ctx context.Context, membersInfo domain.GetMembersRequest) (domain.GetMembersResponse, error)
+
+	CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error)
+	AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error)
+	CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error
 }
 
 type Board struct {
@@ -91,4 +95,31 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 	}
 
 	return resp, nil
+}
+
+func (b *Board) CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error) {
+	resp, err := b.client.CreateInvite(ctx, inviteInfo)
+	if err != nil {
+		return domain.CreateInviteResponse{}, fmt.Errorf("board.CreateInvite: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (b *Board) AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error) {
+	boardLink, role, err := b.client.AcceptInvite(ctx, inviteInfo)
+	if err != nil {
+		return "", "", fmt.Errorf("board.AcceptInvite: %w", err)
+	}
+
+	return boardLink, role, nil
+}
+
+func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error {
+	err := b.client.CloseInvite(ctx, inviteInfo)
+	if err != nil {
+		return fmt.Errorf("board.CloseInvite: %w", err)
+	}
+
+	return nil
 }

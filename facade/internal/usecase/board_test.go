@@ -352,3 +352,149 @@ func TestBoardGetMembers(t *testing.T) {
 		})
 	}
 }
+
+func TestBoardCreateInviteUsecase(t *testing.T) {
+	req := domain.CreateInviteRequest{
+		UserLink:    fixedUserLink,
+		BoardLink:   fixedBoardLink,
+		DefaultRole: "editor",
+	}
+	expected := domain.CreateInviteResponse{
+		InviteLink:  uuid.New().String(),
+		BoardLink:   fixedBoardLink.String(),
+		DefaultRole: "editor",
+		Status:      "active",
+	}
+
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockBoardClient.BoardClient)
+		expected     domain.CreateInviteResponse
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("CreateInvite", context.Background(), req).Return(expected, nil)
+			},
+			expected:    expected,
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("CreateInvite", context.Background(), req).Return(domain.CreateInviteResponse{}, boardTestErr)
+			},
+			expected:    domain.CreateInviteResponse{},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			result, err := NewBoard(m).CreateInvite(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestBoardAcceptInviteUsecase(t *testing.T) {
+	req := domain.AcceptInviteRequest{
+		InviteLink: uuid.New().String(),
+		UserLink:   fixedUserLink,
+	}
+
+	tests := []struct {
+		name            string
+		mockBehavior    func(m *mockBoardClient.BoardClient)
+		expectBoardLink string
+		expectRole      string
+		expectError     bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("AcceptInvite", context.Background(), req).Return(fixedBoardLink.String(), "editor", nil)
+			},
+			expectBoardLink: fixedBoardLink.String(),
+			expectRole:      "editor",
+			expectError:     false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("AcceptInvite", context.Background(), req).Return("", "", boardTestErr)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			boardLink, role, err := NewBoard(m).AcceptInvite(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectBoardLink, boardLink)
+				assert.Equal(t, tc.expectRole, role)
+			}
+		})
+	}
+}
+
+func TestBoardCloseInviteUsecase(t *testing.T) {
+	req := domain.CloseInviteRequest{
+		UserLink:   fixedUserLink,
+		InviteLink: uuid.New().String(),
+	}
+
+	tests := []struct {
+		name        string
+		mockBehavior func(m *mockBoardClient.BoardClient)
+		expectError bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("CloseInvite", context.Background(), req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockBoardClient.BoardClient) {
+				m.On("CloseInvite", context.Background(), req).Return(boardTestErr)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := mockBoardClient.NewBoardClient(t)
+			tc.mockBehavior(m)
+
+			err := NewBoard(m).CloseInvite(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

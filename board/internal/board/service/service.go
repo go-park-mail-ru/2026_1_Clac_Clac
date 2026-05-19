@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	"github.com/rs/zerolog"
 
 	"github.com/google/uuid"
 )
@@ -24,6 +26,12 @@ type BoardRepository interface {
 	UploadBackground(ctx context.Context, source io.Reader, filename string, contentType string) (string, error)
 	UpdateBackground(ctx context.Context, background string, boardLink uuid.UUID) error
 	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
+
+	CreateInvite(ctx context.Context, inviteInfo repositoryDto.NewInviteInfo) (repositoryDto.InviteEntry, error)
+	GetInviteByLink(ctx context.Context, inviteLink uuid.UUID) (repositoryDto.InviteEntry, error)
+	AddMemberToBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error
+	CloseInvite(ctx context.Context, inviteLink uuid.UUID) error
+	CloseInviteByBoardForUser(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 }
 
 type Service struct {
@@ -174,4 +182,117 @@ func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, user
 	}
 
 	return usersLinks, nil
+}
+
+func (s *Service) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo, creatorLink uuid.UUID) (dto.InviteInfo, error) {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, inviteInfo.BoardLink, creatorLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return dto.InviteInfo{}, rbac.ErrActionDenied
+		}
+		return dto.InviteInfo{}, fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	entry, err := s.rep.CreateInvite(ctx, repositoryDto.NewInviteInfo{
+		BoardLink:   inviteInfo.BoardLink,
+		UserLink:    inviteInfo.UserLink,
+		DefaultRole: inviteInfo.DefaultRole,
+		ExpireTime:  inviteInfo.ExpireTime,
+	})
+	if err != nil {
+		return dto.InviteInfo{}, fmt.Errorf("rep.CreateInvite: %w", err)
+	}
+
+	return dto.InviteInfo{
+		InviteLink:  entry.InviteLink,
+		BoardLink:   entry.BoardLink,
+		TargetUser:  entry.UserLink,
+		DefaultRole: entry.DefaultRole,
+		Status:      entry.Status,
+		ExpireAt:    entry.ExpireTime,
+		CreatedAt:   entry.CreatedAt,
+	}, nil
+}
+
+func (s *Service) AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) (dto.InviteInfo, error) {
+	logger := zerolog.Ctx(ctx)
+
+	entry, err := s.rep.GetInviteByLink(ctx, inviteLink)
+	if err != nil {
+		if errors.Is(err, common.ErrInviteNotFound) {
+			return dto.InviteInfo{}, common.ErrInviteNotFound
+		}
+		return dto.InviteInfo{}, fmt.Errorf("rep.GetInviteByLink: %w", err)
+	}
+
+	if entry.Status == common.InviteStatuses.Closed {
+		return dto.InviteInfo{}, common.ErrInviteClosed
+	}
+
+	if entry.ExpireTime != nil && entry.ExpireTime.Before(time.Now()) {
+		err = s.rep.CloseInvite(ctx, inviteLink)
+		if err != nil {
+			// Так и задумано, даже если ошибка произошла в CloseInvtie
+			// изначальная причина в том, что инвайт истек
+			logger.Error().Err(err).Msg("rep.CloseInvite")
+			return dto.InviteInfo{}, common.ErrInviteExpired
+		}
+
+		return dto.InviteInfo{}, common.ErrInviteExpired
+	}
+
+	if entry.UserLink != nil && *entry.UserLink != userLink {
+		return dto.InviteInfo{}, common.ErrInviteNotForUser
+	}
+
+	err = s.rep.AddMemberToBoard(ctx, entry.BoardLink, userLink, entry.DefaultRole)
+	if err != nil {
+		if errors.Is(err, common.ErrUserAlreadyMember) {
+			return dto.InviteInfo{}, common.ErrUserAlreadyMember
+		}
+		return dto.InviteInfo{}, fmt.Errorf("rep.AddMemberToBoard: %w", err)
+	}
+
+	if entry.UserLink != nil {
+		err = s.rep.CloseInvite(ctx, inviteLink)
+		if err != nil {
+			return dto.InviteInfo{}, fmt.Errorf("rep.CloseInvite: %w", err)
+		}
+		entry.Status = common.InviteStatuses.Closed
+	}
+
+	return dto.InviteInfo{
+		InviteLink:  entry.InviteLink,
+		BoardLink:   entry.BoardLink,
+		TargetUser:  entry.UserLink,
+		DefaultRole: entry.DefaultRole,
+		Status:      entry.Status,
+		ExpireAt:    entry.ExpireTime,
+		CreatedAt:   entry.CreatedAt,
+	}, nil
+}
+
+func (s *Service) CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) error {
+	entry, err := s.rep.GetInviteByLink(ctx, inviteLink)
+	if err != nil {
+		if errors.Is(err, common.ErrInviteNotFound) {
+			return common.ErrInviteNotFound
+		}
+		return fmt.Errorf("rep.GetInviteByLink: %w", err)
+	}
+
+	err = s.permissionChecker.CheckPermissionOnBoard(ctx, entry.BoardLink, userLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	err = s.rep.CloseInvite(ctx, inviteLink)
+	if err != nil {
+		return fmt.Errorf("rep.CloseInvite: %w", err)
+	}
+
+	return nil
 }

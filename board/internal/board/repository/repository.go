@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 
 	"github.com/jackc/pgerrcode"
@@ -281,4 +282,133 @@ func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) (
 	}
 
 	return usersLinks, nil
+}
+
+func (r *Repository) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo) (dto.InviteEntry, error) {
+	createInviteQuery := `
+		INSERT INTO invite (board_link, user_link, default_role, expire_time)
+		VALUES ($1, $2, $3::user_level, $4)
+		RETURNING invite_link, board_link, user_link, default_role, expire_time, status, created_at
+	`
+
+	row := r.pool.QueryRow(ctx, createInviteQuery,
+		inviteInfo.BoardLink,
+		inviteInfo.UserLink,
+		inviteInfo.DefaultRole,
+		inviteInfo.ExpireTime,
+	)
+
+	var entry dto.InviteEntry
+	err := row.Scan(
+		&entry.InviteLink,
+		&entry.BoardLink,
+		&entry.UserLink,
+		&entry.DefaultRole,
+		&entry.ExpireTime,
+		&entry.Status,
+		&entry.CreatedAt,
+	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return dto.InviteEntry{}, common.ErrInvalidBoardReference
+			case pgerrcode.NotNullViolation:
+				return dto.InviteEntry{}, common.ErrNotNullValue
+			}
+		}
+		return dto.InviteEntry{}, fmt.Errorf("create invite: %w", err)
+	}
+
+	if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+		entry.UserLink = nil
+	}
+
+	return entry, nil
+}
+
+func (r *Repository) GetInviteByLink(ctx context.Context, inviteLink uuid.UUID) (dto.InviteEntry, error) {
+	getInviteQuery := `
+		SELECT invite_link, board_link, user_link, default_role, expire_time, status, created_at
+		FROM invite
+		WHERE invite_link = $1
+	`
+
+	row := r.pool.QueryRow(ctx, getInviteQuery, inviteLink)
+
+	var entry dto.InviteEntry
+	err := row.Scan(
+		&entry.InviteLink,
+		&entry.BoardLink,
+		&entry.UserLink,
+		&entry.DefaultRole,
+		&entry.ExpireTime,
+		&entry.Status,
+		&entry.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return dto.InviteEntry{}, common.ErrInviteNotFound
+		}
+		return dto.InviteEntry{}, fmt.Errorf("get invite by link: %w", err)
+	}
+
+	if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+		entry.UserLink = nil
+	}
+
+	return entry, nil
+}
+
+func (r *Repository) AddMemberToBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	addMemberQuery := `
+		INSERT INTO member_board (board_link, user_link, level_member)
+		VALUES ($1, $2, $3::user_level)
+	`
+
+	_, err := r.pool.Exec(ctx, addMemberQuery, boardLink, userLink, role)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return common.ErrUserAlreadyMember
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrInvalidBoardReference
+			}
+		}
+		return fmt.Errorf("add member to board: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) CloseInvite(ctx context.Context, inviteLink uuid.UUID) error {
+	closeInviteQuery := `UPDATE invite SET status = 'closed' WHERE invite_link = $1 AND status = 'active'`
+
+	tag, err := r.pool.Exec(ctx, closeInviteQuery, inviteLink)
+	if err != nil {
+		return fmt.Errorf("close invite: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrInviteNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) CloseInviteByBoardForUser(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	closeInviteQuery := `
+		UPDATE invite SET status = 'closed'
+		WHERE board_link = $1 AND user_link = $2 AND status = 'active'
+	`
+
+	_, err := r.pool.Exec(ctx, closeInviteQuery, boardLink, userLink)
+	if err != nil {
+		return fmt.Errorf("close invite by board and user: %w", err)
+	}
+
+	return nil
 }

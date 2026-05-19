@@ -196,3 +196,71 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 		UserLinks: userLinks,
 	}, nil
 }
+
+func (b *Board) CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error) {
+	req := &pb.CreateInviteRequest{
+		UserLink:    inviteInfo.UserLink.String(),
+		BoardLink:   inviteInfo.BoardLink.String(),
+		DefaultRole: inviteInfo.DefaultRole,
+	}
+
+	if inviteInfo.TargetUserLink != nil {
+		target := inviteInfo.TargetUserLink.String()
+		req.TargetUserLink = &target
+	}
+
+	if inviteInfo.ExpireSeconds > 0 {
+		req.ExpireSeconds = inviteInfo.ExpireSeconds
+	}
+
+	res, err := b.client.CreateInvite(ctx, req)
+	if err != nil {
+		return domain.CreateInviteResponse{}, fmt.Errorf("client.CreateInvite: %w", convertBoardGRPCError(err))
+	}
+
+	resp := domain.CreateInviteResponse{
+		InviteLink:  res.InviteLink,
+		BoardLink:   res.BoardLink,
+		DefaultRole: res.DefaultRole,
+		Status:      res.Status,
+		CreatedAt:   res.CreatedAt,
+	}
+
+	if res.TargetUserLink != nil {
+		resp.TargetUserLink = res.TargetUserLink
+	}
+
+	if res.ExpireAt != 0 {
+		resp.ExpireAt = &res.ExpireAt
+	}
+
+	return resp, nil
+}
+
+func (b *Board) AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error) {
+	req := &pb.AcceptInviteRequest{
+		InviteLink: inviteInfo.InviteLink,
+		UserLink:   inviteInfo.UserLink.String(),
+	}
+
+	res, err := b.client.AcceptInvite(ctx, req)
+	if err != nil {
+		return "", "", fmt.Errorf("client.AcceptInvite: %w", convertBoardGRPCError(err))
+	}
+
+	return res.BoardLink, res.Role, nil
+}
+
+func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error {
+	req := &pb.CloseInviteRequest{
+		UserLink:   inviteInfo.UserLink.String(),
+		InviteLink: inviteInfo.InviteLink,
+	}
+
+	_, err := b.client.CloseInvite(ctx, req)
+	if err != nil {
+		return fmt.Errorf("client.CloseInvite: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
