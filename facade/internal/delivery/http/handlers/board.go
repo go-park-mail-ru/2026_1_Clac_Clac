@@ -743,7 +743,7 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 // @Tags		Boards
 // @Produce		json
 // @Param		link	path	string	true	"UUID доски"	Format(uuid)
-// @Success		200	{object}	api.OkResponse[[]domain.InviteInfo]
+// @Success		200	{object}	api.OkResponse[[]dto.InviteInfo]
 // @Failure	401	{object}	api.ErrorResponse	"unauthorized"
 // @Failure	403	{object}	api.ErrorResponse	"action denied"
 // @Failure	500	{object}	api.ErrorResponse	"cannot get boards"
@@ -781,7 +781,25 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, invites))
+	result := make([]dto.InviteInfo, 0, len(invites))
+	for _, inv := range invites {
+		info := dto.InviteInfo{
+			InviteLink:  inv.InviteLink,
+			BoardLink:   inv.BoardLink,
+			DefaultRole: inv.DefaultRole,
+			Status:      inv.Status,
+			CreatedAt:   inv.CreatedAt,
+		}
+		if inv.TargetUserLink != nil {
+			info.TargetUserLink = inv.TargetUserLink
+		}
+		if inv.ExpireAt != nil {
+			info.ExpireAt = inv.ExpireAt
+		}
+		result = append(result, info)
+	}
+
+	api.HandleError(api.RespondOk(w, result))
 }
 
 // @Summary		Изменить роль пользователя на доске

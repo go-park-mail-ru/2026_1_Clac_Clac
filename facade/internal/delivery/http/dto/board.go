@@ -110,3 +110,16 @@ type AcceptInviteResponse struct {
 type UpdateMemberRoleRequest struct {
 	NewRole string `json:"new_role" example:"editor"`
 }
+
+// InviteInfo содержит информацию о приглашении на доску.
+//
+//	@Description	Информация о приглашении
+type InviteInfo struct {
+	InviteLink     string  `json:"invite_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	BoardLink      string  `json:"board_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	TargetUserLink *string `json:"target_user_link,omitempty"`
+	DefaultRole    string  `json:"default_role" example:"editor"`
+	Status         string  `json:"status" example:"active"`
+	ExpireAt       *int64  `json:"expire_at,omitempty" example:"1712928000"`
+	CreatedAt      int64   `json:"created_at" example:"1712841600"`
+}
