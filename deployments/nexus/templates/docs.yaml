@@ -24,7 +24,7 @@ data:
             add_header X-Content-Type-Options 'nosniff' always;
             add_header X-Frame-Options 'SAMEORIGIN' always;
             add_header Referrer-Policy 'no-referrer-when-downgrade' always;
-            add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" always;
+            add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.redocly.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';" always;
             add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
         }
     }
