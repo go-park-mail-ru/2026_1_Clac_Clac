@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrActionDenied = errors.New("action denied")
+	ErrInvalidRole  = errors.New("invalid role")
 )
 
 type Action string
@@ -21,6 +22,10 @@ var Actions = struct {
 }
 
 type Role string
+
+func (r Role) String() string {
+	return string(r)
+}
 
 var Roles = struct {
 	None    Role
@@ -60,4 +65,13 @@ var rbacPolicy = map[Role]map[Action]bool{
 
 func IsActionAllowed(role Role, action Action) bool {
 	return rbacPolicy[role][action]
+}
+
+func ParseRole(s string) (Role, error) {
+	switch Role(s) {
+	case Roles.None, Roles.Viewer, Roles.Editor, Roles.Admin, Roles.Creator:
+		return Role(s), nil
+	default:
+		return "", ErrInvalidRole
+	}
 }

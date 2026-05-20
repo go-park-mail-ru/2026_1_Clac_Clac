@@ -17,8 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// --- MOCK RBAC SERVICE ---
-
 type MockRbacService struct {
 	mock.Mock
 }
@@ -53,8 +51,10 @@ func (m *MockRbacService) CheckPermissionOnAttachment(ctx context.Context, itemL
 	return args.Error(0)
 }
 
-// --- CARD REPOSITORY WRAPPER ---
-// extends mock_card_rep mock with methods missing from generated mock
+func (m *MockRbacService) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
+	args := m.Called(ctx, userLink, boardLink)
+	return args.Error(0)
+}
 
 type testCardRepository struct {
 	*mockCardRep.CardRepository
@@ -98,8 +98,6 @@ func (m *testCardRepository) DeleteAttachmentFromS3(ctx context.Context, key str
 func newTestCardRepository(t *testing.T) *testCardRepository {
 	return &testCardRepository{mockCardRep.NewCardRepository(t)}
 }
-
-// --- TESTS ---
 
 func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()

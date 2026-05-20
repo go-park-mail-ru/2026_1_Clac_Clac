@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -49,6 +50,11 @@ func (m *mockRbacService) CheckPermissionOnSubtask(ctx context.Context, subtaskL
 
 func (m *mockRbacService) CheckPermissionOnAttachment(ctx context.Context, attachmentLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
 	args := m.Called(ctx, attachmentLink, userLink, action)
+	return args.Error(0)
+}
+
+func (m *mockRbacService) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
+	args := m.Called(ctx, userLink, boardLink)
 	return args.Error(0)
 }
 
@@ -480,12 +486,23 @@ func TestGetUsersOfBoard(t *testing.T) {
 	ctx := context.Background()
 	userLink := uuid.New()
 	boardLink := uuid.New()
-	expectedUsers := []uuid.UUID{uuid.New(), uuid.New()}
+
+	member1 := uuid.New()
+	member2 := uuid.New()
+	repoMembers := []repositoryDto.MemberEntry{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
+
+	expectedMembers := []dto.MemberInfo{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
 
 	tests := []struct {
 		Name        string
 		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
-		Expected    []uuid.UUID
+		Expected    []dto.MemberInfo
 		ExpectError bool
 		ErrorIs     error
 	}{
@@ -493,9 +510,9 @@ func TestGetUsersOfBoard(t *testing.T) {
 			Name: "success get users",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return(expectedUsers, nil).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return(repoMembers, nil).Once()
 			},
-			Expected:    expectedUsers,
+			Expected:    expectedMembers,
 			ExpectError: false,
 		},
 		{
@@ -511,18 +528,18 @@ func TestGetUsersOfBoard(t *testing.T) {
 			Name: "repo error",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, fmt.Errorf("db error")).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]repositoryDto.MemberEntry{}, fmt.Errorf("db error")).Once()
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberInfo{},
 			ExpectError: true,
 		},
 		{
 			Name: "board not found error",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, common.ErrBoardNotFound).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]repositoryDto.MemberEntry{}, common.ErrBoardNotFound).Once()
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberInfo{},
 			ExpectError: true,
 			ErrorIs:     common.ErrBoardNotFound,
 		},
@@ -535,7 +552,7 @@ func TestGetUsersOfBoard(t *testing.T) {
 			test.MockSetup(mockRepo, mockPerm)
 
 			svc := service.NewService(mockRepo, mockPerm)
-			users, err := svc.GetUsersOfBoard(ctx, boardLink, userLink)
+			members, err := svc.GetUsersOfBoard(ctx, boardLink, userLink)
 
 			if test.ExpectError {
 				assert.Error(t, err)
@@ -544,7 +561,588 @@ func TestGetUsersOfBoard(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.Expected, users)
+				assert.Equal(t, test.Expected, members)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCreateInvite(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	creatorLink := uuid.New()
+	now := time.Now()
+
+	repoEntry := repositoryDto.InviteEntry{
+		InviteLink:  uuid.New(),
+		BoardLink:   boardLink,
+		UserLink:    nil,
+		DefaultRole: rbac.Roles.Editor,
+		ExpireTime:  &now,
+		Status:      common.InviteStatuses.Active,
+		CreatedAt:   now,
+	}
+
+	inviteInfo := dto.NewInviteInfo{
+		BoardLink:   boardLink,
+		UserLink:    nil,
+		DefaultRole: rbac.Roles.Editor,
+		ExpireTime:  &now,
+	}
+
+	repoNewInfo := repositoryDto.NewInviteInfo{
+		BoardLink:   boardLink,
+		UserLink:    nil,
+		DefaultRole: rbac.Roles.Editor,
+		ExpireTime:  &now,
+	}
+
+	tests := []struct {
+		Name          string
+		MockSetup     func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		InviteInfo    dto.NewInviteInfo
+		CreatorLink   uuid.UUID
+		ExpectError   bool
+		ErrorIs       error
+	}{
+		{
+			Name: "success create invite",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, creatorLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("CreateInvite", ctx, repoNewInfo).Return(repoEntry, nil).Once()
+			},
+			InviteInfo:  inviteInfo,
+			CreatorLink: creatorLink,
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, creatorLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
+			},
+			InviteInfo:  inviteInfo,
+			CreatorLink: creatorLink,
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "repo error",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, creatorLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("CreateInvite", ctx, repoNewInfo).Return(repositoryDto.InviteEntry{}, fmt.Errorf("db error")).Once()
+			},
+			InviteInfo:  inviteInfo,
+			CreatorLink: creatorLink,
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			_, err := svc.CreateInvite(ctx, test.InviteInfo, test.CreatorLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestAcceptInvite(t *testing.T) {
+	ctx := context.Background()
+	inviteLink := uuid.New()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+	targetUserLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		InviteLink  uuid.UUID
+		UserLink    uuid.UUID
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success accept public invite",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					UserLink:    nil,
+					DefaultRole: rbac.Roles.Editor,
+					ExpireTime:  nil,
+					Status:      common.InviteStatuses.Active,
+				}, nil).Once()
+				mockRepo.On("AddMemberToBoard", ctx, boardLink, userLink, rbac.Roles.Editor).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, userLink, boardLink).Return(nil).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: false,
+		},
+		{
+			Name: "success accept personal invite and close it",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					UserLink:    &targetUserLink,
+					DefaultRole: rbac.Roles.Viewer,
+					ExpireTime:  nil,
+					Status:      common.InviteStatuses.Active,
+				}, nil).Once()
+				mockRepo.On("AddMemberToBoard", ctx, boardLink, targetUserLink, rbac.Roles.Viewer).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, targetUserLink, boardLink).Return(nil).Once()
+				mockRepo.On("CloseInvite", ctx, inviteLink).Return(nil).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    targetUserLink,
+			ExpectError: false,
+		},
+		{
+			Name: "invite not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{}, common.ErrInviteNotFound).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrInviteNotFound,
+		},
+		{
+			Name: "invite closed",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					DefaultRole: rbac.Roles.Editor,
+					Status:      common.InviteStatuses.Closed,
+				}, nil).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrInviteClosed,
+		},
+		{
+			Name: "invite expired",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				past := time.Now().Add(-time.Hour)
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					DefaultRole: rbac.Roles.Editor,
+					Status:      common.InviteStatuses.Active,
+					ExpireTime:  &past,
+				}, nil).Once()
+				mockRepo.On("CloseInvite", ctx, inviteLink).Return(nil).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrInviteExpired,
+		},
+		{
+			Name: "invite not for this user",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					UserLink:    &targetUserLink,
+					DefaultRole: rbac.Roles.Editor,
+					Status:      common.InviteStatuses.Active,
+				}, nil).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrInviteNotForUser,
+		},
+		{
+			Name: "user already member",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink:  inviteLink,
+					BoardLink:   boardLink,
+					UserLink:    nil,
+					DefaultRole: rbac.Roles.Editor,
+					Status:      common.InviteStatuses.Active,
+				}, nil).Once()
+				mockRepo.On("AddMemberToBoard", ctx, boardLink, userLink, rbac.Roles.Editor).Return(common.ErrUserAlreadyMember).Once()
+			},
+			InviteLink:  inviteLink,
+			UserLink:    userLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrUserAlreadyMember,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			_, err := svc.AcceptInvite(ctx, test.InviteLink, test.UserLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCloseInvite(t *testing.T) {
+	ctx := context.Background()
+	inviteLink := uuid.New()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success close invite",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink: inviteLink,
+					BoardLink:  boardLink,
+				}, nil).Once()
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("CloseInvite", ctx, inviteLink).Return(nil).Once()
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "invite not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{}, common.ErrInviteNotFound).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrInviteNotFound,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink: inviteLink,
+					BoardLink:  boardLink,
+				}, nil).Once()
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "repo close error",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockRepo.On("GetInviteByLink", ctx, inviteLink).Return(repositoryDto.InviteEntry{
+					InviteLink: inviteLink,
+					BoardLink:  boardLink,
+				}, nil).Once()
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("CloseInvite", ctx, inviteLink).Return(fmt.Errorf("db error")).Once()
+			},
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			err := svc.CloseInvite(ctx, inviteLink, userLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateMemberRoleService(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+	callerLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("UpdateMemberRole", ctx, boardLink, userLink, rbac.Roles.Editor).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, userLink, boardLink).Return(nil).Once()
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "board not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("UpdateMemberRole", ctx, boardLink, userLink, rbac.Roles.Editor).Return(common.ErrBoardNotFound).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrBoardNotFound,
+		},
+		{
+			Name: "user not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("UpdateMemberRole", ctx, boardLink, userLink, rbac.Roles.Editor).Return(common.ErrUserNotFound).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrUserNotFound,
+		},
+		{
+			Name: "self role change",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrSelfRoleChange,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			var err error
+			if test.Name == "self role change" {
+				err = svc.UpdateMemberRole(ctx, boardLink, callerLink, rbac.Roles.Editor, callerLink)
+			} else {
+				err = svc.UpdateMemberRole(ctx, boardLink, userLink, rbac.Roles.Editor, callerLink)
+			}
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRemoveMemberFromBoardService(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+	callerLink := uuid.New()
+	creatorLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		BoardLink   uuid.UUID
+		TargetLink  uuid.UUID
+		CallerLink  uuid.UUID
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success remove other user",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, userLink, boardLink).Return(nil).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
+			ExpectError: false,
+		},
+		{
+			Name: "success self exit (non-creator)",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Delete).Return(rbac.ErrActionDenied).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, callerLink).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, callerLink, boardLink).Return(nil).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  callerLink,
+			CallerLink:  callerLink,
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied removing other",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "board not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(common.ErrBoardNotFound).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrBoardNotFound,
+		},
+		{
+			Name: "user not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrUserNotFound,
+		},
+		{
+			Name: "creator cannot leave",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, creatorLink, rbac.Actions.Delete).Return(nil).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  creatorLink,
+			CallerLink:  creatorLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrCreatorCannotLeave,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			err := svc.RemoveMemberFromBoard(ctx, test.BoardLink, test.TargetLink, test.CallerLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetActiveInvitesService(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	inviteEntry := repositoryDto.InviteEntry{
+		InviteLink:  uuid.New(),
+		BoardLink:   boardLink,
+		DefaultRole: rbac.Roles.Editor,
+		Status:      common.InviteStatuses.Active,
+	}
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("GetActiveInvitesByBoard", ctx, boardLink).Return([]repositoryDto.InviteEntry{inviteEntry}, nil).Once()
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			_, err := svc.GetActiveInvites(ctx, boardLink, userLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
 			}
 			mockRepo.AssertExpectations(t)
 			mockPerm.AssertExpectations(t)

@@ -18,6 +18,14 @@ type BoardClient interface {
 	UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardRequest) error
 	UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error)
 	GetMembers(ctx context.Context, membersInfo domain.GetMembersRequest) (domain.GetMembersResponse, error)
+
+	CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error)
+	AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error)
+	CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error
+
+	UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error
+	RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error
+	GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error)
 }
 
 type Board struct {
@@ -91,4 +99,58 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 	}
 
 	return resp, nil
+}
+
+func (b *Board) CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error) {
+	resp, err := b.client.CreateInvite(ctx, inviteInfo)
+	if err != nil {
+		return domain.CreateInviteResponse{}, fmt.Errorf("board.CreateInvite: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (b *Board) AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error) {
+	boardLink, role, err := b.client.AcceptInvite(ctx, inviteInfo)
+	if err != nil {
+		return "", "", fmt.Errorf("board.AcceptInvite: %w", err)
+	}
+
+	return boardLink, role, nil
+}
+
+func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error {
+	err := b.client.CloseInvite(ctx, inviteInfo)
+	if err != nil {
+		return fmt.Errorf("board.CloseInvite: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Board) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	err := b.client.UpdateMemberRole(ctx, req)
+	if err != nil {
+		return fmt.Errorf("board.UpdateMemberRole: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Board) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	err := b.client.RemoveMemberFromBoard(ctx, req)
+	if err != nil {
+		return fmt.Errorf("board.RemoveMemberFromBoard: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Board) GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	invites, err := b.client.GetActiveInvites(ctx, userLink, boardLink)
+	if err != nil {
+		return nil, fmt.Errorf("board.GetActiveInvites: %w", err)
+	}
+
+	return invites, nil
 }

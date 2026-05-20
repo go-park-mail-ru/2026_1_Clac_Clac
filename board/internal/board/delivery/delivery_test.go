@@ -501,7 +501,12 @@ func TestUploadBackground(t *testing.T) {
 func TestGetMembers(t *testing.T) {
 	boardLink := uuid.New()
 	userLink := uuid.New()
-	usersLinks := []uuid.UUID{uuid.New(), uuid.New()}
+	member1 := uuid.New()
+	member2 := uuid.New()
+	members := []serviceDto.MemberInfo{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
 
 	tests := []struct {
 		name         string
@@ -513,7 +518,7 @@ func TestGetMembers(t *testing.T) {
 			name: "Success get members",
 			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(usersLinks, nil).Once()
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(members, nil).Once()
 			},
 			expectedCode: codes.OK,
 		},
@@ -554,6 +559,552 @@ func TestGetMembers(t *testing.T) {
 
 			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.GetMembers(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCreateInviteHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	inviteInfo := serviceDto.InviteInfo{
+		InviteLink:  uuid.New(),
+		BoardLink:   boardLink,
+		TargetUser:  nil,
+		DefaultRole: rbac.Roles.Editor,
+		Status:      common.InviteStatuses.Active,
+		CreatedAt:   time.Now(),
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.CreateInviteRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success create invite",
+			req: &pb.CreateInviteRequest{
+				UserLink:      userLink.String(),
+				BoardLink:     boardLink.String(),
+				DefaultRole:   "editor",
+				ExpireSeconds: 86400,
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateInvite", mock.Anything, mock.AnythingOfType("dto.NewInviteInfo"), userLink).Return(inviteInfo, nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Invalid user link",
+			req: &pb.CreateInviteRequest{
+				UserLink:    "not-a-uuid",
+				BoardLink:   boardLink.String(),
+				DefaultRole: "editor",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Invalid board link",
+			req: &pb.CreateInviteRequest{
+				UserLink:    userLink.String(),
+				BoardLink:   "not-a-uuid",
+				DefaultRole: "editor",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Empty role",
+			req: &pb.CreateInviteRequest{
+				UserLink:    userLink.String(),
+				BoardLink:   boardLink.String(),
+				DefaultRole: "",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Invalid role",
+			req: &pb.CreateInviteRequest{
+				UserLink:    userLink.String(),
+				BoardLink:   boardLink.String(),
+				DefaultRole: "superadmin",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Permission denied",
+			req: &pb.CreateInviteRequest{
+				UserLink:    userLink.String(),
+				BoardLink:   boardLink.String(),
+				DefaultRole: "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateInvite", mock.Anything, mock.AnythingOfType("dto.NewInviteInfo"), userLink).Return(serviceDto.InviteInfo{}, rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Internal server error",
+			req: &pb.CreateInviteRequest{
+				UserLink:    userLink.String(),
+				BoardLink:   boardLink.String(),
+				DefaultRole: "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CreateInvite", mock.Anything, mock.AnythingOfType("dto.NewInviteInfo"), userLink).Return(serviceDto.InviteInfo{}, errors.New("db error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.CreateInvite(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestAcceptInviteHandler(t *testing.T) {
+	inviteLink := uuid.New()
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	inviteInfo := serviceDto.InviteInfo{
+		InviteLink:  inviteLink,
+		BoardLink:   boardLink,
+		DefaultRole: rbac.Roles.Editor,
+		Status:      common.InviteStatuses.Active,
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.AcceptInviteRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success accept invite",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(inviteInfo, nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Invalid invite link",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: "not-a-uuid",
+				UserLink:   userLink.String(),
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Invalid user link",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   "not-a-uuid",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Invite not found",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, common.ErrInviteNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Invite closed",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, common.ErrInviteClosed).Once()
+			},
+			expectedCode: codes.FailedPrecondition,
+		},
+		{
+			name: "Invite expired",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, common.ErrInviteExpired).Once()
+			},
+			expectedCode: codes.FailedPrecondition,
+		},
+		{
+			name: "Not for this user",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, common.ErrInviteNotForUser).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "User already member",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, common.ErrUserAlreadyMember).Once()
+			},
+			expectedCode: codes.AlreadyExists,
+		},
+		{
+			name: "Internal server error",
+			req: &pb.AcceptInviteRequest{
+				InviteLink: inviteLink.String(),
+				UserLink:   userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("AcceptInvite", mock.Anything, inviteLink, userLink).Return(serviceDto.InviteInfo{}, errors.New("db error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.AcceptInvite(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCloseInviteHandler(t *testing.T) {
+	inviteLink := uuid.New()
+	userLink := uuid.New()
+
+	tests := []struct {
+		name         string
+		req          *pb.CloseInviteRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success close invite",
+			req: &pb.CloseInviteRequest{
+				UserLink:   userLink.String(),
+				InviteLink: inviteLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CloseInvite", mock.Anything, inviteLink, userLink).Return(nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Invalid user link",
+			req: &pb.CloseInviteRequest{
+				UserLink:   "not-a-uuid",
+				InviteLink: inviteLink.String(),
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Invalid invite link",
+			req: &pb.CloseInviteRequest{
+				UserLink:   userLink.String(),
+				InviteLink: "not-a-uuid",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Permission denied",
+			req: &pb.CloseInviteRequest{
+				UserLink:   userLink.String(),
+				InviteLink: inviteLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CloseInvite", mock.Anything, inviteLink, userLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Invite not found",
+			req: &pb.CloseInviteRequest{
+				UserLink:   userLink.String(),
+				InviteLink: inviteLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CloseInvite", mock.Anything, inviteLink, userLink).Return(common.ErrInviteNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Internal server error",
+			req: &pb.CloseInviteRequest{
+				UserLink:   userLink.String(),
+				InviteLink: inviteLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CloseInvite", mock.Anything, inviteLink, userLink).Return(errors.New("db error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.CloseInvite(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUpdateMemberRoleHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+	targetLink := uuid.New()
+
+	tests := []struct {
+		name         string
+		req          *pb.UpdateMemberRoleRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, targetLink, rbac.Roles.Editor, userLink).Return(nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Permission denied",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, targetLink, rbac.Roles.Editor, userLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Invalid user link",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       "not-a-uuid",
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "User not found",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, targetLink, rbac.Roles.Editor, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Self role change",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: userLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, userLink, rbac.Roles.Editor, userLink).Return(common.ErrSelfRoleChange).Once()
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.UpdateMemberRole(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRemoveMemberFromBoardHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+	targetLink := uuid.New()
+
+	tests := []struct {
+		name         string
+		req          *pb.RemoveMemberFromBoardRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, targetLink, userLink).Return(nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Permission denied",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, targetLink, userLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "User not found",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, targetLink, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Creator cannot leave",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, userLink, userLink).Return(common.ErrCreatorCannotLeave).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.RemoveMemberFromBoard(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetActiveInvitesHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	serviceInvites := []serviceDto.InviteInfo{
+		{InviteLink: uuid.New(), BoardLink: boardLink, DefaultRole: rbac.Roles.Editor, Status: common.InviteStatuses.Active, CreatedAt: time.Now()},
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetActiveInvitesRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success",
+			req: &pb.GetActiveInvitesRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActiveInvites", mock.Anything, boardLink, userLink).Return(serviceInvites, nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Permission denied",
+			req: &pb.GetActiveInvitesRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActiveInvites", mock.Anything, boardLink, userLink).Return(nil, rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.GetActiveInvites(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			mockSrv.AssertExpectations(t)

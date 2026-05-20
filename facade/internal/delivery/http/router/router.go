@@ -65,6 +65,12 @@ type BoardHandler interface {
 	UpdateBoard(w http.ResponseWriter, r *http.Request)
 	UploadBackground(w http.ResponseWriter, r *http.Request)
 	GetMembers(w http.ResponseWriter, r *http.Request)
+	CreateInvite(w http.ResponseWriter, r *http.Request)
+	AcceptInvite(w http.ResponseWriter, r *http.Request)
+	CloseInvite(w http.ResponseWriter, r *http.Request)
+	GetActiveInvites(w http.ResponseWriter, r *http.Request)
+	UpdateMemberRole(w http.ResponseWriter, r *http.Request)
+	RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request)
 }
 
 type SectionHandler interface {
@@ -200,8 +206,16 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
 	withImageLimit.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.GetActiveInvites).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.CreateInvite).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
+
+	withTextLimit.HandleFunc("/invites/{invite_link}", deps.Board.AcceptInvite).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/invites/{invite_link}", deps.Board.CloseInvite).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}/role", deps.Board.UpdateMemberRole).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}", deps.Board.RemoveMemberFromBoard).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)
