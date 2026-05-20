@@ -461,14 +461,15 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// @Summary		Получить пользователей доски
-// @Description	Возвращает массив UUID всех пользователей, имеющих доступ к доске
+// @Summary		Получить участников доски
+// @Description	Возвращает список участников доски с их ролями
 // @Tags			Boards
 // @Produce		json
 // @Param			link	path		string	true	"UUID доски"	Format(uuid)
 // @Success		200		{object}	api.OkResponse[dto.GetMembersResponse]
 // @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
 // @Failure		401		{object}	api.ErrorResponse	"unauthorized"
+// @Failure		403		{object}	api.ErrorResponse	"action denied"
 // @Failure		404		{object}	api.ErrorResponse	"board not found"
 // @Failure		500		{object}	api.ErrorResponse	"cannot get members"
 // @Router			/boards/{link}/users [get]
@@ -636,7 +637,8 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 // @Failure	403	{object}	api.ErrorResponse	"invite not for user"
 // @Failure	404	{object}	api.ErrorResponse	"invite not found"
 // @Failure	409	{object}	api.ErrorResponse	"user is already a member"
-// @Failure	412	{object}	api.ErrorResponse	"invite expired or closed"
+// @Failure	412	{object}	api.ErrorResponse	"invite is expired"
+// @Failure	412	{object}	api.ErrorResponse	"invite is closed"
 // @Failure	500	{object}	api.ErrorResponse	"cannot accept invite"
 // @Router		/invites/{invite_link} [post]
 func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
@@ -814,7 +816,7 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary		Изменить роль пользователя на доске
-// @Description	Изменяет роль пользователя на доске. Доступно Admin и Creator.
+// @Description	Изменяет роль пользователя на доске. Доступно Admin и Creator. Нельзя изменить свою собственную роль.
 // @Tags		Boards
 // @Accept		json
 // @Produce		json
@@ -822,10 +824,10 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 // @Param		user_link	path	string					true	"UUID пользователя"				Format(uuid)
 // @Param		request		body	dto.UpdateMemberRoleRequest	true	"Новая роль"
 // @Success		200			{object}	api.Response			"status ok"
-// @Failure	400	{object}	api.ErrorResponse	"invalid input"
+// @Failure	400	{object}	api.ErrorResponse	"cannot change your own role"
 // @Failure	401	{object}	api.ErrorResponse	"unauthorized"
 // @Failure	403	{object}	api.ErrorResponse	"action denied"
-// @Failure	404	{object}	api.ErrorResponse	"board not found"
+// @Failure	404	{object}	api.ErrorResponse	"board not found / user not found"
 // @Failure	500	{object}	api.ErrorResponse	"cannot update board"
 // @Router		/boards/{link}/members/{user_link}/role [put]
 func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
@@ -882,6 +884,14 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSelfRoleChange) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorSelfRoleChange.Error())
+			return
+		}
 		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase UpdateMemberRole")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
@@ -892,7 +902,7 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary		Удалить пользователя с доски
-// @Description	Удаляет пользователя из участников доски. Доступно Admin и Creator.
+// @Description	Удаляет пользователя из участников доски. Пользователь может выйти из доски самостоятельно, но создатель не может покинуть доску. Admin и Creator могут удалять других участников.
 // @Tags		Boards
 // @Produce		json
 // @Param		link		path	string		true	"UUID доски"				Format(uuid)
@@ -900,8 +910,8 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 // @Success		200			{object}	api.Response	"status ok"
 // @Failure	400	{object}	api.ErrorResponse	"invalid input"
 // @Failure	401	{object}	api.ErrorResponse	"unauthorized"
-// @Failure	403	{object}	api.ErrorResponse	"action denied"
-// @Failure	404	{object}	api.ErrorResponse	"board not found"
+// @Failure	403	{object}	api.ErrorResponse	"action denied / creator cannot leave the board"
+// @Failure	404	{object}	api.ErrorResponse	"board not found / user not found"
 // @Failure	500	{object}	api.ErrorResponse	"cannot update board"
 // @Router		/boards/{link}/members/{user_link} [delete]
 func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
@@ -949,6 +959,10 @@ func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)

@@ -31,11 +31,13 @@ const (
 	identifierAppealNotFound  = "appeal not found"
 	identifierInvalidCategory = "invalid category"
 
-	identifierInviteNotFound     = "invite not found"
-	identifierInviteExpired      = "invite is expired"
-	identifierInviteClosed       = "invite is closed"
-	identifierInviteNotForUser   = "this invite targets another user"
-	identifierUserAlreadyMember  = "already"
+	identifierInviteNotFound      = "invite not found"
+	identifierInviteExpired       = "invite is expired"
+	identifierInviteClosed        = "invite is closed"
+	identifierInviteNotForUser    = "this invite targets another user"
+	identifierUserAlreadyMember   = "already"
+	identifierSelfRoleChange      = "cannot change your own role"
+	identifierCreatorCannotLeave  = "creator cannot leave the board"
 )
 
 func convertGRPCError(err error) error {
@@ -139,11 +141,18 @@ func convertBoardGRPCError(err error) error {
 		switch {
 		case strings.Contains(msg, identifierIncorrectTypeFile):
 			return common.ErrorInvalidContentType
+		case strings.Contains(msg, identifierSelfRoleChange):
+			return common.ErrorSelfRoleChange
 		default:
 			return common.ErrorInvalidInput
 		}
 	case codes.PermissionDenied:
-		return common.ErrorBoardPermissionDenied
+		switch {
+		case strings.Contains(msg, identifierCreatorCannotLeave):
+			return common.ErrorCreatorCannotLeave
+		default:
+			return common.ErrorBoardPermissionDenied
+		}
 	case codes.AlreadyExists:
 		switch {
 		case strings.Contains(msg, identifierUserAlreadyMember):
