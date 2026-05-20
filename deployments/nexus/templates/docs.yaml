@@ -11,54 +11,21 @@ data:
         listen 80;
         server_name _;
 
-        gzip on;
-        gzip_proxied any;
-        gzip_comp_level 6;
-        gzip_min_length 256;
-        gzip_types
-            application/javascript
-            application/json
-            text/css
-            text/javascript
-            text/plain
-            text/xml;
-
-        # Yandex, Google, Cloudflare
         resolver 77.88.8.8 8.8.8.8 1.1.1.1 valid=300s;
         resolver_timeout 5s;
 
         set $s3_bucket "https://nexus-docs.hb.ru-msk.vkcloud-storage.ru";
-
-        location ~* \.(js|css|json|png|jpg|jpeg|gif|ico|svg|webp|woff|woff2|ttf|eot)$ {
-            proxy_pass $s3_bucket$uri;
-
-            add_header Cache-Control "public, max-age=31536000, immutable" always;
-            add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://esm.sh 'unsafe-inline'; style-src 'self' https://esm.sh 'unsafe-inline'; font-src 'self' https://esm.sh; img-src 'self' data:; connect-src 'self' https://esm.sh;" always;
-            add_header X-Content-Type-Options 'nosniff' always;
-            add_header X-Frame-Options 'SAMEORIGIN' always;
-            add_header Referrer-Policy 'no-referrer-when-downgrade' always;
-        }
-
-        location = /index.html {
-            proxy_pass $s3_bucket/index.html;
-
-            add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
-            add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://esm.sh 'unsafe-inline'; style-src 'self' https://esm.sh 'unsafe-inline'; font-src 'self' https://esm.sh; img-src 'self' data:; connect-src 'self' https://esm.sh;" always;
-            add_header X-Content-Type-Options 'nosniff' always;
-            add_header X-Frame-Options 'SAMEORIGIN' always;
-            add_header Referrer-Policy 'no-referrer-when-downgrade' always;
-        }
 
         location / {
             proxy_pass $s3_bucket$uri;
             proxy_intercept_errors on;
             error_page 403 404 =200 /index.html;
 
-            add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
-            add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://esm.sh 'unsafe-inline'; style-src 'self' https://esm.sh 'unsafe-inline'; font-src 'self' https://esm.sh; img-src 'self' data:; connect-src 'self' https://esm.sh;" always;
             add_header X-Content-Type-Options 'nosniff' always;
             add_header X-Frame-Options 'SAMEORIGIN' always;
             add_header Referrer-Policy 'no-referrer-when-downgrade' always;
+            add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" always;
+            add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
         }
     }
 ---
