@@ -140,9 +140,9 @@ services:
     hasConfig: true
     hasSecrets: true
 <<<<<<< HEAD
-    image: nisakoo/nexus-board:sha-58748d5
+    image: nisakoo/nexus-board:sha-4436eef
 =======
-    image: nisakoo/nexus-board:sha-23929d6
+    image: nisakoo/nexus-board:sha-4436eef
 >>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
