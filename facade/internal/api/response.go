@@ -27,6 +27,20 @@ const (
 	StatusError = "error"
 )
 
+// Type aliases for swaggo documentation resolution.
+// These types are defined in the dto subpackage but referenced in swagger
+// annotations as api.Response / api.ErrorResponse.
+
+// Response is a base API response with status field.
+//
+//	@Description	Базовый ответ
+type Response = dto.Response
+
+// ErrorResponse is an API error response with code and message.
+//
+//	@Description	Структура сообщения об ошибке
+type ErrorResponse = dto.ErrorResponse
+
 // Ответ для 200 статуса, всегда должен содержать данные
 //
 //	@Description	Успешный ответ с данными

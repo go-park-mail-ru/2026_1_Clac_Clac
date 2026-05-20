@@ -14,8 +14,19 @@ spec:
   tls:
   - hosts:
     - {{ .Values.ingress.host }}
+    - {{ .Values.docs.host }}
     secretName: {{ .Chart.Name }}-tls-cert
   rules:
+  - host: {{ .Values.docs.host }}
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ .Chart.Name }}-docs-service
+              port:
+                name: http
   - host: {{ .Values.ingress.host }}
     http:
       paths:

@@ -4,6 +4,16 @@ ingress:
   enabled: true
   host: clac-clac.ru
 
+docs:
+  enabled: true
+  image: nginx:alpine
+  port: 80
+  host: docs.clac-clac.ru
+  resources:
+    limits:
+      memory: "64Mi"
+      cpu: "10m"
+
 frontend:
   enabled: true
   image: nginx:alpine

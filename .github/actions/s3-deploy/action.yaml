@@ -1,0 +1,49 @@
+name: S3 Deploy
+description: Deploy Frontend dist to S3 with zero-downtime
+
+inputs:
+  aws-access-key-id:
+    description: "S3 Access Key"
+    required: true
+  aws-secret-access-key:
+    description: "S3 Secret Key"
+    required: true
+  aws-region:
+    description: "S3 Region"
+    required: true
+  bucket-name:
+    description: "Bucket Name"
+    required: true
+  endpoint-url:
+    description: "S3 Endpoint"
+    required: true
+  source-dir:
+    description: "Docs Folder"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Deploy to S3
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+        AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+      run: |
+        ENDPOINT="https://${{ inputs.endpoint-url }}"
+        BUCKET="s3://${{ inputs.bucket-name }}"
+        SOURCE="${{ inputs.source-dir }}"
+
+        aws s3 sync "$SOURCE/" "$BUCKET/" \
+          --endpoint-url "$ENDPOINT" \
+          --exclude "index.html" \
+          --acl public-read
+
+        aws s3 cp "$BUCKET/index.html" "$BUCKET/index-prev.html" \
+          --endpoint-url "$ENDPOINT" \
+          --acl public-read || true
+
+        aws s3 cp "$SOURCE/index.html" "$BUCKET/index.html" \
+          --endpoint-url "$ENDPOINT" \
+          --acl public-read
