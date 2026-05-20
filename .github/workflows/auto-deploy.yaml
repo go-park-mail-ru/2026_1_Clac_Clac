@@ -76,6 +76,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-docs:
+    needs: run-deployment
     uses: ./.github/workflows/deploy-docs.yaml
     with:
       endpoint-url: hb.ru-msk.vkcloud-storage.ru
