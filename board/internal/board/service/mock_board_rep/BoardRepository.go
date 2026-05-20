@@ -265,23 +265,23 @@ func (_m *BoardRepository) GetInviteByLink(ctx context.Context, inviteLink uuid.
 }
 
 // GetUsersOfBoard provides a mock function with given fields: ctx, boardLink
-func (_m *BoardRepository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
+func (_m *BoardRepository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.MemberEntry, error) {
 	ret := _m.Called(ctx, boardLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUsersOfBoard")
 	}
 
-	var r0 []uuid.UUID
+	var r0 []dto.MemberEntry
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]uuid.UUID, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) ([]dto.MemberEntry, error)); ok {
 		return rf(ctx, boardLink)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []uuid.UUID); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) []dto.MemberEntry); ok {
 		r0 = rf(ctx, boardLink)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]uuid.UUID)
+			r0 = ret.Get(0).([]dto.MemberEntry)
 		}
 	}
 

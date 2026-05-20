@@ -53,6 +53,14 @@ type UploadBackgroundResponse struct {
 	BackgroundKey string `json:"background_key" example:"https://s3.example.com/backgrounds/bg.jpg"`
 }
 
+// MemberInfo содержит UUID пользователя и его роль на доске.
+//
+//	@Description	Информация об участнике доски
+type MemberInfo struct {
+	Link uuid.UUID `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Role string    `json:"role" example:"editor"`
+}
+
 // GetMembersRequest содержит UUID доски для получения списка участников.
 //
 //	@Description	Запрос на получение участников доски
@@ -60,11 +68,11 @@ type GetMembersRequest struct {
 	BoardLink uuid.UUID `json:"board_link" example:"123e4567-e89b-12d3-a456-426614174000"`
 }
 
-// GetMembersResponse содержит список UUID участников доски.
+// GetMembersResponse содержит список участников доски.
 //
 //	@Description	Список участников доски
 type GetMembersResponse struct {
-	UserLinks []uuid.UUID `json:"user_links"`
+	Members []MemberInfo `json:"members"`
 }
 
 // CreateInviteRequest содержит данные для создания приглашения на доску.

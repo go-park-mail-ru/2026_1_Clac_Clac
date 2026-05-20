@@ -631,46 +631,49 @@ func TestGetUsersOfBoard(t *testing.T) {
 		Name        string
 		BoardLink   uuid.UUID
 		MockSetup   func(dbMock pgxmock.PgxPoolIface)
-		Expected    []uuid.UUID
+		Expected    []dto.MemberEntry
 		ExpectedErr error
 	}{
 		{
 			Name:      "success get users of board",
 			BoardLink: boardLink,
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"user_link"}).
-					AddRow(user1).
-					AddRow(user2)
+				rows := pgxmock.NewRows([]string{"user_link", "level_member"}).
+					AddRow(user1, rbac.Roles.Editor).
+					AddRow(user2, rbac.Roles.Viewer)
 
-				dbMock.ExpectQuery(`(?s)SELECT user_link FROM member_board.*`).
+				dbMock.ExpectQuery(`(?s)SELECT user_link, level_member FROM member_board.*`).
 					WithArgs(boardLink).
 					WillReturnRows(rows)
 			},
-			Expected:    []uuid.UUID{user1, user2},
+			Expected: []dto.MemberEntry{
+				{Link: user1, Role: rbac.Roles.Editor},
+				{Link: user2, Role: rbac.Roles.Viewer},
+			},
 			ExpectedErr: nil,
 		},
 		{
 			Name:      "board not found (empty list)",
 			BoardLink: boardLink,
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"user_link"})
+				rows := pgxmock.NewRows([]string{"user_link", "level_member"})
 
-				dbMock.ExpectQuery(`(?s)SELECT user_link FROM member_board.*`).
+				dbMock.ExpectQuery(`(?s)SELECT user_link, level_member FROM member_board.*`).
 					WithArgs(boardLink).
 					WillReturnRows(rows)
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberEntry{},
 			ExpectedErr: common.ErrBoardNotFound,
 		},
 		{
 			Name:      "db query error",
 			BoardLink: boardLink,
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
-				dbMock.ExpectQuery(`(?s)SELECT user_link FROM member_board.*`).
+				dbMock.ExpectQuery(`(?s)SELECT user_link, level_member FROM member_board.*`).
 					WithArgs(boardLink).
 					WillReturnError(fmt.Errorf("db connection dropped"))
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberEntry{},
 			ExpectedErr: fmt.Errorf("pool.Query: db connection dropped"),
 		},
 	}
@@ -925,19 +928,31 @@ func TestUpdateMemberRoleRepo(t *testing.T) {
 		{
 			Name: "success",
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(true)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
 				dbMock.ExpectExec(`(?s)UPDATE member_board.*`).
 					WithArgs(boardLink, userLink, rbac.Roles.Editor).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 			},
 		},
 		{
-			Name: "not found",
+			Name: "board not found",
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(false)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
+			},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+		{
+			Name: "user not found",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(true)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
 				dbMock.ExpectExec(`(?s)UPDATE member_board.*`).
 					WithArgs(boardLink, userLink, rbac.Roles.Editor).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 			},
-			ExpectedErr: common.ErrBoardNotFound,
+			ExpectedErr: common.ErrUserNotFound,
 		},
 	}
 
@@ -954,6 +969,7 @@ func TestUpdateMemberRoleRepo(t *testing.T) {
 
 			if tt.ExpectedErr != nil {
 				assert.Error(t, err)
+				assert.ErrorIs(t, err, tt.ExpectedErr)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -975,19 +991,31 @@ func TestRemoveMemberFromBoardRepo(t *testing.T) {
 		{
 			Name: "success",
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(true)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
 				dbMock.ExpectExec(`DELETE FROM member_board.*`).
 					WithArgs(boardLink, userLink).
 					WillReturnResult(pgxmock.NewResult("DELETE", 1))
 			},
 		},
 		{
-			Name: "not found",
+			Name: "board not found",
 			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(false)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
+			},
+			ExpectedErr: common.ErrBoardNotFound,
+		},
+		{
+			Name: "user not found",
+			MockSetup: func(dbMock pgxmock.PgxPoolIface) {
+				boardExistRows := pgxmock.NewRows([]string{"exists"}).AddRow(true)
+				dbMock.ExpectQuery(`(?s)SELECT EXISTS.*`).WithArgs(boardLink).WillReturnRows(boardExistRows)
 				dbMock.ExpectExec(`DELETE FROM member_board.*`).
 					WithArgs(boardLink, userLink).
 					WillReturnResult(pgxmock.NewResult("DELETE", 0))
 			},
-			ExpectedErr: common.ErrBoardNotFound,
+			ExpectedErr: common.ErrUserNotFound,
 		},
 	}
 
@@ -1004,6 +1032,7 @@ func TestRemoveMemberFromBoardRepo(t *testing.T) {
 
 			if tt.ExpectedErr != nil {
 				assert.Error(t, err)
+				assert.ErrorIs(t, err, tt.ExpectedErr)
 			} else {
 				assert.NoError(t, err)
 			}

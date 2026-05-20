@@ -25,7 +25,7 @@ type BoardRepository interface {
 	UpdateBoard(ctx context.Context, boardInfo repositoryDto.UpdateBoardInfo) error
 	UploadBackground(ctx context.Context, source io.Reader, filename string, contentType string) (string, error)
 	UpdateBackground(ctx context.Context, background string, boardLink uuid.UUID) error
-	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error)
+	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]repositoryDto.MemberEntry, error)
 
 	CreateInvite(ctx context.Context, inviteInfo repositoryDto.NewInviteInfo) (repositoryDto.InviteEntry, error)
 	GetInviteByLink(ctx context.Context, inviteLink uuid.UUID) (repositoryDto.InviteEntry, error)
@@ -170,7 +170,7 @@ func (s *Service) UpdateBackground(ctx context.Context, file io.Reader, contentT
 	return key, nil
 }
 
-func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]uuid.UUID, error) {
+func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]dto.MemberInfo, error) {
 	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.View)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
@@ -180,12 +180,20 @@ func (s *Service) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, user
 		return nil, fmt.Errorf("service.CheckPermission: %w", err)
 	}
 
-	usersLinks, err := s.rep.GetUsersOfBoard(ctx, boardLink)
+	members, err := s.rep.GetUsersOfBoard(ctx, boardLink)
 	if err != nil {
-		return []uuid.UUID{}, fmt.Errorf("rep.GetUsersOfBoard: %w", err)
+		return []dto.MemberInfo{}, fmt.Errorf("rep.GetUsersOfBoard: %w", err)
 	}
 
-	return usersLinks, nil
+	result := make([]dto.MemberInfo, 0, len(members))
+	for _, m := range members {
+		result = append(result, dto.MemberInfo{
+			Link: m.Link,
+			Role: m.Role,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *Service) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo, creatorLink uuid.UUID) (dto.InviteInfo, error) {
@@ -306,6 +314,10 @@ func (s *Service) CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLin
 }
 
 func (s *Service) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error {
+	if userLink == callerLink {
+		return common.ErrSelfRoleChange
+	}
+
 	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Invite)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
@@ -319,6 +331,9 @@ func (s *Service) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, use
 		if errors.Is(err, common.ErrBoardNotFound) {
 			return common.ErrBoardNotFound
 		}
+		if errors.Is(err, common.ErrUserNotFound) {
+			return common.ErrUserNotFound
+		}
 		return fmt.Errorf("rep.UpdateMemberRole: %w", err)
 	}
 
@@ -330,18 +345,28 @@ func (s *Service) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, use
 }
 
 func (s *Service) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error {
-	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Invite)
-	if err != nil {
-		if errors.Is(err, rbac.ErrActionDenied) {
-			return rbac.ErrActionDenied
+	if userLink != callerLink {
+		err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Invite)
+		if err != nil {
+			if errors.Is(err, rbac.ErrActionDenied) {
+				return rbac.ErrActionDenied
+			}
+			return fmt.Errorf("service.CheckPermission: %w", err)
 		}
-		return fmt.Errorf("service.CheckPermission: %w", err)
 	}
 
-	err = s.rep.RemoveMemberFromBoard(ctx, boardLink, userLink)
+	// Только создатель имеет право на Delete, так что если проверка прошла — это создатель
+	if userLink == callerLink && s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, callerLink, rbac.Actions.Delete) == nil {
+		return common.ErrCreatorCannotLeave
+	}
+
+	err := s.rep.RemoveMemberFromBoard(ctx, boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrBoardNotFound) {
 			return common.ErrBoardNotFound
+		}
+		if errors.Is(err, common.ErrUserNotFound) {
+			return common.ErrUserNotFound
 		}
 		return fmt.Errorf("rep.RemoveMemberFromBoard: %w", err)
 	}

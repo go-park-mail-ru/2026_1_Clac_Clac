@@ -486,12 +486,23 @@ func TestGetUsersOfBoard(t *testing.T) {
 	ctx := context.Background()
 	userLink := uuid.New()
 	boardLink := uuid.New()
-	expectedUsers := []uuid.UUID{uuid.New(), uuid.New()}
+
+	member1 := uuid.New()
+	member2 := uuid.New()
+	repoMembers := []repositoryDto.MemberEntry{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
+
+	expectedMembers := []dto.MemberInfo{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
 
 	tests := []struct {
 		Name        string
 		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
-		Expected    []uuid.UUID
+		Expected    []dto.MemberInfo
 		ExpectError bool
 		ErrorIs     error
 	}{
@@ -499,9 +510,9 @@ func TestGetUsersOfBoard(t *testing.T) {
 			Name: "success get users",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return(expectedUsers, nil).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return(repoMembers, nil).Once()
 			},
-			Expected:    expectedUsers,
+			Expected:    expectedMembers,
 			ExpectError: false,
 		},
 		{
@@ -517,18 +528,18 @@ func TestGetUsersOfBoard(t *testing.T) {
 			Name: "repo error",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, fmt.Errorf("db error")).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]repositoryDto.MemberEntry{}, fmt.Errorf("db error")).Once()
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberInfo{},
 			ExpectError: true,
 		},
 		{
 			Name: "board not found error",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
-				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]uuid.UUID{}, common.ErrBoardNotFound).Once()
+				mockRepo.On("GetUsersOfBoard", ctx, boardLink).Return([]repositoryDto.MemberEntry{}, common.ErrBoardNotFound).Once()
 			},
-			Expected:    []uuid.UUID{},
+			Expected:    []dto.MemberInfo{},
 			ExpectError: true,
 			ErrorIs:     common.ErrBoardNotFound,
 		},
@@ -541,7 +552,7 @@ func TestGetUsersOfBoard(t *testing.T) {
 			test.MockSetup(mockRepo, mockPerm)
 
 			svc := service.NewService(mockRepo, mockPerm)
-			users, err := svc.GetUsersOfBoard(ctx, boardLink, userLink)
+			members, err := svc.GetUsersOfBoard(ctx, boardLink, userLink)
 
 			if test.ExpectError {
 				assert.Error(t, err)
@@ -550,7 +561,7 @@ func TestGetUsersOfBoard(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.Expected, users)
+				assert.Equal(t, test.Expected, members)
 			}
 			mockRepo.AssertExpectations(t)
 			mockPerm.AssertExpectations(t)
@@ -923,6 +934,22 @@ func TestUpdateMemberRoleService(t *testing.T) {
 			ExpectError: true,
 			ErrorIs:     common.ErrBoardNotFound,
 		},
+		{
+			Name: "user not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("UpdateMemberRole", ctx, boardLink, userLink, rbac.Roles.Editor).Return(common.ErrUserNotFound).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrUserNotFound,
+		},
+		{
+			Name: "self role change",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+			},
+			ExpectError: true,
+			ErrorIs:     common.ErrSelfRoleChange,
+		},
 	}
 
 	for _, test := range tests {
@@ -932,7 +959,12 @@ func TestUpdateMemberRoleService(t *testing.T) {
 			test.MockSetup(mockRepo, mockPerm)
 
 			svc := service.NewService(mockRepo, mockPerm)
-			err := svc.UpdateMemberRole(ctx, boardLink, userLink, rbac.Roles.Editor, callerLink)
+			var err error
+			if test.Name == "self role change" {
+				err = svc.UpdateMemberRole(ctx, boardLink, callerLink, rbac.Roles.Editor, callerLink)
+			} else {
+				err = svc.UpdateMemberRole(ctx, boardLink, userLink, rbac.Roles.Editor, callerLink)
+			}
 
 			if test.ExpectError {
 				assert.Error(t, err)
@@ -953,27 +985,49 @@ func TestRemoveMemberFromBoardService(t *testing.T) {
 	boardLink := uuid.New()
 	userLink := uuid.New()
 	callerLink := uuid.New()
+	creatorLink := uuid.New()
 
 	tests := []struct {
 		Name        string
 		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		BoardLink   uuid.UUID
+		TargetLink  uuid.UUID
+		CallerLink  uuid.UUID
 		ExpectError bool
 		ErrorIs     error
 	}{
 		{
-			Name: "success",
+			Name: "success remove other user",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
 				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(nil).Once()
 				mockPerm.On("InvalidateUserBoardRole", ctx, userLink, boardLink).Return(nil).Once()
 			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
 			ExpectError: false,
 		},
 		{
-			Name: "permission denied",
+			Name: "success self exit (non-creator)",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Delete).Return(rbac.ErrActionDenied).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, callerLink).Return(nil).Once()
+				mockPerm.On("InvalidateUserBoardRole", ctx, callerLink, boardLink).Return(nil).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  callerLink,
+			CallerLink:  callerLink,
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied removing other",
 			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(rbac.ErrActionDenied).Once()
 			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
 			ExpectError: true,
 			ErrorIs:     rbac.ErrActionDenied,
 		},
@@ -983,8 +1037,34 @@ func TestRemoveMemberFromBoardService(t *testing.T) {
 				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
 				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(common.ErrBoardNotFound).Once()
 			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
 			ExpectError: true,
 			ErrorIs:     common.ErrBoardNotFound,
+		},
+		{
+			Name: "user not found",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, callerLink, rbac.Actions.Invite).Return(nil).Once()
+				mockRepo.On("RemoveMemberFromBoard", ctx, boardLink, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  userLink,
+			CallerLink:  callerLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrUserNotFound,
+		},
+		{
+			Name: "creator cannot leave",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, creatorLink, rbac.Actions.Delete).Return(nil).Once()
+			},
+			BoardLink:   boardLink,
+			TargetLink:  creatorLink,
+			CallerLink:  creatorLink,
+			ExpectError: true,
+			ErrorIs:     common.ErrCreatorCannotLeave,
 		},
 	}
 
@@ -995,7 +1075,7 @@ func TestRemoveMemberFromBoardService(t *testing.T) {
 			test.MockSetup(mockRepo, mockPerm)
 
 			svc := service.NewService(mockRepo, mockPerm)
-			err := svc.RemoveMemberFromBoard(ctx, boardLink, userLink, callerLink)
+			err := svc.RemoveMemberFromBoard(ctx, test.BoardLink, test.TargetLink, test.CallerLink)
 
 			if test.ExpectError {
 				assert.Error(t, err)

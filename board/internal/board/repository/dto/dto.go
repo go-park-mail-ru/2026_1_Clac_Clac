@@ -29,6 +29,11 @@ type UpdateBoardInfo struct {
 	Background  string
 }
 
+type MemberEntry struct {
+	Link uuid.UUID
+	Role rbac.Role
+}
+
 type InviteEntry struct {
 	InviteLink  uuid.UUID
 	BoardLink   uuid.UUID

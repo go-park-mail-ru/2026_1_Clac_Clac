@@ -40,13 +40,18 @@ type UploadBackgroundResponse struct {
 	BackgroundKey string
 }
 
+type MemberInfo struct {
+	Link uuid.UUID
+	Role string
+}
+
 type GetMembersRequest struct {
 	UserLink  uuid.UUID
 	BoardLink uuid.UUID
 }
 
 type GetMembersResponse struct {
-	UserLinks []uuid.UUID
+	Members []MemberInfo
 }
 
 type CreateInviteRequest struct {

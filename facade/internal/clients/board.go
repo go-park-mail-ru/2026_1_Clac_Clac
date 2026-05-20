@@ -183,17 +183,20 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 		return domain.GetMembersResponse{}, fmt.Errorf("client.GetMembers: %w", convertBoardGRPCError(err))
 	}
 
-	userLinks := make([]uuid.UUID, 0, len(res.UsersLinks))
-	for _, l := range res.UsersLinks {
-		link, err := uuid.Parse(l)
+	members := make([]domain.MemberInfo, 0, len(res.Members))
+	for _, m := range res.Members {
+		link, err := uuid.Parse(m.Link)
 		if err != nil {
 			return domain.GetMembersResponse{}, common.ErrorParseLink
 		}
-		userLinks = append(userLinks, link)
+		members = append(members, domain.MemberInfo{
+			Link: link,
+			Role: m.Role,
+		})
 	}
 
 	return domain.GetMembersResponse{
-		UserLinks: userLinks,
+		Members: members,
 	}, nil
 }
 

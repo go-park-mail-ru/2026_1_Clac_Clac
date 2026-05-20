@@ -62,7 +62,7 @@ type BoardService interface {
 	DeleteBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 	UpdateBoard(ctx context.Context, boardInfo serviceDto.UpdateBoardInfo, userLink uuid.UUID) error
 	UpdateBackground(ctx context.Context, file io.Reader, contentType string, extension string, boardLink uuid.UUID, userLink uuid.UUID) (string, error)
-	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]uuid.UUID, error)
+	GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.MemberInfo, error)
 
 	CreateInvite(ctx context.Context, inviteInfo serviceDto.NewInviteInfo, creatorLink uuid.UUID) (serviceDto.InviteInfo, error)
 	AcceptInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) (serviceDto.InviteInfo, error)
@@ -380,7 +380,7 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
 	}
 
-	usersLinks, err := h.srv.GetUsersOfBoard(ctx, boardLink, userLink)
+	members, err := h.srv.GetUsersOfBoard(ctx, boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrBoardNotFound) {
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
@@ -396,13 +396,16 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 		return nil, status.Error(codes.Internal, ErrCannotGetUsersOfBoard.Error())
 	}
 
-	usersLinksStrings := make([]string, 0)
-	for _, link := range usersLinks {
-		usersLinksStrings = append(usersLinksStrings, link.String())
+	pbMembers := make([]*pb.MemberInfo, 0, len(members))
+	for _, m := range members {
+		pbMembers = append(pbMembers, &pb.MemberInfo{
+			Link: m.Link.String(),
+			Role: m.Role.String(),
+		})
 	}
 
 	return &pb.GetMembersResponse{
-		UsersLinks: usersLinksStrings,
+		Members: pbMembers,
 	}, nil
 }
 
@@ -615,6 +618,10 @@ func (h *BoardHandler) UpdateMemberRole(ctx context.Context, req *pb.UpdateMembe
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+		case errors.Is(err, common.ErrUserNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrUserNotFound.Error())
+		case errors.Is(err, common.ErrSelfRoleChange):
+			return nil, status.Error(codes.InvalidArgument, common.ErrSelfRoleChange.Error())
 		}
 		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.UpdateMemberRole")
@@ -658,6 +665,10 @@ func (h *BoardHandler) RemoveMemberFromBoard(ctx context.Context, req *pb.Remove
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+		case errors.Is(err, common.ErrUserNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrUserNotFound.Error())
+		case errors.Is(err, common.ErrCreatorCannotLeave):
+			return nil, status.Error(codes.PermissionDenied, common.ErrCreatorCannotLeave.Error())
 		}
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.RemoveMemberFromBoard")

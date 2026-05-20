@@ -501,7 +501,12 @@ func TestUploadBackground(t *testing.T) {
 func TestGetMembers(t *testing.T) {
 	boardLink := uuid.New()
 	userLink := uuid.New()
-	usersLinks := []uuid.UUID{uuid.New(), uuid.New()}
+	member1 := uuid.New()
+	member2 := uuid.New()
+	members := []serviceDto.MemberInfo{
+		{Link: member1, Role: rbac.Roles.Editor},
+		{Link: member2, Role: rbac.Roles.Viewer},
+	}
 
 	tests := []struct {
 		name         string
@@ -513,7 +518,7 @@ func TestGetMembers(t *testing.T) {
 			name: "Success get members",
 			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(usersLinks, nil).Once()
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(members, nil).Once()
 			},
 			expectedCode: codes.OK,
 		},
@@ -938,6 +943,32 @@ func TestUpdateMemberRoleHandler(t *testing.T) {
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
+		{
+			name: "User not found",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, targetLink, rbac.Roles.Editor, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Self role change",
+			req: &pb.UpdateMemberRoleRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: userLink.String(),
+				NewRole:        "editor",
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("UpdateMemberRole", mock.Anything, boardLink, userLink, rbac.Roles.Editor, userLink).Return(common.ErrSelfRoleChange).Once()
+			},
+			expectedCode: codes.InvalidArgument,
+		},
 	}
 
 	for _, test := range tests {
@@ -986,6 +1017,30 @@ func TestRemoveMemberFromBoardHandler(t *testing.T) {
 			},
 			setupMock: func(m *mocks.BoardService) {
 				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, targetLink, userLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "User not found",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: targetLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, targetLink, userLink).Return(common.ErrUserNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Creator cannot leave",
+			req: &pb.RemoveMemberFromBoardRequest{
+				UserLink:       userLink.String(),
+				BoardLink:      boardLink.String(),
+				TargetUserLink: userLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("RemoveMemberFromBoard", mock.Anything, boardLink, userLink, userLink).Return(common.ErrCreatorCannotLeave).Once()
 			},
 			expectedCode: codes.PermissionDenied,
 		},

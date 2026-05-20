@@ -526,7 +526,7 @@ func TestHandlerUploadBackground(t *testing.T) {
 }
 
 func TestHandlerGetMembers(t *testing.T) {
-	members := domain.GetMembersResponse{UserLinks: []uuid.UUID{fixedLink}}
+	members := domain.GetMembersResponse{Members: []domain.MemberInfo{{Link: fixedLink, Role: "viewer"}}}
 
 	tests := []struct {
 		name               string

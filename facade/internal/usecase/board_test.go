@@ -302,7 +302,7 @@ func TestBoardUploadBackground(t *testing.T) {
 
 func TestBoardGetMembers(t *testing.T) {
 	req := domain.GetMembersRequest{UserLink: fixedUserLink, BoardLink: fixedBoardLink}
-	expected := domain.GetMembersResponse{UserLinks: []uuid.UUID{fixedUserLink}}
+	expected := domain.GetMembersResponse{Members: []domain.MemberInfo{{Link: fixedUserLink, Role: "editor"}}}
 
 	tests := []struct {
 		name         string

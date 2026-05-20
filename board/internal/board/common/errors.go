@@ -8,6 +8,9 @@ var (
 	ErrInvalidBoardData      = errors.New("invalid board data provided")
 	ErrInvalidBoardReference = errors.New("referenced entity does not exist")
 	ErrUserAlreadyMember     = errors.New("this connection board and user already exists")
+	ErrUserNotFound          = errors.New("user not found")
+	ErrSelfRoleChange        = errors.New("cannot change your own role")
+	ErrCreatorCannotLeave    = errors.New("creator cannot leave the board")
 
 	ErrInviteNotFound    = errors.New("invite not found")
 	ErrInviteExpired     = errors.New("invite is expired")

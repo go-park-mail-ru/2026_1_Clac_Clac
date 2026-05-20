@@ -252,36 +252,33 @@ func (r *Repository) UpdateBackground(ctx context.Context, background string, bo
 	return nil
 }
 
-func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
-	getUsersOfBoardQuery := `SELECT user_link FROM member_board WHERE board_link = $1;`
+func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.MemberEntry, error) {
+	getUsersOfBoardQuery := `SELECT user_link, level_member FROM member_board WHERE board_link = $1;`
 
 	rows, err := r.pool.Query(ctx, getUsersOfBoardQuery, boardLink)
 	if err != nil {
-		return []uuid.UUID{}, fmt.Errorf("pool.Query: %w", err)
+		return []dto.MemberEntry{}, fmt.Errorf("pool.Query: %w", err)
 	}
 
 	defer rows.Close()
 
-	usersLinks := make([]uuid.UUID, 0)
+	members := make([]dto.MemberEntry, 0)
 	for rows.Next() {
-		var link uuid.UUID
+		var member dto.MemberEntry
 
-		err := rows.Scan(&link)
+		err := rows.Scan(&member.Link, &member.Role)
 		if err != nil {
-			return []uuid.UUID{}, fmt.Errorf("rows.Scan: %w", err)
+			return []dto.MemberEntry{}, fmt.Errorf("rows.Scan: %w", err)
 		}
 
-		usersLinks = append(usersLinks, link)
+		members = append(members, member)
 	}
 
-	// Чтобы не делать доп запрос, будем считать,
-	// что если запрос вернул НОЛЬ, значит доски не существует
-	// при создании доски у нее всегда есть пользователь - создатель
-	if len(usersLinks) == 0 {
-		return []uuid.UUID{}, common.ErrBoardNotFound
+	if len(members) == 0 {
+		return []dto.MemberEntry{}, common.ErrBoardNotFound
 	}
 
-	return usersLinks, nil
+	return members, nil
 }
 
 func (r *Repository) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo) (dto.InviteEntry, error) {
@@ -414,6 +411,14 @@ func (r *Repository) CloseInviteByBoardForUser(ctx context.Context, boardLink uu
 }
 
 func (r *Repository) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	boardExists, err := r.boardExists(ctx, boardLink)
+	if err != nil {
+		return fmt.Errorf("check board exists: %w", err)
+	}
+	if !boardExists {
+		return common.ErrBoardNotFound
+	}
+
 	updateRoleQuery := `
 		UPDATE member_board SET level_member = $3::user_level
 		WHERE board_link = $1 AND user_link = $2
@@ -425,13 +430,21 @@ func (r *Repository) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, 
 	}
 
 	if tag.RowsAffected() == 0 {
-		return common.ErrBoardNotFound
+		return common.ErrUserNotFound
 	}
 
 	return nil
 }
 
 func (r *Repository) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	boardExists, err := r.boardExists(ctx, boardLink)
+	if err != nil {
+		return fmt.Errorf("check board exists: %w", err)
+	}
+	if !boardExists {
+		return common.ErrBoardNotFound
+	}
+
 	deleteMemberQuery := `DELETE FROM member_board WHERE board_link = $1 AND user_link = $2`
 
 	tag, err := r.pool.Exec(ctx, deleteMemberQuery, boardLink, userLink)
@@ -440,10 +453,20 @@ func (r *Repository) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.U
 	}
 
 	if tag.RowsAffected() == 0 {
-		return common.ErrBoardNotFound
+		return common.ErrUserNotFound
 	}
 
 	return nil
+}
+
+func (r *Repository) boardExists(ctx context.Context, boardLink uuid.UUID) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM board WHERE link = $1)`
+	err := r.pool.QueryRow(ctx, query, boardLink).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("query board exists: %w", err)
+	}
+	return exists, nil
 }
 
 func (r *Repository) GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.InviteEntry, error) {

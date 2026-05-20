@@ -712,6 +712,58 @@ func (x *UploadBackgroundResponse) GetBackgroundKey() string {
 	return ""
 }
 
+type MemberInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Link          string                 `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MemberInfo) Reset() {
+	*x = MemberInfo{}
+	mi := &file_proto_board_v1_board_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemberInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemberInfo) ProtoMessage() {}
+
+func (x *MemberInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_board_v1_board_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemberInfo.ProtoReflect.Descriptor instead.
+func (*MemberInfo) Descriptor() ([]byte, []int) {
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *MemberInfo) GetLink() string {
+	if x != nil {
+		return x.Link
+	}
+	return ""
+}
+
+func (x *MemberInfo) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 // GetMembers
 type GetMembersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -723,7 +775,7 @@ type GetMembersRequest struct {
 
 func (x *GetMembersRequest) Reset() {
 	*x = GetMembersRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[13]
+	mi := &file_proto_board_v1_board_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +787,7 @@ func (x *GetMembersRequest) String() string {
 func (*GetMembersRequest) ProtoMessage() {}
 
 func (x *GetMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[13]
+	mi := &file_proto_board_v1_board_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +800,7 @@ func (x *GetMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMembersRequest.ProtoReflect.Descriptor instead.
 func (*GetMembersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{13}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetMembersRequest) GetUserLink() string {
@@ -767,14 +819,14 @@ func (x *GetMembersRequest) GetBoardLink() string {
 
 type GetMembersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UsersLinks    []string               `protobuf:"bytes,1,rep,name=users_links,json=usersLinks,proto3" json:"users_links,omitempty"`
+	Members       []*MemberInfo          `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetMembersResponse) Reset() {
 	*x = GetMembersResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[14]
+	mi := &file_proto_board_v1_board_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +838,7 @@ func (x *GetMembersResponse) String() string {
 func (*GetMembersResponse) ProtoMessage() {}
 
 func (x *GetMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[14]
+	mi := &file_proto_board_v1_board_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,12 +851,12 @@ func (x *GetMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMembersResponse.ProtoReflect.Descriptor instead.
 func (*GetMembersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{14}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *GetMembersResponse) GetUsersLinks() []string {
+func (x *GetMembersResponse) GetMembers() []*MemberInfo {
 	if x != nil {
-		return x.UsersLinks
+		return x.Members
 	}
 	return nil
 }
@@ -823,7 +875,7 @@ type CreateInviteRequest struct {
 
 func (x *CreateInviteRequest) Reset() {
 	*x = CreateInviteRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[15]
+	mi := &file_proto_board_v1_board_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +887,7 @@ func (x *CreateInviteRequest) String() string {
 func (*CreateInviteRequest) ProtoMessage() {}
 
 func (x *CreateInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[15]
+	mi := &file_proto_board_v1_board_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +900,7 @@ func (x *CreateInviteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInviteRequest.ProtoReflect.Descriptor instead.
 func (*CreateInviteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{15}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateInviteRequest) GetUserLink() string {
@@ -901,7 +953,7 @@ type CreateInviteResponse struct {
 
 func (x *CreateInviteResponse) Reset() {
 	*x = CreateInviteResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[16]
+	mi := &file_proto_board_v1_board_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -913,7 +965,7 @@ func (x *CreateInviteResponse) String() string {
 func (*CreateInviteResponse) ProtoMessage() {}
 
 func (x *CreateInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[16]
+	mi := &file_proto_board_v1_board_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -926,7 +978,7 @@ func (x *CreateInviteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInviteResponse.ProtoReflect.Descriptor instead.
 func (*CreateInviteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{16}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateInviteResponse) GetInviteLink() string {
@@ -989,7 +1041,7 @@ type AcceptInviteRequest struct {
 
 func (x *AcceptInviteRequest) Reset() {
 	*x = AcceptInviteRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[17]
+	mi := &file_proto_board_v1_board_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1001,7 +1053,7 @@ func (x *AcceptInviteRequest) String() string {
 func (*AcceptInviteRequest) ProtoMessage() {}
 
 func (x *AcceptInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[17]
+	mi := &file_proto_board_v1_board_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1014,7 +1066,7 @@ func (x *AcceptInviteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInviteRequest.ProtoReflect.Descriptor instead.
 func (*AcceptInviteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{17}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AcceptInviteRequest) GetInviteLink() string {
@@ -1042,7 +1094,7 @@ type AcceptInviteResponse struct {
 
 func (x *AcceptInviteResponse) Reset() {
 	*x = AcceptInviteResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[18]
+	mi := &file_proto_board_v1_board_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1054,7 +1106,7 @@ func (x *AcceptInviteResponse) String() string {
 func (*AcceptInviteResponse) ProtoMessage() {}
 
 func (x *AcceptInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[18]
+	mi := &file_proto_board_v1_board_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1067,7 +1119,7 @@ func (x *AcceptInviteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptInviteResponse.ProtoReflect.Descriptor instead.
 func (*AcceptInviteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{18}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AcceptInviteResponse) GetBoardLink() string {
@@ -1102,7 +1154,7 @@ type CloseInviteRequest struct {
 
 func (x *CloseInviteRequest) Reset() {
 	*x = CloseInviteRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[19]
+	mi := &file_proto_board_v1_board_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +1166,7 @@ func (x *CloseInviteRequest) String() string {
 func (*CloseInviteRequest) ProtoMessage() {}
 
 func (x *CloseInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[19]
+	mi := &file_proto_board_v1_board_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +1179,7 @@ func (x *CloseInviteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseInviteRequest.ProtoReflect.Descriptor instead.
 func (*CloseInviteRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{19}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CloseInviteRequest) GetUserLink() string {
@@ -1152,7 +1204,7 @@ type CloseInviteResponse struct {
 
 func (x *CloseInviteResponse) Reset() {
 	*x = CloseInviteResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[20]
+	mi := &file_proto_board_v1_board_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1164,7 +1216,7 @@ func (x *CloseInviteResponse) String() string {
 func (*CloseInviteResponse) ProtoMessage() {}
 
 func (x *CloseInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[20]
+	mi := &file_proto_board_v1_board_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1177,7 +1229,7 @@ func (x *CloseInviteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseInviteResponse.ProtoReflect.Descriptor instead.
 func (*CloseInviteResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{20}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{21}
 }
 
 // UpdateMemberRole
@@ -1193,7 +1245,7 @@ type UpdateMemberRoleRequest struct {
 
 func (x *UpdateMemberRoleRequest) Reset() {
 	*x = UpdateMemberRoleRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[21]
+	mi := &file_proto_board_v1_board_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1205,7 +1257,7 @@ func (x *UpdateMemberRoleRequest) String() string {
 func (*UpdateMemberRoleRequest) ProtoMessage() {}
 
 func (x *UpdateMemberRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[21]
+	mi := &file_proto_board_v1_board_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1218,7 +1270,7 @@ func (x *UpdateMemberRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMemberRoleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMemberRoleRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{21}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UpdateMemberRoleRequest) GetUserLink() string {
@@ -1257,7 +1309,7 @@ type UpdateMemberRoleResponse struct {
 
 func (x *UpdateMemberRoleResponse) Reset() {
 	*x = UpdateMemberRoleResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[22]
+	mi := &file_proto_board_v1_board_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1269,7 +1321,7 @@ func (x *UpdateMemberRoleResponse) String() string {
 func (*UpdateMemberRoleResponse) ProtoMessage() {}
 
 func (x *UpdateMemberRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[22]
+	mi := &file_proto_board_v1_board_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1282,7 +1334,7 @@ func (x *UpdateMemberRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMemberRoleResponse.ProtoReflect.Descriptor instead.
 func (*UpdateMemberRoleResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{22}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{23}
 }
 
 // RemoveMemberFromBoard
@@ -1297,7 +1349,7 @@ type RemoveMemberFromBoardRequest struct {
 
 func (x *RemoveMemberFromBoardRequest) Reset() {
 	*x = RemoveMemberFromBoardRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[23]
+	mi := &file_proto_board_v1_board_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1309,7 +1361,7 @@ func (x *RemoveMemberFromBoardRequest) String() string {
 func (*RemoveMemberFromBoardRequest) ProtoMessage() {}
 
 func (x *RemoveMemberFromBoardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[23]
+	mi := &file_proto_board_v1_board_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1322,7 +1374,7 @@ func (x *RemoveMemberFromBoardRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveMemberFromBoardRequest.ProtoReflect.Descriptor instead.
 func (*RemoveMemberFromBoardRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{23}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RemoveMemberFromBoardRequest) GetUserLink() string {
@@ -1354,7 +1406,7 @@ type RemoveMemberFromBoardResponse struct {
 
 func (x *RemoveMemberFromBoardResponse) Reset() {
 	*x = RemoveMemberFromBoardResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[24]
+	mi := &file_proto_board_v1_board_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1366,7 +1418,7 @@ func (x *RemoveMemberFromBoardResponse) String() string {
 func (*RemoveMemberFromBoardResponse) ProtoMessage() {}
 
 func (x *RemoveMemberFromBoardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[24]
+	mi := &file_proto_board_v1_board_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1379,7 +1431,7 @@ func (x *RemoveMemberFromBoardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveMemberFromBoardResponse.ProtoReflect.Descriptor instead.
 func (*RemoveMemberFromBoardResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{24}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{25}
 }
 
 // GetActiveInvites
@@ -1393,7 +1445,7 @@ type GetActiveInvitesRequest struct {
 
 func (x *GetActiveInvitesRequest) Reset() {
 	*x = GetActiveInvitesRequest{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[25]
+	mi := &file_proto_board_v1_board_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1405,7 +1457,7 @@ func (x *GetActiveInvitesRequest) String() string {
 func (*GetActiveInvitesRequest) ProtoMessage() {}
 
 func (x *GetActiveInvitesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[25]
+	mi := &file_proto_board_v1_board_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1418,7 +1470,7 @@ func (x *GetActiveInvitesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActiveInvitesRequest.ProtoReflect.Descriptor instead.
 func (*GetActiveInvitesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{25}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetActiveInvitesRequest) GetUserLink() string {
@@ -1444,7 +1496,7 @@ type GetActiveInvitesResponse struct {
 
 func (x *GetActiveInvitesResponse) Reset() {
 	*x = GetActiveInvitesResponse{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[26]
+	mi := &file_proto_board_v1_board_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1456,7 +1508,7 @@ func (x *GetActiveInvitesResponse) String() string {
 func (*GetActiveInvitesResponse) ProtoMessage() {}
 
 func (x *GetActiveInvitesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[26]
+	mi := &file_proto_board_v1_board_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1469,7 +1521,7 @@ func (x *GetActiveInvitesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetActiveInvitesResponse.ProtoReflect.Descriptor instead.
 func (*GetActiveInvitesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{26}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetActiveInvitesResponse) GetInvites() []*InviteInfo {
@@ -1494,7 +1546,7 @@ type InviteInfo struct {
 
 func (x *InviteInfo) Reset() {
 	*x = InviteInfo{}
-	mi := &file_proto_board_v1_board_proto_msgTypes[27]
+	mi := &file_proto_board_v1_board_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1506,7 +1558,7 @@ func (x *InviteInfo) String() string {
 func (*InviteInfo) ProtoMessage() {}
 
 func (x *InviteInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_board_v1_board_proto_msgTypes[27]
+	mi := &file_proto_board_v1_board_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1519,7 +1571,7 @@ func (x *InviteInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InviteInfo.ProtoReflect.Descriptor instead.
 func (*InviteInfo) Descriptor() ([]byte, []int) {
-	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{27}
+	return file_proto_board_v1_board_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *InviteInfo) GetInviteLink() string {
@@ -1629,14 +1681,17 @@ const file_proto_board_v1_board_proto_rawDesc = "" +
 	"\x05image\x18\x03 \x01(\fR\x05image\x12\x1a\n" +
 	"\bfilename\x18\x04 \x01(\tR\bfilename\"A\n" +
 	"\x18UploadBackgroundResponse\x12%\n" +
-	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"O\n" +
+	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"4\n" +
+	"\n" +
+	"MemberInfo\x12\x12\n" +
+	"\x04link\x18\x01 \x01(\tR\x04link\x12\x12\n" +
+	"\x04role\x18\x02 \x01(\tR\x04role\"O\n" +
 	"\x11GetMembersRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
-	"board_link\x18\x02 \x01(\tR\tboardLink\"5\n" +
-	"\x12GetMembersResponse\x12\x1f\n" +
-	"\vusers_links\x18\x01 \x03(\tR\n" +
-	"usersLinks\"\xdf\x01\n" +
+	"board_link\x18\x02 \x01(\tR\tboardLink\"J\n" +
+	"\x12GetMembersResponse\x124\n" +
+	"\amembers\x18\x01 \x03(\v2\x1a.proto.board.v1.MemberInfoR\amembers\"\xdf\x01\n" +
 	"\x13CreateInviteRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
@@ -1731,7 +1786,7 @@ func file_proto_board_v1_board_proto_rawDescGZIP() []byte {
 	return file_proto_board_v1_board_proto_rawDescData
 }
 
-var file_proto_board_v1_board_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_proto_board_v1_board_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_proto_board_v1_board_proto_goTypes = []any{
 	(*BoardInfo)(nil),                     // 0: proto.board.v1.BoardInfo
 	(*GetBoardsRequest)(nil),              // 1: proto.board.v1.GetBoardsRequest
@@ -1746,60 +1801,62 @@ var file_proto_board_v1_board_proto_goTypes = []any{
 	(*UpdateBoardResponse)(nil),           // 10: proto.board.v1.UpdateBoardResponse
 	(*UploadBackgroundRequest)(nil),       // 11: proto.board.v1.UploadBackgroundRequest
 	(*UploadBackgroundResponse)(nil),      // 12: proto.board.v1.UploadBackgroundResponse
-	(*GetMembersRequest)(nil),             // 13: proto.board.v1.GetMembersRequest
-	(*GetMembersResponse)(nil),            // 14: proto.board.v1.GetMembersResponse
-	(*CreateInviteRequest)(nil),           // 15: proto.board.v1.CreateInviteRequest
-	(*CreateInviteResponse)(nil),          // 16: proto.board.v1.CreateInviteResponse
-	(*AcceptInviteRequest)(nil),           // 17: proto.board.v1.AcceptInviteRequest
-	(*AcceptInviteResponse)(nil),          // 18: proto.board.v1.AcceptInviteResponse
-	(*CloseInviteRequest)(nil),            // 19: proto.board.v1.CloseInviteRequest
-	(*CloseInviteResponse)(nil),           // 20: proto.board.v1.CloseInviteResponse
-	(*UpdateMemberRoleRequest)(nil),       // 21: proto.board.v1.UpdateMemberRoleRequest
-	(*UpdateMemberRoleResponse)(nil),      // 22: proto.board.v1.UpdateMemberRoleResponse
-	(*RemoveMemberFromBoardRequest)(nil),  // 23: proto.board.v1.RemoveMemberFromBoardRequest
-	(*RemoveMemberFromBoardResponse)(nil), // 24: proto.board.v1.RemoveMemberFromBoardResponse
-	(*GetActiveInvitesRequest)(nil),       // 25: proto.board.v1.GetActiveInvitesRequest
-	(*GetActiveInvitesResponse)(nil),      // 26: proto.board.v1.GetActiveInvitesResponse
-	(*InviteInfo)(nil),                    // 27: proto.board.v1.InviteInfo
-	(*timestamppb.Timestamp)(nil),         // 28: google.protobuf.Timestamp
+	(*MemberInfo)(nil),                    // 13: proto.board.v1.MemberInfo
+	(*GetMembersRequest)(nil),             // 14: proto.board.v1.GetMembersRequest
+	(*GetMembersResponse)(nil),            // 15: proto.board.v1.GetMembersResponse
+	(*CreateInviteRequest)(nil),           // 16: proto.board.v1.CreateInviteRequest
+	(*CreateInviteResponse)(nil),          // 17: proto.board.v1.CreateInviteResponse
+	(*AcceptInviteRequest)(nil),           // 18: proto.board.v1.AcceptInviteRequest
+	(*AcceptInviteResponse)(nil),          // 19: proto.board.v1.AcceptInviteResponse
+	(*CloseInviteRequest)(nil),            // 20: proto.board.v1.CloseInviteRequest
+	(*CloseInviteResponse)(nil),           // 21: proto.board.v1.CloseInviteResponse
+	(*UpdateMemberRoleRequest)(nil),       // 22: proto.board.v1.UpdateMemberRoleRequest
+	(*UpdateMemberRoleResponse)(nil),      // 23: proto.board.v1.UpdateMemberRoleResponse
+	(*RemoveMemberFromBoardRequest)(nil),  // 24: proto.board.v1.RemoveMemberFromBoardRequest
+	(*RemoveMemberFromBoardResponse)(nil), // 25: proto.board.v1.RemoveMemberFromBoardResponse
+	(*GetActiveInvitesRequest)(nil),       // 26: proto.board.v1.GetActiveInvitesRequest
+	(*GetActiveInvitesResponse)(nil),      // 27: proto.board.v1.GetActiveInvitesResponse
+	(*InviteInfo)(nil),                    // 28: proto.board.v1.InviteInfo
+	(*timestamppb.Timestamp)(nil),         // 29: google.protobuf.Timestamp
 }
 var file_proto_board_v1_board_proto_depIdxs = []int32{
-	28, // 0: proto.board.v1.BoardInfo.created_at:type_name -> google.protobuf.Timestamp
+	29, // 0: proto.board.v1.BoardInfo.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: proto.board.v1.GetBoardsResponse.boards_info:type_name -> proto.board.v1.BoardInfo
 	0,  // 2: proto.board.v1.GetBoardResponse.board_info:type_name -> proto.board.v1.BoardInfo
 	0,  // 3: proto.board.v1.CreateBoardResponse.board_info:type_name -> proto.board.v1.BoardInfo
-	27, // 4: proto.board.v1.GetActiveInvitesResponse.invites:type_name -> proto.board.v1.InviteInfo
-	1,  // 5: proto.board.v1.BoardService.GetBoards:input_type -> proto.board.v1.GetBoardsRequest
-	3,  // 6: proto.board.v1.BoardService.GetBoard:input_type -> proto.board.v1.GetBoardRequest
-	5,  // 7: proto.board.v1.BoardService.CreateBoard:input_type -> proto.board.v1.CreateBoardRequest
-	7,  // 8: proto.board.v1.BoardService.DeleteBoard:input_type -> proto.board.v1.DeleteBoardRequest
-	9,  // 9: proto.board.v1.BoardService.UpdateBoard:input_type -> proto.board.v1.UpdateBoardRequest
-	11, // 10: proto.board.v1.BoardService.UploadBackground:input_type -> proto.board.v1.UploadBackgroundRequest
-	13, // 11: proto.board.v1.BoardService.GetMembers:input_type -> proto.board.v1.GetMembersRequest
-	15, // 12: proto.board.v1.BoardService.CreateInvite:input_type -> proto.board.v1.CreateInviteRequest
-	17, // 13: proto.board.v1.BoardService.AcceptInvite:input_type -> proto.board.v1.AcceptInviteRequest
-	19, // 14: proto.board.v1.BoardService.CloseInvite:input_type -> proto.board.v1.CloseInviteRequest
-	21, // 15: proto.board.v1.BoardService.UpdateMemberRole:input_type -> proto.board.v1.UpdateMemberRoleRequest
-	23, // 16: proto.board.v1.BoardService.RemoveMemberFromBoard:input_type -> proto.board.v1.RemoveMemberFromBoardRequest
-	25, // 17: proto.board.v1.BoardService.GetActiveInvites:input_type -> proto.board.v1.GetActiveInvitesRequest
-	2,  // 18: proto.board.v1.BoardService.GetBoards:output_type -> proto.board.v1.GetBoardsResponse
-	4,  // 19: proto.board.v1.BoardService.GetBoard:output_type -> proto.board.v1.GetBoardResponse
-	6,  // 20: proto.board.v1.BoardService.CreateBoard:output_type -> proto.board.v1.CreateBoardResponse
-	8,  // 21: proto.board.v1.BoardService.DeleteBoard:output_type -> proto.board.v1.DeleteBoardResponse
-	10, // 22: proto.board.v1.BoardService.UpdateBoard:output_type -> proto.board.v1.UpdateBoardResponse
-	12, // 23: proto.board.v1.BoardService.UploadBackground:output_type -> proto.board.v1.UploadBackgroundResponse
-	14, // 24: proto.board.v1.BoardService.GetMembers:output_type -> proto.board.v1.GetMembersResponse
-	16, // 25: proto.board.v1.BoardService.CreateInvite:output_type -> proto.board.v1.CreateInviteResponse
-	18, // 26: proto.board.v1.BoardService.AcceptInvite:output_type -> proto.board.v1.AcceptInviteResponse
-	20, // 27: proto.board.v1.BoardService.CloseInvite:output_type -> proto.board.v1.CloseInviteResponse
-	22, // 28: proto.board.v1.BoardService.UpdateMemberRole:output_type -> proto.board.v1.UpdateMemberRoleResponse
-	24, // 29: proto.board.v1.BoardService.RemoveMemberFromBoard:output_type -> proto.board.v1.RemoveMemberFromBoardResponse
-	26, // 30: proto.board.v1.BoardService.GetActiveInvites:output_type -> proto.board.v1.GetActiveInvitesResponse
-	18, // [18:31] is the sub-list for method output_type
-	5,  // [5:18] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	13, // 4: proto.board.v1.GetMembersResponse.members:type_name -> proto.board.v1.MemberInfo
+	28, // 5: proto.board.v1.GetActiveInvitesResponse.invites:type_name -> proto.board.v1.InviteInfo
+	1,  // 6: proto.board.v1.BoardService.GetBoards:input_type -> proto.board.v1.GetBoardsRequest
+	3,  // 7: proto.board.v1.BoardService.GetBoard:input_type -> proto.board.v1.GetBoardRequest
+	5,  // 8: proto.board.v1.BoardService.CreateBoard:input_type -> proto.board.v1.CreateBoardRequest
+	7,  // 9: proto.board.v1.BoardService.DeleteBoard:input_type -> proto.board.v1.DeleteBoardRequest
+	9,  // 10: proto.board.v1.BoardService.UpdateBoard:input_type -> proto.board.v1.UpdateBoardRequest
+	11, // 11: proto.board.v1.BoardService.UploadBackground:input_type -> proto.board.v1.UploadBackgroundRequest
+	14, // 12: proto.board.v1.BoardService.GetMembers:input_type -> proto.board.v1.GetMembersRequest
+	16, // 13: proto.board.v1.BoardService.CreateInvite:input_type -> proto.board.v1.CreateInviteRequest
+	18, // 14: proto.board.v1.BoardService.AcceptInvite:input_type -> proto.board.v1.AcceptInviteRequest
+	20, // 15: proto.board.v1.BoardService.CloseInvite:input_type -> proto.board.v1.CloseInviteRequest
+	22, // 16: proto.board.v1.BoardService.UpdateMemberRole:input_type -> proto.board.v1.UpdateMemberRoleRequest
+	24, // 17: proto.board.v1.BoardService.RemoveMemberFromBoard:input_type -> proto.board.v1.RemoveMemberFromBoardRequest
+	26, // 18: proto.board.v1.BoardService.GetActiveInvites:input_type -> proto.board.v1.GetActiveInvitesRequest
+	2,  // 19: proto.board.v1.BoardService.GetBoards:output_type -> proto.board.v1.GetBoardsResponse
+	4,  // 20: proto.board.v1.BoardService.GetBoard:output_type -> proto.board.v1.GetBoardResponse
+	6,  // 21: proto.board.v1.BoardService.CreateBoard:output_type -> proto.board.v1.CreateBoardResponse
+	8,  // 22: proto.board.v1.BoardService.DeleteBoard:output_type -> proto.board.v1.DeleteBoardResponse
+	10, // 23: proto.board.v1.BoardService.UpdateBoard:output_type -> proto.board.v1.UpdateBoardResponse
+	12, // 24: proto.board.v1.BoardService.UploadBackground:output_type -> proto.board.v1.UploadBackgroundResponse
+	15, // 25: proto.board.v1.BoardService.GetMembers:output_type -> proto.board.v1.GetMembersResponse
+	17, // 26: proto.board.v1.BoardService.CreateInvite:output_type -> proto.board.v1.CreateInviteResponse
+	19, // 27: proto.board.v1.BoardService.AcceptInvite:output_type -> proto.board.v1.AcceptInviteResponse
+	21, // 28: proto.board.v1.BoardService.CloseInvite:output_type -> proto.board.v1.CloseInviteResponse
+	23, // 29: proto.board.v1.BoardService.UpdateMemberRole:output_type -> proto.board.v1.UpdateMemberRoleResponse
+	25, // 30: proto.board.v1.BoardService.RemoveMemberFromBoard:output_type -> proto.board.v1.RemoveMemberFromBoardResponse
+	27, // 31: proto.board.v1.BoardService.GetActiveInvites:output_type -> proto.board.v1.GetActiveInvitesResponse
+	19, // [19:32] is the sub-list for method output_type
+	6,  // [6:19] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_board_v1_board_proto_init() }
@@ -1807,16 +1864,16 @@ func file_proto_board_v1_board_proto_init() {
 	if File_proto_board_v1_board_proto != nil {
 		return
 	}
-	file_proto_board_v1_board_proto_msgTypes[15].OneofWrappers = []any{}
 	file_proto_board_v1_board_proto_msgTypes[16].OneofWrappers = []any{}
-	file_proto_board_v1_board_proto_msgTypes[27].OneofWrappers = []any{}
+	file_proto_board_v1_board_proto_msgTypes[17].OneofWrappers = []any{}
+	file_proto_board_v1_board_proto_msgTypes[28].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_board_v1_board_proto_rawDesc), len(file_proto_board_v1_board_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

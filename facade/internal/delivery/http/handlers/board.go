@@ -517,8 +517,16 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	result := make([]dto.MemberInfo, 0, len(members.Members))
+	for _, m := range members.Members {
+		result = append(result, dto.MemberInfo{
+			Link: m.Link,
+			Role: m.Role,
+		})
+	}
+
 	api.HandleError(api.RespondOk(w, dto.GetMembersResponse{
-		UserLinks: members.UserLinks,
+		Members: result,
 	}))
 }
 
@@ -655,8 +663,11 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, common.ErrorInviteNotFound):
 			api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
 			return
-		case errors.Is(err, common.ErrorInviteClosed), errors.Is(err, common.ErrorInviteExpired):
-			api.RespondError(w, http.StatusPreconditionFailed, err.Error())
+		case errors.Is(err, common.ErrorInviteClosed):
+			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteClosed.Error())
+			return
+		case errors.Is(err, common.ErrorInviteExpired):
+			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteExpired.Error())
 			return
 		case errors.Is(err, common.ErrorInviteNotForUser):
 			api.RespondError(w, http.StatusForbidden, common.ErrorInviteNotForUser.Error())

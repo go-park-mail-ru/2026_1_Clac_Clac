@@ -76,6 +76,11 @@ message UploadBackgroundResponse {
   string background_key = 1;
 }
 
+message MemberInfo {
+  string link = 1;
+  string role = 2;
+}
+
 // GetMembers
 message GetMembersRequest {
   string user_link = 1;
@@ -83,7 +88,7 @@ message GetMembersRequest {
 }
 
 message GetMembersResponse {
-  repeated string users_links = 1;
+  repeated MemberInfo members = 1;
 }
 
 // CreateInvite
