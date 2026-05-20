@@ -38,8 +38,8 @@ jobs:
       - name: Build Docs
         run: make docs
 
-      - name: Build Stoplight
-        run: npx @stoplight/elements-cli bundle -i docs/swagger.json -o docs-dist/
+      - name: Build Redocly Docs
+        run: npx @redocly/cli build-docs docs/swagger.json -o docs-dist/index.html
 
       - name: Deploy to S3
         uses: ./.github/actions/s3-deploy
