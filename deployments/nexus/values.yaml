@@ -69,11 +69,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-authorization:sha-3984ba1
-=======
-    image: nisakoo/nexus-authorization:sha-3984ba1
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: false
@@ -91,11 +87,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-user:sha-47f537c
-=======
-    image: nisakoo/nexus-user:sha-646932f
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: true
@@ -113,11 +105,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-mail_sender:sha-fa33b1c
-=======
-    image: nisakoo/nexus-mail_sender:sha-646932f
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: false
@@ -135,11 +123,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-board:sha-011b2ee
-=======
-    image: nisakoo/nexus-board:sha-011b2ee
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: true
@@ -157,11 +141,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-appeal:sha-3984ba1
-=======
-    image: nisakoo/nexus-appeal:sha-3984ba1
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: true
