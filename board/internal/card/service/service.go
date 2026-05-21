@@ -69,6 +69,15 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		return dto.InfoCard{}, fmt.Errorf("rep.GetCard: %w", err)
 	}
 
+	for i := range card.Attachments {
+		fullKey, err := url.JoinPath(s.cfg.BaseURLAttachment, card.Attachments[i].Path)
+		if err != nil {
+			return dto.InfoCard{}, fmt.Errorf("CardService url.JoinPath: %w", err)
+		}
+
+		card.Attachments[i].Path = fullKey
+	}
+
 	return dto.InfoCard{
 		Description:  card.Description,
 		Title:        card.Title,

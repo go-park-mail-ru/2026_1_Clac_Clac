@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"testing"
@@ -24,6 +25,10 @@ func TestRepositoryGetCard(t *testing.T) {
 	targetLink := uuid.New()
 	targetDeadLine := time.Now()
 	targetExecutorLink := uuid.New()
+	targetAttLink := uuid.New()
+	targetSubLink := uuid.New()
+	targetAttLink1 := uuid.New()
+	targetAttLink2 := uuid.New()
 
 	expectedInfo := dto.InfoCard{
 		Title:        "Test Task",
@@ -71,6 +76,78 @@ func TestRepositoryGetCard(t *testing.T) {
 					WillReturnError(errors.New("db disconnect"))
 			},
 			expectedError: errors.New("rep.QueryRow: db disconnect"),
+			expectedData:  dto.InfoCard{},
+		},
+		{
+			nameTest: "Success get card with attachments",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				attJSON, _ := json.Marshal([]rawAttachment{
+					{AttachmentLink: targetAttLink.String(), Name: "photo.png", Path: "cards-attachments/uuid.png", Position: 1},
+				})
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, []byte("[]"), attJSON)
+
+				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
+					WithArgs(targetLink).
+					WillReturnRows(rows)
+			},
+			expectedError: nil,
+			expectedData: dto.InfoCard{
+				Title:        "Task",
+				Description:  "Desc",
+				DataDeadLine: &targetDeadLine,
+				ExecutorLink: &targetExecutorLink,
+				Subtasks:     []models.SubtaskInfo{},
+				Position:     1,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttLink, Name: "photo.png", Path: "cards-attachments/uuid.png", Position: 1},
+				},
+			},
+		},
+		{
+			nameTest: "Success get card with subtasks and attachments",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				subJSON, _ := json.Marshal([]rawSubtask{
+					{SubtaskLink: targetSubLink.String(), Description: "do stuff", IsDone: false, Position: 1},
+				})
+				attJSON, _ := json.Marshal([]rawAttachment{
+					{AttachmentLink: targetAttLink1.String(), Name: "doc.pdf", Path: "cards-attachments/doc.pdf", Position: 1},
+					{AttachmentLink: targetAttLink2.String(), Name: "img.png", Path: "cards-attachments/img.png", Position: 2},
+				})
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, subJSON, attJSON)
+
+				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
+					WithArgs(targetLink).
+					WillReturnRows(rows)
+			},
+			expectedError: nil,
+			expectedData: dto.InfoCard{
+				Title:        "Task",
+				Description:  "Desc",
+				DataDeadLine: &targetDeadLine,
+				ExecutorLink: &targetExecutorLink,
+				Subtasks: []models.SubtaskInfo{
+					{SubtaskLink: targetSubLink, Description: "do stuff", IsDone: false, Position: 1},
+				},
+				Position: 2,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttLink1, Name: "doc.pdf", Path: "cards-attachments/doc.pdf", Position: 1},
+					{AttachmentLink: targetAttLink2, Name: "img.png", Path: "cards-attachments/img.png", Position: 2},
+				},
+			},
+		},
+		{
+			nameTest: "Error invalid attachments json",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, []byte("[]"), []byte("{invalid"))
+
+				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
+					WithArgs(targetLink).
+					WillReturnRows(rows)
+			},
+			expectedError: errors.New(msgInvalidUnmarshalAttachments),
 			expectedData:  dto.InfoCard{},
 		},
 	}

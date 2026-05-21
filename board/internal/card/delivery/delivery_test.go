@@ -120,6 +120,47 @@ func TestGetCard(t *testing.T) {
 			},
 			expectedCode: codes.Internal,
 		},
+		{
+			nameTest: "Success get card with attachments",
+			req:      &pb.GetCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
+			mockBehavior: func(m *testCardService) {
+				attLink := uuid.New()
+				m.On("GetCard", mock.Anything, targetCardLink, mock.Anything).Return(serviceDto.InfoCard{
+					Title:        "TestTitle",
+					Description:  "Test Desc",
+					ExecutorLink: &execLink,
+					DataDeadLine: &targetDeadline,
+					Attachments: []models.AttachmentInfo{
+						{AttachmentLink: attLink, Path: "https://s3.example.com/file.png", Name: "photo.png", Position: 1},
+					},
+				}, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetCardResponse) {
+				assert.NotNil(t, resp)
+				assert.Len(t, resp.CardInfo.Attachments, 1)
+				assert.Equal(t, "https://s3.example.com/file.png", resp.CardInfo.Attachments[0].Path)
+				assert.Equal(t, "photo.png", resp.CardInfo.Attachments[0].Name)
+				assert.Equal(t, int64(1), resp.CardInfo.Attachments[0].Position)
+			},
+		},
+		{
+			nameTest: "Success get card with empty attachments",
+			req:      &pb.GetCardRequest{CardLink: targetCardLink.String(), UserLink: targetUserLink.String()},
+			mockBehavior: func(m *testCardService) {
+				m.On("GetCard", mock.Anything, targetCardLink, mock.Anything).Return(serviceDto.InfoCard{
+					Title:        "TestTitle",
+					Description:  "Test Desc",
+					ExecutorLink: &execLink,
+					DataDeadLine: &targetDeadline,
+				}, nil)
+			},
+			expectedCode: codes.OK,
+			checkResp: func(t *testing.T, resp *pb.GetCardResponse) {
+				assert.NotNil(t, resp)
+				assert.Empty(t, resp.CardInfo.Attachments)
+			},
+		},
 	}
 
 	for _, test := range tests {

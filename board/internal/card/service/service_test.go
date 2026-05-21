@@ -104,6 +104,8 @@ func TestGetCard(t *testing.T) {
 	targetUserLink := uuid.New()
 	targetExecutorLink := uuid.New()
 	targetDataDeadLine := time.Now()
+	targetAttachmentLink := uuid.New()
+	targetAttachmentLink2 := uuid.New()
 
 	repResponse := repositoryDto.InfoCard{
 		Title:        "Title",
@@ -114,12 +116,14 @@ func TestGetCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
+		cfg           Config
 		mockBehavior  func(m *testCardRepository, r *MockRbacService)
 		expectedError error
 		expectedRes   dto.InfoCard
 	}{
 		{
 			nameTest: "Success get card",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repResponse, nil)
@@ -134,6 +138,7 @@ func TestGetCard(t *testing.T) {
 		},
 		{
 			nameTest: "Error permission denied",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
@@ -142,12 +147,67 @@ func TestGetCard(t *testing.T) {
 		},
 		{
 			nameTest: "Error from repository",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{}, errors.New("db error"))
 			},
 			expectedError: errors.New("rep.GetCard: db error"),
 			expectedRes:   dto.InfoCard{},
+		},
+		{
+			nameTest: "Success get card with attachments with correct full URL",
+			cfg:      Config{BaseURLAttachment: "https://bucket.endpoint"},
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{
+					Title:        "Title",
+					Description:  "Desc",
+					ExecutorLink: &targetExecutorLink,
+					DataDeadLine: &targetDataDeadLine,
+					Attachments: []models.AttachmentInfo{
+						{AttachmentLink: targetAttachmentLink, Path: "cards-attachments/photo.png", Name: "photo.png", Position: 1},
+					},
+				}, nil)
+			},
+			expectedError: nil,
+			expectedRes: dto.InfoCard{
+				Title:        "Title",
+				Description:  "Desc",
+				ExecutorLink: &targetExecutorLink,
+				DataDeadLine: &targetDataDeadLine,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttachmentLink, Path: "https://bucket.endpoint/cards-attachments/photo.png", Name: "photo.png", Position: 1},
+				},
+			},
+		},
+		{
+			nameTest: "Success get card with multiple attachments all with full URL",
+			cfg:      Config{BaseURLAttachment: "https://bucket.endpoint"},
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{
+					Title:        "Title",
+					Description:  "Desc",
+					ExecutorLink: &targetExecutorLink,
+					DataDeadLine: &targetDataDeadLine,
+					Attachments: []models.AttachmentInfo{
+						{AttachmentLink: targetAttachmentLink, Path: "cards-attachments/doc.pdf", Name: "doc.pdf", Position: 1},
+						{AttachmentLink: targetAttachmentLink2, Path: "cards-attachments/img.png", Name: "img.png", Position: 2},
+					},
+				}, nil)
+			},
+			expectedError: nil,
+			expectedRes: dto.InfoCard{
+				Title:        "Title",
+				Description:  "Desc",
+				ExecutorLink: &targetExecutorLink,
+				DataDeadLine: &targetDataDeadLine,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttachmentLink, Path: "https://bucket.endpoint/cards-attachments/doc.pdf", Name: "doc.pdf", Position: 1},
+					{AttachmentLink: targetAttachmentLink2, Path: "https://bucket.endpoint/cards-attachments/img.png", Name: "img.png", Position: 2},
+				},
+			},
 		},
 	}
 
@@ -157,7 +217,7 @@ func TestGetCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, test.cfg)
 			res, err := service.GetCard(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
