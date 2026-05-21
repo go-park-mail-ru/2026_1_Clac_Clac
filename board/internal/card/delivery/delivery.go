@@ -276,6 +276,7 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		Title:        updatingInfo.Title,
 		LinkExecutor: updatingInfo.LinkExecutor,
 		DataDeadLine: updatingInfo.DataDeadLine,
+		DataStart:    updatingInfo.DataStart,
 	}, userLink)
 	if err != nil {
 		switch {

@@ -3635,12 +3635,6 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 			} else {
 				out.Title = string(in.String())
 			}
-		case "description":
-			if in.IsNull() {
-				in.Skip()
-			} else {
-				out.Description = string(in.String())
-			}
 		case "executor_link":
 			if in.IsNull() {
 				in.Skip()
@@ -3678,11 +3672,6 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		const prefix string = ",\"title\":"
 		out.RawString(prefix)
 		out.String(string(in.Title))
-	}
-	{
-		const prefix string = ",\"description\":"
-		out.RawString(prefix)
-		out.String(string(in.Description))
 	}
 	if in.ExecutorLink != nil {
 		const prefix string = ",\"executor_link\":"

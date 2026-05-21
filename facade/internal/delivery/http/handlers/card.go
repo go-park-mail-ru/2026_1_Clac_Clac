@@ -436,11 +436,6 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenDescription); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
-		return
-	}
-
 	sectionLink, err := uuid.Parse(req.SectionLink)
 	if err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
