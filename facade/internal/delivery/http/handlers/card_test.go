@@ -1385,6 +1385,15 @@ func TestCardHandler_CreateAttachment(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
+			name:       "Attachment limit reached",
+			cardParam:  fixedCardLinkH.String(),
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(domain.AttachmentInfo{}, common.ErrorAttachmentLimitReached)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
 			name:       "Internal error",
 			cardParam:  fixedCardLinkH.String(),
 			setContext: true,

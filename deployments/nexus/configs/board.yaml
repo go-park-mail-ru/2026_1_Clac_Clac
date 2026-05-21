@@ -42,6 +42,8 @@ card:
   handler:
     max_len_title: 128
     max_len_description: 500
+  repository:
+    max_attachments: 100
 
 sentry:
   environment: "production"

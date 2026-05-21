@@ -1951,6 +1951,30 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 			} else {
 				out.Role = string(in.String())
 			}
+		case "avatar_url":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.AvatarUrl = string(in.String())
+			}
+		case "description":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Description = string(in.String())
+			}
+		case "display_name":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.DisplayName = string(in.String())
+			}
+		case "email":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Email = string(in.String())
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -1974,6 +1998,26 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		const prefix string = ",\"role\":"
 		out.RawString(prefix)
 		out.String(string(in.Role))
+	}
+	{
+		const prefix string = ",\"avatar_url\":"
+		out.RawString(prefix)
+		out.String(string(in.AvatarUrl))
+	}
+	{
+		const prefix string = ",\"description\":"
+		out.RawString(prefix)
+		out.String(string(in.Description))
+	}
+	{
+		const prefix string = ",\"display_name\":"
+		out.RawString(prefix)
+		out.String(string(in.DisplayName))
+	}
+	{
+		const prefix string = ",\"email\":"
+		out.RawString(prefix)
+		out.String(string(in.Email))
 	}
 	out.RawByte('}')
 }
@@ -2345,7 +2389,7 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 				in.Delim('[')
 				if out.Members == nil {
 					if !in.IsDelim(']') {
-						out.Members = make([]MemberInfo, 0, 2)
+						out.Members = make([]MemberInfo, 0, 0)
 					} else {
 						out.Members = []MemberInfo{}
 					}

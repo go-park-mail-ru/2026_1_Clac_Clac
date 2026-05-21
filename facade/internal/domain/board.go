@@ -41,8 +41,12 @@ type UploadBackgroundResponse struct {
 }
 
 type MemberInfo struct {
-	Link uuid.UUID
-	Role string
+	Link        uuid.UUID
+	Role        string
+	AvatarUrl   string
+	Description string
+	DisplayName string
+	Email       string
 }
 
 type GetMembersRequest struct {
@@ -73,8 +77,8 @@ type CreateInviteResponse struct {
 }
 
 type AcceptInviteRequest struct {
-	InviteLink  string
-	UserLink    uuid.UUID
+	InviteLink string
+	UserLink   uuid.UUID
 }
 
 type CloseInviteRequest struct {
@@ -83,15 +87,15 @@ type CloseInviteRequest struct {
 }
 
 type UpdateMemberRoleRequest struct {
-	UserLink      uuid.UUID
-	BoardLink     uuid.UUID
+	UserLink       uuid.UUID
+	BoardLink      uuid.UUID
 	TargetUserLink uuid.UUID
-	NewRole       string
+	NewRole        string
 }
 
 type RemoveMemberRequest struct {
-	UserLink      uuid.UUID
-	BoardLink     uuid.UUID
+	UserLink       uuid.UUID
+	BoardLink      uuid.UUID
 	TargetUserLink uuid.UUID
 }
 

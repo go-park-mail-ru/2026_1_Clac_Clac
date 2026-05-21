@@ -24,6 +24,11 @@ const (
 	msgInvalidUnmarshalAttachments = "can not unmurshal attachments"
 )
 
+type Config struct {
+	MaxAttachments  int
+	MaxNestingDepth int
+}
+
 type DBEngine interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
@@ -34,12 +39,14 @@ type DBEngine interface {
 type Repository struct {
 	pool        DBEngine
 	attachments s3.S3Bucket
+	cfg         Config
 }
 
-func NewRepository(pool DBEngine, attachments s3.S3Bucket) *Repository {
+func NewRepository(pool DBEngine, attachments s3.S3Bucket, cfg Config) *Repository {
 	return &Repository{
 		pool:        pool,
 		attachments: attachments,
+		cfg:         cfg,
 	}
 }
 
@@ -770,6 +777,24 @@ func (r *Repository) CreateAttachment(ctx context.Context, createInfo dto.Create
 			}
 		}
 	}()
+
+	queryCount := `
+		SELECT COUNT(*)
+		FROM attachment
+		WHERE task_link = $1
+	`
+
+	var count int
+
+	errTx = tx.QueryRow(ctx, queryCount, createInfo.TaskLink).Scan(&count)
+	if errTx != nil {
+		return models.AttachmentInfo{}, fmt.Errorf("RepositoryCard tx.QueryRow count: %w", errTx)
+	}
+
+	if count > r.cfg.MaxAttachments {
+		errTx = common.ErrAttachmentLimitReached
+		return models.AttachmentInfo{}, errTx
+	}
 
 	queryPos := `
 		SELECT COALESCE(MAX(position), 0) + 1

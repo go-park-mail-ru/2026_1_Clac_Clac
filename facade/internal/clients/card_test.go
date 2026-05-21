@@ -834,6 +834,12 @@ func TestCardClient_CreateAttachment(t *testing.T) {
 			mockErr:     status.Error(codes.InvalidArgument, "missing required field"),
 			expectedErr: common.ErrorInvalidInput,
 		},
+		{
+			name:        "grpc attachment limit reached",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.InvalidArgument, "attachment limit reached"),
+			expectedErr: common.ErrorAttachmentLimitReached,
+		},
 	}
 
 	for _, tt := range tests {

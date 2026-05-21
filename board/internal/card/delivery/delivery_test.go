@@ -1222,6 +1222,14 @@ func TestCreateAttachment(t *testing.T) {
 			expectedCode: codes.InvalidArgument,
 		},
 		{
+			nameTest: "Error attachment limit reached",
+			req:      validReq,
+			mockBehavior: func(m *testCardService) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, common.ErrAttachmentLimitReached)
+			},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
 			nameTest: "Error internal server",
 			req:      validReq,
 			mockBehavior: func(m *testCardService) {

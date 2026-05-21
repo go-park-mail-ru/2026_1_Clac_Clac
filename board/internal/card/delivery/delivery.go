@@ -781,6 +781,8 @@ func (h *CardHandler) CreateAttachment(ctx context.Context, req *pb.CreateAttach
 			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		case errors.Is(err, common.ErrInvalidReferenceCardData):
 			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		case errors.Is(err, common.ErrAttachmentLimitReached):
+			return nil, status.Error(codes.InvalidArgument, common.ErrAttachmentLimitReached.Error())
 		case errors.Is(err, common.ErrCardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}

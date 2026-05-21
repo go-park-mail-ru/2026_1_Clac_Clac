@@ -69,6 +69,7 @@ const (
 	msgFailDeleteSubtask    = "cannot delete subtask"
 	msgFailCreateAttachment = "cannot create attachment"
 	msgFailDeleteAttachment = "cannot delete attachment"
+	msgAttachmentLimit      = "attachment limit reached"
 )
 
 type CardConfig struct {
@@ -1027,6 +1028,9 @@ func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
 			return
 		case errors.Is(err, common.ErrorInvalidInput):
 			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			return
+		case errors.Is(err, common.ErrorAttachmentLimitReached):
+			api.RespondError(w, http.StatusBadRequest, msgAttachmentLimit)
 			return
 		case errors.Is(err, common.ErrorCardNotFound):
 			api.RespondError(w, http.StatusNotFound, msgCardNotFound)

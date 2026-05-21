@@ -25,6 +25,7 @@ const (
 	identifierAttachmentNotFound = "attachment not found"
 
 	identifierTaskLimitError       = "task limit"
+	identifierAttachmentLimitError = "attachment limit"
 	identifierLostMandatorySection = "mandatory section"
 	identifierIncorrectTypeFile    = "invalid content type"
 
@@ -109,6 +110,8 @@ func convertCardGRPCError(err error) error {
 		switch {
 		case strings.Contains(msg, identifierTaskLimitError):
 			return common.ErrorTaskLimitReached
+		case strings.Contains(msg, identifierAttachmentLimitError):
+			return common.ErrorAttachmentLimitReached
 		case strings.Contains(msg, identifierLostMandatorySection):
 			return common.ErrCannotSkipMandatorySection
 		}

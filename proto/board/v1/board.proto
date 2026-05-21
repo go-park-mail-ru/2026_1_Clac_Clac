@@ -79,6 +79,10 @@ message UploadBackgroundResponse {
 message MemberInfo {
   string link = 1;
   string role = 2;
+  string avatar_url = 3;
+	string description = 4;
+	string display_name = 5;
+	string email = 6;
 }
 
 // GetMembers

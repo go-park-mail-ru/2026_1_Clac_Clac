@@ -57,8 +57,12 @@ type UploadBackgroundResponse struct {
 //
 //	@Description	Информация об участнике доски
 type MemberInfo struct {
-	Link uuid.UUID `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Role string    `json:"role" example:"editor"`
+	Link        uuid.UUID `json:"link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Role        string    `json:"role" example:"editor"`
+	AvatarUrl   string    `json:"avatar_url" example:"https://s3.example.com/backgrounds/bg.jpg"`
+	Description string    `json:"description" example:"gofer"`
+	DisplayName string    `json:"display_name" example:"artem"`
+	Email       string    `json:"email"           example:"ivan@mail.com"`
 }
 
 // GetMembersRequest содержит UUID доски для получения списка участников.
@@ -79,9 +83,9 @@ type GetMembersResponse struct {
 //
 //	@Description	Данные для создания приглашения
 type CreateInviteRequest struct {
-	UserLink       string  `json:"user_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
-	DefaultRole    string  `json:"default_role" example:"editor"`
-	ExpireSeconds  int64   `json:"expire_seconds,omitempty" example:"86400"`
+	UserLink      string `json:"user_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
+	DefaultRole   string `json:"default_role" example:"editor"`
+	ExpireSeconds int64  `json:"expire_seconds,omitempty" example:"86400"`
 }
 
 // CreateInviteResponse содержит информацию о созданном приглашении.

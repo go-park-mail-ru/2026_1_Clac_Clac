@@ -27,6 +27,7 @@ var (
 	ErrorPermissionDenied         = errors.New("permission denied")
 	ErrorCardAlreadyExists        = errors.New("card already exists")
 	ErrorTaskLimitReached         = errors.New("task limit reached")
+	ErrorAttachmentLimitReached   = errors.New("attachment limit reached")
 	ErrCannotSkipMandatorySection = errors.New("cannot skip mandatory section")
 
 	ErrorBoardNotFound           = errors.New("board not found")

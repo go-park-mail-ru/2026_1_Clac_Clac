@@ -37,6 +37,10 @@ func TestConfigReading(t *testing.T) {
 				MaxLenTitle:       128,
 				MaxLenDescription: 500,
 			},
+			Repository: config.CardRepository{
+				MaxAttachments:  100,
+				MaxNestingDepth: 100,
+			},
 		},
 		Sentry:  config.DefaultSentryConfig(),
 		Metrics: config.DefaultMetrics(),

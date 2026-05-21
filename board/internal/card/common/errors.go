@@ -14,5 +14,7 @@ var (
 	ErrCommentNotFound            = errors.New("comment not found")
 	ErrSubtaskNotFound            = errors.New("sub task not found")
 	ErrAttachmentNotFound         = errors.New("attachment not found")
+	ErrAttachmentLimitReached     = errors.New("attachment limit reached")
 	ErrPermissionDenied           = errors.New("permission denied")
+	ErrMaxNestingDepthReached     = errors.New("max nesting depth reached")
 )

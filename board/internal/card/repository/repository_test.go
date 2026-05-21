@@ -164,7 +164,7 @@ func TestRepositoryGetCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.GetCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -236,7 +236,7 @@ func TestRepositoryDeleteCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.DeleteCard(ctx, targetLink)
 
 			if test.expectedError != nil {
@@ -378,7 +378,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.UpdateCardDetails(ctx, updatingCard)
 
 			if test.expectedError != nil {
@@ -656,7 +656,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 
 			var updateDto dto.PlaceCard
 			if test.nameTest == "Success reorder same section" ||
@@ -924,7 +924,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 				test.mockBehavior(mockDB)
 			}
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.CreateCard(ctx, newCard)
 
 			if test.expectedError != nil {
@@ -1011,7 +1011,7 @@ func TestRepositoryGetComments(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.GetComments(ctx, targetCardLink)
 
 			if test.expectedError != nil {
@@ -1097,7 +1097,7 @@ func TestRepositoryCreateComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.CreateComment(ctx, createInfo)
 
 			if test.expectedError != nil {
@@ -1185,7 +1185,7 @@ func TestRepositoryIsCommentAuthor(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.IsCommentAuthor(ctx, targetCommentLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -1254,7 +1254,7 @@ func TestRepositoryDeleteComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.DeleteComment(ctx, targetCommentLink)
 
 			if test.expectedError != nil {
@@ -1327,7 +1327,7 @@ func TestRepositoryUpdateComment(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.UpdateComment(ctx, updateInfo)
 
 			if test.expectedError != nil {
@@ -1421,7 +1421,7 @@ func TestRepositoryCreateSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.CreateSubtask(ctx, createInfo)
 
 			if test.expectedError != nil {
@@ -1497,7 +1497,7 @@ func TestRepositoryDeleteSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.DeleteSubtask(ctx, deleteInfo)
 
 			if test.expectedError != nil {
@@ -1571,7 +1571,7 @@ func TestRepositoryUpdateSubtask(t *testing.T) {
 
 			test.mockBehavior(mockDB)
 
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			err = repo.UpdateSubtask(ctx, updateInfo)
 
 			if test.expectedError != nil {
@@ -1656,7 +1656,7 @@ func TestRepositoryUploadAttachment(t *testing.T) {
 			defer mockDB.Close()
 
 			s3 := test.s3Behavior()
-			repo := NewRepository(mockDB, s3)
+			repo := NewRepository(mockDB, s3, Config{MaxAttachments: 100})
 
 			key, err := repo.UploadAttachment(ctx, dto.UploadAttachment{
 				FilePath:    "some-uuid.png",
@@ -1695,6 +1695,9 @@ func TestRepositoryCreateAttachment(t *testing.T) {
 			nameTest: "Success create attachment",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
 				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
 					WithArgs(taskLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
@@ -1713,9 +1716,23 @@ func TestRepositoryCreateAttachment(t *testing.T) {
 			expectedError: errors.New("CreateAttachment pool.Begin: begin error"),
 		},
 		{
+			nameTest: "Error count query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnError(errors.New("db disconnect"))
+				m.ExpectRollback()
+			},
+			expectedError: errors.New("db disconnect"),
+		},
+		{
 			nameTest: "Error position query fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
 				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
 					WithArgs(taskLink).
 					WillReturnError(errors.New("db disconnect"))
@@ -1727,6 +1744,9 @@ func TestRepositoryCreateAttachment(t *testing.T) {
 			nameTest: "Error insert fk violation",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
 				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
 					WithArgs(taskLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
@@ -1736,6 +1756,34 @@ func TestRepositoryCreateAttachment(t *testing.T) {
 				m.ExpectRollback()
 			},
 			expectedError: common.ErrInvalidReferenceCardData,
+		},
+		{
+			nameTest: "Error attachment limit reached",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(101))
+				m.ExpectRollback()
+			},
+			expectedError: common.ErrAttachmentLimitReached,
+		},
+		{
+			nameTest: "Success with count less than limit",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectBegin()
+				m.ExpectQuery(`(?s)SELECT COUNT\(\*\).*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(99))
+				m.ExpectQuery(`(?s)SELECT COALESCE.*FROM attachment WHERE task_link`).
+					WithArgs(taskLink).
+					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
+				m.ExpectExec(`(?s)INSERT INTO attachment.*`).
+					WithArgs(attachmentLink, taskLink, "photo.png", "uploads/file.png", 1).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				m.ExpectCommit()
+			},
+			expectedError: nil,
 		},
 	}
 
@@ -1748,7 +1796,7 @@ func TestRepositoryCreateAttachment(t *testing.T) {
 			defer mockDB.Close()
 
 			test.mockBehavior(mockDB)
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			result, err := repo.CreateAttachment(ctx, createInfo)
 
 			if test.expectedError != nil {
@@ -1816,7 +1864,7 @@ func TestRepositoryDeleteAttachmentFromDB(t *testing.T) {
 			defer mockDB.Close()
 
 			test.mockBehavior(mockDB)
-			repo := NewRepository(mockDB, nil)
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
 			key, err := repo.DeleteAttachmentFromDB(ctx, attachmentLink)
 
 			if test.expectedError != nil {
@@ -1874,7 +1922,7 @@ func TestRepositoryDeleteAttachmentFromS3(t *testing.T) {
 			defer mockDB.Close()
 
 			s3 := test.s3Behavior()
-			repo := NewRepository(mockDB, s3)
+			repo := NewRepository(mockDB, s3, Config{MaxAttachments: 100})
 			err = repo.DeleteAttachmentFromS3(ctx, s3Key)
 
 			if test.expectedError != nil {
