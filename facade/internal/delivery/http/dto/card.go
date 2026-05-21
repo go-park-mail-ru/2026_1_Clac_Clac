@@ -15,6 +15,7 @@ type CreateCardRequest struct {
 	Description  string     `json:"description"`
 	ExecutorLink *string    `json:"executor_link,omitempty"`
 	Deadline     *time.Time `json:"deadline,omitempty"`
+	Start        *time.Time `json:"start,omitempty"`
 }
 
 // UpdateCardRequest содержит данные для обновления карточки.
@@ -25,6 +26,7 @@ type UpdateCardRequest struct {
 	Description  string     `json:"description"`
 	ExecutorLink *string    `json:"executor_link,omitempty"`
 	Deadline     *time.Time `json:"deadline,omitempty"`
+	Start        *time.Time `json:"start,omitempty"`
 }
 
 // ReorderCardsRequest содержит данные для перемещения карточки.
@@ -64,6 +66,8 @@ type CardResponse struct {
 	Title        string               `json:"title" example:"Fix bug on frontend"`
 	Description  string               `json:"description" example:"Card description"`
 	Deadline     *time.Time           `json:"deadline,omitempty" example:"2026-04-12T14:35:00Z"`
+	Start        *time.Time           `json:"start,omitempty"  example:"2026-04-12T14:35:00Z"`
+	Status       bool                 `json:"status" example:"false"`
 	Subtasks     []SubtaskResponse    `json:"subtasks"`
 	Position     int                  `json:"position" example:"2"`
 	Attachments  []AttachmentResponse `json:"attachments"`
@@ -131,4 +135,13 @@ type CreateSubtaskRequest struct {
 type UpdateSubtaskRequest struct {
 	IsDone      bool   `json:"is_done"`
 	Description string `json:"description"`
+}
+
+type NewStatusTask struct {
+	Done bool `json:"done"`
+}
+
+type NewTimeLine struct {
+	Start    time.Time `json:"start"`
+	DeadLine time.Time `json:"deadline"`
 }

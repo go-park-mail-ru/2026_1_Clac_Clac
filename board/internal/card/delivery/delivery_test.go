@@ -51,6 +51,16 @@ func (m *testCardService) DeleteAttachment(ctx context.Context, deleteInfo servi
 	return args.Error(0)
 }
 
+func (m *testCardService) UpdateStatusTask(ctx context.Context, updateInfo serviceDto.UpdateStatusTask) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
+func (m *testCardService) UpdateTimeLine(ctx context.Context, updateInfo serviceDto.UpdateTimeLine) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
 func newTestCardService(t *testing.T) *testCardService {
 	return &testCardService{mockCardSrv.NewCardService(t)}
 }

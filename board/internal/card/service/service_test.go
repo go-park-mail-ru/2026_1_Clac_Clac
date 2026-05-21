@@ -95,6 +95,16 @@ func (m *testCardRepository) DeleteAttachmentFromS3(ctx context.Context, key str
 	return args.Error(0)
 }
 
+func (m *testCardRepository) UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
+func (m *testCardRepository) UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
 func newTestCardRepository(t *testing.T) *testCardRepository {
 	return &testCardRepository{mockCardRep.NewCardRepository(t)}
 }

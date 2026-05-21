@@ -73,6 +73,8 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		t.due_date,
 		t.executer_link,
 		t.position,
+		t.start,
+		t.status,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
@@ -111,6 +113,8 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 		&infoCard.DataDeadLine,
 		&infoCard.ExecutorLink,
 		&infoCard.Position,
+		&infoCard.DataStart,
+		&infoCard.Status,
 		&subtasks,
 		&attachments,
 	)
@@ -200,13 +204,15 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 	UPDATE task_version
 	SET valid_to = NOW()
 	WHERE task_link = $1 AND valid_to IS NULL
-	RETURNING section_link, position;
+	RETURNING section_link, position, start, status;
 	`
 
 	var oldSectionLink uuid.UUID
 	var oldPosition int
+	var oldStart time.Time
+	var oldStatus bool
 
-	err = tx.QueryRow(ctx, queryClose, updatingCard.LinkCard).Scan(&oldSectionLink, &oldPosition)
+	err = tx.QueryRow(ctx, queryClose, updatingCard.LinkCard).Scan(&oldSectionLink, &oldPosition, &oldStart, &oldStatus)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return common.ErrCardNotFound
@@ -214,11 +220,16 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 		return fmt.Errorf("tx.QueryRow: %w", err)
 	}
 
+	dataStart := &oldStart
+	if updatingCard.DataStart != nil {
+		dataStart = updatingCard.DataStart
+	}
+
 	queryInsert := `
 		INSERT INTO task_version (
-			task_link, section_link, executer_link, title, description, position, due_date
+			task_link, section_link, executer_link, title, description, position, due_date, start, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
 
 	_, err = tx.Exec(ctx, queryInsert,
@@ -229,6 +240,8 @@ func (r *Repository) UpdateCardDetails(ctx context.Context, updatingCard dto.Upd
 		updatingCard.Description,
 		oldPosition,
 		updatingCard.DataDeadLine,
+		dataStart,
+		oldStatus,
 	)
 	if err != nil {
 		var pgError *pgconn.PgError
@@ -274,16 +287,18 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		UPDATE task_version
 		SET valid_to = NOW()
 		WHERE task_link = $1 AND valid_to IS NULL
-		RETURNING section_link, position, title, description, executer_link, due_date;
+		RETURNING section_link, position, title, description, executer_link, due_date, start, status;
 	`
 	var oldSectionLink uuid.UUID
 	var position int
 	var title, description string
 	var executorLink *uuid.UUID
 	var dueDate *time.Time
+	var oldStart time.Time
+	var oldStatus bool
 
 	err = tx.QueryRow(ctx, queryClose, updatingPlaceCard.LinkCard).Scan(
-		&oldSectionLink, &position, &title, &description, &executorLink, &dueDate,
+		&oldSectionLink, &position, &title, &description, &executorLink, &dueDate, &oldStart, &oldStatus,
 	)
 
 	if err != nil {
@@ -379,9 +394,9 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 
 	queryInsert := `
 		INSERT INTO task_version (
-			task_link, section_link, position, title, description, executer_link, due_date
+			task_link, section_link, position, title, description, executer_link, due_date, start, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
 
 	_, err = tx.Exec(ctx, queryInsert,
@@ -392,6 +407,8 @@ func (r *Repository) ReorderCard(ctx context.Context, updatingPlaceCard dto.Plac
 		description,
 		executorLink,
 		dueDate,
+		&oldStart,
+		oldStatus,
 	)
 	if err != nil {
 		var pgError *pgconn.PgError
@@ -474,9 +491,9 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	}
 	queryVersion := `
 		INSERT INTO task_version (
-			task_link, section_link, executer_link, title, description, position, due_date
+			task_link, section_link, executer_link, title, description, position, due_date, start, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 	`
 	_, err = tx.Exec(ctx, queryVersion,
 		newCard.LinkCard,
@@ -486,6 +503,8 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 		newCard.Description,
 		position,
 		newCard.DataDeadLine,
+		newCard.DataStart,
+		false,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "fk_version_section") {
@@ -869,6 +888,175 @@ func (r *Repository) DeleteAttachmentFromS3(ctx context.Context, key string) err
 	err := r.attachments.Delete(ctx, key)
 	if err != nil {
 		return fmt.Errorf("attachments.Delete: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateStatusTask(ctx context.Context, updateInfo dto.UpdateStatusTask) (err error) {
+	logger := zerolog.Ctx(ctx)
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("pool.Begin: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid roll back")
+			}
+		}
+	}()
+
+	queryClose := `
+		UPDATE task_version
+		SET valid_to = NOW()
+		WHERE task_link = $1 AND valid_to IS NULL
+		RETURNING section_link, executer_link, title, description, position, due_date, start;
+	`
+
+	var sectionLink uuid.UUID
+	var executorLink *uuid.UUID
+	var title, description string
+	var position int
+	var dueDate *time.Time
+	var oldStart time.Time
+
+	err = tx.QueryRow(ctx, queryClose, updateInfo.TaskLink).Scan(
+		&sectionLink, &executorLink, &title, &description, &position, &dueDate, &oldStart,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return common.ErrCardNotFound
+		}
+		return fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	queryInsert := `
+		INSERT INTO task_version (
+			task_link, section_link, executer_link, title, description, position, due_date, start, status
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+	`
+
+	_, err = tx.Exec(ctx, queryInsert,
+		updateInfo.TaskLink,
+		sectionLink,
+		executorLink,
+		title,
+		description,
+		position,
+		dueDate,
+		&oldStart,
+		updateInfo.Status,
+	)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrInvalidReferenceCardData
+			case pgerrcode.CheckViolation:
+				return common.ErrInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return common.ErrMissingRequiredField
+			}
+		}
+
+		return fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx.Commit: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) (err error) {
+	logger := zerolog.Ctx(ctx)
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("pool.Begin: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			errRollBack := tx.Rollback(ctx)
+			if errRollBack != nil {
+				logger.Error().Msg("invalid roll back")
+			}
+		}
+	}()
+
+	queryClose := `
+		UPDATE task_version
+		SET valid_to = NOW()
+		WHERE task_link = $1 AND valid_to IS NULL
+		RETURNING section_link, executer_link, title, description, position, start, status;
+	`
+
+	var sectionLink uuid.UUID
+	var executorLink *uuid.UUID
+	var title, description string
+	var position int
+	var oldStart time.Time
+	var oldStatus bool
+
+	err = tx.QueryRow(ctx, queryClose, updateInfo.TaskLink).Scan(
+		&sectionLink, &executorLink, &title, &description, &position, &oldStart, &oldStatus,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return common.ErrCardNotFound
+		}
+		return fmt.Errorf("tx.QueryRow: %w", err)
+	}
+
+	dataStart := &oldStart
+	if updateInfo.Start != nil {
+		dataStart = updateInfo.Start
+	}
+
+	queryInsert := `
+		INSERT INTO task_version (
+			task_link, section_link, executer_link, title, description, position, due_date, start, status
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+	`
+
+	_, err = tx.Exec(ctx, queryInsert,
+		updateInfo.TaskLink,
+		sectionLink,
+		executorLink,
+		title,
+		description,
+		position,
+		updateInfo.DeadLine,
+		dataStart,
+		oldStatus,
+	)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			switch pgError.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrInvalidReferenceCardData
+			case pgerrcode.CheckViolation:
+				return common.ErrInvalidCardData
+			case pgerrcode.NotNullViolation:
+				return common.ErrMissingRequiredField
+			}
+		}
+
+		return fmt.Errorf("tx.Exec: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("tx.Commit: %w", err)
 	}
 
 	return nil

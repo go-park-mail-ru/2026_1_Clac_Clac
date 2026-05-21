@@ -176,6 +176,8 @@ CREATE TABLE task_version (
     "description" TEXT DEFAULT '' NOT NULL,
     position INT NOT NULL,
     due_date TIMESTAMPTZ,
+    start TIMESTAMPTZ DEFAULT now() NOT NULL,
+    status BOOLEAN DEFAULT false NOT NULL,
 
     valid_from TIMESTAMPTZ DEFAULT now() NOT NULL,
     valid_to TIMESTAMPTZ,
@@ -197,7 +199,9 @@ SELECT
     v.title,
     v.description,
     v.position,
-    v.due_date
+    v.due_date,
+    v.start,
+    v.status
 FROM task t
 JOIN task_version v
   ON v.task_link = t.task_link

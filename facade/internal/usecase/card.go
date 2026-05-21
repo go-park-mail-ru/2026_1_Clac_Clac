@@ -22,6 +22,8 @@ type CardClient interface {
 	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error
 	CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error)
 	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
+	UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error
+	UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error
 }
 
 type Card struct {
@@ -158,6 +160,22 @@ func (c *Card) CreateAttachment(ctx context.Context, infoAttachment domain.Creat
 func (c *Card) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
 	if err := c.card.DeleteAttachment(ctx, infoAttachment); err != nil {
 		return fmt.Errorf("card.DeleteAttachment: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	if err := c.card.UpdateStatusTask(ctx, info); err != nil {
+		return fmt.Errorf("card.UpdateStatusTask: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	if err := c.card.UpdateTimeLine(ctx, info); err != nil {
+		return fmt.Errorf("card.UpdateTimeLine: %w", err)
 	}
 
 	return nil

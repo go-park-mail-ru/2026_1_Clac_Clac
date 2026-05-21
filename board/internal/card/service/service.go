@@ -34,6 +34,8 @@ type CardRepository interface {
 	CreateAttachment(ctx context.Context, createInfo repositoryDto.CreateAttachment) (models.AttachmentInfo, error)
 	DeleteAttachmentFromDB(ctx context.Context, attachmentLink uuid.UUID) (string, error)
 	DeleteAttachmentFromS3(ctx context.Context, key string) error
+	UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error
+	UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error
 }
 
 type Config struct {
@@ -83,6 +85,8 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		Title:        card.Title,
 		ExecutorLink: card.ExecutorLink,
 		DataDeadLine: card.DataDeadLine,
+		DataStart:    card.DataStart,
+		Status:       card.Status,
 		Subtasks:     card.Subtasks,
 		Position:     card.Position,
 		Attachments:  card.Attachments,
@@ -123,6 +127,7 @@ func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.Updati
 		Title:        updatingCard.Title,
 		LinkExecutor: updatingCard.LinkExecutor,
 		DataDeadLine: updatingCard.DataDeadLine,
+		DataStart:    updatingCard.DataStart,
 	})
 	if err != nil {
 		return fmt.Errorf("rep.UpdateCardDetails: %w", err)
@@ -173,6 +178,7 @@ func (s *Service) CreateCard(ctx context.Context, newCard dto.NewCard) (dto.Plac
 		Title:        newCard.Title,
 		LinkExecutor: newCard.LinkExecutor,
 		DataDeadLine: newCard.DataDeadLine,
+		DataStart:    newCard.DataStart,
 	})
 	if err != nil {
 		return dto.PlaceCard{}, fmt.Errorf("rep.CreateCard: %w", err)
@@ -447,6 +453,47 @@ func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAtt
 
 	if err = s.rep.DeleteAttachmentFromS3(ctx, key); err != nil {
 		return fmt.Errorf("CardRepository.DeleteAttachmentFromS3: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateStatusTask(ctx context.Context, updateInfo dto.UpdateStatusTask) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, updateInfo.TaskLink, updateInfo.UserLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.UpdateStatusTask(ctx, repositoryDto.UpdateStatusTask{
+		TaskLink: updateInfo.TaskLink,
+		Status:   updateInfo.Status,
+	})
+	if err != nil {
+		return fmt.Errorf("rep.UpdateStatusTask: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, updateInfo.TaskLink, updateInfo.UserLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.UpdateTimeLine(ctx, repositoryDto.UpdateTimeLine{
+		TaskLink: updateInfo.TaskLink,
+		DeadLine: updateInfo.DeadLine,
+		Start:    updateInfo.Start,
+	})
+	if err != nil {
+		return fmt.Errorf("rep.UpdateTimeLine: %w", err)
 	}
 
 	return nil

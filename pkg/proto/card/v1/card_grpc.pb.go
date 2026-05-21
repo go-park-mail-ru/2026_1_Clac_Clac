@@ -19,20 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CardService_GetCard_FullMethodName          = "/proto.card.v1.CardService/GetCard"
-	CardService_DeleteCard_FullMethodName       = "/proto.card.v1.CardService/DeleteCard"
-	CardService_UpdateCard_FullMethodName       = "/proto.card.v1.CardService/UpdateCard"
-	CardService_ReorderCards_FullMethodName     = "/proto.card.v1.CardService/ReorderCards"
-	CardService_CreateCard_FullMethodName       = "/proto.card.v1.CardService/CreateCard"
-	CardService_GetComments_FullMethodName      = "/proto.card.v1.CardService/GetComments"
-	CardService_CreateComment_FullMethodName    = "/proto.card.v1.CardService/CreateComment"
-	CardService_DeleteComment_FullMethodName    = "/proto.card.v1.CardService/DeleteComment"
-	CardService_UpdateComment_FullMethodName    = "/proto.card.v1.CardService/UpdateComment"
-	CardService_CreateSubtask_FullMethodName    = "/proto.card.v1.CardService/CreateSubtask"
-	CardService_UpdateSubtask_FullMethodName    = "/proto.card.v1.CardService/UpdateSubtask"
-	CardService_DeleteSubtask_FullMethodName    = "/proto.card.v1.CardService/DeleteSubtask"
-	CardService_CreateAttachment_FullMethodName = "/proto.card.v1.CardService/CreateAttachment"
-	CardService_DeleteAttachment_FullMethodName = "/proto.card.v1.CardService/DeleteAttachment"
+	CardService_GetCard_FullMethodName            = "/proto.card.v1.CardService/GetCard"
+	CardService_DeleteCard_FullMethodName         = "/proto.card.v1.CardService/DeleteCard"
+	CardService_UpdateCard_FullMethodName         = "/proto.card.v1.CardService/UpdateCard"
+	CardService_ReorderCards_FullMethodName       = "/proto.card.v1.CardService/ReorderCards"
+	CardService_CreateCard_FullMethodName         = "/proto.card.v1.CardService/CreateCard"
+	CardService_GetComments_FullMethodName        = "/proto.card.v1.CardService/GetComments"
+	CardService_CreateComment_FullMethodName      = "/proto.card.v1.CardService/CreateComment"
+	CardService_DeleteComment_FullMethodName      = "/proto.card.v1.CardService/DeleteComment"
+	CardService_UpdateComment_FullMethodName      = "/proto.card.v1.CardService/UpdateComment"
+	CardService_CreateSubtask_FullMethodName      = "/proto.card.v1.CardService/CreateSubtask"
+	CardService_UpdateSubtask_FullMethodName      = "/proto.card.v1.CardService/UpdateSubtask"
+	CardService_DeleteSubtask_FullMethodName      = "/proto.card.v1.CardService/DeleteSubtask"
+	CardService_CreateAttachment_FullMethodName   = "/proto.card.v1.CardService/CreateAttachment"
+	CardService_DeleteAttachment_FullMethodName   = "/proto.card.v1.CardService/DeleteAttachment"
+	CardService_UpdateStatusTask_FullMethodName   = "/proto.card.v1.CardService/UpdateStatusTask"
+	CardService_UpdateTimeLineTask_FullMethodName = "/proto.card.v1.CardService/UpdateTimeLineTask"
 )
 
 // CardServiceClient is the client API for CardService service.
@@ -53,6 +55,8 @@ type CardServiceClient interface {
 	DeleteSubtask(ctx context.Context, in *DeleteSubtaskRequest, opts ...grpc.CallOption) (*DeleteSubtaskResponse, error)
 	CreateAttachment(ctx context.Context, in *CreateAttachmentRequest, opts ...grpc.CallOption) (*CreateAttachmentResponse, error)
 	DeleteAttachment(ctx context.Context, in *DeleteAttachmentRequest, opts ...grpc.CallOption) (*DeleteAttachmentResponse, error)
+	UpdateStatusTask(ctx context.Context, in *UpdateStatusTaskRequest, opts ...grpc.CallOption) (*UpdateStatusTaskResponse, error)
+	UpdateTimeLineTask(ctx context.Context, in *UpdateTimeLineTaskRequest, opts ...grpc.CallOption) (*UpdateTimeLineTaskResponse, error)
 }
 
 type cardServiceClient struct {
@@ -203,6 +207,26 @@ func (c *cardServiceClient) DeleteAttachment(ctx context.Context, in *DeleteAtta
 	return out, nil
 }
 
+func (c *cardServiceClient) UpdateStatusTask(ctx context.Context, in *UpdateStatusTaskRequest, opts ...grpc.CallOption) (*UpdateStatusTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateStatusTaskResponse)
+	err := c.cc.Invoke(ctx, CardService_UpdateStatusTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cardServiceClient) UpdateTimeLineTask(ctx context.Context, in *UpdateTimeLineTaskRequest, opts ...grpc.CallOption) (*UpdateTimeLineTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTimeLineTaskResponse)
+	err := c.cc.Invoke(ctx, CardService_UpdateTimeLineTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CardServiceServer is the server API for CardService service.
 // All implementations must embed UnimplementedCardServiceServer
 // for forward compatibility.
@@ -221,6 +245,8 @@ type CardServiceServer interface {
 	DeleteSubtask(context.Context, *DeleteSubtaskRequest) (*DeleteSubtaskResponse, error)
 	CreateAttachment(context.Context, *CreateAttachmentRequest) (*CreateAttachmentResponse, error)
 	DeleteAttachment(context.Context, *DeleteAttachmentRequest) (*DeleteAttachmentResponse, error)
+	UpdateStatusTask(context.Context, *UpdateStatusTaskRequest) (*UpdateStatusTaskResponse, error)
+	UpdateTimeLineTask(context.Context, *UpdateTimeLineTaskRequest) (*UpdateTimeLineTaskResponse, error)
 	mustEmbedUnimplementedCardServiceServer()
 }
 
@@ -272,6 +298,12 @@ func (UnimplementedCardServiceServer) CreateAttachment(context.Context, *CreateA
 }
 func (UnimplementedCardServiceServer) DeleteAttachment(context.Context, *DeleteAttachmentRequest) (*DeleteAttachmentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteAttachment not implemented")
+}
+func (UnimplementedCardServiceServer) UpdateStatusTask(context.Context, *UpdateStatusTaskRequest) (*UpdateStatusTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateStatusTask not implemented")
+}
+func (UnimplementedCardServiceServer) UpdateTimeLineTask(context.Context, *UpdateTimeLineTaskRequest) (*UpdateTimeLineTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTimeLineTask not implemented")
 }
 func (UnimplementedCardServiceServer) mustEmbedUnimplementedCardServiceServer() {}
 func (UnimplementedCardServiceServer) testEmbeddedByValue()                     {}
@@ -546,6 +578,42 @@ func _CardService_DeleteAttachment_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CardService_UpdateStatusTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateStatusTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).UpdateStatusTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_UpdateStatusTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).UpdateStatusTask(ctx, req.(*UpdateStatusTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CardService_UpdateTimeLineTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTimeLineTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CardServiceServer).UpdateTimeLineTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CardService_UpdateTimeLineTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CardServiceServer).UpdateTimeLineTask(ctx, req.(*UpdateTimeLineTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CardService_ServiceDesc is the grpc.ServiceDesc for CardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -608,6 +676,14 @@ var CardService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteAttachment",
 			Handler:    _CardService_DeleteAttachment_Handler,
+		},
+		{
+			MethodName: "UpdateStatusTask",
+			Handler:    _CardService_UpdateStatusTask_Handler,
+		},
+		{
+			MethodName: "UpdateTimeLineTask",
+			Handler:    _CardService_UpdateTimeLineTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

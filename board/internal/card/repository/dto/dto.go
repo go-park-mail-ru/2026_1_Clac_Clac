@@ -13,6 +13,8 @@ type InfoCard struct {
 	Title        string
 	ExecutorLink *uuid.UUID
 	DataDeadLine *time.Time
+	DataStart    *time.Time
+	Status       bool
 	Subtasks     []models.SubtaskInfo
 	Position     int
 	Attachments  []models.AttachmentInfo
@@ -24,6 +26,7 @@ type UpdatingCardDetails struct {
 	Description  string
 	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
+	DataStart    *time.Time
 }
 
 type PlaceCard struct {
@@ -39,6 +42,7 @@ type NewCard struct {
 	Description  string
 	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
+	DataStart    *time.Time
 	LinkSection  uuid.UUID
 }
 
@@ -93,4 +97,15 @@ type UploadAttachment struct {
 }
 
 type DeleteAttachmentS3 struct {
+}
+
+type UpdateStatusTask struct {
+	TaskLink uuid.UUID
+	Status   bool
+}
+
+type UpdateTimeLine struct {
+	TaskLink uuid.UUID
+	DeadLine *time.Time
+	Start    *time.Time
 }

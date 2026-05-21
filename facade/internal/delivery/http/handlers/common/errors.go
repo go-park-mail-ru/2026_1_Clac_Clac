@@ -37,6 +37,7 @@ var (
 	ErrCreateCard  = errors.New("can not create new card")
 	ErrFindSection = errors.New("can not find section")
 	ErrNullValue   = errors.New("can not use null element")
+	ErrSetTimeLine = errors.New("incorrect time line for card")
 
 	ErrIncorrectMoveCard   = errors.New("can not skip mandatory section")
 	ErrIncorrectUniqCard   = errors.New("link card must be unique")

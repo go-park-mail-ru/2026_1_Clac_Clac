@@ -12,6 +12,7 @@ import (
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var attachmentBufferPool = sync.Pool{
@@ -88,6 +89,8 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 		Title:        resp.CardInfo.Title,
 		Description:  resp.CardInfo.Description,
 		Deadline:     convertTimestamppbToTime(resp.CardInfo.Deadline),
+		Start:        convertTimestamppbToTime(resp.CardInfo.Start),
+		Status:       resp.CardInfo.Status,
 		Subtasks:     subtasks,
 		Position:     int(resp.CardInfo.Position),
 		Attachments:  attachments,
@@ -122,6 +125,7 @@ func (c *Card) UpdateCard(ctx context.Context, infoCard domain.UpdateCardRequest
 		Title:        infoCard.Title,
 		Description:  infoCard.Description,
 		Deadline:     convertTimeToTimestamppb(infoCard.Deadline),
+		Start:        convertTimeToTimestamppb(infoCard.Start),
 	}
 
 	_, err := c.client.UpdateCard(ctx, req)
@@ -162,6 +166,7 @@ func (c *Card) CreateCard(ctx context.Context, infoCard domain.CreateCardRequest
 		Description:  infoCard.Description,
 		ExecutorLink: executorLink,
 		Deadline:     convertTimeToTimestamppb(infoCard.Deadline),
+		Start:        convertTimeToTimestamppb(infoCard.Start),
 	}
 
 	resp, err := c.client.CreateCard(ctx, req)
@@ -387,6 +392,37 @@ func (c *Card) DeleteAttachment(ctx context.Context, infoAttachment domain.Delet
 
 	if _, err := c.client.DeleteAttachment(ctx, req); err != nil {
 		return fmt.Errorf("ClientCard.DeleteAttachment: %w", convertCardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	req := &pb.UpdateStatusTaskRequest{
+		UserLink: info.UserLink.String(),
+		TaskLink: info.CardLink.String(),
+		Status:   info.Status,
+	}
+
+	_, err := c.client.UpdateStatusTask(ctx, req)
+	if err != nil {
+		return fmt.Errorf("CardClient.UpdateStatusTask: %w", convertCardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	req := &pb.UpdateTimeLineTaskRequest{
+		UserLink: info.UserLink.String(),
+		TaskLink: info.CardLink.String(),
+		Deadline: timestamppb.New(info.DeadLine),
+		Start:    timestamppb.New(info.Start),
+	}
+
+	_, err := c.client.UpdateTimeLineTask(ctx, req)
+	if err != nil {
+		return fmt.Errorf("CardClient.UpdateTimeLine: %w", convertCardGRPCError(err))
 	}
 
 	return nil

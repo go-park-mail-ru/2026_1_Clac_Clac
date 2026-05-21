@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
@@ -102,6 +103,16 @@ func (m *mockCardUsecase) CreateAttachment(ctx context.Context, infoAttachment d
 
 func (m *mockCardUsecase) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
 	args := m.Called(ctx, infoAttachment)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	args := m.Called(ctx, info)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	args := m.Called(ctx, info)
 	return args.Error(0)
 }
 
@@ -1505,6 +1516,239 @@ func TestCardHandler_DeleteAttachment(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			newTestCardHandler(m).DeleteAttachment(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func TestCardHandler_UpdateStatusTask(t *testing.T) {
+	validReq := dto.NewStatusTask{Done: true}
+
+	tests := []struct {
+		name               string
+		linkParam          string
+		request            any
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, domain.NewStatusTask{
+					UserLink: fixedUserLinkH,
+					CardLink: fixedCardLinkH,
+					Status:   true,
+				}).Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Unauthorized",
+			linkParam:          fixedCardLinkH.String(),
+			request:            validReq,
+			setContext:         false,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:               "InvalidPathParam",
+			linkParam:          "bad-uuid",
+			request:            validReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "InvalidJSON",
+			linkParam:          fixedCardLinkH.String(),
+			request:            "{bad}",
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			tc.mockBehavior(m)
+
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.request.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.request)
+				bodyReader = bytes.NewReader(b)
+			}
+
+			req := httptest.NewRequest(http.MethodPatch, "/cards/"+tc.linkParam+"/status", bodyReader)
+			req = mux.SetURLVars(req, map[string]string{"link": tc.linkParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			newTestCardHandler(m).UpdateStatusTask(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func TestCardHandler_UpdateTimeLine(t *testing.T) {
+	validReq := dto.NewTimeLine{
+		Start:    time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		DeadLine: time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+	}
+
+	invalidTimeLineReq := dto.NewTimeLine{
+		Start:    time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+		DeadLine: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	tests := []struct {
+		name               string
+		linkParam          string
+		request            any
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, domain.NewTimeLine{
+					UserLink: fixedUserLinkH,
+					CardLink: fixedCardLinkH,
+					DeadLine: validReq.DeadLine,
+					Start:    validReq.Start,
+				}).Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Unauthorized",
+			linkParam:          fixedCardLinkH.String(),
+			request:            validReq,
+			setContext:         false,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:               "InvalidPathParam",
+			linkParam:          "bad-uuid",
+			request:            validReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "InvalidJSON",
+			linkParam:          fixedCardLinkH.String(),
+			request:            "{bad}",
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "StartAfterDeadline",
+			linkParam:  fixedCardLinkH.String(),
+			request:    invalidTimeLineReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			tc.mockBehavior(m)
+
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.request.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.request)
+				bodyReader = bytes.NewReader(b)
+			}
+
+			req := httptest.NewRequest(http.MethodPatch, "/cards/"+tc.linkParam+"/timeline", bodyReader)
+			req = mux.SetURLVars(req, map[string]string{"link": tc.linkParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			newTestCardHandler(m).UpdateTimeLine(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})

@@ -48,8 +48,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, []byte("[]"), []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, nil, false, []byte("[]"), []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -84,8 +84,8 @@ func TestRepositoryGetCard(t *testing.T) {
 				attJSON, _ := json.Marshal([]rawAttachment{
 					{AttachmentLink: targetAttLink.String(), Name: "photo.png", Path: "cards-attachments/uuid.png", Position: 1},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, []byte("[]"), attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -114,8 +114,8 @@ func TestRepositoryGetCard(t *testing.T) {
 					{AttachmentLink: targetAttLink1.String(), Name: "doc.pdf", Path: "cards-attachments/doc.pdf", Position: 1},
 					{AttachmentLink: targetAttLink2.String(), Name: "img.png", Path: "cards-attachments/img.png", Position: 2},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, subJSON, attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, nil, false, subJSON, attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -140,8 +140,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Error invalid attachments json",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, []byte("[]"), []byte("{invalid"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), []byte("{invalid"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -280,11 +280,11 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Success update card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "start", "status"}).AddRow(targetSection, 5, time.Time{}, false))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
+					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit()
 			},
@@ -301,7 +301,7 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error not found",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
 					WillReturnError(pgx.ErrNoRows)
 				m.ExpectRollback()
@@ -312,11 +312,11 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error invalid reference data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "start", "status"}).AddRow(targetSection, 5, time.Time{}, false))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
+					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.ForeignKeyViolation})
 				m.ExpectRollback()
 			},
@@ -326,11 +326,11 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error check violation data",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "start", "status"}).AddRow(targetSection, 5, time.Time{}, false))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
+					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
 				m.ExpectRollback()
 			},
@@ -340,11 +340,11 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error missing required field",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "start", "status"}).AddRow(targetSection, 5, time.Time{}, false))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
+					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 				m.ExpectRollback()
 			},
@@ -354,11 +354,11 @@ func TestRepositoryUpdateCardDetails(t *testing.T) {
 			nameTest: "Error commit tx fail",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
 				m.ExpectBegin()
-				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position;`).
+				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING section_link, position, start, status;`).
 					WithArgs(targetLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position"}).AddRow(targetSection, 5))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "start", "status"}).AddRow(targetSection, 5, time.Time{}, false))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine).
+					WithArgs(targetLink, targetSection, &targetExecuter, "Updated Title", "Updated Desc", 5, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit().WillReturnError(errors.New("commit error"))
 			},
@@ -437,8 +437,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
@@ -452,7 +452,7 @@ func TestRepositoryReorderCard(t *testing.T) {
 					WithArgs(newSectionLink, 2).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, newSectionLink, 2, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WithArgs(targetCardLink, newSectionLink, 2, "Title", "Desc", &targetExecuter, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit()
 			},
@@ -466,13 +466,13 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
 					WithArgs(oldSectionLink, 1, 4).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit()
 			},
@@ -502,8 +502,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnError(errors.New("limit error"))
@@ -517,8 +517,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
@@ -535,8 +535,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
@@ -554,8 +554,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectQuery(`(?s)WITH locked_section AS.*`).
 					WithArgs(newSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"count", "max_tasks"}).AddRow(0, nil))
@@ -576,8 +576,8 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
 					WithArgs(oldSectionLink, 1, 4).
 					WillReturnError(errors.New("shift same section failed"))
@@ -592,13 +592,13 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
 					WithArgs(oldSectionLink, 1, 4).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
 				m.ExpectRollback()
 			},
@@ -611,13 +611,13 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
 					WithArgs(oldSectionLink, 1, 4).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 				m.ExpectRollback()
 			},
@@ -630,13 +630,13 @@ func TestRepositoryReorderCard(t *testing.T) {
 				m.ExpectBegin()
 				m.ExpectQuery(`(?s)UPDATE task_version.*RETURNING.*`).
 					WithArgs(targetCardLink).
-					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date"}).
-						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine))
+					WillReturnRows(pgxmock.NewRows([]string{"section_link", "position", "title", "description", "executer_link", "due_date", "start", "status"}).
+						AddRow(oldSectionLink, 1, "Title", "Desc", &targetExecuter, &targetDeadLine, time.Time{}, false))
 				m.ExpectExec(`(?s)UPDATE task_version.*position = position - 1.*position > \$2 AND position <= \$3`).
 					WithArgs(oldSectionLink, 1, 4).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine).
+					WithArgs(targetCardLink, oldSectionLink, 4, "Title", "Desc", &targetExecuter, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit().WillReturnError(errors.New("commit error"))
 			},
@@ -733,7 +733,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit()
 			},
@@ -807,7 +807,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{
 						Code:           pgerrcode.ForeignKeyViolation,
 						ConstraintName: "fk_version_section",
@@ -855,7 +855,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.CheckViolation})
 				m.ExpectRollback()
 			},
@@ -879,7 +879,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnError(&pgconn.PgError{Code: pgerrcode.NotNullViolation})
 				m.ExpectRollback()
 			},
@@ -903,7 +903,7 @@ func TestRepositoryCreateCard(t *testing.T) {
 					WithArgs(targetSectionLink).
 					WillReturnRows(pgxmock.NewRows([]string{"position"}).AddRow(1))
 				m.ExpectExec(`(?s)INSERT INTO task_version.*`).
-					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine).
+					WithArgs(targetCardLink, targetSectionLink, &targetExecuterLink, "New Task", "Desc", 1, &targetDeadLine, pgxmock.AnyArg(), false).
 					WillReturnResult(pgxmock.NewResult("INSERT", 1))
 				m.ExpectCommit().WillReturnError(errors.New("commit error"))
 			},

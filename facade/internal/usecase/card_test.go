@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/google/uuid"
@@ -92,6 +93,16 @@ func (m *mockCardClient) CreateAttachment(ctx context.Context, infoAttachment do
 
 func (m *mockCardClient) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
 	args := m.Called(ctx, infoAttachment)
+	return args.Error(0)
+}
+
+func (m *mockCardClient) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	args := m.Called(ctx, info)
+	return args.Error(0)
+}
+
+func (m *mockCardClient) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	args := m.Called(ctx, info)
 	return args.Error(0)
 }
 
@@ -745,6 +756,97 @@ func TestCardUsecase_DeleteAttachment(t *testing.T) {
 			tc.mockBehavior(m)
 
 			err := NewCard(m).DeleteAttachment(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, cardTestError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardUsecase_UpdateStatusTask(t *testing.T) {
+	req := domain.NewStatusTask{
+		UserLink: fixedUserLink,
+		CardLink: fixedCardLink,
+		Status:   true,
+	}
+
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockCardClient)
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("UpdateStatusTask", mock.Anything, req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("UpdateStatusTask", mock.Anything, req).Return(cardTestError)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardClient)
+			tc.mockBehavior(m)
+
+			err := NewCard(m).UpdateStatusTask(context.Background(), req)
+
+			if tc.expectError {
+				require.Error(t, err)
+				assert.True(t, errors.Is(err, cardTestError))
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardUsecase_UpdateTimeLine(t *testing.T) {
+	req := domain.NewTimeLine{
+		UserLink: fixedUserLink,
+		CardLink: fixedCardLink,
+		Start:    time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		DeadLine: time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+	}
+
+	tests := []struct {
+		name         string
+		mockBehavior func(m *mockCardClient)
+		expectError  bool
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("UpdateTimeLine", mock.Anything, req).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "ClientError",
+			mockBehavior: func(m *mockCardClient) {
+				m.On("UpdateTimeLine", mock.Anything, req).Return(cardTestError)
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardClient)
+			tc.mockBehavior(m)
+
+			err := NewCard(m).UpdateTimeLine(context.Background(), req)
 
 			if tc.expectError {
 				require.Error(t, err)

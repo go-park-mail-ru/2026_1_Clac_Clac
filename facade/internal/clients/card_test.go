@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
@@ -130,6 +131,22 @@ func (m *mockCardServiceClient) DeleteAttachment(ctx context.Context, in *pb.Del
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*pb.DeleteAttachmentResponse), args.Error(1)
+}
+
+func (m *mockCardServiceClient) UpdateStatusTask(ctx context.Context, in *pb.UpdateStatusTaskRequest, opts ...grpc.CallOption) (*pb.UpdateStatusTaskResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.UpdateStatusTaskResponse), args.Error(1)
+}
+
+func (m *mockCardServiceClient) UpdateTimeLineTask(ctx context.Context, in *pb.UpdateTimeLineTaskRequest, opts ...grpc.CallOption) (*pb.UpdateTimeLineTaskResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.UpdateTimeLineTaskResponse), args.Error(1)
 }
 
 var (
@@ -904,6 +921,118 @@ func TestCardClient_DeleteAttachment(t *testing.T) {
 
 			c := &Card{client: mc}
 			err := c.DeleteAttachment(ctx, req)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardClient_UpdateStatusTask(t *testing.T) {
+	ctx := context.Background()
+	req := domain.NewStatusTask{
+		UserLink: cardClientUserLink,
+		CardLink: cardClientCardLink,
+		Status:   true,
+	}
+
+	tests := []struct {
+		name        string
+		mockResp    *pb.UpdateStatusTaskResponse
+		mockErr     error
+		expectedErr error
+	}{
+		{
+			name:        "success",
+			mockResp:    &pb.UpdateStatusTaskResponse{},
+			mockErr:     nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "card not found",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.NotFound, "card not found"),
+			expectedErr: common.ErrorCardNotFound,
+		},
+		{
+			name:        "permission denied",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.PermissionDenied, "permission denied"),
+			expectedErr: common.ErrorPermissionDenied,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := new(mockCardServiceClient)
+			mc.On("UpdateStatusTask", ctx, &pb.UpdateStatusTaskRequest{
+				UserLink: cardClientUserLink.String(),
+				TaskLink: cardClientCardLink.String(),
+				Status:   true,
+			}).Return(tt.mockResp, tt.mockErr)
+
+			c := &Card{client: mc}
+			err := c.UpdateStatusTask(ctx, req)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardClient_UpdateTimeLine(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now()
+	later := now.Add(24 * time.Hour)
+
+	req := domain.NewTimeLine{
+		UserLink: cardClientUserLink,
+		CardLink: cardClientCardLink,
+		DeadLine: later,
+		Start:    now,
+	}
+
+	tests := []struct {
+		name        string
+		mockResp    *pb.UpdateTimeLineTaskResponse
+		mockErr     error
+		expectedErr error
+	}{
+		{
+			name:        "success",
+			mockResp:    &pb.UpdateTimeLineTaskResponse{},
+			mockErr:     nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "card not found",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.NotFound, "card not found"),
+			expectedErr: common.ErrorCardNotFound,
+		},
+		{
+			name:        "permission denied",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.PermissionDenied, "permission denied"),
+			expectedErr: common.ErrorPermissionDenied,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := new(mockCardServiceClient)
+			mc.On("UpdateTimeLineTask", ctx, mock.MatchedBy(func(r *pb.UpdateTimeLineTaskRequest) bool {
+				return r.UserLink == cardClientUserLink.String() && r.TaskLink == cardClientCardLink.String()
+			})).Return(tt.mockResp, tt.mockErr)
+
+			c := &Card{client: mc}
+			err := c.UpdateTimeLine(ctx, req)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)

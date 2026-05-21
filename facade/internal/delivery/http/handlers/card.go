@@ -34,6 +34,8 @@ type CardUsecase interface {
 	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error
 	CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error)
 	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
+	UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error
+	UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error
 }
 
 const (
@@ -70,6 +72,8 @@ const (
 	msgFailCreateAttachment = "cannot create attachment"
 	msgFailDeleteAttachment = "cannot delete attachment"
 	msgAttachmentLimit      = "attachment limit reached"
+	msgFailUpdateStatusTask = "cannot update status task"
+	msgFailUpdateTimeLime   = "cannot update time line"
 )
 
 type CardConfig struct {
@@ -268,6 +272,7 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 		Title:        req.Title,
 		Description:  req.Description,
 		Deadline:     req.Deadline,
+		Start:        req.Start,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
@@ -459,6 +464,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 		Title:        req.Title,
 		Description:  req.Description,
 		Deadline:     req.Deadline,
+		Start:        req.Start,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
@@ -1113,6 +1119,150 @@ func (c *Card) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
+// UpdateStatusTask обновляет статус карточки
+//
+//	@Summary		Обновить статус карточки
+//	@Description	Изменяет статус выполнения карточки (done / not done).
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string				true	"UUID карточки"
+//	@Param			input	body		dto.NewStatusTask	true	"Новый статус"
+//	@Success		200		{object}	api.Response		"Статус обновлён"
+//	@Failure		400		{object}	api.ErrorResponse	"Некорректные данные"
+//	@Failure		401		{object}	api.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		403		{object}	api.ErrorResponse	"Нет прав доступа"
+//	@Failure		404		{object}	api.ErrorResponse	"Карточка не найдена"
+//	@Failure		500		{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/cards/{link}/status [patch]
+func (c *Card) UpdateStatusTask(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	cardLink, ok := parseCardLink(w, r)
+	if !ok {
+		return
+	}
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.NewStatusTask
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	err := c.card.UpdateStatusTask(r.Context(), domain.NewStatusTask{
+		UserLink: userLink,
+		CardLink: cardLink,
+		Status:   req.Done,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorCardNotFound) {
+			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			return
+		}
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+
+		errLog := fmt.Errorf("card.UpdateStatusTask: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateStatusTask fail")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateStatusTask", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_status_task",
+		})
+		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateStatusTask)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
+// UpdateTimeLine обновляет временные рамки карточки
+//
+//	@Summary		Обновить временные рамки карточки
+//	@Description	Изменяет дедлайн и/или время начала карточки.
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string				true	"UUID карточки"
+//	@Param			input	body		dto.NewTimeLine		true	"Новые временные рамки"
+//	@Success		200		{object}	api.Response		"Временные рамки обновлены"
+//	@Failure		400		{object}	api.ErrorResponse	"Некорректные данные"
+//	@Failure		401		{object}	api.ErrorResponse	"Пользователь не авторизован"
+//	@Failure		403		{object}	api.ErrorResponse	"Нет прав доступа"
+//	@Failure		404		{object}	api.ErrorResponse	"Карточка не найдена"
+//	@Failure		500		{object}	api.ErrorResponse	"Внутренняя ошибка сервера"
+//	@Router			/cards/{link}/timeline [patch]
+func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	cardLink, ok := parseCardLink(w, r)
+	if !ok {
+		return
+	}
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.NewTimeLine
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.Start.IsZero() {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
+		return
+	}
+	if req.DeadLine.IsZero() {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
+		return
+	}
+	if req.Start.After(req.DeadLine) {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
+		return
+	}
+
+	err := c.card.UpdateTimeLine(r.Context(), domain.NewTimeLine{
+		UserLink: userLink,
+		CardLink: cardLink,
+		DeadLine: req.DeadLine,
+		Start:    req.Start,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorCardNotFound) {
+			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			return
+		}
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+
+		errLog := fmt.Errorf("card.UpdateTimeLine: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateTimeLine fail")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateTimeLine", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_time_line",
+		})
+		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateTimeLime)
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
 func parseCardLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	linkParam := mux.Vars(r)[cardLinkKey]
 	cardLink, err := uuid.Parse(linkParam)
@@ -1166,6 +1316,8 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.Car
 		Title:        card.Title,
 		Description:  card.Description,
 		Deadline:     card.Deadline,
+		Start:        card.Start,
+		Status:       card.Status,
 		Subtasks:     subtasks,
 		Position:     card.Position,
 		Attachments:  attachments,

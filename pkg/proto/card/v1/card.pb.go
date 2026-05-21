@@ -29,9 +29,11 @@ type CardInfo struct {
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
-	Subtasks      []*SubtaskInfo         `protobuf:"bytes,6,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
-	Position      int64                  `protobuf:"varint,7,opt,name=position,proto3" json:"position,omitempty"`
-	Attachments   []*AttachmentInfo      `protobuf:"bytes,8,rep,name=attachments,proto3" json:"attachments,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=start,proto3,oneof" json:"start,omitempty"`
+	Subtasks      []*SubtaskInfo         `protobuf:"bytes,7,rep,name=subtasks,proto3" json:"subtasks,omitempty"`
+	Position      int64                  `protobuf:"varint,8,opt,name=position,proto3" json:"position,omitempty"`
+	Attachments   []*AttachmentInfo      `protobuf:"bytes,9,rep,name=attachments,proto3" json:"attachments,omitempty"`
+	Status        bool                   `protobuf:"varint,10,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -101,6 +103,13 @@ func (x *CardInfo) GetDeadline() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *CardInfo) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
 func (x *CardInfo) GetSubtasks() []*SubtaskInfo {
 	if x != nil {
 		return x.Subtasks
@@ -120,6 +129,13 @@ func (x *CardInfo) GetAttachments() []*AttachmentInfo {
 		return x.Attachments
 	}
 	return nil
+}
+
+func (x *CardInfo) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
 }
 
 type SubtaskInfo struct {
@@ -529,6 +545,7 @@ type UpdateCardRequest struct {
 	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=start,proto3,oneof" json:"start,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -601,6 +618,13 @@ func (x *UpdateCardRequest) GetDescription() string {
 func (x *UpdateCardRequest) GetDeadline() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Deadline
+	}
+	return nil
+}
+
+func (x *UpdateCardRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
 	}
 	return nil
 }
@@ -754,7 +778,8 @@ type CreateCardRequest struct {
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	ExecutorLink  *string                `protobuf:"bytes,4,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
 	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
-	SectionLink   string                 `protobuf:"bytes,6,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=start,proto3,oneof" json:"start,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,7,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -820,6 +845,13 @@ func (x *CreateCardRequest) GetExecutorLink() string {
 func (x *CreateCardRequest) GetDeadline() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Deadline
+	}
+	return nil
+}
+
+func (x *CreateCardRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
 	}
 	return nil
 }
@@ -1831,22 +1863,226 @@ func (*DeleteAttachmentResponse) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{31}
 }
 
+type UpdateStatusTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	TaskLink      string                 `protobuf:"bytes,2,opt,name=task_link,json=taskLink,proto3" json:"task_link,omitempty"`
+	Status        bool                   `protobuf:"varint,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateStatusTaskRequest) Reset() {
+	*x = UpdateStatusTaskRequest{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateStatusTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateStatusTaskRequest) ProtoMessage() {}
+
+func (x *UpdateStatusTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateStatusTaskRequest.ProtoReflect.Descriptor instead.
+func (*UpdateStatusTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *UpdateStatusTaskRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *UpdateStatusTaskRequest) GetTaskLink() string {
+	if x != nil {
+		return x.TaskLink
+	}
+	return ""
+}
+
+func (x *UpdateStatusTaskRequest) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
+}
+
+type UpdateStatusTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateStatusTaskResponse) Reset() {
+	*x = UpdateStatusTaskResponse{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateStatusTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateStatusTaskResponse) ProtoMessage() {}
+
+func (x *UpdateStatusTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateStatusTaskResponse.ProtoReflect.Descriptor instead.
+func (*UpdateStatusTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{33}
+}
+
+type UpdateTimeLineTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
+	TaskLink      string                 `protobuf:"bytes,2,opt,name=task_link,json=taskLink,proto3" json:"task_link,omitempty"`
+	Deadline      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=deadline,proto3" json:"deadline,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTimeLineTaskRequest) Reset() {
+	*x = UpdateTimeLineTaskRequest{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTimeLineTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTimeLineTaskRequest) ProtoMessage() {}
+
+func (x *UpdateTimeLineTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTimeLineTaskRequest.ProtoReflect.Descriptor instead.
+func (*UpdateTimeLineTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *UpdateTimeLineTaskRequest) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *UpdateTimeLineTaskRequest) GetTaskLink() string {
+	if x != nil {
+		return x.TaskLink
+	}
+	return ""
+}
+
+func (x *UpdateTimeLineTaskRequest) GetDeadline() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Deadline
+	}
+	return nil
+}
+
+func (x *UpdateTimeLineTaskRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+type UpdateTimeLineTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateTimeLineTaskResponse) Reset() {
+	*x = UpdateTimeLineTaskResponse{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateTimeLineTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateTimeLineTaskResponse) ProtoMessage() {}
+
+func (x *UpdateTimeLineTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateTimeLineTaskResponse.ProtoReflect.Descriptor instead.
+func (*UpdateTimeLineTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{35}
+}
+
 var File_proto_card_v1_card_proto protoreflect.FileDescriptor
 
 const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf1\x02\n" +
+	"\x18proto/card/v1/card.proto\x12\rproto.card.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xca\x03\n" +
 	"\bCardInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12(\n" +
 	"\rexecutor_link\x18\x02 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12;\n" +
-	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x126\n" +
-	"\bsubtasks\x18\x06 \x03(\v2\x1a.proto.card.v1.SubtaskInfoR\bsubtasks\x12\x1a\n" +
-	"\bposition\x18\a \x01(\x03R\bposition\x12?\n" +
-	"\vattachments\x18\b \x03(\v2\x1d.proto.card.v1.AttachmentInfoR\vattachmentsB\x10\n" +
+	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x125\n" +
+	"\x05start\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\x05start\x88\x01\x01\x126\n" +
+	"\bsubtasks\x18\a \x03(\v2\x1a.proto.card.v1.SubtaskInfoR\bsubtasks\x12\x1a\n" +
+	"\bposition\x18\b \x01(\x03R\bposition\x12?\n" +
+	"\vattachments\x18\t \x03(\v2\x1d.proto.card.v1.AttachmentInfoR\vattachments\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\bR\x06statusB\x10\n" +
 	"\x0e_executor_linkB\v\n" +
-	"\t_deadline\"\x87\x01\n" +
+	"\t_deadlineB\b\n" +
+	"\x06_start\"\x87\x01\n" +
 	"\vSubtaskInfo\x12!\n" +
 	"\fsubtask_link\x18\x01 \x01(\tR\vsubtaskLink\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x17\n" +
@@ -1875,32 +2111,36 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\x11DeleteCardRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
 	"\tcard_link\x18\x02 \x01(\tR\bcardLink\"\x14\n" +
-	"\x12DeleteCardResponse\"\x8b\x02\n" +
+	"\x12DeleteCardResponse\"\xcc\x02\n" +
 	"\x11UpdateCardRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
 	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12(\n" +
 	"\rexecutor_link\x18\x03 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12\x14\n" +
 	"\x05title\x18\x04 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x12;\n" +
-	"\bdeadline\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01B\x10\n" +
+	"\bdeadline\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x125\n" +
+	"\x05start\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x02R\x05start\x88\x01\x01B\x10\n" +
 	"\x0e_executor_linkB\v\n" +
-	"\t_deadline\"\x14\n" +
+	"\t_deadlineB\b\n" +
+	"\x06_start\"\x14\n" +
 	"\x12UpdateCardResponse\"\x8e\x01\n" +
 	"\x13ReorderCardsRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1b\n" +
 	"\tcard_link\x18\x03 \x01(\tR\bcardLink\x12\x1a\n" +
 	"\bposition\x18\x04 \x01(\x03R\bposition\"\x16\n" +
-	"\x14ReorderCardsResponse\"\x91\x02\n" +
+	"\x14ReorderCardsResponse\"\xd2\x02\n" +
 	"\x11CreateCardRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12(\n" +
 	"\rexecutor_link\x18\x04 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12;\n" +
-	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x12!\n" +
-	"\fsection_link\x18\x06 \x01(\tR\vsectionLinkB\x10\n" +
+	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x125\n" +
+	"\x05start\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\x05start\x88\x01\x01\x12!\n" +
+	"\fsection_link\x18\a \x01(\tR\vsectionLinkB\x10\n" +
 	"\x0e_executor_linkB\v\n" +
-	"\t_deadline\"p\n" +
+	"\t_deadlineB\b\n" +
+	"\x06_start\"p\n" +
 	"\x12CreateCardResponse\x12\x1b\n" +
 	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12!\n" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1a\n" +
@@ -1960,7 +2200,18 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\x17DeleteAttachmentRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12'\n" +
 	"\x0fattachment_link\x18\x02 \x01(\tR\x0eattachmentLink\"\x1a\n" +
-	"\x18DeleteAttachmentResponse2\xf1\t\n" +
+	"\x18DeleteAttachmentResponse\"k\n" +
+	"\x17UpdateStatusTaskRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\ttask_link\x18\x02 \x01(\tR\btaskLink\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\bR\x06status\"\x1a\n" +
+	"\x18UpdateStatusTaskResponse\"\xbf\x01\n" +
+	"\x19UpdateTimeLineTaskRequest\x12\x1b\n" +
+	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1b\n" +
+	"\ttask_link\x18\x02 \x01(\tR\btaskLink\x126\n" +
+	"\bdeadline\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bdeadline\x120\n" +
+	"\x05start\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\"\x1c\n" +
+	"\x1aUpdateTimeLineTaskResponse2\xc1\v\n" +
 	"\vCardService\x12H\n" +
 	"\aGetCard\x12\x1d.proto.card.v1.GetCardRequest\x1a\x1e.proto.card.v1.GetCardResponse\x12Q\n" +
 	"\n" +
@@ -1978,7 +2229,9 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\rUpdateSubtask\x12#.proto.card.v1.UpdateSubtaskRequest\x1a$.proto.card.v1.UpdateSubtaskResponse\x12Z\n" +
 	"\rDeleteSubtask\x12#.proto.card.v1.DeleteSubtaskRequest\x1a$.proto.card.v1.DeleteSubtaskResponse\x12c\n" +
 	"\x10CreateAttachment\x12&.proto.card.v1.CreateAttachmentRequest\x1a'.proto.card.v1.CreateAttachmentResponse\x12c\n" +
-	"\x10DeleteAttachment\x12&.proto.card.v1.DeleteAttachmentRequest\x1a'.proto.card.v1.DeleteAttachmentResponseB?Z=github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1b\x06proto3"
+	"\x10DeleteAttachment\x12&.proto.card.v1.DeleteAttachmentRequest\x1a'.proto.card.v1.DeleteAttachmentResponse\x12c\n" +
+	"\x10UpdateStatusTask\x12&.proto.card.v1.UpdateStatusTaskRequest\x1a'.proto.card.v1.UpdateStatusTaskResponse\x12i\n" +
+	"\x12UpdateTimeLineTask\x12(.proto.card.v1.UpdateTimeLineTaskRequest\x1a).proto.card.v1.UpdateTimeLineTaskResponseB?Z=github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/card/v1b\x06proto3"
 
 var (
 	file_proto_card_v1_card_proto_rawDescOnce sync.Once
@@ -1992,84 +2245,97 @@ func file_proto_card_v1_card_proto_rawDescGZIP() []byte {
 	return file_proto_card_v1_card_proto_rawDescData
 }
 
-var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_proto_card_v1_card_proto_goTypes = []any{
-	(*CardInfo)(nil),                 // 0: proto.card.v1.CardInfo
-	(*SubtaskInfo)(nil),              // 1: proto.card.v1.SubtaskInfo
-	(*AttachmentInfo)(nil),           // 2: proto.card.v1.AttachmentInfo
-	(*CommentInfo)(nil),              // 3: proto.card.v1.CommentInfo
-	(*GetCardRequest)(nil),           // 4: proto.card.v1.GetCardRequest
-	(*GetCardResponse)(nil),          // 5: proto.card.v1.GetCardResponse
-	(*DeleteCardRequest)(nil),        // 6: proto.card.v1.DeleteCardRequest
-	(*DeleteCardResponse)(nil),       // 7: proto.card.v1.DeleteCardResponse
-	(*UpdateCardRequest)(nil),        // 8: proto.card.v1.UpdateCardRequest
-	(*UpdateCardResponse)(nil),       // 9: proto.card.v1.UpdateCardResponse
-	(*ReorderCardsRequest)(nil),      // 10: proto.card.v1.ReorderCardsRequest
-	(*ReorderCardsResponse)(nil),     // 11: proto.card.v1.ReorderCardsResponse
-	(*CreateCardRequest)(nil),        // 12: proto.card.v1.CreateCardRequest
-	(*CreateCardResponse)(nil),       // 13: proto.card.v1.CreateCardResponse
-	(*GetCommentsRequest)(nil),       // 14: proto.card.v1.GetCommentsRequest
-	(*GetCommentsResponse)(nil),      // 15: proto.card.v1.GetCommentsResponse
-	(*CreateCommentRequest)(nil),     // 16: proto.card.v1.CreateCommentRequest
-	(*CreateCommentResponse)(nil),    // 17: proto.card.v1.CreateCommentResponse
-	(*DeleteCommentRequest)(nil),     // 18: proto.card.v1.DeleteCommentRequest
-	(*DeleteCommentResponse)(nil),    // 19: proto.card.v1.DeleteCommentResponse
-	(*UpdateCommentRequest)(nil),     // 20: proto.card.v1.UpdateCommentRequest
-	(*UpdateCommentResponse)(nil),    // 21: proto.card.v1.UpdateCommentResponse
-	(*CreateSubtaskRequest)(nil),     // 22: proto.card.v1.CreateSubtaskRequest
-	(*CreateSubtaskResponse)(nil),    // 23: proto.card.v1.CreateSubtaskResponse
-	(*UpdateSubtaskRequest)(nil),     // 24: proto.card.v1.UpdateSubtaskRequest
-	(*UpdateSubtaskResponse)(nil),    // 25: proto.card.v1.UpdateSubtaskResponse
-	(*DeleteSubtaskRequest)(nil),     // 26: proto.card.v1.DeleteSubtaskRequest
-	(*DeleteSubtaskResponse)(nil),    // 27: proto.card.v1.DeleteSubtaskResponse
-	(*CreateAttachmentRequest)(nil),  // 28: proto.card.v1.CreateAttachmentRequest
-	(*CreateAttachmentResponse)(nil), // 29: proto.card.v1.CreateAttachmentResponse
-	(*DeleteAttachmentRequest)(nil),  // 30: proto.card.v1.DeleteAttachmentRequest
-	(*DeleteAttachmentResponse)(nil), // 31: proto.card.v1.DeleteAttachmentResponse
-	(*timestamppb.Timestamp)(nil),    // 32: google.protobuf.Timestamp
+	(*CardInfo)(nil),                   // 0: proto.card.v1.CardInfo
+	(*SubtaskInfo)(nil),                // 1: proto.card.v1.SubtaskInfo
+	(*AttachmentInfo)(nil),             // 2: proto.card.v1.AttachmentInfo
+	(*CommentInfo)(nil),                // 3: proto.card.v1.CommentInfo
+	(*GetCardRequest)(nil),             // 4: proto.card.v1.GetCardRequest
+	(*GetCardResponse)(nil),            // 5: proto.card.v1.GetCardResponse
+	(*DeleteCardRequest)(nil),          // 6: proto.card.v1.DeleteCardRequest
+	(*DeleteCardResponse)(nil),         // 7: proto.card.v1.DeleteCardResponse
+	(*UpdateCardRequest)(nil),          // 8: proto.card.v1.UpdateCardRequest
+	(*UpdateCardResponse)(nil),         // 9: proto.card.v1.UpdateCardResponse
+	(*ReorderCardsRequest)(nil),        // 10: proto.card.v1.ReorderCardsRequest
+	(*ReorderCardsResponse)(nil),       // 11: proto.card.v1.ReorderCardsResponse
+	(*CreateCardRequest)(nil),          // 12: proto.card.v1.CreateCardRequest
+	(*CreateCardResponse)(nil),         // 13: proto.card.v1.CreateCardResponse
+	(*GetCommentsRequest)(nil),         // 14: proto.card.v1.GetCommentsRequest
+	(*GetCommentsResponse)(nil),        // 15: proto.card.v1.GetCommentsResponse
+	(*CreateCommentRequest)(nil),       // 16: proto.card.v1.CreateCommentRequest
+	(*CreateCommentResponse)(nil),      // 17: proto.card.v1.CreateCommentResponse
+	(*DeleteCommentRequest)(nil),       // 18: proto.card.v1.DeleteCommentRequest
+	(*DeleteCommentResponse)(nil),      // 19: proto.card.v1.DeleteCommentResponse
+	(*UpdateCommentRequest)(nil),       // 20: proto.card.v1.UpdateCommentRequest
+	(*UpdateCommentResponse)(nil),      // 21: proto.card.v1.UpdateCommentResponse
+	(*CreateSubtaskRequest)(nil),       // 22: proto.card.v1.CreateSubtaskRequest
+	(*CreateSubtaskResponse)(nil),      // 23: proto.card.v1.CreateSubtaskResponse
+	(*UpdateSubtaskRequest)(nil),       // 24: proto.card.v1.UpdateSubtaskRequest
+	(*UpdateSubtaskResponse)(nil),      // 25: proto.card.v1.UpdateSubtaskResponse
+	(*DeleteSubtaskRequest)(nil),       // 26: proto.card.v1.DeleteSubtaskRequest
+	(*DeleteSubtaskResponse)(nil),      // 27: proto.card.v1.DeleteSubtaskResponse
+	(*CreateAttachmentRequest)(nil),    // 28: proto.card.v1.CreateAttachmentRequest
+	(*CreateAttachmentResponse)(nil),   // 29: proto.card.v1.CreateAttachmentResponse
+	(*DeleteAttachmentRequest)(nil),    // 30: proto.card.v1.DeleteAttachmentRequest
+	(*DeleteAttachmentResponse)(nil),   // 31: proto.card.v1.DeleteAttachmentResponse
+	(*UpdateStatusTaskRequest)(nil),    // 32: proto.card.v1.UpdateStatusTaskRequest
+	(*UpdateStatusTaskResponse)(nil),   // 33: proto.card.v1.UpdateStatusTaskResponse
+	(*UpdateTimeLineTaskRequest)(nil),  // 34: proto.card.v1.UpdateTimeLineTaskRequest
+	(*UpdateTimeLineTaskResponse)(nil), // 35: proto.card.v1.UpdateTimeLineTaskResponse
+	(*timestamppb.Timestamp)(nil),      // 36: google.protobuf.Timestamp
 }
 var file_proto_card_v1_card_proto_depIdxs = []int32{
-	32, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
-	1,  // 1: proto.card.v1.CardInfo.subtasks:type_name -> proto.card.v1.SubtaskInfo
-	2,  // 2: proto.card.v1.CardInfo.attachments:type_name -> proto.card.v1.AttachmentInfo
-	32, // 3: proto.card.v1.CommentInfo.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 4: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
-	32, // 5: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	32, // 6: proto.card.v1.CreateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	3,  // 7: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
-	4,  // 8: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
-	6,  // 9: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
-	8,  // 10: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
-	10, // 11: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
-	12, // 12: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
-	14, // 13: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
-	16, // 14: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
-	18, // 15: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
-	20, // 16: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
-	22, // 17: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
-	24, // 18: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
-	26, // 19: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
-	28, // 20: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
-	30, // 21: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
-	5,  // 22: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
-	7,  // 23: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
-	9,  // 24: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
-	11, // 25: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
-	13, // 26: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
-	15, // 27: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
-	17, // 28: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
-	19, // 29: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
-	21, // 30: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
-	23, // 31: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
-	25, // 32: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
-	27, // 33: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
-	29, // 34: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
-	31, // 35: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
-	22, // [22:36] is the sub-list for method output_type
-	8,  // [8:22] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	36, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
+	36, // 1: proto.card.v1.CardInfo.start:type_name -> google.protobuf.Timestamp
+	1,  // 2: proto.card.v1.CardInfo.subtasks:type_name -> proto.card.v1.SubtaskInfo
+	2,  // 3: proto.card.v1.CardInfo.attachments:type_name -> proto.card.v1.AttachmentInfo
+	36, // 4: proto.card.v1.CommentInfo.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 5: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
+	36, // 6: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
+	36, // 7: proto.card.v1.UpdateCardRequest.start:type_name -> google.protobuf.Timestamp
+	36, // 8: proto.card.v1.CreateCardRequest.deadline:type_name -> google.protobuf.Timestamp
+	36, // 9: proto.card.v1.CreateCardRequest.start:type_name -> google.protobuf.Timestamp
+	3,  // 10: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
+	36, // 11: proto.card.v1.UpdateTimeLineTaskRequest.deadline:type_name -> google.protobuf.Timestamp
+	36, // 12: proto.card.v1.UpdateTimeLineTaskRequest.start:type_name -> google.protobuf.Timestamp
+	4,  // 13: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
+	6,  // 14: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
+	8,  // 15: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
+	10, // 16: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
+	12, // 17: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
+	14, // 18: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
+	16, // 19: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
+	18, // 20: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
+	20, // 21: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
+	22, // 22: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
+	24, // 23: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
+	26, // 24: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
+	28, // 25: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
+	30, // 26: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
+	32, // 27: proto.card.v1.CardService.UpdateStatusTask:input_type -> proto.card.v1.UpdateStatusTaskRequest
+	34, // 28: proto.card.v1.CardService.UpdateTimeLineTask:input_type -> proto.card.v1.UpdateTimeLineTaskRequest
+	5,  // 29: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
+	7,  // 30: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
+	9,  // 31: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
+	11, // 32: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
+	13, // 33: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
+	15, // 34: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
+	17, // 35: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
+	19, // 36: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
+	21, // 37: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
+	23, // 38: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
+	25, // 39: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
+	27, // 40: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
+	29, // 41: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
+	31, // 42: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
+	33, // 43: proto.card.v1.CardService.UpdateStatusTask:output_type -> proto.card.v1.UpdateStatusTaskResponse
+	35, // 44: proto.card.v1.CardService.UpdateTimeLineTask:output_type -> proto.card.v1.UpdateTimeLineTaskResponse
+	29, // [29:45] is the sub-list for method output_type
+	13, // [13:29] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_proto_card_v1_card_proto_init() }
@@ -2088,7 +2354,7 @@ func file_proto_card_v1_card_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_card_v1_card_proto_rawDesc), len(file_proto_card_v1_card_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

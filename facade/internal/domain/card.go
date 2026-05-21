@@ -13,6 +13,8 @@ type CardFullInfo struct {
 	Title        string
 	Description  string
 	Deadline     *time.Time
+	Start        *time.Time
+	Status       bool
 	Subtasks     []SubtaskInfo
 	Position     int
 	Attachments  []AttachmentInfo
@@ -42,6 +44,7 @@ type UpdateCardRequest struct {
 	Title        string
 	Description  string
 	Deadline     *time.Time
+	Start        *time.Time
 }
 
 type ReorderCardsRequest struct {
@@ -58,6 +61,7 @@ type CreateCardRequest struct {
 	Title        string
 	Description  string
 	Deadline     *time.Time
+	Start        *time.Time
 }
 
 type CreateCardResponse struct {
@@ -138,4 +142,17 @@ type CreateAttachmentRequest struct {
 type DeleteAttachmentRequest struct {
 	UserLink       uuid.UUID
 	AttachmentLink uuid.UUID
+}
+
+type NewStatusTask struct {
+	UserLink uuid.UUID
+	CardLink uuid.UUID
+	Status   bool
+}
+
+type NewTimeLine struct {
+	UserLink uuid.UUID
+	CardLink uuid.UUID
+	DeadLine time.Time
+	Start    time.Time
 }

@@ -56,6 +56,8 @@ type CardHandler interface {
 	DeleteSubtask(w http.ResponseWriter, r *http.Request)
 	CreateAttachment(w http.ResponseWriter, r *http.Request)
 	DeleteAttachment(w http.ResponseWriter, r *http.Request)
+	UpdateStatusTask(w http.ResponseWriter, r *http.Request)
+	UpdateTimeLine(w http.ResponseWriter, r *http.Request)
 }
 type BoardHandler interface {
 	GetBoards(w http.ResponseWriter, r *http.Request)
@@ -192,6 +194,9 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 
 	withFileLimit.HandleFunc("/cards/{link}/attachments", deps.Card.CreateAttachment).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/attachments/{attachment_link}", deps.Card.DeleteAttachment).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/cards/{link}/status", deps.Card.UpdateStatusTask).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards/{link}/timeline", deps.Card.UpdateTimeLine).Methods(http.MethodPatch)
 
 	withTextLimit.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)

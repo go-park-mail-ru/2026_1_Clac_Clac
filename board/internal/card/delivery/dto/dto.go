@@ -15,7 +15,9 @@ type InfoCard struct {
 	Description  string     `json:"description" example:"Собрать метрики за Q3 и подготовить презентацию"`
 	NameExecutor *string    `json:"name_executor" example:"Иван Иванов"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-04-15T15:04:05Z"`
-	Position    int       `json:"position" example:"2"`
+	DataStart    *time.Time `json:"data_start" example:"2026-04-01T09:00:00Z"`
+	Status       bool       `json:"status" example:"false"`
+	Position     int        `json:"position" example:"2"`
 }
 
 // NewCard используется для запросов на создание новой карточки.
@@ -39,6 +41,7 @@ type UpdatingCardDetails struct {
 	Description  string     `json:"description" example:"Дополненное описание задачи"`
 	LinkExecutor *uuid.UUID `json:"link_executor" example:"550e8400-e29b-41d4-a716-446655440000"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-06-01T18:30:00Z"`
+	DataStart    *time.Time `json:"data_start" example:"2026-04-01T09:00:00Z"`
 }
 
 // PlaceCard используется для изменения положения карточки на доске.
