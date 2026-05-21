@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/api/dto"
+	"github.com/mailru/easyjson"
+	"github.com/mailru/easyjson/jwriter"
 )
 
 // HTTP заголовки
@@ -23,29 +27,15 @@ const (
 	StatusError = "error"
 )
 
-// Определяет структуру всех ответов API
-// Все ответы имеют единое поле status
-//
-//	@Description	Базовый ответ
-type Response struct {
-	Status string `json:"status"`
-}
+type Response = dto.Response
+type ErrorResponse = dto.ErrorResponse
 
 // Ответ для 200 статуса, всегда должен содержать данные
 //
 //	@Description	Успешный ответ с данными
 type OkResponse[T any] struct {
-	Response
-	Data T `json:"data"`
-}
-
-// Ответ для ошибки, всегда содержит код ошибки и сообщение
-//
-//	@Description	Структура сообщения об ошибке
-type ErrorResponse struct {
-	Response
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Status string `json:"status"`
+	Data   T      `json:"data"`
 }
 
 // Устанавливает заголовок ответа Content-Type в переданное значение.
@@ -60,7 +50,26 @@ func SetContentType(w http.ResponseWriter, contentType string) {
 // Принимает response T, переводит его в json и отправляет.
 // Возвращает ошибку, если маршалинг или запись в ответ не удалась.
 // Устанавливает Content-Type и записывает статус
-func respond[T any](w http.ResponseWriter, statusCode int, response T) (http.ResponseWriter, error) {
+func respond(w http.ResponseWriter, statusCode int, response any) (http.ResponseWriter, error) {
+	if marshaler, ok := response.(easyjson.Marshaler); ok {
+		var jw jwriter.Writer
+		marshaler.MarshalEasyJSON(&jw)
+
+		if jw.Error != nil {
+			return w, fmt.Errorf("easyjson marshal error: %w", jw.Error)
+		}
+
+		SetContentType(w, MIMEApplicationJSON)
+		w.WriteHeader(statusCode)
+
+		_, err := jw.DumpTo(w)
+		if err != nil {
+			return w, fmt.Errorf("cannot write easyjson: %w", err)
+		}
+
+		return w, nil
+	}
+
 	bytes, err := json.Marshal(response)
 	if err != nil {
 		return w, fmt.Errorf("cannot marshal object to json: %w", err)
@@ -79,7 +88,7 @@ func respond[T any](w http.ResponseWriter, statusCode int, response T) (http.Res
 
 // Отправляет JSON с единственным полем status
 func Respond(w http.ResponseWriter, statusCode int, status string) (http.ResponseWriter, error) {
-	response := Response{
+	response := &dto.Response{
 		Status: status,
 	}
 
@@ -88,32 +97,61 @@ func Respond(w http.ResponseWriter, statusCode int, status string) (http.Respons
 
 // Всегда возвращает 200-ку, принимает любые данные, которые можно маршалить
 func RespondOk[T any](w http.ResponseWriter, data T) (http.ResponseWriter, error) {
-	response := OkResponse[T]{
-		Response: Response{
+	if m, ok := any(data).(easyjson.Marshaler); ok {
+		var innerJW jwriter.Writer
+		m.MarshalEasyJSON(&innerJW)
+
+		if innerJW.Error != nil {
+			return w, fmt.Errorf("inner marshal error: %w", innerJW.Error)
+		}
+
+		rawBytes, _ := innerJW.BuildBytes()
+
+		fastResp := &dto.OkResponseFast{
 			Status: StatusOK,
-		},
-		Data: data,
+			Data:   rawBytes,
+		}
+
+		return respond(w, http.StatusOK, fastResp)
+	}
+
+	response := OkResponse[T]{
+		Status: StatusOK,
+		Data:   data,
 	}
 
 	return respond(w, http.StatusOK, response)
 }
 
 func RespondCreated[T any](w http.ResponseWriter, data T) (http.ResponseWriter, error) {
-	response := OkResponse[T]{
-		Response: Response{
+	if m, ok := any(data).(easyjson.Marshaler); ok {
+		var innerJw jwriter.Writer
+		m.MarshalEasyJSON(&innerJw)
+
+		if innerJw.Error != nil {
+			return w, fmt.Errorf("inner marshal error: %w", innerJw.Error)
+		}
+
+		rawBytes, _ := innerJw.BuildBytes()
+		fastResp := &dto.OkResponseFast{
 			Status: StatusOK,
-		},
-		Data: data,
+			Data:   rawBytes,
+		}
+		return respond(w, http.StatusCreated, fastResp)
 	}
 
+	response := OkResponse[T]{
+		Status: StatusOK,
+		Data:   data,
+	}
 	return respond(w, http.StatusCreated, response)
 }
 
 // Ответ ошибкой, надо указать код ошибки и сообщение.
 // Код ошибки также установится в HTTP-ответ, поэтому надо использовать валидные коды
 func RespondError(w http.ResponseWriter, errorCode int, message string) (http.ResponseWriter, error) {
-	response := ErrorResponse{
-		Response: Response{
+	response := &dto.ErrorResponse{
+		Response: dto.Response{
 			Status: StatusError,
 		},
 		Code:    errorCode,

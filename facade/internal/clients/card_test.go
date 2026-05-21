@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -115,12 +116,29 @@ func (m *mockCardServiceClient) DeleteSubtask(ctx context.Context, in *pb.Delete
 	return args.Get(0).(*pb.DeleteSubtaskResponse), args.Error(1)
 }
 
+func (m *mockCardServiceClient) CreateAttachment(ctx context.Context, in *pb.CreateAttachmentRequest, opts ...grpc.CallOption) (*pb.CreateAttachmentResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.CreateAttachmentResponse), args.Error(1)
+}
+
+func (m *mockCardServiceClient) DeleteAttachment(ctx context.Context, in *pb.DeleteAttachmentRequest, opts ...grpc.CallOption) (*pb.DeleteAttachmentResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.DeleteAttachmentResponse), args.Error(1)
+}
+
 var (
-	cardClientCardLink    = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-	cardClientSectionLink = uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-	cardClientCommentLink = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
-	cardClientSubtaskLink = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
-	cardClientUserLink    = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	cardClientCardLink       = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	cardClientSectionLink    = uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+	cardClientCommentLink    = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	cardClientSubtaskLink    = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	cardClientUserLink       = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	cardClientAttachmentLink = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 )
 
 func TestCardClient_GetCard(t *testing.T) {
@@ -675,7 +693,7 @@ func TestCardClient_UpdateSubtask(t *testing.T) {
 
 func TestCardClient_DeleteSubtask(t *testing.T) {
 	ctx := context.Background()
-	req := domain.DeleteSubtask{UserLink: cardClientUserLink, SubtaskLink: cardClientSubtaskLink}
+	req := domain.DeleteSubtaskRequest{UserLink: cardClientUserLink, SubtaskLink: cardClientSubtaskLink}
 
 	tests := []struct {
 		name        string
@@ -774,6 +792,118 @@ func TestConvertCardGRPCError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := convertCardGRPCError(tt.inputErr)
 			assert.ErrorIs(t, result, tt.expectedErr)
+		})
+	}
+}
+
+func TestCardClient_CreateAttachment(t *testing.T) {
+	ctx := context.Background()
+	req := domain.CreateAttachmentRequest{
+		UserLink:   cardClientUserLink,
+		TaskLink:   cardClientCardLink,
+		Attachment: bytes.NewReader([]byte("fake image data")),
+		Filename:   "photo.png",
+	}
+
+	tests := []struct {
+		name        string
+		mockResp    *pb.CreateAttachmentResponse
+		mockErr     error
+		expectedErr error
+	}{
+		{
+			name: "success",
+			mockResp: &pb.CreateAttachmentResponse{
+				AttachmentLink: cardClientAttachmentLink.String(),
+				Path:           "https://s3.example.com/file.png",
+				Position:       1,
+				Name:           "photo.png",
+			},
+			mockErr:     nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "grpc permission denied",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.PermissionDenied, "permission denied"),
+			expectedErr: common.ErrorPermissionDenied,
+		},
+		{
+			name:        "grpc invalid argument",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.InvalidArgument, "missing required field"),
+			expectedErr: common.ErrorInvalidInput,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := new(mockCardServiceClient)
+			mc.On("CreateAttachment", ctx, mock.MatchedBy(func(r *pb.CreateAttachmentRequest) bool {
+				return r.UserLink == cardClientUserLink.String() && r.TaskLink == cardClientCardLink.String()
+			})).Return(tt.mockResp, tt.mockErr)
+
+			c := &Card{client: mc}
+			_, err := c.CreateAttachment(ctx, req)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCardClient_DeleteAttachment(t *testing.T) {
+	ctx := context.Background()
+	req := domain.DeleteAttachmentRequest{
+		UserLink:       cardClientUserLink,
+		AttachmentLink: cardClientAttachmentLink,
+	}
+
+	tests := []struct {
+		name        string
+		mockResp    *pb.DeleteAttachmentResponse
+		mockErr     error
+		expectedErr error
+	}{
+		{
+			name:        "success",
+			mockResp:    &pb.DeleteAttachmentResponse{},
+			mockErr:     nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "attachment not found",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.NotFound, "attachment not found"),
+			expectedErr: common.ErrorAttachmentNotFound,
+		},
+		{
+			name:        "permission denied",
+			mockResp:    nil,
+			mockErr:     status.Error(codes.PermissionDenied, "permission denied"),
+			expectedErr: common.ErrorPermissionDenied,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := new(mockCardServiceClient)
+			mc.On("DeleteAttachment", ctx, &pb.DeleteAttachmentRequest{
+				UserLink:       cardClientUserLink.String(),
+				AttachmentLink: cardClientAttachmentLink.String(),
+			}).Return(tt.mockResp, tt.mockErr)
+
+			c := &Card{client: mc}
+			err := c.DeleteAttachment(ctx, req)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

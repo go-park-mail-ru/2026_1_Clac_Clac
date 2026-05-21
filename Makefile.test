@@ -1,14 +1,14 @@
 COVERAGE_FILE=coverage.out
 MIN_COVERAGE=70
 
-# Собираем все пакеты проекта, исключая моки, протобафы и документацию.
+# Собираем все пакеты проекта, исключая моки, протобафы, документацию, codegen для easyjson.
 # Пакеты перечисляются через пробел для передачи в качестве аргументов go test.
-PACKAGES := $(shell go list ./... | grep -vE "mock|proto|docs")
+PACKAGES := $(shell go list ./... | grep -vE "mock|proto|docs|dto")
 
 # Пакеты для инструментирования через -coverpkg.
 # Для корректной статистики исключаем также пакеты 'cmd' (точки входа).
 # Объединяем через запятую с помощью paste.
-COVERPKG := $(shell go list ./... | grep -vE "mock|proto|docs|cmd" | paste -sd "," -)
+COVERPKG := $(shell go list ./... | grep -vE "mock|proto|docs|cmd|dto" | paste -sd "," -)
 
 .PHONY: unit unit-only-fail cover report ci clean
 

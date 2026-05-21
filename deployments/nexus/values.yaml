@@ -1,0 +1,156 @@
+namespace: "nexus-prod"
+
+ingress:
+  enabled: true
+  host: clac-clac.ru
+
+frontend:
+  enabled: true
+  image: nginx:alpine
+  port: 80
+  static: /home/ubuntu
+  resources:
+    limits:
+      memory: "64Mi"
+      cpu: "10m"
+
+postgres:
+  image: postgres:17-alpine
+  port: 5432
+  resources:
+    limits: { memory: "128Mi", cpu: "50m" }
+    requests: { memory: "64Mi", cpu: "10m" }
+
+redis:
+  image: redis:7-alpine
+  port: 6379
+  resources:
+    limits: { memory: "64Mi", cpu: "50m" }
+    requests: { memory: "32Mi", cpu: "10m" }
+
+services:
+  facade:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-facade:sha-481bc78
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "50m"
+      requests:
+        memory: "64Mi"
+        cpu: "10m"
+
+  rate-limiter:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-rate_limiter:sha-23929d6
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "64Mi"
+        cpu: "50m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"
+
+  authorization:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-authorization:sha-3984ba1
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "64Mi"
+        cpu: "50m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"
+
+  user:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-user:sha-47f537c
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "50m"
+      requests:
+        memory: "64Mi"
+        cpu: "10m"
+
+  mail-sender:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-mail_sender:sha-fa33b1c
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "64Mi"
+        cpu: "10m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"
+
+  board:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-board:sha-481bc78
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: true
+    resources:
+      limits:
+        memory: "64Mi"
+        cpu: "50m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"
+
+  appeal:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-appeal:sha-3984ba1
+    port: 8080
+    database:
+      enabled: true
+    redis:
+      enabled: false
+    resources:
+      limits:
+        memory: "64Mi"
+        cpu: "50m"
+      requests:
+        memory: "32Mi"
+        cpu: "10m"

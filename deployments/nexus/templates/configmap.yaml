@@ -1,0 +1,23 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $svcName }}-config
+  namespace: {{ $.Values.namespace }}
+data:
+  config.yaml: |-
+{{ $.Files.Get (printf "configs/%s.yaml" $svcName) | indent 4 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $svcName }}-postgres-config
+  namespace: {{ $.Values.namespace }}
+data:
+  postgresql.conf: |-
+{{ $.Files.Get "configs/postgresql.conf" | indent 4 }}
+{{- end }}
+{{- end }}

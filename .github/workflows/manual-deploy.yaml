@@ -2,31 +2,87 @@ name: Manual Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      all:
+        description: "build all services"
+        type: boolean
+        default: false
+      appeal:
+        description: "appeal"
+        type: boolean
+        default: false
+      authorization:
+        description: "authorization"
+        type: boolean
+        default: false
+      board:
+        description: "board"
+        type: boolean
+        default: false
+      facade:
+        description: "facade"
+        type: boolean
+        default: false
+      mail_sender:
+        description: "mail_sender"
+        type: boolean
+        default: false
+      rate_limiter:
+        description: "rate_limiter"
+        type: boolean
+        default: false
+      user:
+        description: "user"
+        type: boolean
+        default: false
 
 jobs:
-  build-and-push:
+  setup-build:
     runs-on: ubuntu-latest
-
-    env:
-      DRY_RUN: false
-      DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Run Deploy Script
+      - name: Generate Build Matrix
+        id: set-matrix
         run: |
-          chmod +x ./deploy.sh
-          ./deploy.sh ${{ github.event.before }}
+          if [[ "${{ inputs.all }}" == 'true' ]]; then
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
+          else
+            SERVICES=()
+            [[ "${{ inputs.appeal }}" == 'true' ]] && SERVICES+=('"appeal"')
+            [[ "${{ inputs.authorization }}" == 'true' ]] && SERVICES+=('"authorization"')
+            [[ "${{ inputs.board }}" == 'true' ]] && SERVICES+=('"board"')
+            [[ "${{ inputs.facade }}" == 'true' ]] && SERVICES+=('"facade"')
+            [[ "${{ inputs.mail_sender }}" == 'true' ]] && SERVICES+=('"mail_sender"')
+            [[ "${{ inputs.rate_limiter }}" == 'true' ]] && SERVICES+=('"rate_limiter"')
+            [[ "${{ inputs.user }}" == 'true' ]] && SERVICES+=('"user"')
+
+            if [ ${#SERVICES[@]} -eq 0 ]; then
+              echo "Error: nothing to build"
+              exit 1
+            fi
+
+            MATRIX_JSON="[$(IFS=,; echo "${SERVICES[*]}")]"
+            echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+          fi
+
+  run-deployment:
+    needs: setup-build
+    uses: ./.github/workflows/build-and-update-chart.yaml
+    with:
+      matrix_services: ${{ needs.setup-build.outputs.matrix }}
+      target_revision: ${{ github.ref_name }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  deploy-docs:
+    needs: run-deployment
+    uses: ./.github/workflows/deploy-docs.yaml
+    with:
+      endpoint-url: hb.ru-msk.vkcloud-storage.ru
+      aws-region: ru-msk
+      bucket-name: nexus-docs
+    secrets:
+      S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+      S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}

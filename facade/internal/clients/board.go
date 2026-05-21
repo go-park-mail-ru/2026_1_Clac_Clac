@@ -18,13 +18,19 @@ var boardBufferPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
 
-type Board struct {
-	client pb.BoardServiceClient
+type ConfigBoard struct {
+	MaxBackgroundBytesSize int
 }
 
-func NewBoardClient(connection *grpc.ClientConn) *Board {
+type Board struct {
+	client pb.BoardServiceClient
+	cfg    ConfigBoard
+}
+
+func NewBoardClient(connection *grpc.ClientConn, cfg ConfigBoard) *Board {
 	return &Board{
 		client: pb.NewBoardServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
@@ -139,7 +145,11 @@ func (b *Board) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardReq
 func (b *Board) UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error) {
 	buf := boardBufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer boardBufferPool.Put(buf)
+	defer func() {
+		if buf.Cap() <= b.cfg.MaxBackgroundBytesSize {
+			boardBufferPool.Put(buf)
+		}
+	}()
 
 	if _, err := io.Copy(buf, image); err != nil {
 		return domain.UploadBackgroundResponse{}, fmt.Errorf("read image into buffer: %w", err)

@@ -284,6 +284,57 @@ func TestCachedService_CheckPermissionOnSubtask(t *testing.T) {
 	})
 }
 
+func TestCachedService_CheckPermissionOnAttachment(t *testing.T) {
+	ctx := context.Background()
+	attachmentLink := uuid.New()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	t.Run("Cache miss repo success", func(t *testing.T) {
+		_, client := newTestRedis(t)
+		mockRepo := new(MockRbacRepository)
+		mockRepo.On("GetUserRoleByAttachmentLink", ctx, attachmentLink, userLink).Return(Roles.Editor, boardLink, nil)
+
+		svc := NewCachedService(mockRepo, client)
+		err := svc.CheckPermissionOnAttachment(ctx, attachmentLink, userLink, Actions.Edit)
+		assert.NoError(t, err)
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Cache miss repo error", func(t *testing.T) {
+		_, client := newTestRedis(t)
+		mockRepo := new(MockRbacRepository)
+		mockRepo.On("GetUserRoleByAttachmentLink", ctx, attachmentLink, userLink).Return(Roles.None, uuid.Nil, errors.New("db fail"))
+
+		svc := NewCachedService(mockRepo, client)
+		err := svc.CheckPermissionOnAttachment(ctx, attachmentLink, userLink, Actions.Delete)
+		assert.ErrorContains(t, err, "db fail")
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Cache hit mapping and role allowed", func(t *testing.T) {
+		mr, client := newTestRedis(t)
+		mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
+		mr.Set(roleKey(userLink, boardLink), string(Roles.Creator))
+
+		mockRepo := new(MockRbacRepository)
+		svc := NewCachedService(mockRepo, client)
+		err := svc.CheckPermissionOnAttachment(ctx, attachmentLink, userLink, Actions.Delete)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Cache hit mapping role denied", func(t *testing.T) {
+		mr, client := newTestRedis(t)
+		mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
+		mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
+
+		mockRepo := new(MockRbacRepository)
+		svc := NewCachedService(mockRepo, client)
+		err := svc.CheckPermissionOnAttachment(ctx, attachmentLink, userLink, Actions.Delete)
+		assert.ErrorIs(t, err, ErrActionDenied)
+	})
+}
+
 func TestCachedService_InvalidateUserBoardRole(t *testing.T) {
 	ctx := context.Background()
 	boardLink := uuid.New()

@@ -1,0 +1,45 @@
+global:
+  domain: argocd.clac-clac.ru
+
+configs:
+  params:
+    server.insecure: "true"
+    server.basehref: "/"
+    server.rootpath: ""
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - argocd.clac-clac.ru
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/service.serversscheme: http
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    pathType: Prefix
+    paths:
+      - /
+    tls:
+      - hosts:
+          - argocd.clac-clac.ru
+        secretName: argocd-server-tls
+
+repoServer:
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+
+controller:
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"

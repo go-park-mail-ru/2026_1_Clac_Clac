@@ -1,8 +1,11 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"sync"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
@@ -11,17 +14,27 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Card struct {
-	client pb.CardServiceClient
+var attachmentBufferPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
 }
 
-func NewCardClient(connection *grpc.ClientConn) *Card {
+type CardConfig struct {
+	MaxAttachmentBufferSize int
+}
+
+type Card struct {
+	client pb.CardServiceClient
+	cfg    CardConfig
+}
+
+func NewCardClient(connection *grpc.ClientConn, cfg CardConfig) *Card {
 	return &Card{
 		client: pb.NewCardServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
-func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	req := &pb.GetCardRequest{
 		UserLink: infoCard.UserLink.String(),
 		CardLink: infoCard.CardLink.String(),
@@ -29,14 +42,28 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 
 	resp, err := c.client.GetCard(ctx, req)
 	if err != nil {
-		return domain.CardInfo{}, fmt.Errorf("CardClient.GetCard: %w", convertCardGRPCError(err))
+		return domain.CardFullInfo{}, fmt.Errorf("CardClient.GetCard: %w", convertCardGRPCError(err))
+	}
+
+	attachments := make([]domain.AttachmentInfo, 0, len(resp.CardInfo.Attachments))
+	for _, attachment := range resp.CardInfo.Attachments {
+		attachmentLink, err := uuid.Parse(attachment.AttachmentLink)
+		if err != nil {
+			return domain.CardFullInfo{}, common.ErrorParseLink
+		}
+		attachments = append(attachments, domain.AttachmentInfo{
+			AttachmentLink: attachmentLink,
+			DisplayName:    attachment.Name,
+			Path:           attachment.Path,
+			Position:       int(attachment.Position),
+		})
 	}
 
 	subtasks := make([]domain.SubtaskInfo, 0, len(resp.CardInfo.Subtasks))
 	for _, subtask := range resp.CardInfo.Subtasks {
 		subtaskLink, err := uuid.Parse(subtask.SubtaskLink)
 		if err != nil {
-			return domain.CardInfo{}, common.ErrorParseLink
+			return domain.CardFullInfo{}, common.ErrorParseLink
 		}
 		subtasks = append(subtasks, domain.SubtaskInfo{
 			SubtaskLink: subtaskLink,
@@ -50,19 +77,20 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 	if resp.CardInfo.ExecutorLink != nil {
 		el, err := uuid.Parse(*resp.CardInfo.ExecutorLink)
 		if err != nil {
-			return domain.CardInfo{}, common.ErrorParseLink
+			return domain.CardFullInfo{}, common.ErrorParseLink
 		}
 		executorLink = &el
 	}
 
-	return domain.CardInfo{
+	return domain.CardFullInfo{
 		CardLink:     infoCard.CardLink,
 		ExecutorLink: executorLink,
 		Title:        resp.CardInfo.Title,
 		Description:  resp.CardInfo.Description,
 		Deadline:     convertTimestamppbToTime(resp.CardInfo.Deadline),
 		Subtasks:     subtasks,
-		Position:    int(resp.CardInfo.Position),
+		Position:     int(resp.CardInfo.Position),
+		Attachments:  attachments,
 	}, nil
 }
 
@@ -299,7 +327,7 @@ func (c *Card) UpdateSubtask(ctx context.Context, infoSubtask domain.UpdateSubta
 	return nil
 }
 
-func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error {
+func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error {
 	req := &pb.DeleteSubtaskRequest{
 		UserLink:    infoSubtask.UserLink.String(),
 		SubtaskLink: infoSubtask.SubtaskLink.String(),
@@ -308,6 +336,57 @@ func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubta
 	_, err := c.client.DeleteSubtask(ctx, req)
 	if err != nil {
 		return fmt.Errorf("CardClient.DeleteSubtask: %w", convertCardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (c *Card) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
+	buf := attachmentBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer func() {
+		if buf.Cap() <= c.cfg.MaxAttachmentBufferSize {
+			attachmentBufferPool.Put(buf)
+		}
+	}()
+
+	if _, err := io.Copy(buf, infoAttachment.Attachment); err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("read attachment into buffer: %w", err)
+	}
+
+	req := &pb.CreateAttachmentRequest{
+		UserLink: infoAttachment.UserLink.String(),
+		TaskLink: infoAttachment.TaskLink.String(),
+		Data:     buf.Bytes(),
+		Name:     infoAttachment.Filename,
+	}
+
+	attachment, err := c.client.CreateAttachment(ctx, req)
+	if err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("CardClient.CreateAttachment: %w", convertCardGRPCError(err))
+	}
+
+	attachmentLink, err := uuid.Parse(attachment.AttachmentLink)
+	if err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("CardClient parse attachment link: %w", common.ErrorParseLink)
+	}
+
+	return domain.AttachmentInfo{
+		AttachmentLink: attachmentLink,
+		DisplayName:    attachment.Name,
+		Position:       int(attachment.Position),
+		Path:           attachment.Path,
+	}, nil
+}
+
+func (c *Card) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
+	req := &pb.DeleteAttachmentRequest{
+		UserLink:       infoAttachment.UserLink.String(),
+		AttachmentLink: infoAttachment.AttachmentLink.String(),
+	}
+
+	if _, err := c.client.DeleteAttachment(ctx, req); err != nil {
+		return fmt.Errorf("ClientCard.DeleteAttachment: %w", convertCardGRPCError(err))
 	}
 
 	return nil

@@ -3,6 +3,7 @@ app:
   max_text_request_size: 10240
   max_upload_image_size: 10485760
   request_timeout: 5s
+  max_file_size: 10485760
 
 engine:
   addr: 0.0.0.0:8080
@@ -78,6 +79,7 @@ services:
     handler:
       max_len_title: 128
       max_len_description: 500
+      multipart_attachment_file_key: "attachment"
 
   rate_limiters:
     addr: "nexus-rate-limiter:8080"

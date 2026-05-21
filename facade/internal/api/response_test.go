@@ -135,13 +135,13 @@ func TestRespondError(t *testing.T) {
 			name:         "BadRequest",
 			code:         http.StatusBadRequest,
 			message:      "this is error message",
-			expectedBody: fmt.Sprintf(`{"status":"%s","code":%d,"message":"this is error message"}`, StatusError, http.StatusBadRequest),
+			expectedBody: fmt.Sprintf(`{"code":%d,"message":"this is error message","status":"%s"}`, http.StatusBadRequest, StatusError),
 		},
 		{
 			name:         "NotFound",
 			code:         http.StatusNotFound,
 			message:      "not found",
-			expectedBody: fmt.Sprintf(`{"status":"%s","code":%d,"message":"not found"}`, StatusError, http.StatusNotFound),
+			expectedBody: fmt.Sprintf(`{"code":%d,"message":"not found","status":"%s"}`, http.StatusNotFound, StatusError),
 		},
 	}
 
