@@ -43,7 +43,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-539bd4b
+    image: nisakoo/nexus-facade:sha-43cbe76
     port: 8080
     database:
       enabled: false
@@ -61,7 +61,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-rate_limiter:sha-23929d6
+    image: nisakoo/nexus-rate_limiter:sha-43cbe76
     port: 8080
     database:
       enabled: false
@@ -79,7 +79,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-authorization:sha-fa33b1c
+    image: nisakoo/nexus-authorization:sha-43cbe76
     port: 8080
     database:
       enabled: false
@@ -97,7 +97,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-user:sha-47f537c
+    image: nisakoo/nexus-user:sha-43cbe76
     port: 8080
     database:
       enabled: true
@@ -115,7 +115,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-mail_sender:sha-fa33b1c
+    image: nisakoo/nexus-mail_sender:sha-43cbe76
     port: 8080
     database:
       enabled: false
@@ -133,7 +133,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-539bd4b
+    image: nisakoo/nexus-board:sha-43cbe76
     port: 8080
     database:
       enabled: true
@@ -151,7 +151,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-appeal:sha-47f537c
+    image: nisakoo/nexus-appeal:sha-43cbe76
     port: 8080
     database:
       enabled: true
