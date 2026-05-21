@@ -80,6 +80,7 @@ services:
     handler:
       max_len_title: 128
       max_len_description: 500
+      multipart_attachment_file_key: "attachment"
 
   rate_limiters:
     addr: "nexus-rate-limiter-service:8080"
