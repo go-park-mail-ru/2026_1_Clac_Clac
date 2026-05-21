@@ -10,12 +10,10 @@ import (
 //
 //	@Description	Данные для создания новой карточки в секции
 type CreateCardRequest struct {
-	SectionLink  string     `json:"section_link"`
-	Title        string     `json:"title"`
-	Description  string     `json:"description"`
-	ExecutorLink *string    `json:"executor_link,omitempty"`
-	Deadline     *time.Time `json:"deadline,omitempty"`
-	Start        *time.Time `json:"start,omitempty"`
+	SectionLink  string  `json:"section_link"`
+	Title        string  `json:"title"`
+	Description  string  `json:"description"`
+	ExecutorLink *string `json:"executor_link,omitempty"`
 }
 
 // UpdateCardRequest содержит данные для обновления карточки.
@@ -137,10 +135,16 @@ type UpdateSubtaskRequest struct {
 	Description string `json:"description"`
 }
 
+// NewStatusTask содержит новый статус выполнения карточки.
+//
+//	@Description	Статус выполнения карточки (done = true / false)
 type NewStatusTask struct {
 	Done bool `json:"done"`
 }
 
+// NewTimeLine содержит временные рамки карточки.
+//
+//	@Description	Временные рамки карточки (начало и дедлайн)
 type NewTimeLine struct {
 	Start    time.Time `json:"start"`
 	DeadLine time.Time `json:"deadline"`

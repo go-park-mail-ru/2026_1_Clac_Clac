@@ -29,6 +29,7 @@ type NewCard struct {
 	Description  string     `json:"description" example:"Описание для новой задачи"`
 	LinkExecutor *uuid.UUID `json:"link_executor" example:"123e4567-e89b-12d3-a456-426614174000"`
 	DataDeadLine *time.Time `json:"data_dead_line" example:"2026-05-01T12:00:00Z"`
+	DataStart    *time.Time `json:"data_start" example:"2026-04-01T09:00:00Z"`
 	LinkSection  uuid.UUID  `json:"link_section" example:"987e6543-e21b-12d3-a456-426614174111"`
 }
 

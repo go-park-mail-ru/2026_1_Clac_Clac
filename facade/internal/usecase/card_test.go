@@ -288,9 +288,8 @@ func TestCardUsecase_ReorderCards(t *testing.T) {
 func TestCardUsecase_CreateCard(t *testing.T) {
 	req := domain.CreateCardRequest{
 		UserLink:    fixedUserLink,
-		SectionLink: fixedSectionLink,
+		SectionLink: fixedCardLink,
 		Title:       "New Card",
-		Description: "Desc",
 	}
 	expectedResp := domain.CreateCardResponse{
 		CardLink:    fixedCardLink,

@@ -385,11 +385,6 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		return nil, status.Error(codes.InvalidArgument, ErrCardNameIsTooBig.Error())
 	}
 
-	description := req.GetDescription()
-	if !common.CheckCardDescriptionLength(description, h.cnf.MaxLenDescription) {
-		return nil, status.Error(codes.InvalidArgument, ErrCardDescriptionIsTooBig.Error())
-	}
-
 	var executorLink *uuid.UUID
 	if req.ExecutorLink != nil {
 		rawExecutorLink := req.GetExecutorLink()
@@ -400,25 +395,10 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		executorLink = &parsed
 	}
 
-	var deadline *time.Time
-	if req.Deadline != nil {
-		d := req.GetDeadline().AsTime()
-		deadline = &d
-	}
-
-	var start *time.Time
-	if req.Start != nil {
-		s := req.GetStart().AsTime()
-		start = &s
-	}
-
 	card, err := h.srv.CreateCard(ctx, serviceDto.NewCard{
 		LinkAuthor:   userLink,
 		Title:        title,
-		Description:  description,
 		LinkExecutor: executorLink,
-		DataDeadLine: deadline,
-		DataStart:    start,
 		LinkSection:  sectionLink,
 	})
 	if err != nil {

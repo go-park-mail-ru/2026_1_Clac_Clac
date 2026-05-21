@@ -775,11 +775,8 @@ type CreateCardRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	ExecutorLink  *string                `protobuf:"bytes,4,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
-	Deadline      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=deadline,proto3,oneof" json:"deadline,omitempty"`
-	Start         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=start,proto3,oneof" json:"start,omitempty"`
-	SectionLink   string                 `protobuf:"bytes,7,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	ExecutorLink  *string                `protobuf:"bytes,3,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
+	SectionLink   string                 `protobuf:"bytes,4,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -828,32 +825,11 @@ func (x *CreateCardRequest) GetTitle() string {
 	return ""
 }
 
-func (x *CreateCardRequest) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
 func (x *CreateCardRequest) GetExecutorLink() string {
 	if x != nil && x.ExecutorLink != nil {
 		return *x.ExecutorLink
 	}
 	return ""
-}
-
-func (x *CreateCardRequest) GetDeadline() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Deadline
-	}
-	return nil
-}
-
-func (x *CreateCardRequest) GetStart() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Start
-	}
-	return nil
 }
 
 func (x *CreateCardRequest) GetSectionLink() string {
@@ -2129,18 +2105,13 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1b\n" +
 	"\tcard_link\x18\x03 \x01(\tR\bcardLink\x12\x1a\n" +
 	"\bposition\x18\x04 \x01(\x03R\bposition\"\x16\n" +
-	"\x14ReorderCardsResponse\"\xd2\x02\n" +
+	"\x14ReorderCardsResponse\"\xa5\x01\n" +
 	"\x11CreateCardRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12(\n" +
-	"\rexecutor_link\x18\x04 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12;\n" +
-	"\bdeadline\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\bdeadline\x88\x01\x01\x125\n" +
-	"\x05start\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\x05start\x88\x01\x01\x12!\n" +
-	"\fsection_link\x18\a \x01(\tR\vsectionLinkB\x10\n" +
-	"\x0e_executor_linkB\v\n" +
-	"\t_deadlineB\b\n" +
-	"\x06_start\"p\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12(\n" +
+	"\rexecutor_link\x18\x03 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12!\n" +
+	"\fsection_link\x18\x04 \x01(\tR\vsectionLinkB\x10\n" +
+	"\x0e_executor_link\"p\n" +
 	"\x12CreateCardResponse\x12\x1b\n" +
 	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12!\n" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1a\n" +
@@ -2294,48 +2265,46 @@ var file_proto_card_v1_card_proto_depIdxs = []int32{
 	0,  // 5: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
 	36, // 6: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
 	36, // 7: proto.card.v1.UpdateCardRequest.start:type_name -> google.protobuf.Timestamp
-	36, // 8: proto.card.v1.CreateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	36, // 9: proto.card.v1.CreateCardRequest.start:type_name -> google.protobuf.Timestamp
-	3,  // 10: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
-	36, // 11: proto.card.v1.UpdateTimeLineTaskRequest.deadline:type_name -> google.protobuf.Timestamp
-	36, // 12: proto.card.v1.UpdateTimeLineTaskRequest.start:type_name -> google.protobuf.Timestamp
-	4,  // 13: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
-	6,  // 14: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
-	8,  // 15: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
-	10, // 16: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
-	12, // 17: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
-	14, // 18: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
-	16, // 19: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
-	18, // 20: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
-	20, // 21: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
-	22, // 22: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
-	24, // 23: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
-	26, // 24: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
-	28, // 25: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
-	30, // 26: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
-	32, // 27: proto.card.v1.CardService.UpdateStatusTask:input_type -> proto.card.v1.UpdateStatusTaskRequest
-	34, // 28: proto.card.v1.CardService.UpdateTimeLineTask:input_type -> proto.card.v1.UpdateTimeLineTaskRequest
-	5,  // 29: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
-	7,  // 30: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
-	9,  // 31: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
-	11, // 32: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
-	13, // 33: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
-	15, // 34: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
-	17, // 35: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
-	19, // 36: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
-	21, // 37: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
-	23, // 38: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
-	25, // 39: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
-	27, // 40: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
-	29, // 41: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
-	31, // 42: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
-	33, // 43: proto.card.v1.CardService.UpdateStatusTask:output_type -> proto.card.v1.UpdateStatusTaskResponse
-	35, // 44: proto.card.v1.CardService.UpdateTimeLineTask:output_type -> proto.card.v1.UpdateTimeLineTaskResponse
-	29, // [29:45] is the sub-list for method output_type
-	13, // [13:29] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	3,  // 8: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
+	36, // 9: proto.card.v1.UpdateTimeLineTaskRequest.deadline:type_name -> google.protobuf.Timestamp
+	36, // 10: proto.card.v1.UpdateTimeLineTaskRequest.start:type_name -> google.protobuf.Timestamp
+	4,  // 11: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
+	6,  // 12: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
+	8,  // 13: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
+	10, // 14: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
+	12, // 15: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
+	14, // 16: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
+	16, // 17: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
+	18, // 18: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
+	20, // 19: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
+	22, // 20: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
+	24, // 21: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
+	26, // 22: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
+	28, // 23: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
+	30, // 24: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
+	32, // 25: proto.card.v1.CardService.UpdateStatusTask:input_type -> proto.card.v1.UpdateStatusTaskRequest
+	34, // 26: proto.card.v1.CardService.UpdateTimeLineTask:input_type -> proto.card.v1.UpdateTimeLineTaskRequest
+	5,  // 27: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
+	7,  // 28: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
+	9,  // 29: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
+	11, // 30: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
+	13, // 31: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
+	15, // 32: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
+	17, // 33: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
+	19, // 34: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
+	21, // 35: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
+	23, // 36: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
+	25, // 37: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
+	27, // 38: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
+	29, // 39: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
+	31, // 40: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
+	33, // 41: proto.card.v1.CardService.UpdateStatusTask:output_type -> proto.card.v1.UpdateStatusTaskResponse
+	35, // 42: proto.card.v1.CardService.UpdateTimeLineTask:output_type -> proto.card.v1.UpdateTimeLineTaskResponse
+	27, // [27:43] is the sub-list for method output_type
+	11, // [11:27] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_proto_card_v1_card_proto_init() }

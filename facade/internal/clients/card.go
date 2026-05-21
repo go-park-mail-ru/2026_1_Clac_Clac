@@ -163,10 +163,7 @@ func (c *Card) CreateCard(ctx context.Context, infoCard domain.CreateCardRequest
 		UserLink:     infoCard.UserLink.String(),
 		SectionLink:  infoCard.SectionLink.String(),
 		Title:        infoCard.Title,
-		Description:  infoCard.Description,
 		ExecutorLink: executorLink,
-		Deadline:     convertTimeToTimestamppb(infoCard.Deadline),
-		Start:        convertTimeToTimestamppb(infoCard.Start),
 	}
 
 	resp, err := c.client.CreateCard(ctx, req)

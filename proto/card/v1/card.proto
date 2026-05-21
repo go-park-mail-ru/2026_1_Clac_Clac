@@ -86,11 +86,8 @@ message ReorderCardsResponse {}
 message CreateCardRequest {
   string user_link = 1;
   string title = 2;
-  string description = 3;
-  optional string executor_link = 4;
-  optional google.protobuf.Timestamp deadline = 5;
-  optional google.protobuf.Timestamp start = 6;
-  string section_link = 7;
+  optional string executor_link = 3;
+  string section_link = 4;
 }
 
 message CreateCardResponse {

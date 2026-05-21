@@ -360,7 +360,6 @@ func TestCardClient_CreateCard(t *testing.T) {
 		UserLink:    cardClientUserLink,
 		SectionLink: cardClientSectionLink,
 		Title:       "New Card",
-		Description: "Desc",
 	}
 
 	tests := []struct {
@@ -394,7 +393,6 @@ func TestCardClient_CreateCard(t *testing.T) {
 				UserLink:    cardClientUserLink.String(),
 				SectionLink: cardClientSectionLink.String(),
 				Title:       "New Card",
-				Description: "Desc",
 			}).Return(tt.mockResp, tt.mockErr)
 
 			c := &Card{client: mc}

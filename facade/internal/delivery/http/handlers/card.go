@@ -462,9 +462,6 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 		SectionLink:  sectionLink,
 		ExecutorLink: executorLink,
 		Title:        req.Title,
-		Description:  req.Description,
-		Deadline:     req.Deadline,
-		Start:        req.Start,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
@@ -1220,14 +1217,6 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Start.IsZero() {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
-		return
-	}
-	if req.DeadLine.IsZero() {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
-		return
-	}
 	if req.Start.After(req.DeadLine) {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
 		return

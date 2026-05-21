@@ -471,7 +471,6 @@ func TestCreateCard(t *testing.T) {
 	validReq := &pb.CreateCardRequest{
 		UserLink:    targetAuthorLink.String(),
 		Title:       "New Task",
-		Description: "Task desc",
 		SectionLink: targetSectionLink.String(),
 	}
 
@@ -513,7 +512,6 @@ func TestCreateCard(t *testing.T) {
 			req: &pb.CreateCardRequest{
 				UserLink:    targetAuthorLink.String(),
 				Title:       "very long title exceeding the limit",
-				Description: "Task desc",
 				SectionLink: targetSectionLink.String(),
 			},
 			mockBehavior: nil,

@@ -3655,38 +3655,6 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 					*out.ExecutorLink = string(in.String())
 				}
 			}
-		case "deadline":
-			if in.IsNull() {
-				in.Skip()
-				out.Deadline = nil
-			} else {
-				if out.Deadline == nil {
-					out.Deadline = new(time.Time)
-				}
-				if in.IsNull() {
-					in.Skip()
-				} else {
-					if data := in.Raw(); in.Ok() {
-						in.AddError((*out.Deadline).UnmarshalJSON(data))
-					}
-				}
-			}
-		case "start":
-			if in.IsNull() {
-				in.Skip()
-				out.Start = nil
-			} else {
-				if out.Start == nil {
-					out.Start = new(time.Time)
-				}
-				if in.IsNull() {
-					in.Skip()
-				} else {
-					if data := in.Raw(); in.Ok() {
-						in.AddError((*out.Start).UnmarshalJSON(data))
-					}
-				}
-			}
 		default:
 			in.SkipRecursive()
 		}
@@ -3720,16 +3688,6 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		const prefix string = ",\"executor_link\":"
 		out.RawString(prefix)
 		out.String(string(*in.ExecutorLink))
-	}
-	if in.Deadline != nil {
-		const prefix string = ",\"deadline\":"
-		out.RawString(prefix)
-		out.Raw((*in.Deadline).MarshalJSON())
-	}
-	if in.Start != nil {
-		const prefix string = ",\"start\":"
-		out.RawString(prefix)
-		out.Raw((*in.Start).MarshalJSON())
 	}
 	out.RawByte('}')
 }
