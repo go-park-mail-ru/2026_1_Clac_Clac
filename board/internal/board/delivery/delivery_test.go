@@ -543,6 +543,14 @@ func TestGetMembers(t *testing.T) {
 			expectedCode: codes.NotFound,
 		},
 		{
+			name: "Error permission denied",
+			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetUsersOfBoard", mock.Anything, boardLink, userLink).Return(nil, rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
 			name: "Error internal server",
 			req:  &pb.GetMembersRequest{BoardLink: boardLink.String(), UserLink: userLink.String()},
 			setupMock: func(m *mocks.BoardService) {

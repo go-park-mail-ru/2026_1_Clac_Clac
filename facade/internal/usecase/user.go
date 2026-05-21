@@ -16,6 +16,7 @@ type UserClient interface {
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 
 	GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error)
+	GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error)
 	UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo) error
 	UpdateAvatar(ctx context.Context, avatarInfo domain.AvatarInfo) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
@@ -75,6 +76,15 @@ func (u *User) GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullI
 	}
 
 	return user, nil
+}
+
+func (u *User) GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error) {
+	profiles, err := u.user.GetProfiles(ctx, links)
+	if err != nil {
+		return nil, fmt.Errorf("user.GetProfiles: %w", err)
+	}
+
+	return profiles, nil
 }
 
 func (u *User) UpdateProfile(ctx context.Context, info domain.UpdatedInfo) error {

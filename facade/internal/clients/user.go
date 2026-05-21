@@ -57,6 +57,40 @@ func (u *User) GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullI
 	}, nil
 }
 
+func (u *User) GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error) {
+	rawLinks := make([]string, 0, len(links))
+	for _, link := range links {
+		rawLinks = append(rawLinks, link.String())
+	}
+
+	req := &pb.GetProfilesRequest{
+		UserLinks: rawLinks,
+	}
+
+	resp, err := u.client.GetProfiles(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("UserClient.GetProfiles: %w", convertGRPCError(err))
+	}
+
+	profiles := make([]domain.FullInfoUser, 0, len(resp.Profiles))
+	for _, p := range resp.Profiles {
+		convertedUserLink, err := uuid.Parse(p.UserLink)
+		if err != nil {
+			return nil, common.ErrorParseLink
+		}
+
+		profiles = append(profiles, domain.FullInfoUser{
+			UserLink:    convertedUserLink,
+			Email:       p.Email,
+			DisplayName: p.DisplayName,
+			Description: p.Description,
+			AvatarURL:   p.AvatarUrl,
+		})
+	}
+
+	return profiles, nil
+}
+
 func (u *User) UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo) error {
 	req := &pb.UpdateProfileRequest{
 		UserLink:    updatedInfo.UserLink.String(),

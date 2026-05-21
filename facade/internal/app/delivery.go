@@ -61,7 +61,7 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		MailSender: handlers.NewMailSender(manager.MailSender, manager.CoolDown, manager.User, mailSenderConfig),
 		CSRF:       handlers.NewCSRF(manager.CSRF),
 		Card:       handlers.NewCard(manager.Card, cardConfig),
-		Board:      handlers.NewBoard(manager.Board, boardConfig),
+		Board:      handlers.NewBoard(manager.Board, manager.User, boardConfig),
 		Section:    handlers.NewSection(manager.Section),
 		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
 	}

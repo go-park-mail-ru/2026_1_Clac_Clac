@@ -30,18 +30,19 @@ var (
 	ErrCannotFindBackground   = errors.New("cannot find 'background' key")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetMembers       = errors.New("cannot get members")
+	ErrCannotGetProfiles      = errors.New("cannot get profiles")
 
-	ErrCannotCreateInvite  = errors.New("cannot create invite")
-	ErrCannotAcceptInvite  = errors.New("cannot accept invite")
-	ErrCannotCloseInvite   = errors.New("cannot close invite")
-	ErrRoleRequired        = errors.New("role is required")
-	ErrInvalidRole         = errors.New("invalid role")
-	ErrInviteLinkMissing   = errors.New("invite link missing")
-	ErrInvalidInviteLink   = errors.New("invalid invite link")
+	ErrCannotCreateInvite = errors.New("cannot create invite")
+	ErrCannotAcceptInvite = errors.New("cannot accept invite")
+	ErrCannotCloseInvite  = errors.New("cannot close invite")
+	ErrRoleRequired       = errors.New("role is required")
+	ErrInvalidRole        = errors.New("invalid role")
+	ErrInviteLinkMissing  = errors.New("invite link missing")
+	ErrInvalidInviteLink  = errors.New("invalid invite link")
 )
 
 const (
-	boardLinkKey = "link"
+	boardLinkKey  = "link"
 	inviteLinkKey = "invite_link"
 )
 
@@ -64,20 +65,26 @@ type BoardUsecase interface {
 	GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error)
 }
 
+type ProfileUsecase interface {
+	GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error)
+}
+
 type BoardConfig struct {
 	MultipartBackgroundFileKey string
 	MaxBackgroundSize          int64
 }
 
 type Board struct {
-	srv  BoardUsecase
-	conf BoardConfig
+	boardSrv   BoardUsecase
+	profileSrv ProfileUsecase
+	conf       BoardConfig
 }
 
-func NewBoard(srv BoardUsecase, conf BoardConfig) *Board {
+func NewBoard(boardSrv BoardUsecase, profileSrv ProfileUsecase, conf BoardConfig) *Board {
 	return &Board{
-		srv:  srv,
-		conf: conf,
+		boardSrv:   boardSrv,
+		profileSrv: profileSrv,
+		conf:       conf,
 	}
 }
 
@@ -107,7 +114,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boards, err := h.srv.GetBoards(r.Context(), userLink)
+	boards, err := h.boardSrv.GetBoards(r.Context(), userLink)
 	if err != nil {
 		errLog := fmt.Errorf("srv.GetBoards: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase GetBoards")
@@ -160,7 +167,7 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	board, err := h.srv.GetBoard(r.Context(), domain.GetBoardRequest{
+	board, err := h.boardSrv.GetBoard(r.Context(), domain.GetBoardRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -218,7 +225,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	board, err := h.srv.CreateBoard(r.Context(), domain.CreateBoardRequest{
+	board, err := h.boardSrv.CreateBoard(r.Context(), domain.CreateBoardRequest{
 		UserLink:    userLink,
 		Name:        req.Name,
 		Description: req.Description,
@@ -271,7 +278,7 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.DeleteBoard(r.Context(), domain.GetBoardRequest{
+	err = h.boardSrv.DeleteBoard(r.Context(), domain.GetBoardRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -339,7 +346,7 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.UpdateBoard(r.Context(), domain.UpdateBoardRequest{
+	err = h.boardSrv.UpdateBoard(r.Context(), domain.UpdateBoardRequest{
 		UserLink:    userLink,
 		BoardLink:   boardLink,
 		Name:        req.Name,
@@ -426,7 +433,7 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	resp, err := h.srv.UploadBackground(r.Context(), domain.UploadBackgroundRequest{
+	resp, err := h.boardSrv.UploadBackground(r.Context(), domain.UploadBackgroundRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 		Filename:  header.Filename,
@@ -462,17 +469,17 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary		Получить участников доски
-// @Description	Возвращает список участников доски с их ролями
-// @Tags			Boards
+// @Description	Возвращает список участников доски с ролями, аватарами, именами, описаниями и email
+// @Tags		Boards
 // @Produce		json
-// @Param			link	path		string	true	"UUID доски"	Format(uuid)
-// @Success		200		{object}	api.OkResponse[dto.GetMembersResponse]
-// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
-// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
-// @Failure		403		{object}	api.ErrorResponse	"action denied"
-// @Failure		404		{object}	api.ErrorResponse	"board not found"
-// @Failure		500		{object}	api.ErrorResponse	"cannot get members"
-// @Router			/boards/{link}/users [get]
+// @Param		link	path	string	true	"UUID доски"	Format(uuid)
+// @Success		200	{object}	api.OkResponse[dto.GetMembersResponse]
+// @Failure		400	{object}	api.ErrorResponse	"invalid board link / board link missing / invalid input"
+// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure		403	{object}	api.ErrorResponse	"action denied"
+// @Failure		404	{object}	api.ErrorResponse	"board not found / user not found"
+// @Failure		500	{object}	api.ErrorResponse	"cannot get members / cannot get profiles"
+// @Router		/boards/{link}/users [get]
 func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -494,7 +501,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.srv.GetMembers(r.Context(), domain.GetMembersRequest{
+	members, err := h.boardSrv.GetMembers(r.Context(), domain.GetMembersRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -518,11 +525,41 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	links := make([]uuid.UUID, 0, len(members.Members))
+	for _, member := range members.Members {
+		links = append(links, member.Link)
+	}
+
+	profiles, err := h.profileSrv.GetProfiles(r.Context(), links)
+	if err != nil {
+		if errors.Is(err, common.ErrorInvalidInput) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidInput.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetProfiles: %w", err)
+		logger.Error().Err(errLog).Msg("profile usecase GetProfiles")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetMembers", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_profiles",
+		})
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetProfiles.Error())
+		return
+	}
+
 	result := make([]dto.MemberInfo, 0, len(members.Members))
-	for _, m := range members.Members {
+	for index, p := range profiles {
 		result = append(result, dto.MemberInfo{
-			Link: m.Link,
-			Role: m.Role,
+			Link:        members.Members[index].Link,
+			Role:        members.Members[index].Role,
+			AvatarUrl:   p.AvatarURL,
+			Description: p.Description,
+			DisplayName: p.DisplayName,
+			Email:       p.Email,
 		})
 	}
 
@@ -587,7 +624,7 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 		targetUserLink = &parsed
 	}
 
-	invite, err := h.srv.CreateInvite(r.Context(), domain.CreateInviteRequest{
+	invite, err := h.boardSrv.CreateInvite(r.Context(), domain.CreateInviteRequest{
 		UserLink:       userLink,
 		BoardLink:      boardLink,
 		TargetUserLink: targetUserLink,
@@ -656,7 +693,7 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boardLink, role, err := h.srv.AcceptInvite(r.Context(), domain.AcceptInviteRequest{
+	boardLink, role, err := h.boardSrv.AcceptInvite(r.Context(), domain.AcceptInviteRequest{
 		InviteLink: rawInviteLink,
 		UserLink:   userLink,
 	})
@@ -682,9 +719,9 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		errLog := fmt.Errorf("srv.AcceptInvite: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase AcceptInvite")
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "AcceptInvite", map[string]interface{}{
-			"user_link":    userLink,
-			"invite_link":  rawInviteLink,
-			"action":       "accept_invite",
+			"user_link":   userLink,
+			"invite_link": rawInviteLink,
+			"action":      "accept_invite",
 		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotAcceptInvite.Error())
 		return
@@ -723,7 +760,7 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.srv.CloseInvite(r.Context(), domain.CloseInviteRequest{
+	err := h.boardSrv.CloseInvite(r.Context(), domain.CloseInviteRequest{
 		UserLink:   userLink,
 		InviteLink: rawInviteLink,
 	})
@@ -740,9 +777,9 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 		errLog := fmt.Errorf("srv.CloseInvite: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase CloseInvite")
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "CloseInvite", map[string]interface{}{
-			"user_link":    userLink,
-			"invite_link":  rawInviteLink,
-			"action":       "close_invite",
+			"user_link":   userLink,
+			"invite_link": rawInviteLink,
+			"action":      "close_invite",
 		})
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotCloseInvite.Error())
 		return
@@ -782,7 +819,7 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	invites, err := h.srv.GetActiveInvites(r.Context(), userLink, boardLink)
+	invites, err := h.boardSrv.GetActiveInvites(r.Context(), userLink, boardLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
 			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
@@ -869,7 +906,7 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.UpdateMemberRole(r.Context(), domain.UpdateMemberRoleRequest{
+	err = h.boardSrv.UpdateMemberRole(r.Context(), domain.UpdateMemberRoleRequest{
 		UserLink:       userLink,
 		BoardLink:      boardLink,
 		TargetUserLink: targetLink,
@@ -947,7 +984,7 @@ func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.RemoveMemberFromBoard(r.Context(), domain.RemoveMemberRequest{
+	err = h.boardSrv.RemoveMemberFromBoard(r.Context(), domain.RemoveMemberRequest{
 		UserLink:       userLink,
 		BoardLink:      boardLink,
 		TargetUserLink: targetLink,

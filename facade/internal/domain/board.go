@@ -41,12 +41,8 @@ type UploadBackgroundResponse struct {
 }
 
 type MemberInfo struct {
-	Link        uuid.UUID
-	Role        string
-	AvatarUrl   string
-	Description string
-	DisplayName string
-	Email       string
+	Link uuid.UUID
+	Role string
 }
 
 type GetMembersRequest struct {

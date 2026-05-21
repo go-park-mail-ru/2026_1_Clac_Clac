@@ -13,6 +13,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
 	mockBoardUC "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/mock_board_use_case"
+	mockProfileUC "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/mock_profile_use_case"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	"github.com/google/uuid"
@@ -30,8 +31,8 @@ var (
 	}
 )
 
-func newTestBoardHandler(srv BoardUsecase) *Board {
-	return NewBoard(srv, defaultBoardCfg)
+func newTestBoardHandler(boardSrv BoardUsecase, profileSrv ProfileUsecase) *Board {
+	return NewBoard(boardSrv, profileSrv, defaultBoardCfg)
 }
 
 func boardRequest(t *testing.T, method, url string, body any, withCtx bool) *http.Request {
@@ -94,7 +95,7 @@ func TestHandlerGetBoards(t *testing.T) {
 			req := boardRequest(t, http.MethodGet, "/boards", nil, tc.setContext)
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).GetBoards(rr, req)
+			newTestBoardHandler(m, nil).GetBoards(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 			if tc.expectedContains != "" {
@@ -169,7 +170,7 @@ func TestHandlerGetBoard(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).GetBoard(rr, req)
+			newTestBoardHandler(m, nil).GetBoard(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -253,7 +254,7 @@ func TestHandlerCreateBoard(t *testing.T) {
 			}
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).CreateBoard(rr, req)
+			newTestBoardHandler(m, nil).CreateBoard(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -323,7 +324,7 @@ func TestHandlerDeleteBoard(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).DeleteBoard(rr, req)
+			newTestBoardHandler(m, nil).DeleteBoard(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -424,7 +425,7 @@ func TestHandlerUpdateBoard(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).UpdateBoard(rr, req)
+			newTestBoardHandler(m, nil).UpdateBoard(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -518,7 +519,7 @@ func TestHandlerUploadBackground(t *testing.T) {
 			req := buildBackgroundRequest(t, tc.setContext, tc.fileKey, []byte("fake image data"))
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).UploadBackground(rr, req)
+			newTestBoardHandler(m, nil).UploadBackground(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -527,23 +528,27 @@ func TestHandlerUploadBackground(t *testing.T) {
 
 func TestHandlerGetMembers(t *testing.T) {
 	members := domain.GetMembersResponse{Members: []domain.MemberInfo{{Link: fixedLink, Role: "viewer"}}}
+	profiles := []domain.FullInfoUser{
+		{UserLink: fixedLink, Email: "test@mail.com", DisplayName: "Display", Description: "Desc", AvatarURL: "https://example.com/avatar.png"},
+	}
 
 	tests := []struct {
 		name               string
 		setContext         bool
 		linkParam          string
-		mockBehavior       func(m *mockBoardUC.BoardUsecase)
+		mockBehavior       func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase)
 		expectedStatusCode int
 	}{
 		{
 			name:       "Success",
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
-			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
+			mockBehavior: func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {
 				m.On("GetMembers", mock.Anything, domain.GetMembersRequest{
 					UserLink:  fixedLink,
 					BoardLink: fixedBoardLink,
 				}).Return(members, nil)
+				p.On("GetProfiles", mock.Anything, []uuid.UUID{fixedLink}).Return(profiles, nil)
 			},
 			expectedStatusCode: http.StatusOK,
 		},
@@ -551,31 +556,41 @@ func TestHandlerGetMembers(t *testing.T) {
 			name:               "Unauthorized",
 			setContext:         false,
 			linkParam:          fixedBoardLink.String(),
-			mockBehavior:       func(m *mockBoardUC.BoardUsecase) {},
+			mockBehavior:       func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {},
 			expectedStatusCode: http.StatusUnauthorized,
 		},
 		{
 			name:               "InvalidUUID",
 			setContext:         true,
 			linkParam:          "bad-uuid",
-			mockBehavior:       func(m *mockBoardUC.BoardUsecase) {},
+			mockBehavior:       func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
 			name:       "NotFound",
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
-			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
+			mockBehavior: func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {
 				m.On("GetMembers", mock.Anything, mock.Anything).Return(domain.GetMembersResponse{}, common.ErrorBoardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:       "InternalError",
+			name:       "InternalErrorBoard",
 			setContext: true,
 			linkParam:  fixedBoardLink.String(),
-			mockBehavior: func(m *mockBoardUC.BoardUsecase) {
+			mockBehavior: func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {
 				m.On("GetMembers", mock.Anything, mock.Anything).Return(domain.GetMembersResponse{}, errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+		{
+			name:       "InternalErrorProfiles",
+			setContext: true,
+			linkParam:  fixedBoardLink.String(),
+			mockBehavior: func(m *mockBoardUC.BoardUsecase, p *mockProfileUC.ProfileUseCase) {
+				m.On("GetMembers", mock.Anything, mock.Anything).Return(members, nil)
+				p.On("GetProfiles", mock.Anything, []uuid.UUID{fixedLink}).Return(nil, errors.New("profile error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 		},
@@ -584,13 +599,14 @@ func TestHandlerGetMembers(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			m := mockBoardUC.NewBoardUsecase(t)
-			tc.mockBehavior(m)
+			p := mockProfileUC.NewProfileUseCase(t)
+			tc.mockBehavior(m, p)
 
 			req := boardRequest(t, http.MethodGet, "/boards/"+tc.linkParam+"/users", nil, tc.setContext)
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).GetMembers(rr, req)
+			newTestBoardHandler(m, p).GetMembers(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -693,7 +709,7 @@ func TestHandlerCreateInvite(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).CreateInvite(rr, req)
+			newTestBoardHandler(m, nil).CreateInvite(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -782,7 +798,7 @@ func TestHandlerAcceptInvite(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{inviteLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).AcceptInvite(rr, req)
+			newTestBoardHandler(m, nil).AcceptInvite(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -853,7 +869,7 @@ func TestHandlerCloseInvite(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{inviteLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).CloseInvite(rr, req)
+			newTestBoardHandler(m, nil).CloseInvite(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -904,7 +920,7 @@ func TestHandlerGetActiveInvites(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.linkParam})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).GetActiveInvites(rr, req)
+			newTestBoardHandler(m, nil).GetActiveInvites(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -975,7 +991,7 @@ func TestHandlerUpdateMemberRole(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.boardLink, "user_link": tc.userLink})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).UpdateMemberRole(rr, req)
+			newTestBoardHandler(m, nil).UpdateMemberRole(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})
@@ -1032,7 +1048,7 @@ func TestHandlerRemoveMemberFromBoard(t *testing.T) {
 			req = mux.SetURLVars(req, map[string]string{boardLinkKey: tc.boardLink, "user_link": tc.userLink})
 			rr := httptest.NewRecorder()
 
-			newTestBoardHandler(m).RemoveMemberFromBoard(rr, req)
+			newTestBoardHandler(m, nil).RemoveMemberFromBoard(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})

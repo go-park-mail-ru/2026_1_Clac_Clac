@@ -382,7 +382,10 @@ func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest
 
 	members, err := h.srv.GetUsersOfBoard(ctx, boardLink, userLink)
 	if err != nil {
-		if errors.Is(err, common.ErrBoardNotFound) {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrBoardNotFound):
 			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 

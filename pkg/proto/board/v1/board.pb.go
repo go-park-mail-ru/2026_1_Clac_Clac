@@ -716,10 +716,6 @@ type MemberInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Link          string                 `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
 	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`
-	AvatarUrl     string                 `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
-	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Email         string                 `protobuf:"bytes,6,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -764,34 +760,6 @@ func (x *MemberInfo) GetLink() string {
 func (x *MemberInfo) GetRole() string {
 	if x != nil {
 		return x.Role
-	}
-	return ""
-}
-
-func (x *MemberInfo) GetAvatarUrl() string {
-	if x != nil {
-		return x.AvatarUrl
-	}
-	return ""
-}
-
-func (x *MemberInfo) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *MemberInfo) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-func (x *MemberInfo) GetEmail() string {
-	if x != nil {
-		return x.Email
 	}
 	return ""
 }
@@ -1713,16 +1681,11 @@ const file_proto_board_v1_board_proto_rawDesc = "" +
 	"\x05image\x18\x03 \x01(\fR\x05image\x12\x1a\n" +
 	"\bfilename\x18\x04 \x01(\tR\bfilename\"A\n" +
 	"\x18UploadBackgroundResponse\x12%\n" +
-	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"\xae\x01\n" +
+	"\x0ebackground_key\x18\x01 \x01(\tR\rbackgroundKey\"4\n" +
 	"\n" +
 	"MemberInfo\x12\x12\n" +
 	"\x04link\x18\x01 \x01(\tR\x04link\x12\x12\n" +
-	"\x04role\x18\x02 \x01(\tR\x04role\x12\x1d\n" +
-	"\n" +
-	"avatar_url\x18\x03 \x01(\tR\tavatarUrl\x12 \n" +
-	"\vdescription\x18\x04 \x01(\tR\vdescription\x12!\n" +
-	"\fdisplay_name\x18\x05 \x01(\tR\vdisplayName\x12\x14\n" +
-	"\x05email\x18\x06 \x01(\tR\x05email\"O\n" +
+	"\x04role\x18\x02 \x01(\tR\x04role\"O\n" +
 	"\x11GetMembersRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1d\n" +
 	"\n" +
