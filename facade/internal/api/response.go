@@ -27,6 +27,9 @@ const (
 	StatusError = "error"
 )
 
+type Response = dto.Response
+type ErrorResponse = dto.ErrorResponse
+
 // Ответ для 200 статуса, всегда должен содержать данные
 //
 //	@Description	Успешный ответ с данными
