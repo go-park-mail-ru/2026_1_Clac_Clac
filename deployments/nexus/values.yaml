@@ -33,11 +33,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-<<<<<<< HEAD
     image: nisakoo/nexus-facade:sha-3984ba1
-=======
-    image: nisakoo/nexus-facade:sha-3984ba1
->>>>>>> fix/ci-cd-deploy-workflows
     port: 8080
     database:
       enabled: false
