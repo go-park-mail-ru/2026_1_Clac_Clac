@@ -493,7 +493,7 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 		INSERT INTO task_version (
 			task_link, section_link, executer_link, title, description, position, due_date, start, status
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()), $9);
 	`
 	_, err = tx.Exec(ctx, queryVersion,
 		newCard.LinkCard,
