@@ -88,6 +88,7 @@ message CreateCardRequest {
   string title = 2;
   optional string executor_link = 3;
   string section_link = 4;
+  optional string description = 5;
 }
 
 message CreateCardResponse {

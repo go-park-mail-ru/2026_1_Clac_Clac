@@ -777,6 +777,7 @@ type CreateCardRequest struct {
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	ExecutorLink  *string                `protobuf:"bytes,3,opt,name=executor_link,json=executorLink,proto3,oneof" json:"executor_link,omitempty"`
 	SectionLink   string                 `protobuf:"bytes,4,opt,name=section_link,json=sectionLink,proto3" json:"section_link,omitempty"`
+	Description   *string                `protobuf:"bytes,5,opt,name=description,proto3,oneof" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -835,6 +836,13 @@ func (x *CreateCardRequest) GetExecutorLink() string {
 func (x *CreateCardRequest) GetSectionLink() string {
 	if x != nil {
 		return x.SectionLink
+	}
+	return ""
+}
+
+func (x *CreateCardRequest) GetDescription() string {
+	if x != nil && x.Description != nil {
+		return *x.Description
 	}
 	return ""
 }
@@ -2105,13 +2113,15 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1b\n" +
 	"\tcard_link\x18\x03 \x01(\tR\bcardLink\x12\x1a\n" +
 	"\bposition\x18\x04 \x01(\x03R\bposition\"\x16\n" +
-	"\x14ReorderCardsResponse\"\xa5\x01\n" +
+	"\x14ReorderCardsResponse\"\xdc\x01\n" +
 	"\x11CreateCardRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12(\n" +
 	"\rexecutor_link\x18\x03 \x01(\tH\x00R\fexecutorLink\x88\x01\x01\x12!\n" +
-	"\fsection_link\x18\x04 \x01(\tR\vsectionLinkB\x10\n" +
-	"\x0e_executor_link\"p\n" +
+	"\fsection_link\x18\x04 \x01(\tR\vsectionLink\x12%\n" +
+	"\vdescription\x18\x05 \x01(\tH\x01R\vdescription\x88\x01\x01B\x10\n" +
+	"\x0e_executor_linkB\x0e\n" +
+	"\f_description\"p\n" +
 	"\x12CreateCardResponse\x12\x1b\n" +
 	"\tcard_link\x18\x01 \x01(\tR\bcardLink\x12!\n" +
 	"\fsection_link\x18\x02 \x01(\tR\vsectionLink\x12\x1a\n" +

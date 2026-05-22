@@ -457,6 +457,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 		SectionLink:  sectionLink,
 		ExecutorLink: executorLink,
 		Title:        req.Title,
+		Description:  req.Description,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {

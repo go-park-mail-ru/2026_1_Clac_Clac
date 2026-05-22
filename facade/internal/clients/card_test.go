@@ -149,6 +149,10 @@ func (m *mockCardServiceClient) UpdateTimeLineTask(ctx context.Context, in *pb.U
 	return args.Get(0).(*pb.UpdateTimeLineTaskResponse), args.Error(1)
 }
 
+func strPtr(s string) *string {
+	return &s
+}
+
 var (
 	cardClientCardLink       = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	cardClientSectionLink    = uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -393,6 +397,7 @@ func TestCardClient_CreateCard(t *testing.T) {
 				UserLink:    cardClientUserLink.String(),
 				SectionLink: cardClientSectionLink.String(),
 				Title:       "New Card",
+				Description: strPtr(""),
 			}).Return(tt.mockResp, tt.mockErr)
 
 			c := &Card{client: mc}

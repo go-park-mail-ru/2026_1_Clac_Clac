@@ -16,6 +16,7 @@ func (u *UpdateProfileRequest) Sanitize() {
 
 func (r *CreateCardRequest) Sanitize() {
 	r.Title = strictSanitizePolicy.Sanitize(r.Title)
+	r.Description = strictSanitizePolicy.Sanitize(r.Description)
 }
 
 func (r *UpdateCardRequest) Sanitize() {

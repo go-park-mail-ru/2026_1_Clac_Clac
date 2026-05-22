@@ -59,6 +59,7 @@ type CreateCardRequest struct {
 	SectionLink  uuid.UUID
 	ExecutorLink *uuid.UUID
 	Title        string
+	Description  string
 }
 
 type CreateCardResponse struct {

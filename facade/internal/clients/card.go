@@ -159,11 +159,14 @@ func (c *Card) CreateCard(ctx context.Context, infoCard domain.CreateCardRequest
 		executorLink = &s
 	}
 
+	description := infoCard.Description
+
 	req := &pb.CreateCardRequest{
 		UserLink:     infoCard.UserLink.String(),
 		SectionLink:  infoCard.SectionLink.String(),
 		Title:        infoCard.Title,
 		ExecutorLink: executorLink,
+		Description:  &description,
 	}
 
 	resp, err := c.client.CreateCard(ctx, req)

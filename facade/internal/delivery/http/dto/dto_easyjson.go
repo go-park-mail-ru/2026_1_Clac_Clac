@@ -4,12 +4,11 @@ package dto
 
 import (
 	json "encoding/json"
-	time "time"
-
 	uuid "github.com/google/uuid"
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
+	time "time"
 )
 
 // suppress unused package warning
