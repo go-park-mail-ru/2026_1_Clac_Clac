@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/v1"
@@ -78,10 +79,13 @@ func NewHandler(srv AuthService, cfg Config, httpClient HTTPClient) *Handler {
 
 func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.UserResponse, error) {
 	logger := zerolog.Ctx(ctx)
+	t1 := time.Now()
+	logger.Info().Msgf("begin: %q", t1)
 	serviceUser, err := h.srv.GetUser(ctx, serviceDto.GetUserInfo{
 		Email:    req.Email,
 		Password: req.Password,
 	})
+	logger.Info().Msgf("end:%q", time.Since(t1))
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
 			return nil, status.Error(codes.InvalidArgument, msgWrongEmailOrPassword)

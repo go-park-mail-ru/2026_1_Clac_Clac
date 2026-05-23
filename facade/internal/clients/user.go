@@ -5,13 +5,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/domain"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/v1"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 )
 
@@ -147,16 +145,12 @@ func (u *User) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {
 }
 
 func (u *User) GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error) {
-	logger := zerolog.Ctx(ctx)
 	req := &pb.GetUserRequest{
 		Email:    entryUser.Email,
 		Password: entryUser.Password,
 	}
 
-	t1 := time.Now()
-	logger.Info().Msgf("begin: %q", t1)
 	resp, err := u.client.GetUser(ctx, req)
-	logger.Info().Msgf("end: %q", time.Since(t1))
 	if err != nil {
 		return domain.FullInfoUser{}, fmt.Errorf("UserClient.GetUser: %w", convertGRPCError(err))
 	}
