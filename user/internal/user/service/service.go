@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/repository/dto"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service/dto"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -44,7 +42,7 @@ type Config struct {
 
 type Tools struct {
 	Hasher            func(password string) (string, error)
-	Checker           func(string, string) error
+	Checker           func(string, string) (string, error)
 	GenerateAvatarKey func() (string, error)
 }
 
@@ -68,13 +66,14 @@ func (s *Service) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto
 		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	logger := zerolog.Ctx(ctx)
-	t1 := time.Now()
-	logger.Info().Msgf("begin: %q", t1)
-	err = s.tools.Checker(requestUser.Password, user.PasswordHash)
-	logger.Info().Msgf("end:%q", time.Since(t1))
+	rawNewHash, err := s.tools.Checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.CheckPassword: %w", err)
+	}
+
+	err = s.rep.UpdatePassword(ctx, user.Link, rawNewHash)
+	if err != nil {
+		return dto.UserInfo{}, fmt.Errorf("rep.UpdatePassword: %w", err)
 	}
 
 	return dto.UserInfo{
