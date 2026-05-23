@@ -8,11 +8,11 @@ const (
 	LogInUser    = "login"
 	RegisterUser = "register"
 
-	defaultLimit           = 5
+	defaultLimit           = 10
 	defaultLifeTimeRequest = 50 * time.Millisecond
 
 	safeLimit = 100
-	safeTTL   = 60 * time.Second
+	safeTTL   = 3 * time.Second
 
 	defaultCoolDownExpiration = 60
 )

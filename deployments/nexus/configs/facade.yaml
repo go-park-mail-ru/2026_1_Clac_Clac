@@ -87,15 +87,15 @@ services:
     retries: 5
     actions:
       login:
-        limit: 5
+        limit: 10
         action: "login"
         window: 1m
-        ttl: 50s
+        ttl: 3s
       register:
-        limit: 3
+        limit: 10
         action: "register"
         window: 1h
-        ttl: 50s
+        ttl: 3s
     cool_down_expiration: 60
 
   appeal:

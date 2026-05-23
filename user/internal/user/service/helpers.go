@@ -19,7 +19,7 @@ func HashPassword(password string) (string, error) {
 	sha256Hash := sha256.Sum256([]byte(password))
 	hashString := hex.EncodeToString(sha256Hash[:])
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(hashString), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(hashString), bcrypt.MinCost)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrorCreateHash, err)
 	}
