@@ -71,9 +71,12 @@ func (s *Service) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto
 		return dto.UserInfo{}, fmt.Errorf("rep.CheckPassword: %w", err)
 	}
 
-	err = s.rep.UpdatePassword(ctx, user.Link, rawNewHash)
-	if err != nil {
-		return dto.UserInfo{}, fmt.Errorf("rep.UpdatePassword: %w", err)
+	if rawNewHash != "" {
+		err = s.rep.UpdatePassword(ctx, user.Link, rawNewHash)
+		if err != nil {
+			return dto.UserInfo{}, fmt.Errorf("rep.UpdatePassword: %w", err)
+		}
+
 	}
 
 	return dto.UserInfo{

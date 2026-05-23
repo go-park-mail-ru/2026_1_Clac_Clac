@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const myCost = 8
+const myCost = 7
 
 var (
 	ErrorCreateHash    = errors.New("failed to cresate hash")
