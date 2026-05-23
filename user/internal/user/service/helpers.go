@@ -28,6 +28,7 @@ func HashPassword(password string) (string, error) {
 }
 
 func CheckPassword(inputPassword, hashPassword string) error {
+
 	sha256Hash := sha256.Sum256([]byte(inputPassword))
 	inputHashString := hex.EncodeToString(sha256Hash[:])
 

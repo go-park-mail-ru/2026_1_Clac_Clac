@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/common"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/repository/dto"
 	dto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service/dto"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -66,7 +68,11 @@ func (s *Service) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto
 		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
 	}
 
+	logger := zerolog.Ctx(ctx)
+	t1 := time.Now()
+	logger.Info().Msgf("begin: %q", t1)
 	err = s.tools.Checker(requestUser.Password, user.PasswordHash)
+	logger.Info().Msgf("end:%q", time.Since(t1))
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.CheckPassword: %w", err)
 	}
