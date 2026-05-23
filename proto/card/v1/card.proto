@@ -12,14 +12,24 @@ message CardInfo {
   string title = 3;
   string description = 4;
   optional google.protobuf.Timestamp deadline = 5;
-  repeated SubtaskInfo subtasks = 6;
-  int64 position = 7;
+  optional google.protobuf.Timestamp start = 6;
+  repeated SubtaskInfo subtasks = 7;
+  int64 position = 8;
+  repeated AttachmentInfo attachments = 9;
+  bool status = 10;
 }
 
 message SubtaskInfo {
   string subtask_link = 1;
   string description = 2;
   bool is_done = 3;
+  int64 position = 4;
+}
+
+message AttachmentInfo {
+  string attachment_link = 1;
+  string path = 2;
+  string name = 3;
   int64 position = 4;
 }
 
@@ -57,6 +67,7 @@ message UpdateCardRequest {
   string title = 4;
   string description = 5;
   optional google.protobuf.Timestamp deadline = 6;
+  optional google.protobuf.Timestamp start = 7;
 }
 
 message UpdateCardResponse {}
@@ -75,10 +86,9 @@ message ReorderCardsResponse {}
 message CreateCardRequest {
   string user_link = 1;
   string title = 2;
-  string description = 3;
-  optional string executor_link = 4;
-  optional google.protobuf.Timestamp deadline = 5;
-  string section_link = 6;
+  optional string executor_link = 3;
+  string section_link = 4;
+  optional string description = 5;
 }
 
 message CreateCardResponse {
@@ -155,6 +165,44 @@ message DeleteSubtaskRequest {
 
 message DeleteSubtaskResponse {}
 
+message CreateAttachmentRequest {
+  string task_link = 1;
+  string user_link = 2;
+  bytes data = 3;
+  string name = 4;
+}
+
+message CreateAttachmentResponse {
+  string attachment_link = 1;
+  string path = 2;
+  int64 position = 3;
+  string name = 4;
+}
+
+message DeleteAttachmentRequest {
+  string user_link = 1;
+  string attachment_link = 2;
+}
+
+message DeleteAttachmentResponse {}
+
+message UpdateStatusTaskRequest {
+  string user_link = 1;
+  string task_link = 2;
+  bool status = 3;
+}
+
+message UpdateStatusTaskResponse {}
+
+message UpdateTimeLineTaskRequest {
+  string user_link = 1;
+  string task_link = 2;
+  google.protobuf.Timestamp deadline = 3;
+  google.protobuf.Timestamp start = 4;
+}
+
+message UpdateTimeLineTaskResponse {}
+
 service CardService {
   rpc GetCard(GetCardRequest) returns (GetCardResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
@@ -168,4 +216,8 @@ service CardService {
   rpc CreateSubtask(CreateSubtaskRequest) returns (CreateSubtaskResponse);
   rpc UpdateSubtask(UpdateSubtaskRequest) returns (UpdateSubtaskResponse);
   rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
+  rpc CreateAttachment(CreateAttachmentRequest) returns (CreateAttachmentResponse);
+  rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse);
+  rpc UpdateStatusTask(UpdateStatusTaskRequest) returns (UpdateStatusTaskResponse);
+  rpc UpdateTimeLineTask(UpdateTimeLineTaskRequest) returns (UpdateTimeLineTaskResponse);
 }

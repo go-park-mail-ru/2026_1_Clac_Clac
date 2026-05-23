@@ -294,7 +294,7 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 			UPDATE task_version
 			SET valid_to = NOW()
 			WHERE section_link = $1 AND valid_to IS NULL
-			RETURNING task_link, executer_link, title, description, due_date
+			RETURNING task_link, executer_link, title, description, due_date, start, status
 		),
 		backlog_max AS (
 			SELECT COALESCE(MAX(position), 0) AS max_pos
@@ -302,7 +302,7 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 			WHERE section_link = $2 AND valid_to IS NULL
 		)
 		INSERT INTO task_version (
-			task_link, section_link, executer_link, title, description, position, due_date
+			task_link, section_link, executer_link, title, description, position, due_date, start, status
 		)
 		SELECT
 			ct.task_link,
@@ -311,7 +311,9 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 			ct.title,
 			ct.description,
 			bm.max_pos + ROW_NUMBER() OVER (),
-			ct.due_date
+			ct.due_date,
+			ct.start,
+			ct.status
 		FROM closed_tasks ct CROSS JOIN backlog_max bm;
 	`
 	_, err = tx.Exec(ctx, queryMoveTasks, linksSection, backlogLink)

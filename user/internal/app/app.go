@@ -48,7 +48,7 @@ func NewApp(conf *config.Config) (*App, error) {
 		}
 	}()
 
-	engine := setupEngine(conf.Engine, conf.Sentry, logger)
+	engine := setupEngine(conf.App, conf.Engine, conf.Sentry, logger)
 
 	store, err := setupStore(conf, logger)
 	if err != nil {
@@ -92,7 +92,7 @@ func (a *App) Run() {
 	}
 }
 
-func setupEngine(conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger *zerolog.Logger) *enginegrpc.Engine {
+func setupEngine(app config.Application, conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger *zerolog.Logger) *enginegrpc.Engine {
 	sentryOpts := sentrygrpc.ServerOptions{
 		Repanic: sentryConf.Repanic,
 	}
@@ -110,6 +110,8 @@ func setupEngine(conf enginegrpc.Config, sentryConf sentryLogger.Sentry, logger 
 			interceptors.StreamPanicRecovery(logger),
 			sentrygrpc.StreamServerInterceptor(sentryOpts),
 		),
+		grpc.MaxRecvMsgSize(int(app.MaxUploadImageSize)),
+		grpc.MaxSendMsgSize(int(app.MaxUploadImageSize)),
 	}
 	return enginegrpc.New(conf, logger, opts...)
 }

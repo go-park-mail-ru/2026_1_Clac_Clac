@@ -1,0 +1,92 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.database.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-db
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $svcName }}-db
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ $svcName }}-db
+  template:
+    metadata:
+      labels:
+        app: {{ $svcName }}-db
+    spec:
+      containers:
+        - name: {{ $svcName }}
+          image: {{ $.Values.postgres.image }}
+          args: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
+          ports:
+            - containerPort: {{ $.Values.postgres.port }}
+              name: postgres
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: postgres-config
+              mountPath: /etc/postgresql/postgresql.conf
+              subPath: postgresql.conf
+              readOnly: true
+
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_PASSWORD
+
+          {{- with $.Values.postgres.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: {{ $.Chart.Name }}-{{ $svcName }}-db-pvc
+        - name: postgres-config
+          configMap:
+            name: {{ $svcName }}-postgres-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-db-service
+  namespace: {{ $.Values.namespace }}
+spec:
+  selector:
+    app: {{ $svcName }}-db
+  ports:
+    - port: {{ $.Values.postgres.port }}
+      targetPort: postgres
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}-db-pvc
+  namespace: {{ $.Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}
+{{- end }}

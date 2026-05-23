@@ -90,6 +90,36 @@ func (_m *UserClient) GetProfile(ctx context.Context, userLink uuid.UUID) (domai
 	return r0, r1
 }
 
+// GetProfiles provides a mock function with given fields: ctx, links
+func (_m *UserClient) GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error) {
+	ret := _m.Called(ctx, links)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfiles")
+	}
+
+	var r0 []domain.FullInfoUser
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) ([]domain.FullInfoUser, error)); ok {
+		return rf(ctx, links)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) []domain.FullInfoUser); ok {
+		r0 = rf(ctx, links)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.FullInfoUser)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []uuid.UUID) error); ok {
+		r1 = rf(ctx, links)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUser provides a mock function with given fields: ctx, entryUser
 func (_m *UserClient) GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error) {
 	ret := _m.Called(ctx, entryUser)

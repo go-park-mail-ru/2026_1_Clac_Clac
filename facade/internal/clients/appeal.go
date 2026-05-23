@@ -13,13 +13,19 @@ import (
 	"google.golang.org/grpc"
 )
 
-type Appeal struct {
-	client pb.AppealServiceClient
+type ConfigAppeal struct {
+	MaxAppealAttachmentBytesSize int
 }
 
-func NewAppealClient(connection *grpc.ClientConn) *Appeal {
+type Appeal struct {
+	client pb.AppealServiceClient
+	cfg    ConfigAppeal
+}
+
+func NewAppealClient(connection *grpc.ClientConn, cfg ConfigAppeal) *Appeal {
 	return &Appeal{
 		client: pb.NewAppealServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
@@ -146,15 +152,17 @@ func (a *Appeal) GetAppeal(ctx context.Context, userLink uuid.UUID) (string, []d
 }
 
 var bufferPool = sync.Pool{
-	New: func() any {
-		return new(bytes.Buffer)
-	},
+	New: func() any { return new(bytes.Buffer) },
 }
 
 func (a *Appeal) UploadAttachment(ctx context.Context, attachmentInfo domain.UploadAttachmentInfo, attachment io.Reader) (string, error) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer bufferPool.Put(buf)
+	defer func() {
+		if buf.Cap() <= a.cfg.MaxAppealAttachmentBytesSize {
+			bufferPool.Put(buf)
+		}
+	}()
 
 	_, err := io.Copy(buf, attachment)
 	if err != nil {

@@ -17,8 +17,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// --- MOCK RBAC SERVICE ---
-
 type MockRbacService struct {
 	mock.Mock
 }
@@ -48,8 +46,15 @@ func (m *MockRbacService) CheckPermissionOnSubtask(ctx context.Context, itemLink
 	return args.Error(0)
 }
 
-// --- CARD REPOSITORY WRAPPER ---
-// extends mock_card_rep mock with subtask methods missing from generated mock
+func (m *MockRbacService) CheckPermissionOnAttachment(ctx context.Context, itemLink uuid.UUID, userLink uuid.UUID, action rbac.Action) error {
+	args := m.Called(ctx, itemLink, userLink, action)
+	return args.Error(0)
+}
+
+func (m *MockRbacService) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
+	args := m.Called(ctx, userLink, boardLink)
+	return args.Error(0)
+}
 
 type testCardRepository struct {
 	*mockCardRep.CardRepository
@@ -70,17 +75,47 @@ func (m *testCardRepository) UpdateSubtask(ctx context.Context, updateInfo repos
 	return args.Error(0)
 }
 
+func (m *testCardRepository) UploadAttachment(ctx context.Context, uploadInfo repositoryDto.UploadAttachment) (string, error) {
+	args := m.Called(ctx, uploadInfo)
+	return args.String(0), args.Error(1)
+}
+
+func (m *testCardRepository) CreateAttachment(ctx context.Context, createInfo repositoryDto.CreateAttachment) (models.AttachmentInfo, error) {
+	args := m.Called(ctx, createInfo)
+	return args.Get(0).(models.AttachmentInfo), args.Error(1)
+}
+
+func (m *testCardRepository) DeleteAttachmentFromDB(ctx context.Context, attachmentLink uuid.UUID) (string, error) {
+	args := m.Called(ctx, attachmentLink)
+	return args.String(0), args.Error(1)
+}
+
+func (m *testCardRepository) DeleteAttachmentFromS3(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
+	return args.Error(0)
+}
+
+func (m *testCardRepository) UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
+func (m *testCardRepository) UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error {
+	args := m.Called(ctx, updateInfo)
+	return args.Error(0)
+}
+
 func newTestCardRepository(t *testing.T) *testCardRepository {
 	return &testCardRepository{mockCardRep.NewCardRepository(t)}
 }
-
-// --- TESTS ---
 
 func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()
 	targetUserLink := uuid.New()
 	targetExecutorLink := uuid.New()
 	targetDataDeadLine := time.Now()
+	targetAttachmentLink := uuid.New()
+	targetAttachmentLink2 := uuid.New()
 
 	repResponse := repositoryDto.InfoCard{
 		Title:        "Title",
@@ -91,12 +126,14 @@ func TestGetCard(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
+		cfg           Config
 		mockBehavior  func(m *testCardRepository, r *MockRbacService)
 		expectedError error
 		expectedRes   dto.InfoCard
 	}{
 		{
 			nameTest: "Success get card",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repResponse, nil)
@@ -111,6 +148,7 @@ func TestGetCard(t *testing.T) {
 		},
 		{
 			nameTest: "Error permission denied",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
 			},
@@ -119,12 +157,67 @@ func TestGetCard(t *testing.T) {
 		},
 		{
 			nameTest: "Error from repository",
+			cfg:      Config{},
 			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
 				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{}, errors.New("db error"))
 			},
 			expectedError: errors.New("rep.GetCard: db error"),
 			expectedRes:   dto.InfoCard{},
+		},
+		{
+			nameTest: "Success get card with attachments with correct full URL",
+			cfg:      Config{BaseURLAttachment: "https://bucket.endpoint"},
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{
+					Title:        "Title",
+					Description:  "Desc",
+					ExecutorLink: &targetExecutorLink,
+					DataDeadLine: &targetDataDeadLine,
+					Attachments: []models.AttachmentInfo{
+						{AttachmentLink: targetAttachmentLink, Path: "cards-attachments/photo.png", Name: "photo.png", Position: 1},
+					},
+				}, nil)
+			},
+			expectedError: nil,
+			expectedRes: dto.InfoCard{
+				Title:        "Title",
+				Description:  "Desc",
+				ExecutorLink: &targetExecutorLink,
+				DataDeadLine: &targetDataDeadLine,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttachmentLink, Path: "https://bucket.endpoint/cards-attachments/photo.png", Name: "photo.png", Position: 1},
+				},
+			},
+		},
+		{
+			nameTest: "Success get card with multiple attachments all with full URL",
+			cfg:      Config{BaseURLAttachment: "https://bucket.endpoint"},
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("GetCard", mock.Anything, targetCardLink).Return(repositoryDto.InfoCard{
+					Title:        "Title",
+					Description:  "Desc",
+					ExecutorLink: &targetExecutorLink,
+					DataDeadLine: &targetDataDeadLine,
+					Attachments: []models.AttachmentInfo{
+						{AttachmentLink: targetAttachmentLink, Path: "cards-attachments/doc.pdf", Name: "doc.pdf", Position: 1},
+						{AttachmentLink: targetAttachmentLink2, Path: "cards-attachments/img.png", Name: "img.png", Position: 2},
+					},
+				}, nil)
+			},
+			expectedError: nil,
+			expectedRes: dto.InfoCard{
+				Title:        "Title",
+				Description:  "Desc",
+				ExecutorLink: &targetExecutorLink,
+				DataDeadLine: &targetDataDeadLine,
+				Attachments: []models.AttachmentInfo{
+					{AttachmentLink: targetAttachmentLink, Path: "https://bucket.endpoint/cards-attachments/doc.pdf", Name: "doc.pdf", Position: 1},
+					{AttachmentLink: targetAttachmentLink2, Path: "https://bucket.endpoint/cards-attachments/img.png", Name: "img.png", Position: 2},
+				},
+			},
 		},
 	}
 
@@ -134,7 +227,7 @@ func TestGetCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, test.cfg)
 			res, err := service.GetCard(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -179,7 +272,7 @@ func TestDeleteCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.DeleteCard(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -241,7 +334,7 @@ func TestUpdateCardDetails(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.UpdateCardDetails(context.Background(), updateDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -298,7 +391,7 @@ func TestReorderCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.ReorderCard(context.Background(), placeDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -353,7 +446,7 @@ func TestCreateCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			res, err := service.CreateCard(context.Background(), newCardDto)
 
 			if test.expectedError != nil {
@@ -410,7 +503,7 @@ func TestGetComments(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			res, err := service.GetComments(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -468,7 +561,7 @@ func TestCreateComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			res, err := service.CreateComment(context.Background(), createDto)
 
 			if test.expectedError != nil {
@@ -524,7 +617,7 @@ func TestDeleteComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.DeleteComment(context.Background(), targetCommentLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -607,7 +700,7 @@ func TestUpdateComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.UpdateComment(context.Background(), updateDto)
 
 			if test.expectedError != nil {
@@ -678,7 +771,7 @@ func TestCreateSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			res, err := service.CreateSubtask(context.Background(), createDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -740,7 +833,7 @@ func TestDeleteSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.DeleteSubtask(context.Background(), deleteDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -805,8 +898,172 @@ func TestUpdateSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm)
+			service := NewService(mockRep, mockPerm, Config{})
 			err := service.UpdateSubtask(context.Background(), updateDto, targetUserLink)
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCreateAttachment(t *testing.T) {
+	targetTaskLink := uuid.New()
+	targetUserLink := uuid.New()
+	attachmentLink := uuid.New()
+	s3Key := "some-uuid.png"
+
+	createDto := dto.CreateAttachment{
+		TaskLink:    targetTaskLink,
+		UserLink:    targetUserLink,
+		ContentType: "image/png",
+		Extension:   ".png",
+		DisplayName: "photo.png",
+	}
+
+	repResult := models.AttachmentInfo{
+		AttachmentLink: attachmentLink,
+		Path:           s3Key,
+		Name:           "photo.png",
+		Position:       1,
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *testCardRepository, r *MockRbacService)
+		expectedError error
+	}{
+		{
+			nameTest: "Success create attachment",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("UploadAttachment", mock.Anything, mock.Anything).Return(s3Key, nil)
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(repResult, nil)
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
+			},
+			expectedError: rbac.ErrActionDenied,
+		},
+		{
+			nameTest: "Error generic rbac",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(errors.New("rbac fail"))
+			},
+			expectedError: errors.New("rbac fail"),
+		},
+		{
+			nameTest: "Error upload to S3",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("UploadAttachment", mock.Anything, mock.Anything).Return("", errors.New("s3 error"))
+			},
+			expectedError: errors.New("s3 error"),
+		},
+		{
+			nameTest: "Error create in DB",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnCard", mock.Anything, targetTaskLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("UploadAttachment", mock.Anything, mock.Anything).Return(s3Key, nil)
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(models.AttachmentInfo{}, errors.New("db error"))
+				m.On("DeleteAttachmentFromS3", mock.Anything, s3Key).Return(nil)
+			},
+			expectedError: errors.New("db error"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := newTestCardRepository(t)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
+
+			service := NewService(mockRep, mockPerm, Config{})
+			res, err := service.CreateAttachment(context.Background(), createDto)
+
+			if test.expectedError != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotEqual(t, uuid.Nil, res.AttachmentLink)
+				assert.Equal(t, 1, res.Position)
+			}
+		})
+	}
+}
+
+func TestDeleteAttachment(t *testing.T) {
+	targetAttachmentLink := uuid.New()
+	targetUserLink := uuid.New()
+	s3Key := "some-uuid.png"
+
+	deleteDto := dto.DeleteAttachment{
+		AttachmentLink: targetAttachmentLink,
+		UserLink:       targetUserLink,
+	}
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m *testCardRepository, r *MockRbacService)
+		expectedError error
+	}{
+		{
+			nameTest: "Success delete attachment",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnAttachment", mock.Anything, targetAttachmentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("DeleteAttachmentFromDB", mock.Anything, targetAttachmentLink).Return(s3Key, nil)
+				m.On("DeleteAttachmentFromS3", mock.Anything, s3Key).Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error permission denied",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnAttachment", mock.Anything, targetAttachmentLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
+			},
+			expectedError: rbac.ErrActionDenied,
+		},
+		{
+			nameTest: "Error generic rbac",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnAttachment", mock.Anything, targetAttachmentLink, targetUserLink, mock.Anything).Return(errors.New("rbac fail"))
+			},
+			expectedError: errors.New("rbac fail"),
+		},
+		{
+			nameTest: "Error attachment not found in DB",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnAttachment", mock.Anything, targetAttachmentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("DeleteAttachmentFromDB", mock.Anything, targetAttachmentLink).Return("", common.ErrAttachmentNotFound)
+			},
+			expectedError: common.ErrAttachmentNotFound,
+		},
+		{
+			nameTest: "Error delete from S3",
+			mockBehavior: func(m *testCardRepository, r *MockRbacService) {
+				r.On("CheckPermissionOnAttachment", mock.Anything, targetAttachmentLink, targetUserLink, mock.Anything).Return(nil)
+				m.On("DeleteAttachmentFromDB", mock.Anything, targetAttachmentLink).Return(s3Key, nil)
+				m.On("DeleteAttachmentFromS3", mock.Anything, s3Key).Return(errors.New("s3 error"))
+			},
+			expectedError: errors.New("s3 error"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockRep := newTestCardRepository(t)
+			mockPerm := new(MockRbacService)
+			test.mockBehavior(mockRep, mockPerm)
+
+			service := NewService(mockRep, mockPerm, Config{})
+			err := service.DeleteAttachment(context.Background(), deleteDto)
 
 			if test.expectedError != nil {
 				assert.Error(t, err)

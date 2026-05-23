@@ -34,8 +34,8 @@ func (p PostgresConfig) ToPkg() *postgres.Config {
 		MaxConnectionLifetime: p.MaxConnectionLifetime,
 		MaxHealthCheckPeriod:  p.MaxHealthCheckPeriod,
 		PingSleepTime:         p.PingSleepTime,
-		TimeOut:              p.TimeOut,
-		MaxRetries:           p.MaxRetries,
+		TimeOut:               p.TimeOut,
+		MaxRetries:            p.MaxRetries,
 	}
 }
 
@@ -45,9 +45,9 @@ func DefaultPostgresConfig() PostgresConfig {
 		MaxConnections:        10,
 		MaxConnectionLifetime: time.Hour,
 		MaxHealthCheckPeriod:  30 * time.Second,
-		PingSleepTime:        2 * time.Second,
-		TimeOut:             5 * time.Second,
-		MaxRetries:          5,
+		PingSleepTime:         2 * time.Second,
+		TimeOut:               5 * time.Second,
+		MaxRetries:            5,
 	}
 }
 

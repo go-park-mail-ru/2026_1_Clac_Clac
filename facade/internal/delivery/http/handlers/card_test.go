@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/dto"
@@ -21,10 +23,11 @@ import (
 )
 
 var (
-	fixedCardLinkH    = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-	fixedUserLinkH    = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	fixedCommentLinkH = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
-	fixedSubtaskLinkH = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	fixedCardLinkH       = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+	fixedUserLinkH       = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+	fixedCommentLinkH    = uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
+	fixedSubtaskLinkH    = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
+	fixedAttachmentLinkH = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 )
 
 var defaultCardCfg = CardConfig{MaxLenTitle: 128, MaxLenDescription: 500}
@@ -33,9 +36,9 @@ type mockCardUsecase struct {
 	mock.Mock
 }
 
-func (m *mockCardUsecase) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (m *mockCardUsecase) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	args := m.Called(ctx, infoCard)
-	return args.Get(0).(domain.CardInfo), args.Error(1)
+	return args.Get(0).(domain.CardFullInfo), args.Error(1)
 }
 
 func (m *mockCardUsecase) DeleteCard(ctx context.Context, infoCard domain.DeleteCardRequest) error {
@@ -88,8 +91,28 @@ func (m *mockCardUsecase) UpdateSubtask(ctx context.Context, infoSubtask domain.
 	return args.Error(0)
 }
 
-func (m *mockCardUsecase) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error {
+func (m *mockCardUsecase) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error {
 	args := m.Called(ctx, infoSubtask)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
+	args := m.Called(ctx, infoAttachment)
+	return args.Get(0).(domain.AttachmentInfo), args.Error(1)
+}
+
+func (m *mockCardUsecase) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
+	args := m.Called(ctx, infoAttachment)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	args := m.Called(ctx, info)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	args := m.Called(ctx, info)
 	return args.Error(0)
 }
 
@@ -103,11 +126,12 @@ func withCardUserCtx(req *http.Request) *http.Request {
 }
 
 func TestCardHandler_GetCard(t *testing.T) {
-	cardInfo := domain.CardInfo{
+	cardInfo := domain.CardFullInfo{
 		CardLink:    fixedCardLinkH,
 		Title:       "Test Card",
 		Description: "Desc",
 		Subtasks:    []domain.SubtaskInfo{},
+		Attachments: []domain.AttachmentInfo{},
 	}
 
 	tests := []struct {
@@ -118,8 +142,8 @@ func TestCardHandler_GetCard(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("GetCard", mock.Anything, domain.GetCardRequest{
@@ -144,29 +168,29 @@ func TestCardHandler_GetCard(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
-				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardInfo{}, common.ErrorCardNotFound)
+				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardFullInfo{}, common.ErrorCardNotFound)
 			},
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
-				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardInfo{}, common.ErrorPermissionDenied)
+				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardFullInfo{}, common.ErrorPermissionDenied)
 			},
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
-				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardInfo{}, errors.New("db error"))
+				m.On("GetCard", mock.Anything, mock.Anything).Return(domain.CardFullInfo{}, errors.New("db error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 		},
@@ -200,8 +224,8 @@ func TestCardHandler_DeleteCard(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("DeleteCard", mock.Anything, domain.DeleteCardRequest{
@@ -226,8 +250,8 @@ func TestCardHandler_DeleteCard(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("DeleteCard", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
@@ -235,8 +259,8 @@ func TestCardHandler_DeleteCard(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("DeleteCard", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
@@ -244,8 +268,8 @@ func TestCardHandler_DeleteCard(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("DeleteCard", mock.Anything, mock.Anything).Return(errors.New("db error"))
@@ -285,9 +309,9 @@ func TestCardHandler_UpdateCard(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("UpdateCard", mock.Anything, domain.UpdateCardRequest{
@@ -340,9 +364,9 @@ func TestCardHandler_UpdateCard(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("UpdateCard", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
@@ -350,9 +374,9 @@ func TestCardHandler_UpdateCard(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("UpdateCard", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
@@ -360,9 +384,9 @@ func TestCardHandler_UpdateCard(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("UpdateCard", mock.Anything, mock.Anything).Return(errors.New("db error"))
@@ -411,9 +435,9 @@ func TestCardHandler_ReorderCards(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("ReorderCards", mock.Anything, mock.Anything).Return(nil)
@@ -453,9 +477,9 @@ func TestCardHandler_ReorderCards(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("ReorderCards", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
@@ -463,9 +487,9 @@ func TestCardHandler_ReorderCards(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("ReorderCards", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
@@ -473,9 +497,9 @@ func TestCardHandler_ReorderCards(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("ReorderCards", mock.Anything, mock.Anything).Return(errors.New("db error"))
@@ -640,8 +664,8 @@ func TestCardHandler_GetComments(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("GetComments", mock.Anything, domain.GetCommentsRequest{
@@ -666,8 +690,8 @@ func TestCardHandler_GetComments(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("GetComments", mock.Anything, mock.Anything).Return(domain.GetCommentsResponse{}, common.ErrorCardNotFound)
@@ -675,8 +699,8 @@ func TestCardHandler_GetComments(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("GetComments", mock.Anything, mock.Anything).Return(domain.GetCommentsResponse{}, common.ErrorPermissionDenied)
@@ -684,8 +708,8 @@ func TestCardHandler_GetComments(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("GetComments", mock.Anything, mock.Anything).Return(domain.GetCommentsResponse{}, errors.New("db error"))
@@ -725,9 +749,9 @@ func TestCardHandler_CreateComment(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateComment", mock.Anything, domain.CreateCommentRequest{
@@ -763,9 +787,9 @@ func TestCardHandler_CreateComment(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(domain.CreateCommentResponse{}, common.ErrorCardNotFound)
@@ -773,9 +797,9 @@ func TestCardHandler_CreateComment(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(domain.CreateCommentResponse{}, common.ErrorPermissionDenied)
@@ -783,9 +807,9 @@ func TestCardHandler_CreateComment(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateComment", mock.Anything, mock.Anything).Return(domain.CreateCommentResponse{}, errors.New("db error"))
@@ -1023,9 +1047,9 @@ func TestCardHandler_CreateSubtask(t *testing.T) {
 		expectedStatusCode int
 	}{
 		{
-			name:      "Success",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateSubtask", mock.Anything, domain.CreateSubtaskRequest{
@@ -1066,9 +1090,9 @@ func TestCardHandler_CreateSubtask(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:      "NotFound",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateSubtask", mock.Anything, mock.Anything).Return(domain.SubtaskInfo{}, common.ErrorCardNotFound)
@@ -1076,9 +1100,9 @@ func TestCardHandler_CreateSubtask(t *testing.T) {
 			expectedStatusCode: http.StatusNotFound,
 		},
 		{
-			name:      "PermissionDenied",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateSubtask", mock.Anything, mock.Anything).Return(domain.SubtaskInfo{}, common.ErrorPermissionDenied)
@@ -1086,9 +1110,9 @@ func TestCardHandler_CreateSubtask(t *testing.T) {
 			expectedStatusCode: http.StatusForbidden,
 		},
 		{
-			name:      "InternalError",
-			linkParam: fixedCardLinkH.String(),
-			request:   validReq,
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
 			setContext: true,
 			mockBehavior: func(m *mockCardUsecase) {
 				m.On("CreateSubtask", mock.Anything, mock.Anything).Return(domain.SubtaskInfo{}, errors.New("db error"))
@@ -1246,7 +1270,7 @@ func TestCardHandler_DeleteSubtask(t *testing.T) {
 			subtaskParam: fixedSubtaskLinkH.String(),
 			setContext:   true,
 			mockBehavior: func(m *mockCardUsecase) {
-				m.On("DeleteSubtask", mock.Anything, domain.DeleteSubtask{
+				m.On("DeleteSubtask", mock.Anything, domain.DeleteSubtaskRequest{
 					UserLink:    fixedUserLinkH,
 					SubtaskLink: fixedSubtaskLinkH,
 				}).Return(nil)
@@ -1309,6 +1333,422 @@ func TestCardHandler_DeleteSubtask(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			newTestCardHandler(m).DeleteSubtask(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func buildMultipartBody(fieldKey, filename string, content []byte) (*bytes.Buffer, string) {
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+	part, _ := w.CreateFormFile(fieldKey, filename)
+	_, _ = part.Write(content)
+	_ = w.Close()
+	return body, w.FormDataContentType()
+}
+
+func TestCardHandler_CreateAttachment(t *testing.T) {
+	attachmentResult := domain.AttachmentInfo{
+		AttachmentLink: fixedAttachmentLinkH,
+		DisplayName:    "photo.png",
+		Path:           "https://s3.example.com/photo.png",
+		Position:       1,
+	}
+
+	cfg := CardConfig{
+		MaxLenTitle:                128,
+		MaxLenDescription:          500,
+		MultipartAttachmentFileKey: "attachment",
+		MaxAttachmentSize:          10 * 1024 * 1024,
+	}
+
+	tests := []struct {
+		name               string
+		cardParam          string
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success",
+			cardParam:  fixedCardLinkH.String(),
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(attachmentResult, nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "No auth context",
+			cardParam:          fixedCardLinkH.String(),
+			setContext:         false,
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:       "Permission denied",
+			cardParam:  fixedCardLinkH.String(),
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(domain.AttachmentInfo{}, common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:       "Attachment limit reached",
+			cardParam:  fixedCardLinkH.String(),
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(domain.AttachmentInfo{}, common.ErrorAttachmentLimitReached)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "Internal error",
+			cardParam:  fixedCardLinkH.String(),
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(domain.AttachmentInfo{}, errors.New("s3 error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(m)
+			}
+
+			body, contentType := buildMultipartBody("attachment", "photo.png", []byte("fake image data"))
+			req := httptest.NewRequest(http.MethodPost, "/cards/"+tc.cardParam+"/attachments", body)
+			req.Header.Set("Content-Type", contentType)
+			req = mux.SetURLVars(req, map[string]string{"link": tc.cardParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			NewCard(m, cfg).CreateAttachment(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func TestCardHandler_DeleteAttachment(t *testing.T) {
+	tests := []struct {
+		name               string
+		attachmentParam    string
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:            "Success",
+			attachmentParam: fixedAttachmentLinkH.String(),
+			setContext:      true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("DeleteAttachment", mock.Anything, domain.DeleteAttachmentRequest{
+					UserLink:       fixedUserLinkH,
+					AttachmentLink: fixedAttachmentLinkH,
+				}).Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "No auth context",
+			attachmentParam:    fixedAttachmentLinkH.String(),
+			setContext:         false,
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:               "Invalid attachment uuid",
+			attachmentParam:    "not-a-uuid",
+			setContext:         true,
+			mockBehavior:       nil,
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:            "Attachment not found",
+			attachmentParam: fixedAttachmentLinkH.String(),
+			setContext:      true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(common.ErrorAttachmentNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:            "Permission denied",
+			attachmentParam: fixedAttachmentLinkH.String(),
+			setContext:      true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:            "Internal error",
+			attachmentParam: fixedAttachmentLinkH.String(),
+			setContext:      true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("DeleteAttachment", mock.Anything, mock.Anything).Return(errors.New("s3 error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			if tc.mockBehavior != nil {
+				tc.mockBehavior(m)
+			}
+
+			req := httptest.NewRequest(http.MethodDelete, "/attachments/"+tc.attachmentParam, nil)
+			req = mux.SetURLVars(req, map[string]string{"attachment_link": tc.attachmentParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			newTestCardHandler(m).DeleteAttachment(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func TestCardHandler_UpdateStatusTask(t *testing.T) {
+	validReq := dto.NewStatusTask{Done: true}
+
+	tests := []struct {
+		name               string
+		linkParam          string
+		request            any
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, domain.NewStatusTask{
+					UserLink: fixedUserLinkH,
+					CardLink: fixedCardLinkH,
+					Status:   true,
+				}).Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Unauthorized",
+			linkParam:          fixedCardLinkH.String(),
+			request:            validReq,
+			setContext:         false,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:               "InvalidPathParam",
+			linkParam:          "bad-uuid",
+			request:            validReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "InvalidJSON",
+			linkParam:          fixedCardLinkH.String(),
+			request:            "{bad}",
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateStatusTask", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			tc.mockBehavior(m)
+
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.request.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.request)
+				bodyReader = bytes.NewReader(b)
+			}
+
+			req := httptest.NewRequest(http.MethodPatch, "/cards/"+tc.linkParam+"/status", bodyReader)
+			req = mux.SetURLVars(req, map[string]string{"link": tc.linkParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			newTestCardHandler(m).UpdateStatusTask(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
+		})
+	}
+}
+
+func TestCardHandler_UpdateTimeLine(t *testing.T) {
+	validReq := dto.NewTimeLine{
+		Start:    time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		DeadLine: time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+	}
+
+	invalidTimeLineReq := dto.NewTimeLine{
+		Start:    time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
+		DeadLine: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	tests := []struct {
+		name               string
+		linkParam          string
+		request            any
+		setContext         bool
+		mockBehavior       func(m *mockCardUsecase)
+		expectedStatusCode int
+	}{
+		{
+			name:       "Success",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, domain.NewTimeLine{
+					UserLink: fixedUserLinkH,
+					CardLink: fixedCardLinkH,
+					DeadLine: validReq.DeadLine,
+					Start:    validReq.Start,
+				}).Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Unauthorized",
+			linkParam:          fixedCardLinkH.String(),
+			request:            validReq,
+			setContext:         false,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusUnauthorized,
+		},
+		{
+			name:               "InvalidPathParam",
+			linkParam:          "bad-uuid",
+			request:            validReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:               "InvalidJSON",
+			linkParam:          fixedCardLinkH.String(),
+			request:            "{bad}",
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "StartAfterDeadline",
+			linkParam:  fixedCardLinkH.String(),
+			request:    invalidTimeLineReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+		},
+		{
+			name:       "NotFound",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(common.ErrorCardNotFound)
+			},
+			expectedStatusCode: http.StatusNotFound,
+		},
+		{
+			name:       "PermissionDenied",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(common.ErrorPermissionDenied)
+			},
+			expectedStatusCode: http.StatusForbidden,
+		},
+		{
+			name:       "InternalError",
+			linkParam:  fixedCardLinkH.String(),
+			request:    validReq,
+			setContext: true,
+			mockBehavior: func(m *mockCardUsecase) {
+				m.On("UpdateTimeLine", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := new(mockCardUsecase)
+			tc.mockBehavior(m)
+
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.request.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.request)
+				bodyReader = bytes.NewReader(b)
+			}
+
+			req := httptest.NewRequest(http.MethodPatch, "/cards/"+tc.linkParam+"/timeline", bodyReader)
+			req = mux.SetURLVars(req, map[string]string{"link": tc.linkParam})
+			if tc.setContext {
+				req = withCardUserCtx(req)
+			}
+			rr := httptest.NewRecorder()
+
+			newTestCardHandler(m).UpdateTimeLine(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 		})

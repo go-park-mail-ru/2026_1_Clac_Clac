@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -82,11 +82,11 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 	return dto.Card{
 		Link:         c.CardLink,
 		ExecutorLink: c.ExecutorLink,
-		Title:       c.Title,
-		Description: c.Description,
-		Deadline:    c.Deadline,
-		Subtasks:   subtasks,
-		Position:   c.Position,
+		Title:        c.Title,
+		Description:  c.Description,
+		Deadline:     c.Deadline,
+		Subtasks:     subtasks,
+		Position:     c.Position,
 	}
 }
 
@@ -300,7 +300,7 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateSectionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -426,7 +426,7 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.ListSectionLink
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -486,7 +486,7 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.SectionInfo
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}

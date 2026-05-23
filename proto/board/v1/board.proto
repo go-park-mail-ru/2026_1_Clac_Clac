@@ -76,6 +76,11 @@ message UploadBackgroundResponse {
   string background_key = 1;
 }
 
+message MemberInfo {
+  string link = 1;
+  string role = 2;
+}
+
 // GetMembers
 message GetMembersRequest {
   string user_link = 1;
@@ -83,7 +88,85 @@ message GetMembersRequest {
 }
 
 message GetMembersResponse {
-  repeated string users_links = 1;
+  repeated MemberInfo members = 1;
+}
+
+// CreateInvite
+message CreateInviteRequest {
+  string user_link = 1;
+  string board_link = 2;
+  optional string target_user_link = 3;
+  string default_role = 4;
+  int64 expire_seconds = 5;
+}
+
+message CreateInviteResponse {
+  string invite_link = 1;
+  string board_link = 2;
+  optional string target_user_link = 3;
+  string default_role = 4;
+  string status = 5;
+  int64 expire_at = 6;
+  int64 created_at = 7;
+}
+
+// AcceptInvite
+message AcceptInviteRequest {
+  string invite_link = 1;
+  string user_link = 2;
+}
+
+message AcceptInviteResponse {
+  string board_link = 1;
+  string user_link = 2;
+  string role = 3;
+}
+
+// CloseInvite
+message CloseInviteRequest {
+  string user_link = 1;
+  string invite_link = 2;
+}
+
+message CloseInviteResponse {}
+
+// UpdateMemberRole
+message UpdateMemberRoleRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string target_user_link = 3;
+  string new_role = 4;
+}
+
+message UpdateMemberRoleResponse {}
+
+// RemoveMemberFromBoard
+message RemoveMemberFromBoardRequest {
+  string user_link = 1;
+  string board_link = 2;
+  string target_user_link = 3;
+}
+
+message RemoveMemberFromBoardResponse {}
+
+// GetActiveInvites
+message GetActiveInvitesRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message GetActiveInvitesResponse {
+  repeated InviteInfo invites = 1;
+}
+
+message InviteInfo {
+  string invite_link = 1;
+  string board_link = 2;
+  optional string target_user_link = 3;
+  string default_role = 4;
+  string status = 5;
+  int64 expire_at = 6;
+  int64 created_at = 7;
 }
 
 service BoardService {
@@ -94,4 +177,10 @@ service BoardService {
   rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
   rpc UploadBackground(UploadBackgroundRequest) returns (UploadBackgroundResponse);
   rpc GetMembers(GetMembersRequest) returns (GetMembersResponse);
+  rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
+  rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
+  rpc CloseInvite(CloseInviteRequest) returns (CloseInviteResponse);
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
+  rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
+  rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
 }

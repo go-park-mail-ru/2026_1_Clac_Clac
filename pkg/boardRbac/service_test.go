@@ -40,6 +40,11 @@ func (m *MockRbacRepository) GetUserRoleBySubtaskLink(ctx context.Context, subta
 	return args.Get(0).(Role), args.Get(1).(uuid.UUID), args.Error(2)
 }
 
+func (m *MockRbacRepository) GetUserRoleByAttachmentLink(ctx context.Context, attachmentLink uuid.UUID, userLink uuid.UUID) (Role, uuid.UUID, error) {
+	args := m.Called(ctx, attachmentLink, userLink)
+	return args.Get(0).(Role), args.Get(1).(uuid.UUID), args.Error(2)
+}
+
 func TestService_CheckPermission(t *testing.T) {
 	ctx := context.Background()
 	itemLink := uuid.New()
@@ -177,6 +182,26 @@ func TestService_CheckPermission(t *testing.T) {
 				} else {
 					assert.ErrorContains(t, err, test.expectedError.Error())
 					assert.ErrorContains(t, err, "rep.GetUserRoleBySubtaskLink")
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+		})
+
+		t.Run("Attachment_"+test.nameTest, func(t *testing.T) {
+			mockRepo := new(MockRbacRepository)
+			mockRepo.On("GetUserRoleByAttachmentLink", ctx, itemLink, userLink).Return(test.mockRole, boardLink, test.mockError)
+
+			svc := NewService(mockRepo)
+			err := svc.CheckPermissionOnAttachment(ctx, itemLink, userLink, test.action)
+
+			if test.expectedError != nil {
+				if errors.Is(test.expectedError, ErrActionDenied) {
+					assert.ErrorIs(t, err, ErrActionDenied)
+				} else {
+					assert.ErrorContains(t, err, test.expectedError.Error())
+					assert.ErrorContains(t, err, "rep.GetUserRoleByAttachmentLink")
 				}
 			} else {
 				assert.NoError(t, err)

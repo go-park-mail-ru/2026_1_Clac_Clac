@@ -61,7 +61,7 @@ func TestConvertGRPCError(t *testing.T) {
 		{
 			name:     "Unavailable",
 			input:    status.Error(codes.Unavailable, "service unavailable"),
-			expected: common.ErrorVKOAuthUnavailable,
+			expected: common.ErrorServiceUnavailable,
 		},
 		{
 			name:     "Unknown gRPC code returns error as-is",
@@ -78,6 +78,52 @@ func TestConvertGRPCError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := convertGRPCError(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestConvertBoardGRPCError(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    error
+		expected error
+	}{
+		{
+			name:     "NotFound board",
+			input:    status.Error(codes.NotFound, "board not found"),
+			expected: common.ErrorBoardNotFound,
+		},
+		{
+			name:     "NotFound invite",
+			input:    status.Error(codes.NotFound, "invite not found"),
+			expected: common.ErrorInviteNotFound,
+		},
+		{
+			name:     "PermissionDenied",
+			input:    status.Error(codes.PermissionDenied, "action denied"),
+			expected: common.ErrorBoardPermissionDenied,
+		},
+		{
+			name:     "AlreadyExists member",
+			input:    status.Error(codes.AlreadyExists, "already a member"),
+			expected: common.ErrorUserAlreadyMember,
+		},
+		{
+			name:     "FailedPrecondition expired",
+			input:    status.Error(codes.FailedPrecondition, "invite is expired"),
+			expected: common.ErrorInviteExpired,
+		},
+		{
+			name:     "FailedPrecondition closed",
+			input:    status.Error(codes.FailedPrecondition, "invite is closed"),
+			expected: common.ErrorInviteClosed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := convertBoardGRPCError(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

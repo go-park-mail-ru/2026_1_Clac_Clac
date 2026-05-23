@@ -19,6 +19,59 @@ type BoardUsecase struct {
 	mock.Mock
 }
 
+// AcceptInvite provides a mock function with given fields: ctx, inviteInfo
+func (_m *BoardUsecase) AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error) {
+	ret := _m.Called(ctx, inviteInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AcceptInvite")
+	}
+
+	var r0 string
+	var r1 string
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.AcceptInviteRequest) (string, string, error)); ok {
+		return rf(ctx, inviteInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.AcceptInviteRequest) string); ok {
+		r0 = rf(ctx, inviteInfo)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.AcceptInviteRequest) string); ok {
+		r1 = rf(ctx, inviteInfo)
+	} else {
+		r1 = ret.Get(1).(string)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, domain.AcceptInviteRequest) error); ok {
+		r2 = rf(ctx, inviteInfo)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// CloseInvite provides a mock function with given fields: ctx, inviteInfo
+func (_m *BoardUsecase) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error {
+	ret := _m.Called(ctx, inviteInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CloseInvite")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CloseInviteRequest) error); ok {
+		r0 = rf(ctx, inviteInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateBoard provides a mock function with given fields: ctx, boardInfo
 func (_m *BoardUsecase) CreateBoard(ctx context.Context, boardInfo domain.CreateBoardRequest) (domain.BoardInfo, error) {
 	ret := _m.Called(ctx, boardInfo)
@@ -47,6 +100,34 @@ func (_m *BoardUsecase) CreateBoard(ctx context.Context, boardInfo domain.Create
 	return r0, r1
 }
 
+// CreateInvite provides a mock function with given fields: ctx, inviteInfo
+func (_m *BoardUsecase) CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error) {
+	ret := _m.Called(ctx, inviteInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateInvite")
+	}
+
+	var r0 domain.CreateInviteResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CreateInviteRequest) (domain.CreateInviteResponse, error)); ok {
+		return rf(ctx, inviteInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.CreateInviteRequest) domain.CreateInviteResponse); ok {
+		r0 = rf(ctx, inviteInfo)
+	} else {
+		r0 = ret.Get(0).(domain.CreateInviteResponse)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.CreateInviteRequest) error); ok {
+		r1 = rf(ctx, inviteInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DeleteBoard provides a mock function with given fields: ctx, boardInfo
 func (_m *BoardUsecase) DeleteBoard(ctx context.Context, boardInfo domain.GetBoardRequest) error {
 	ret := _m.Called(ctx, boardInfo)
@@ -63,6 +144,36 @@ func (_m *BoardUsecase) DeleteBoard(ctx context.Context, boardInfo domain.GetBoa
 	}
 
 	return r0
+}
+
+// GetActiveInvites provides a mock function with given fields: ctx, userLink, boardLink
+func (_m *BoardUsecase) GetActiveInvites(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	ret := _m.Called(ctx, userLink, boardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetActiveInvites")
+	}
+
+	var r0 []domain.InviteInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) ([]domain.InviteInfo, error)); ok {
+		return rf(ctx, userLink, boardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) []domain.InviteInfo); ok {
+		r0 = rf(ctx, userLink, boardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.InviteInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink, boardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetBoard provides a mock function with given fields: ctx, boardInfo
@@ -151,6 +262,24 @@ func (_m *BoardUsecase) GetMembers(ctx context.Context, membersInfo domain.GetMe
 	return r0, r1
 }
 
+// RemoveMemberFromBoard provides a mock function with given fields: ctx, req
+func (_m *BoardUsecase) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveMemberFromBoard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.RemoveMemberRequest) error); ok {
+		r0 = rf(ctx, req)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateBoard provides a mock function with given fields: ctx, boardInfo
 func (_m *BoardUsecase) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardRequest) error {
 	ret := _m.Called(ctx, boardInfo)
@@ -162,6 +291,24 @@ func (_m *BoardUsecase) UpdateBoard(ctx context.Context, boardInfo domain.Update
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdateBoardRequest) error); ok {
 		r0 = rf(ctx, boardInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateMemberRole provides a mock function with given fields: ctx, req
+func (_m *BoardUsecase) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	ret := _m.Called(ctx, req)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateMemberRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.UpdateMemberRoleRequest) error); ok {
+		r0 = rf(ctx, req)
 	} else {
 		r0 = ret.Error(0)
 	}

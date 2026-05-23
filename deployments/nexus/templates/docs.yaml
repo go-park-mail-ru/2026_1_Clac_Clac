@@ -1,0 +1,80 @@
+{{- if .Values.docs.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-docs-nginx
+  namespace: {{ .Values.namespace }}
+data:
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        resolver 77.88.8.8 8.8.8.8 1.1.1.1 valid=300s;
+        resolver_timeout 5s;
+
+        set $s3_bucket "https://nexus-docs.hb.ru-msk.vkcloud-storage.ru";
+
+        location / {
+            proxy_pass $s3_bucket$uri;
+            proxy_intercept_errors on;
+            error_page 403 404 =200 /index.html;
+
+            add_header X-Content-Type-Options 'nosniff' always;
+            add_header X-Frame-Options 'SAMEORIGIN' always;
+            add_header Referrer-Policy 'no-referrer-when-downgrade' always;
+            add_header Content-Security-Policy "default-src 'self' https: blob: data: 'unsafe-inline';" always;
+            add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-docs
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-docs
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-docs
+    spec:
+      containers:
+        - name: docs
+          image: {{ .Values.docs.image }}
+          ports:
+            - containerPort: {{ .Values.docs.port }}
+              name: http
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          {{- with .Values.docs.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ .Chart.Name }}-docs-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-docs-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: {{ .Chart.Name }}-docs
+  ports:
+    - port: {{ .Values.docs.port }}
+      targetPort: http
+      name: http
+  type: ClusterIP
+{{- end }}

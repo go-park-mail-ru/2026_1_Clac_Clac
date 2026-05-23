@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"io"
 	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
@@ -8,12 +9,15 @@ import (
 )
 
 type InfoCard struct {
-	Description   string
+	Description  string
 	Title        string
 	ExecutorLink *uuid.UUID
-	DataDeadLine  *time.Time
+	DataDeadLine *time.Time
+	DataStart    *time.Time
+	Status       bool
 	Subtasks     []models.SubtaskInfo
-	Position    int
+	Position     int
+	Attachments  []models.AttachmentInfo
 }
 
 type NewCard struct {
@@ -22,6 +26,7 @@ type NewCard struct {
 	Description  string
 	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
+	DataStart    *time.Time
 	LinkSection  uuid.UUID
 }
 
@@ -31,6 +36,7 @@ type UpdatingCardDetails struct {
 	Description  string
 	LinkExecutor *uuid.UUID
 	DataDeadLine *time.Time
+	DataStart    *time.Time
 }
 
 type PlaceCard struct {
@@ -73,4 +79,38 @@ type UpdateSubtask struct {
 	SubTaskLink uuid.UUID
 	Description string
 	IsDone      bool
+}
+
+type AttachmentInfo struct {
+	AttachmentLink uuid.UUID
+	Path           string
+	Position       int
+	DisplayName    string
+}
+
+type CreateAttachment struct {
+	TaskLink    uuid.UUID
+	UserLink    uuid.UUID
+	Data        io.Reader
+	ContentType string
+	Extension   string
+	DisplayName string
+}
+
+type DeleteAttachment struct {
+	AttachmentLink uuid.UUID
+	UserLink       uuid.UUID
+}
+
+type UpdateStatusTask struct {
+	TaskLink uuid.UUID
+	UserLink uuid.UUID
+	Status   bool
+}
+
+type UpdateTimeLine struct {
+	TaskLink uuid.UUID
+	UserLink uuid.UUID
+	DeadLine *time.Time
+	Start    *time.Time
 }

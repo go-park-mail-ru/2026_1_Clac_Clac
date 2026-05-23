@@ -10,11 +10,10 @@ import (
 //
 //	@Description	Данные для создания новой карточки в секции
 type CreateCardRequest struct {
-	SectionLink  string     `json:"section_link"`
-	Title        string     `json:"title"`
-	Description  string     `json:"description"`
-	ExecutorLink *string    `json:"executor_link,omitempty"`
-	Deadline     *time.Time `json:"deadline,omitempty"`
+	SectionLink  string  `json:"section_link"`
+	Title        string  `json:"title"`
+	Description  string  `json:"description"`
+	ExecutorLink *string `json:"executor_link,omitempty"`
 }
 
 // UpdateCardRequest содержит данные для обновления карточки.
@@ -25,6 +24,7 @@ type UpdateCardRequest struct {
 	Description  string     `json:"description"`
 	ExecutorLink *string    `json:"executor_link,omitempty"`
 	Deadline     *time.Time `json:"deadline,omitempty"`
+	Start        *time.Time `json:"start,omitempty"`
 }
 
 // ReorderCardsRequest содержит данные для перемещения карточки.
@@ -45,17 +45,30 @@ type SubtaskResponse struct {
 	Position    int       `json:"position"`
 }
 
+// AttachmentResponse описывает вложение карточки.
+//
+//	@Description	Информация о вложении карточки
+type AttachmentResponse struct {
+	AttachmentLink uuid.UUID `json:"attachment_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Path           string    `json:"attachment_path" example:"https://s3.example.com/cards/file.pdf"`
+	DisplayName    string    `json:"display_name"   example:"report.pdf"`
+	Position       int       `json:"position"       example:"1"`
+}
+
 // CardResponse describes full card info.
 //
 //	@Description	Full information about card
 type CardResponse struct {
-	CardLink     uuid.UUID         `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
-	ExecutorLink *string           `json:"executor_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Title        string            `json:"title" example:"Fix bug on frontend"`
-	Description  string            `json:"description" example:"Card description"`
-	Deadline     *time.Time        `json:"deadline,omitempty" example:"2026-04-12T14:35:00Z"`
-	Subtasks     []SubtaskResponse `json:"subtasks"`
-	Position    int              `json:"position" example:"2"`
+	CardLink     uuid.UUID            `json:"card_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	ExecutorLink *string              `json:"executor_link,omitempty" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Title        string               `json:"title" example:"Fix bug on frontend"`
+	Description  string               `json:"description" example:"Card description"`
+	Deadline     *time.Time           `json:"deadline,omitempty" example:"2026-04-12T14:35:00Z"`
+	Start        *time.Time           `json:"start,omitempty"  example:"2026-04-12T14:35:00Z"`
+	Status       bool                 `json:"status" example:"false"`
+	Subtasks     []SubtaskResponse    `json:"subtasks"`
+	Position     int                  `json:"position" example:"2"`
+	Attachments  []AttachmentResponse `json:"attachments"`
 }
 
 // CreateCardResponse содержит ответ при создании карточки.
@@ -120,4 +133,19 @@ type CreateSubtaskRequest struct {
 type UpdateSubtaskRequest struct {
 	IsDone      bool   `json:"is_done"`
 	Description string `json:"description"`
+}
+
+// NewStatusTask содержит новый статус выполнения карточки.
+//
+//	@Description	Статус выполнения карточки (done = true / false)
+type NewStatusTask struct {
+	Done bool `json:"done"`
+}
+
+// NewTimeLine содержит временные рамки карточки.
+//
+//	@Description	Временные рамки карточки (начало и дедлайн)
+type NewTimeLine struct {
+	Start    time.Time `json:"start"`
+	DeadLine time.Time `json:"deadline"`
 }

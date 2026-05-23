@@ -128,6 +128,36 @@ func (_m *AuthRepository) GetProfile(ctx context.Context, userLink uuid.UUID) (d
 	return r0, r1
 }
 
+// GetProfiles provides a mock function with given fields: ctx, userLinks
+func (_m *AuthRepository) GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]dto.UserInfoEntity, error) {
+	ret := _m.Called(ctx, userLinks)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfiles")
+	}
+
+	var r0 []dto.UserInfoEntity
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) ([]dto.UserInfoEntity, error)); ok {
+		return rf(ctx, userLinks)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) []dto.UserInfoEntity); ok {
+		r0 = rf(ctx, userLinks)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.UserInfoEntity)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []uuid.UUID) error); ok {
+		r1 = rf(ctx, userLinks)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUser provides a mock function with given fields: ctx, email
 func (_m *AuthRepository) GetUser(ctx context.Context, email string) (dto.UserEntity, error) {
 	ret := _m.Called(ctx, email)

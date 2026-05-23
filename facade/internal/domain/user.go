@@ -45,3 +45,11 @@ type UserInfo struct {
 	Email       string
 	Avatar      string
 }
+
+type UsersLinks struct {
+	Links []uuid.UUID
+}
+
+type UsersInfo struct {
+	Profiles []FullInfoUser
+}

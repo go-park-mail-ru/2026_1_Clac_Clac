@@ -13,6 +13,10 @@ func TestCardConfig(t *testing.T) {
 				MaxLenTitle:       128,
 				MaxLenDescription: 500,
 			},
+			Repository: CardRepository{
+				MaxAttachments:  100,
+				MaxNestingDepth: 100,
+			},
 		}
 
 		actual := DefaultCardConfig()

@@ -337,6 +337,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/attachments/{attachment_link}": {
+            "delete": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Удаляет вложение карточки по его UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Удалить вложение",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID вложения",
+                        "name": "attachment_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Вложение удалено",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав доступа",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Вложение не найдено",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/boards": {
             "get": {
                 "description": "Возвращает все доски, к которым у авторизованного пользователя есть доступ",
@@ -779,16 +843,282 @@ const docTemplate = `{
                 }
             }
         },
-        "/boards/{link}/users": {
+        "/boards/{link}/invites": {
             "get": {
-                "description": "Возвращает массив UUID всех пользователей, имеющих доступ к доске",
+                "description": "Возвращает все активные приглашения для доски",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Boards"
                 ],
-                "summary": "Получить пользователей доски",
+                "summary": "Получить активные приглашения доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_InviteInfo"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot get boards",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создает ссылку-приглашение для добавления пользователя на доску",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Создать приглашение на доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для создания приглашения",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateInviteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid request schema",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot create invite",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{link}/members/{user_link}": {
+            "delete": {
+                "description": "Удаляет пользователя из участников доски. Пользователь может выйти из доски самостоятельно, но создатель не может покинуть доску. Admin и Creator могут удалять других участников.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Удалить пользователя с доски",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID пользователя",
+                        "name": "user_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status ok",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied / creator cannot leave the board",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found / user not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot update board",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{link}/members/{user_link}/role": {
+            "put": {
+                "description": "Изменяет роль пользователя на доске. Доступно Admin и Creator. Нельзя изменить свою собственную роль.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Изменить роль пользователя на доске",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID пользователя",
+                        "name": "user_link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новая роль",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateMemberRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status ok",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "cannot change your own role",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "board not found / user not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot update board",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{link}/users": {
+            "get": {
+                "description": "Возвращает список участников доски с их ролями",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Получить участников доски",
                 "parameters": [
                     {
                         "type": "string",
@@ -814,6 +1144,12 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1101,6 +1437,86 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards/{link}/attachments": {
+            "post": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Загружает файл как вложение к карточке. Формат запроса: multipart/form-data.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Загрузить вложение",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Загружаемый файл",
+                        "name": "attachment",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Вложение загружено",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AttachmentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный UUID или формат данных",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав доступа",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Файл слишком большой",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1673,6 +2089,136 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Cannot send recovery code",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/invites/{invite_link}": {
+            "post": {
+                "description": "Принимает приглашение по ссылке и добавляет пользователя в участники доски",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Принять приглашение на доску",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID ссылки-приглашения",
+                        "name": "invite_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AcceptInviteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid invite link",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "invite not for user",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "invite not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "user is already a member",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "412": {
+                        "description": "invite is closed",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot accept invite",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Закрывает активное приглашение (только для Admin/Creator)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Boards"
+                ],
+                "summary": "Закрыть приглашение",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID ссылки-приглашения",
+                        "name": "invite_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status ok",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid invite link",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "invite not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot close invite",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -2654,6 +3200,20 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_InviteInfo": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.InviteInfo"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_SectionInfo": {
             "type": "object",
             "properties": {
@@ -2662,6 +3222,28 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SectionInfo"
                     }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AcceptInviteResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AcceptInviteResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AttachmentResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse"
                 },
                 "status": {
                     "type": "string"
@@ -2739,6 +3321,17 @@ const docTemplate = `{
             "properties": {
                 "data": {
                     "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateCommentResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateInviteResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteResponse"
                 },
                 "status": {
                     "type": "string"
@@ -2831,49 +3424,99 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AcceptInviteResponse": {
+            "description": "Результат принятия приглашения",
+            "type": "object",
+            "properties": {
+                "board_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "editor"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AppealInfo": {
+            "description": "Информация об обращении пользователя",
             "type": "object",
             "properties": {
                 "appeal_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 1
                 },
                 "appeal_link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "attachment_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://s3.example.com/attachments/file.png"
                 },
                 "category": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "technical"
                 },
                 "created_at": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2026-04-12T14:35:00Z"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Не могу войти в аккаунт"
                 },
                 "display_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Ivan Ivanov"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "open"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AppealsStats": {
+            "description": "Статистика обращений",
             "type": "object",
             "properties": {
                 "close_appeals": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 12
                 },
                 "in_work_appeals": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 3
                 },
                 "open_appeals": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 5
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse": {
+            "description": "Информация о вложении карточки",
+            "type": "object",
+            "properties": {
+                "attachment_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "attachment_path": {
+                    "type": "string",
+                    "example": "https://s3.example.com/cards/file.pdf"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "report.pdf"
+                },
+                "position": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -2888,19 +3531,24 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.BoardInfo": {
+            "description": "Информация о доске",
             "type": "object",
             "properties": {
                 "background": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://s3.example.com/backgrounds/bg.jpg"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Доска для трекинга задач"
                 },
                 "link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "My Project"
                 }
             }
         },
@@ -2944,6 +3592,12 @@ const docTemplate = `{
             "description": "Full information about card",
             "type": "object",
             "properties": {
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse"
+                    }
+                },
                 "card_link": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
@@ -2977,6 +3631,7 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardsResponse": {
+            "description": "Список карточек секции",
             "type": "object",
             "properties": {
                 "cards": {
@@ -2988,13 +3643,16 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ChangeAppealStatusInfo": {
+            "description": "Данные для изменения статуса обращения",
             "type": "object",
             "properties": {
                 "appeal_link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "new_status": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "in_work"
                 }
             }
         },
@@ -3032,33 +3690,42 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateAppealRequest": {
+            "description": "Данные для создания нового обращения",
             "type": "object",
             "properties": {
                 "category": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "technical"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Не могу войти в аккаунт"
                 },
                 "display_name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Ivan Ivanov"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user@example.com"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateBoardRequest": {
+            "description": "Данные для создания новой доски",
             "type": "object",
             "properties": {
                 "background": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "blue"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Доска для трекинга задач"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "My Project"
                 }
             }
         },
@@ -3119,7 +3786,59 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteRequest": {
+            "description": "Данные для создания приглашения",
+            "type": "object",
+            "properties": {
+                "default_role": {
+                    "type": "string",
+                    "example": "editor"
+                },
+                "expire_seconds": {
+                    "type": "integer",
+                    "example": 86400
+                },
+                "user_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteResponse": {
+            "description": "Информация о приглашении",
+            "type": "object",
+            "properties": {
+                "board_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "created_at": {
+                    "type": "integer",
+                    "example": 1712841600
+                },
+                "default_role": {
+                    "type": "string",
+                    "example": "editor"
+                },
+                "expire_at": {
+                    "type": "integer",
+                    "example": 1712928000
+                },
+                "invite_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                },
+                "target_user_link": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateSectionRequest": {
+            "description": "Данные для создания новой секции на доске",
             "type": "object",
             "properties": {
                 "board_link": {
@@ -3154,6 +3873,7 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.GetAppealsResponse": {
+            "description": "Список обращений текущего пользователя",
             "type": "object",
             "properties": {
                 "appeals": {
@@ -3163,22 +3883,58 @@ const docTemplate = `{
                     }
                 },
                 "role": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "user"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.GetMembersResponse": {
+            "description": "Список участников доски",
             "type": "object",
             "properties": {
-                "user_links": {
+                "members": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo"
                     }
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.InviteInfo": {
+            "description": "Информация о приглашении",
+            "type": "object",
+            "properties": {
+                "board_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "created_at": {
+                    "type": "integer",
+                    "example": 1712841600
+                },
+                "default_role": {
+                    "type": "string",
+                    "example": "editor"
+                },
+                "expire_at": {
+                    "type": "integer",
+                    "example": 1712928000
+                },
+                "invite_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                },
+                "target_user_link": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ListSectionLink": {
+            "description": "Упорядоченный список UUID секций для переупорядочивания",
             "type": "object",
             "properties": {
                 "list_links": {
@@ -3204,6 +3960,20 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "p@ssword123"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo": {
+            "description": "Информация об участнике доски",
+            "type": "object",
+            "properties": {
+                "link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "editor"
                 }
             }
         },
@@ -3306,6 +4076,7 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SectionInfo": {
+            "description": "Информация о секции доски",
             "type": "object",
             "properties": {
                 "color": {
@@ -3335,6 +4106,7 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskInfo": {
+            "description": "Подзадача карточки (краткая форма)",
             "type": "object",
             "properties": {
                 "description": {
@@ -3374,19 +4146,24 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateBoardRequest": {
+            "description": "Данные для обновления информации о доске",
             "type": "object",
             "properties": {
                 "background": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "green"
                 },
                 "board_link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Обновлённое описание"
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "My Project"
                 }
             }
         },
@@ -3417,6 +4194,16 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateMemberRoleRequest": {
+            "description": "Данные для изменения роли",
+            "type": "object",
+            "properties": {
+                "new_role": {
+                    "type": "string",
+                    "example": "editor"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateProfileRequest": {
             "description": "Данные для изменения текстовой информации профиля",
             "type": "object",
@@ -3444,22 +4231,27 @@ const docTemplate = `{
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UploadAttachmentResponse": {
+            "description": "Ответ после загрузки вложения",
             "type": "object",
             "properties": {
                 "attachment_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://s3.example.com/attachments/screenshot.png"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UploadBackgroundResponse": {
+            "description": "Ответ после загрузки фона доски",
             "type": "object",
             "properties": {
                 "background_key": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://s3.example.com/backgrounds/bg.jpg"
                 }
             }
         },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UserInfoResponse": {
+            "description": "Информация о пользователе после авторизации",
             "type": "object",
             "properties": {
                 "avatar": {
@@ -3475,7 +4267,8 @@ const docTemplate = `{
                     "example": "ivan@mail.com"
                 },
                 "link": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         }
@@ -3485,7 +4278,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
-	Host:             "clac-clac.mooo.com",
+	Host:             "clac-clac.ru",
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "NeXuS",
