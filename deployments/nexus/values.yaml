@@ -97,7 +97,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-user:sha-512a339
+    image: nisakoo/nexus-user:sha-d872628
     port: 8080
     database:
       enabled: true
