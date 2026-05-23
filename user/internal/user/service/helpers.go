@@ -29,24 +29,15 @@ func HashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func CheckPassword(inputPassword, hashPassword string) (string, error) {
+func CheckPassword(inputPassword, hashPassword string) error {
 	sha256Hash := sha256.Sum256([]byte(inputPassword))
 	inputHashString := hex.EncodeToString(sha256Hash[:])
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(inputHashString)); err != nil {
-		return "", ErrorWrongPassword
+		return ErrorWrongPassword
 	}
 
-	cost, err := bcrypt.Cost([]byte(hashPassword))
-	if err != nil || cost > myCost {
-		newHash, err := HashPassword(inputPassword)
-		if err != nil {
-			return "", fmt.Errorf("re-hash: %w", err)
-		}
-		return newHash, nil
-	}
-
-	return "", nil
+	return nil
 }
 
 func GenerateAvatarKey() (string, error) {

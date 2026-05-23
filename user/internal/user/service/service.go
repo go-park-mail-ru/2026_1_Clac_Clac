@@ -42,7 +42,7 @@ type Config struct {
 
 type Tools struct {
 	Hasher            func(password string) (string, error)
-	Checker           func(string, string) (string, error)
+	Checker           func(string, string) error
 	GenerateAvatarKey func() (string, error)
 }
 
@@ -66,17 +66,9 @@ func (s *Service) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto
 		return dto.UserInfo{}, fmt.Errorf("rep.GetUser: %w", err)
 	}
 
-	rawNewHash, err := s.tools.Checker(requestUser.Password, user.PasswordHash)
+	err = s.tools.Checker(requestUser.Password, user.PasswordHash)
 	if err != nil {
 		return dto.UserInfo{}, fmt.Errorf("rep.CheckPassword: %w", err)
-	}
-
-	if rawNewHash != "" {
-		err = s.rep.UpdatePassword(ctx, user.Link, rawNewHash)
-		if err != nil {
-			return dto.UserInfo{}, fmt.Errorf("rep.UpdatePassword: %w", err)
-		}
-
 	}
 
 	return dto.UserInfo{
