@@ -102,6 +102,12 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			deadline = &t
 		}
 
+		var start *time.Time
+		if ci.Start != nil {
+			t := ci.Start.AsTime()
+			start = &t
+		}
+
 		subtasks := make([]domain.SubtaskInfo, 0, len(ci.Subtasks))
 		for _, st := range ci.Subtasks {
 			subtaskLink, err := uuid.Parse(st.SubtaskLink)
@@ -130,8 +136,10 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			ExecutorLink: executorLink,
 			Title:        ci.Title,
 			Deadline:     deadline,
+			Start:        start,
 			Subtasks:     subtasks,
 			Position:    int(ci.Position),
+			Status:       ci.Status,
 		})
 	}
 

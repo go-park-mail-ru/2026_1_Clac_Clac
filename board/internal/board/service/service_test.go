@@ -1091,6 +1091,64 @@ func TestRemoveMemberFromBoardService(t *testing.T) {
 	}
 }
 
+func TestCanView(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success can view",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(rbac.ErrActionDenied).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "permission checker error",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(fmt.Errorf("db error")).Once()
+			},
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm)
+			err := svc.CanView(ctx, boardLink, userLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
 func TestGetActiveInvitesService(t *testing.T) {
 	ctx := context.Background()
 	boardLink := uuid.New()

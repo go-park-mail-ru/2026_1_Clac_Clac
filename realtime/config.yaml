@@ -1,0 +1,30 @@
+app:
+  log_level: info
+  max_message_size: 4194304
+
+engine:
+  addr: 0.0.0.0:8080
+  write_timeout: 40s
+  read_timeout: 40s
+  idle_timeout: 60s
+  graceful_shutdown_timeout: 60s
+
+redis:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
+
+services:
+  auth:
+    session_lifetime: 24h
+    client:
+      addr: nexus-authorization-service:8080
+      timeout: 5s
+      retries: 5
+  board:
+    client:
+      addr: nexus-board-service:8080
+      timeout: 5s
+      retries: 5

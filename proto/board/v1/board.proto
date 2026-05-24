@@ -169,6 +169,13 @@ message InviteInfo {
   int64 created_at = 7;
 }
 
+message CanViewRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message CanViewResponse {}
+
 service BoardService {
   rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
   rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
@@ -183,4 +190,5 @@ service BoardService {
   rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
   rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
   rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
+  rpc CanView(CanViewRequest) returns (CanViewResponse);
 }

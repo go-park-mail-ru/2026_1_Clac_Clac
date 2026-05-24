@@ -83,6 +83,8 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 		t.title,
 		t.due_date,
 		t.position,
+		t.start,
+		t.status,
 		(
 			SELECT COALESCE(jsonb_agg(
 				jsonb_build_object(
@@ -120,6 +122,8 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 			&card.Title,
 			&card.DeadLine,
 			&card.Position,
+			&card.Start,
+			&card.Status,
 			&subtasks,
 		)
 

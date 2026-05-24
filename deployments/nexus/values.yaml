@@ -4,6 +4,11 @@ ingress:
   enabled: true
   host: clac-clac.ru
 
+broker:
+  enabled: true
+  host: nexus-broker-service
+  port: 6379
+
 docs:
   enabled: true
   image: nginx:alpine
@@ -43,11 +48,13 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-5d2dbb4
+    image: nisakoo/nexus-facade:sha-493bed1
     port: 8080
     database:
       enabled: false
     redis:
+      enabled: false
+    broker:
       enabled: false
     resources:
       limits:
@@ -67,6 +74,8 @@ services:
       enabled: false
     redis:
       enabled: true
+    broker:
+      enabled: false
     resources:
       limits:
         memory: "64Mi"
@@ -85,6 +94,8 @@ services:
       enabled: false
     redis:
       enabled: true
+    broker:
+      enabled: false
     resources:
       limits:
         memory: "64Mi"
@@ -97,11 +108,13 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-user:sha-600d920
+    image: nisakoo/nexus-user:sha-493bed1
     port: 8080
     database:
       enabled: true
     redis:
+      enabled: false
+    broker:
       enabled: false
     resources:
       limits:
@@ -121,6 +134,8 @@ services:
       enabled: false
     redis:
       enabled: true
+    broker:
+      enabled: false
     resources:
       limits:
         memory: "64Mi"
@@ -133,12 +148,14 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-9c4b44b
+    image: nisakoo/nexus-board:sha-493bed1
     port: 8080
     database:
       enabled: true
     redis:
       enabled: true
+    broker:
+      enabled: false
     resources:
       limits:
         memory: "64Mi"
@@ -157,10 +174,32 @@ services:
       enabled: true
     redis:
       enabled: false
+    broker:
+      enabled: false
     resources:
       limits:
         memory: "64Mi"
         cpu: "50m"
       requests:
         memory: "32Mi"
+        cpu: "10m"
+
+  realtime:
+    enabled: true
+    hasConfig: true
+    hasSecrets: true
+    image: nisakoo/nexus-realtime:sha-94ed0eb
+    port: 8080
+    database:
+      enabled: false
+    redis:
+      enabled: false
+    broker:
+      enabled: true
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "50m"
+      requests:
+        memory: "64Mi"
         cpu: "10m"

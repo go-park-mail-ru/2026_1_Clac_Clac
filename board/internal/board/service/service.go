@@ -378,6 +378,18 @@ func (s *Service) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID
 	return nil
 }
 
+func (s *Service) CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]dto.InviteInfo, error) {
 	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.Invite)
 	if err != nil {

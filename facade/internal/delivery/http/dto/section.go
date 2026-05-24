@@ -52,8 +52,10 @@ type Card struct {
 	Title        string        `json:"title" example:"Fix bug on frontend"`
 	Description  string        `json:"description" example:"Card description"`
 	Deadline     *time.Time    `json:"deadline" example:"2026-04-12T14:35:00Z"`
+	Start        *time.Time    `jsin:"start" example:"2026-04-12T14:35:00Z"`
 	Subtasks     []SubtaskInfo `json:"subtasks"`
 	Position     int           `json:"position" example:"2"`
+	Status       bool          `json:"status" example:"false"`
 }
 
 // SubtaskInfo описывает подзадачу карточки в контексте секции.

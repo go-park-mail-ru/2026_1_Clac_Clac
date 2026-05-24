@@ -71,6 +71,7 @@ type BoardService interface {
 	UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error
 	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
 	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
+	CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 }
 
 type Config struct {
@@ -742,4 +743,37 @@ func (h *BoardHandler) GetActiveInvites(ctx context.Context, req *pb.GetActiveIn
 	return &pb.GetActiveInvitesResponse{
 		Invites: pbInvites,
 	}, nil
+}
+
+func (h *BoardHandler) CanView(ctx context.Context, req *pb.CanViewRequest) (*pb.CanViewResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.CanView(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+
+		errLog := fmt.Errorf("srv.CanView: %w", err)
+		logger.Error().Err(errLog).Msg("board service CanView")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CanView", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "can_view",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotGetBoards.Error())
+	}
+
+	return &pb.CanViewResponse{}, nil
 }

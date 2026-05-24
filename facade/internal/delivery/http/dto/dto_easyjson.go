@@ -4688,6 +4688,22 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 					}
 				}
 			}
+		case "Start":
+			if in.IsNull() {
+				in.Skip()
+				out.Start = nil
+			} else {
+				if out.Start == nil {
+					out.Start = new(time.Time)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					if data := in.Raw(); in.Ok() {
+						in.AddError((*out.Start).UnmarshalJSON(data))
+					}
+				}
+			}
 		case "subtasks":
 			if in.IsNull() {
 				in.Skip()
@@ -4720,6 +4736,12 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 				in.Skip()
 			} else {
 				out.Position = int(in.Int())
+			}
+		case "status":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				out.Status = bool(in.Bool())
 			}
 		default:
 			in.SkipRecursive()
@@ -4769,6 +4791,15 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		}
 	}
 	{
+		const prefix string = ",\"Start\":"
+		out.RawString(prefix)
+		if in.Start == nil {
+			out.RawString("null")
+		} else {
+			out.Raw((*in.Start).MarshalJSON())
+		}
+	}
+	{
 		const prefix string = ",\"subtasks\":"
 		out.RawString(prefix)
 		if in.Subtasks == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
@@ -4788,6 +4819,11 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		const prefix string = ",\"position\":"
 		out.RawString(prefix)
 		out.Int(int(in.Position))
+	}
+	{
+		const prefix string = ",\"status\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.Status))
 	}
 	out.RawByte('}')
 }

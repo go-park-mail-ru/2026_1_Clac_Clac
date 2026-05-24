@@ -123,6 +123,14 @@ func (m *mockBoardServiceClient) GetActiveInvites(ctx context.Context, in *pb.Ge
 	return args.Get(0).(*pb.GetActiveInvitesResponse), args.Error(1)
 }
 
+func (m *mockBoardServiceClient) CanView(ctx context.Context, in *pb.CanViewRequest, opts ...grpc.CallOption) (*pb.CanViewResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.CanViewResponse), args.Error(1)
+}
+
 func TestBoardCreateInvite(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()

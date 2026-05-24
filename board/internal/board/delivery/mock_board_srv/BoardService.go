@@ -49,6 +49,24 @@ func (_m *BoardService) AcceptInvite(ctx context.Context, inviteLink uuid.UUID, 
 	return r0, r1
 }
 
+// CanView provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CanView")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CloseInvite provides a mock function with given fields: ctx, inviteLink, userLink
 func (_m *BoardService) CloseInvite(ctx context.Context, inviteLink uuid.UUID, userLink uuid.UUID) error {
 	ret := _m.Called(ctx, inviteLink, userLink)
