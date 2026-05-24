@@ -24,6 +24,7 @@ type Connector struct {
 	Board   *clients.Board
 	Section *clients.Section
 	Card    *clients.Card
+	Poll    *clients.Poll
 
 	logger *zerolog.Logger
 	conns  []*grpc.ClientConn
@@ -125,6 +126,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		Board:       clients.NewBoardClient(boardConn, configBoard),
 		Section:     clients.NewSectionClient(boardConn),
 		Card:        clients.NewCardClient(boardConn, configCard),
+		Poll:        clients.NewPollClient(boardConn),
 		Appeal:      clients.NewAppealClient(appealConn, configAppeal),
 		logger:      logger,
 		conns:       activeConns,

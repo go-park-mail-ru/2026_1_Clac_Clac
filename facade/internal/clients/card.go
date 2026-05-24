@@ -427,3 +427,24 @@ func (c *Card) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) erro
 
 	return nil
 }
+
+func (c *Card) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	var points *int32
+	if req.Points != nil {
+		p := int32(*req.Points)
+		points = &p
+	}
+
+	pbReq := &pb.UpdateCardPointsRequest{
+		UserLink: req.UserLink.String(),
+		CardLink: req.CardLink.String(),
+		Points:   points,
+	}
+
+	_, err := c.client.UpdateCardPoints(ctx, pbReq)
+	if err != nil {
+		return fmt.Errorf("CardClient.UpdateCardPoints: %w", convertCardGRPCError(err))
+	}
+
+	return nil
+}

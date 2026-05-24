@@ -15,6 +15,7 @@ type Manager struct {
 	Board      *usecase.Board
 	Section    *usecase.Section
 	Appeal     *usecase.Appeal
+	Poll       *usecase.Poll
 }
 
 func NewManager(connector *Connector, conf *config.Config) *Manager {
@@ -36,5 +37,6 @@ func NewManager(connector *Connector, conf *config.Config) *Manager {
 		Board:      usecase.NewBoard(connector.Board),
 		Section:    usecase.NewSection(connector.Section),
 		Appeal:     usecase.NewAppeal(connector.Appeal),
+		Poll:       usecase.NewPoll(connector.Poll),
 	}
 }

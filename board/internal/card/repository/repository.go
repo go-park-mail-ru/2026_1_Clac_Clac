@@ -1013,6 +1013,21 @@ func (r *Repository) UpdateStatusTask(ctx context.Context, updateInfo dto.Update
 	return nil
 }
 
+func (r *Repository) UpdateCardPoints(ctx context.Context, dto dto.UpdateCardPoints) error {
+	query := `UPDATE task SET points = $1 WHERE task_link = $2`
+
+	commandTag, err := r.pool.Exec(ctx, query, dto.Points, dto.CardLink)
+	if err != nil {
+		return fmt.Errorf("pool.Exec: %w", err)
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return common.ErrCardNotFound
+	}
+
+	return nil
+}
+
 func (r *Repository) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) (err error) {
 	logger := zerolog.Ctx(ctx)
 

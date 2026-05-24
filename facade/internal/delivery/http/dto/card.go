@@ -149,3 +149,10 @@ type NewTimeLine struct {
 	Start    time.Time `json:"start"`
 	DeadLine time.Time `json:"deadline"`
 }
+
+// UpdateCardPointsRequest содержит оценку карточки.
+//
+//	@Description	Данные для установки оценки (story points) на карточку
+type UpdateCardPointsRequest struct {
+	Points *int `json:"points"`
+}

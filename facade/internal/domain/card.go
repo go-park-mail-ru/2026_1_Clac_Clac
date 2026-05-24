@@ -154,3 +154,9 @@ type NewTimeLine struct {
 	DeadLine time.Time
 	Start    time.Time
 }
+
+type UpdateCardPointsRequest struct {
+	UserLink uuid.UUID
+	CardLink uuid.UUID
+	Points   *int
+}

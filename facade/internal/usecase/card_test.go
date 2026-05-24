@@ -106,6 +106,11 @@ func (m *mockCardClient) UpdateTimeLine(ctx context.Context, info domain.NewTime
 	return args.Error(0)
 }
 
+func (m *mockCardClient) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
 func TestCardUsecase_GetCard(t *testing.T) {
 	req := domain.GetCardRequest{UserLink: fixedUserLink, CardLink: fixedCardLink}
 	expectedCard := domain.CardFullInfo{CardLink: fixedCardLink, Title: "Test Card"}

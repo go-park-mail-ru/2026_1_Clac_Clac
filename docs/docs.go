@@ -483,6 +483,286 @@ const docTemplate = `{
                 }
             }
         },
+        "/boards/{board_link}/polls": {
+            "put": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Приглашённый участник ставит оценку текущей активной карточке",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Polls"
+                ],
+                "summary": "Проголосовать",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Оценка",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "vote accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / invalid request schema",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "user not invited",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "poll not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot vote",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Создаёт комнату для оценки задач методом Planning Poker. Требует прав Admin/Creator.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Polls"
+                ],
+                "summary": "Создать покер-комнату",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Карточки и приглашённые участники",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreatePollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "poll created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link / invalid request schema",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "action denied (not admin/creator)",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "poll already exists",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot create poll",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Администратор завершает голосование и удаляет комнату",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Polls"
+                ],
+                "summary": "Завершить покер-комнату",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "poll deleted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "not poll admin",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "poll not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot delete poll",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/boards/{board_link}/polls/next": {
+            "post": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Администратор переходит к следующей карточке в очереди. Если карточек больше нет — комната автоматически удаляется.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Polls"
+                ],
+                "summary": "Следующая карточка",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "moved to next card or poll finished",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "not poll admin",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "poll not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot advance poll",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/boards/{board_link}/sections": {
             "get": {
                 "description": "Возвращает массив всех секций, привязанных к конкретной доске",
@@ -1111,7 +1391,7 @@ const docTemplate = `{
         },
         "/boards/{link}/users": {
             "get": {
-                "description": "Возвращает список участников доски с их ролями",
+                "description": "Возвращает список участников доски с ролями, аватарами, именами, описаниями и email",
                 "produces": [
                     "application/json"
                 ],
@@ -1137,7 +1417,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "invalid board link / board link missing",
+                        "description": "invalid board link / board link missing / invalid input",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1155,13 +1435,13 @@ const docTemplate = `{
                         }
                     },
                     "404": {
-                        "description": "board not found",
+                        "description": "board not found / user not found",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "cannot get members",
+                        "description": "cannot get members / cannot get profiles",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1668,6 +1948,83 @@ const docTemplate = `{
                 }
             }
         },
+        "/cards/{link}/points": {
+            "put": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Администратор/создатель доски устанавливает финальную оценку (story points) на карточку. Если активен полл — только администратор полла может установить оценку.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Установить оценку на карточку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Оценка",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardPointsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "points updated",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid card link / invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "permission denied / not poll admin",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "card not found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot update points",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/cards/{link}/reorder": {
             "patch": {
                 "security": [
@@ -1744,6 +2101,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/cards/{link}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Изменяет статус выполнения карточки (done / not done).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Обновить статус карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новый статус",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewStatusTask"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Статус обновлён",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав доступа",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/cards/{link}/subtasks": {
             "post": {
                 "security": [
@@ -1785,6 +2218,82 @@ const docTemplate = `{
                         "description": "Подзадача создана",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_SubtaskResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав доступа",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards/{link}/timeline": {
+            "patch": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Изменяет дедлайн и/или время начала карточки.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Обновить временные рамки карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые временные рамки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewTimeLine"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Временные рамки обновлены",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
                         }
                     },
                     "400": {
@@ -3576,6 +4085,14 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 2
                 },
+                "start": {
+                    "type": "string",
+                    "example": "2026-04-12T14:35:00Z"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": false
+                },
                 "subtasks": {
                     "type": "array",
                     "items": {
@@ -3617,6 +4134,14 @@ const docTemplate = `{
                 "position": {
                     "type": "integer",
                     "example": 2
+                },
+                "start": {
+                    "type": "string",
+                    "example": "2026-04-12T14:35:00Z"
+                },
+                "status": {
+                    "type": "boolean",
+                    "example": false
                 },
                 "subtasks": {
                     "type": "array",
@@ -3733,9 +4258,6 @@ const docTemplate = `{
             "description": "Данные для создания новой карточки в секции",
             "type": "object",
             "properties": {
-                "deadline": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -3834,6 +4356,24 @@ const docTemplate = `{
                 },
                 "target_user_link": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreatePollRequest": {
+            "description": "Данные для создания комнаты Planning Poker",
+            "type": "object",
+            "properties": {
+                "card_links": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "invitees": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -3967,6 +4507,22 @@ const docTemplate = `{
             "description": "Информация об участнике доски",
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string",
+                    "example": "https://s3.example.com/backgrounds/bg.jpg"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "gofer"
+                },
+                "display_name": {
+                    "type": "string",
+                    "example": "artem"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "ivan@mail.com"
+                },
                 "link": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
@@ -3992,6 +4548,27 @@ const docTemplate = `{
                 "token_id": {
                     "type": "string",
                     "example": "uuid-token-string"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewStatusTask": {
+            "description": "Статус выполнения карточки (done = true / false)",
+            "type": "object",
+            "properties": {
+                "done": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewTimeLine": {
+            "description": "Временные рамки карточки (начало и дедлайн)",
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "start": {
+                    "type": "string"
                 }
             }
         },
@@ -4167,6 +4744,15 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardPointsRequest": {
+            "description": "Данные для установки оценки (story points) на карточку",
+            "type": "object",
+            "properties": {
+                "points": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardRequest": {
             "description": "Данные для обновления карточки",
             "type": "object",
@@ -4178,6 +4764,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "executor_link": {
+                    "type": "string"
+                },
+                "start": {
                     "type": "string"
                 },
                 "title": {
@@ -4269,6 +4858,15 @@ const docTemplate = `{
                 "link": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest": {
+            "description": "Оценка (story points) участника голосования",
+            "type": "object",
+            "properties": {
+                "points": {
+                    "type": "integer"
                 }
             }
         }

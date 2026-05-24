@@ -10,6 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll"
+	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
@@ -40,6 +42,7 @@ type CardRepository interface {
 	UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error
 	UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error
 	GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error)
+	UpdateCardPoints(ctx context.Context, dto repositoryDto.UpdateCardPoints) error
 }
 
 type Config struct {
@@ -49,14 +52,16 @@ type Config struct {
 type Service struct {
 	rep               CardRepository
 	permissionChecker rbac.Service
+	pollStore         *poll.PollStore
 	cfg               Config
 	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
-func NewService(rep CardRepository, permissionChecker rbac.Service, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service, pollStore *poll.PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
+		pollStore:         pollStore,
 		cfg:               cfg,
 		pub:               pub,
 	}
@@ -573,4 +578,26 @@ func (s *Service) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeL
 	}
 
 	return nil
+}
+
+func (s *Service) UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.UUID, points *int) error {
+	if err := s.permissionChecker.CheckPermissionOnCard(ctx, cardLink, userLink, rbac.Actions.Edit); err != nil {
+		return err
+	}
+
+	boardLink, err := s.rep.GetBoardLinkByCard(ctx, cardLink)
+	if err != nil {
+		return fmt.Errorf("rep.GetBoardLinkByCard: %w", err)
+	}
+
+	if poll, ok := s.pollStore.GetActivePoll(boardLink); ok {
+		if poll.AdminLink != userLink {
+			return pollCommon.ErrNotPollAdmin
+		}
+	}
+
+	return s.rep.UpdateCardPoints(ctx, repositoryDto.UpdateCardPoints{
+		CardLink: cardLink,
+		Points:   points,
+	})
 }

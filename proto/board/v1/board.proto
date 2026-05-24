@@ -176,6 +176,37 @@ message CanViewRequest {
 
 message CanViewResponse {}
 
+message CreatePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  repeated string card_links = 3;
+  repeated string invitees = 4;
+}
+
+message CreatePollResponse {}
+
+message DeletePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message DeletePollResponse {}
+
+message NextPollCardRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message NextPollCardResponse {}
+
+message VotePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  int32 points = 3;
+}
+
+message VotePollResponse {}
+
 service BoardService {
   rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
   rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
@@ -191,4 +222,8 @@ service BoardService {
   rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
   rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
   rpc CanView(CanViewRequest) returns (CanViewResponse);
+  rpc CreatePoll(CreatePollRequest) returns (CreatePollResponse);
+  rpc DeletePoll(DeletePollRequest) returns (DeletePollResponse);
+  rpc NextPollCard(NextPollCardRequest) returns (NextPollCardResponse);
+  rpc VotePoll(VotePollRequest) returns (VotePollResponse);
 }

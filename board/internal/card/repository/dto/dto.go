@@ -109,3 +109,8 @@ type UpdateTimeLine struct {
 	DeadLine *time.Time
 	Start    *time.Time
 }
+
+type UpdateCardPoints struct {
+	CardLink uuid.UUID
+	Points   *int
+}

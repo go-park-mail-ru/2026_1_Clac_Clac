@@ -140,6 +140,7 @@ func setupRouter(delivery *Delivery, manager *Manager, connector *Connector,
 		Board:       delivery.Board,
 		Section:     delivery.Section,
 		Appeal:      delivery.Appeal,
+		Poll:        delivery.Poll,
 	}
 
 	return router.NewRouter(tools, conf, logger)
