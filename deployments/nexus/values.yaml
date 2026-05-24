@@ -150,7 +150,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-fbb58b2
+    image: nisakoo/nexus-board:sha-7353f4a
     port: 8080
     database:
       enabled: true
@@ -190,7 +190,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-realtime:sha-fbb58b2
+    image: nisakoo/nexus-realtime:sha-7353f4a
     port: 8080
     database:
       enabled: false
