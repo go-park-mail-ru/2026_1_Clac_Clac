@@ -2,9 +2,7 @@ namespace: "nexus-prod"
 
 ingress:
   enabled: true
-  hosts:
-    - clac-clac.ru
-    - clac-clac.mooo.com
+  host: clac-clac.ru
 
 broker:
   enabled: true
