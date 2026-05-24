@@ -46,12 +46,15 @@ jobs:
             user:
               - 'user/**'
               - 'deployments/user/**'
+            realtime:
+              - 'realtime/**'
+              - 'deployments/realtime/**'
 
       - name: Generate Build Matrix
         id: set-matrix
         run: |
           if [[ "${{ steps.filter.outputs.shared }}" == 'true' ]]; then
-            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user", "realtime"]' >> $GITHUB_OUTPUT
             echo 'has_changes=true' >> $GITHUB_OUTPUT
           else
             CHANGES='${{ steps.filter.outputs.changes }}'

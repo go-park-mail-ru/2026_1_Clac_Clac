@@ -30,6 +30,13 @@ spec:
   - host: {{ .Values.ingress.host }}
     http:
       paths:
+      - path: /api/events
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Chart.Name }}-realtime-service
+            port:
+              name: http
       - path: /api
         pathType: Prefix
         backend:

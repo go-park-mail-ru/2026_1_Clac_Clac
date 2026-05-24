@@ -1,0 +1,62 @@
+{{- if .Values.broker.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-broker-redis-conf
+  namespace: {{ .Values.namespace }}
+data:
+  redis.conf: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-broker-redis
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: broker-redis
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: broker-redis
+  template:
+    metadata:
+      labels:
+        app: broker-redis
+    spec:
+      containers:
+        - name: broker-redis
+          image: {{ .Values.redis.image }}
+          args:
+            - "redis-server"
+            - "--requirepass"
+            - "$(REDIS_PASSWORD)"
+          ports:
+            - containerPort: {{ .Values.broker.port }}
+              name: redis
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: broker-secret
+                  key: REDIS_PASSWORD
+          {{- with .Values.redis.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-broker-service
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: broker-redis
+  ports:
+    - port: {{ .Values.broker.port }}
+      targetPort: redis
+  type: ClusterIP
+{{- end }}

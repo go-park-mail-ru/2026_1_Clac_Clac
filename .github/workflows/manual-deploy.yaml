@@ -35,6 +35,10 @@ on:
         description: "user"
         type: boolean
         default: false
+      realtime:
+        description: "realtime"
+        type: boolean
+        default: false
 
 jobs:
   setup-build:
@@ -46,7 +50,7 @@ jobs:
         id: set-matrix
         run: |
           if [[ "${{ inputs.all }}" == 'true' ]]; then
-            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user", "realtime"]' >> $GITHUB_OUTPUT
           else
             SERVICES=()
             [[ "${{ inputs.appeal }}" == 'true' ]] && SERVICES+=('"appeal"')
@@ -55,6 +59,7 @@ jobs:
             [[ "${{ inputs.facade }}" == 'true' ]] && SERVICES+=('"facade"')
             [[ "${{ inputs.mail_sender }}" == 'true' ]] && SERVICES+=('"mail_sender"')
             [[ "${{ inputs.rate_limiter }}" == 'true' ]] && SERVICES+=('"rate_limiter"')
+            [[ "${{ inputs.realtime }}" == 'true' ]] && SERVICES+=('"realtime"')
             [[ "${{ inputs.user }}" == 'true' ]] && SERVICES+=('"user"')
 
             if [ ${#SERVICES[@]} -eq 0 ]; then
