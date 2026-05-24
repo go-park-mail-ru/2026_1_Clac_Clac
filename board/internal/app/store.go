@@ -57,7 +57,18 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 		},
 	)
 	store.Section = section.NewRepository(store.PostgresPool)
-	store.Card = card.NewRepository(store.PostgresPool)
+	store.Card = card.NewRepository(
+		store.PostgresPool,
+		store.S3Client.NewBucket(
+			conf.S3.CardsAttachmentBucket,
+			conf.S3.CardsAttachmentPrefix,
+			s3.ACL.PublicRead,
+		),
+		card.Config{
+			MaxAttachments:  conf.Card.Repository.MaxAttachments,
+			MaxNestingDepth: conf.Card.Repository.MaxNestingDepth,
+		},
+	)
 	store.PermissionChecker = rbac.NewRepository(store.PostgresPool)
 
 	return store, nil

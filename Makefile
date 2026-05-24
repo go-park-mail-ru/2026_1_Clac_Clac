@@ -1,9 +1,13 @@
 DOCS_PKGS=./cmd,./internal/api,./internal/auth/models,./internal/auth/handler,./internal/board/handler/dto,./internal/board/handler,./internal/health/handler,./internal/profile/handler/dto,./internal/profile/handler,./internal/section/handler/dto,./internal/section/handler,./internal/card/handler/dto,./internal/card/handler
 
-.PHONY: docs proto
+.PHONY: docs proto easyjson
+
+easyjson:
+	easyjson -all -pkg facade/internal/delivery/http/dto
+	easyjson -all -pkg facade/internal/api/dto
 
 docs:
-	swag init -g facade/cmd/api/main.go -o facade/docs --parseDependency
+	swag init -g facade/cmd/api/main.go -o docs --parseDependency
 
 proto:
 	protoc --proto_path=. --go_out=. --go_opt=module=github.com/go-park-mail-ru/2026_1_Clac_Clac \

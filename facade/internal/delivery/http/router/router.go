@@ -54,6 +54,10 @@ type CardHandler interface {
 	CreateSubtask(w http.ResponseWriter, r *http.Request)
 	UpdateSubtask(w http.ResponseWriter, r *http.Request)
 	DeleteSubtask(w http.ResponseWriter, r *http.Request)
+	CreateAttachment(w http.ResponseWriter, r *http.Request)
+	DeleteAttachment(w http.ResponseWriter, r *http.Request)
+	UpdateStatusTask(w http.ResponseWriter, r *http.Request)
+	UpdateTimeLine(w http.ResponseWriter, r *http.Request)
 }
 type BoardHandler interface {
 	GetBoards(w http.ResponseWriter, r *http.Request)
@@ -63,6 +67,12 @@ type BoardHandler interface {
 	UpdateBoard(w http.ResponseWriter, r *http.Request)
 	UploadBackground(w http.ResponseWriter, r *http.Request)
 	GetMembers(w http.ResponseWriter, r *http.Request)
+	CreateInvite(w http.ResponseWriter, r *http.Request)
+	AcceptInvite(w http.ResponseWriter, r *http.Request)
+	CloseInvite(w http.ResponseWriter, r *http.Request)
+	GetActiveInvites(w http.ResponseWriter, r *http.Request)
+	UpdateMemberRole(w http.ResponseWriter, r *http.Request)
+	RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request)
 }
 
 type SectionHandler interface {
@@ -109,6 +119,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 
 	textLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxTextRequestSize)
 	imageLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxUploadImageSize)
+	fileLimit := middleware.LimitRequestSizeMiddleware(conf.App.MaxFileSize)
 
 	r.Handle("/metrics", promhttp.Handler())
 	r.HandleFunc("/healthcheck", healthcheck).Methods(http.MethodGet)
@@ -155,6 +166,9 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withImageLimit := csrfProtected.PathPrefix("/").Subrouter()
 	withImageLimit.Use(imageLimit)
 
+	withFileLimit := csrfProtected.PathPrefix("/").Subrouter()
+	withFileLimit.Use(fileLimit)
+
 	withTextLimit.HandleFunc("/me", deps.Auth.MeHandler).Methods(http.MethodGet)
 
 	withTextLimit.HandleFunc("/profiles", deps.Profile.GetProfile).Methods(http.MethodGet)
@@ -178,6 +192,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.UpdateSubtask).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/subtasks/{subtask_link}", deps.Card.DeleteSubtask).Methods(http.MethodDelete)
 
+	withFileLimit.HandleFunc("/cards/{link}/attachments", deps.Card.CreateAttachment).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/attachments/{attachment_link}", deps.Card.DeleteAttachment).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/cards/{link}/status", deps.Card.UpdateStatusTask).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards/{link}/timeline", deps.Card.UpdateTimeLine).Methods(http.MethodPatch)
+
 	withTextLimit.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/sections/{link}", deps.Section.DeleteSection).Methods(http.MethodDelete)
@@ -191,8 +211,16 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/boards/{link}", deps.Board.UpdateBoard).Methods(http.MethodPut)
 	withImageLimit.HandleFunc("/boards/{link}/background", deps.Board.UploadBackground).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/boards/{link}/users", deps.Board.GetMembers).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.GetActiveInvites).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{link}/invites", deps.Board.CreateInvite).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections", deps.Section.GetSections).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/sections/reorder", deps.Section.ReorderSections).Methods(http.MethodPatch)
+
+	withTextLimit.HandleFunc("/invites/{invite_link}", deps.Board.AcceptInvite).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/invites/{invite_link}", deps.Board.CloseInvite).Methods(http.MethodDelete)
+
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}/role", deps.Board.UpdateMemberRole).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{link}/members/{user_link}", deps.Board.RemoveMemberFromBoard).Methods(http.MethodDelete)
 
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.CreateAppeal).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/appeals", deps.Appeal.GetAppeals).Methods(http.MethodGet)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 //go:generate mockery --name=CardRepository --output=mock_card_rep
@@ -28,17 +30,29 @@ type CardRepository interface {
 	CreateSubtask(ctx context.Context, createInfo repositoryDto.CreateSubtaskInfo) (models.SubtaskInfo, error)
 	DeleteSubtask(ctx context.Context, deleteInfo repositoryDto.DeleteSubtask) error
 	UpdateSubtask(ctx context.Context, updateInfo repositoryDto.UpdateSubtask) error
+	UploadAttachment(ctx context.Context, uploadInfo repositoryDto.UploadAttachment) (string, error)
+	CreateAttachment(ctx context.Context, createInfo repositoryDto.CreateAttachment) (models.AttachmentInfo, error)
+	DeleteAttachmentFromDB(ctx context.Context, attachmentLink uuid.UUID) (string, error)
+	DeleteAttachmentFromS3(ctx context.Context, key string) error
+	UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error
+	UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error
+}
+
+type Config struct {
+	BaseURLAttachment string
 }
 
 type Service struct {
 	rep               CardRepository
 	permissionChecker rbac.Service
+	cfg               Config
 }
 
-func NewService(rep CardRepository, permissionChecker rbac.Service) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service, cfg Config) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
+		cfg:               cfg,
 	}
 }
 
@@ -57,13 +71,25 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		return dto.InfoCard{}, fmt.Errorf("rep.GetCard: %w", err)
 	}
 
+	for i := range card.Attachments {
+		fullKey, err := url.JoinPath(s.cfg.BaseURLAttachment, card.Attachments[i].Path)
+		if err != nil {
+			return dto.InfoCard{}, fmt.Errorf("CardService url.JoinPath: %w", err)
+		}
+
+		card.Attachments[i].Path = fullKey
+	}
+
 	return dto.InfoCard{
-		Description:   card.Description,
+		Description:  card.Description,
 		Title:        card.Title,
 		ExecutorLink: card.ExecutorLink,
 		DataDeadLine: card.DataDeadLine,
+		DataStart:    card.DataStart,
+		Status:       card.Status,
 		Subtasks:     card.Subtasks,
-		Position:    card.Position,
+		Position:     card.Position,
+		Attachments:  card.Attachments,
 	}, nil
 }
 
@@ -101,6 +127,7 @@ func (s *Service) UpdateCardDetails(ctx context.Context, updatingCard dto.Updati
 		Title:        updatingCard.Title,
 		LinkExecutor: updatingCard.LinkExecutor,
 		DataDeadLine: updatingCard.DataDeadLine,
+		DataStart:    updatingCard.DataStart,
 	})
 	if err != nil {
 		return fmt.Errorf("rep.UpdateCardDetails: %w", err)
@@ -151,6 +178,7 @@ func (s *Service) CreateCard(ctx context.Context, newCard dto.NewCard) (dto.Plac
 		Title:        newCard.Title,
 		LinkExecutor: newCard.LinkExecutor,
 		DataDeadLine: newCard.DataDeadLine,
+		DataStart:    newCard.DataStart,
 	})
 	if err != nil {
 		return dto.PlaceCard{}, fmt.Errorf("rep.CreateCard: %w", err)
@@ -290,7 +318,7 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 }
 
 func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error) {
-	err := s.permissionChecker.CheckPermissionOnCard(ctx, createInfo.TaskLink, userLink, rbac.Actions.View)
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, createInfo.TaskLink, userLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return models.SubtaskInfo{}, rbac.ErrActionDenied
@@ -355,6 +383,117 @@ func (s *Service) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtas
 	})
 	if err != nil {
 		return fmt.Errorf("CardRepository.UpdateSubtask: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAttachment) (dto.AttachmentInfo, error) {
+	logger := zerolog.Ctx(ctx)
+
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, createInfo.TaskLink, createInfo.UserLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return dto.AttachmentInfo{}, rbac.ErrActionDenied
+		}
+
+		return dto.AttachmentInfo{}, fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	filePath := uuid.New().String() + createInfo.Extension
+
+	key, err := s.rep.UploadAttachment(ctx, repositoryDto.UploadAttachment{
+		Data:        createInfo.Data,
+		FilePath:    filePath,
+		ContentType: createInfo.ContentType,
+	})
+	if err != nil {
+		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.UploadAttachment: %w", err)
+	}
+
+	attachment, err := s.rep.CreateAttachment(ctx, repositoryDto.CreateAttachment{
+		AttachmentLink: uuid.New(),
+		TaskLink:       createInfo.TaskLink,
+		Key:            key,
+		Name:           createInfo.DisplayName,
+	})
+	if err != nil {
+		if rollbackErr := s.rep.DeleteAttachmentFromS3(ctx, key); rollbackErr != nil {
+			logger.Error().Err(rollbackErr).Msg("roll back attachment from S3 fail")
+		}
+		return dto.AttachmentInfo{}, fmt.Errorf("CardRepository.CreateAttachment: %w", err)
+	}
+
+	fullKey, err := url.JoinPath(s.cfg.BaseURLAttachment, key)
+	if err != nil {
+		return dto.AttachmentInfo{}, fmt.Errorf("CardService url.JoinPath: %w", err)
+	}
+
+	return dto.AttachmentInfo{
+		AttachmentLink: attachment.AttachmentLink,
+		Path:           fullKey,
+		Position:       attachment.Position,
+		DisplayName:    attachment.Name,
+	}, nil
+}
+
+func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAttachment) error {
+	err := s.permissionChecker.CheckPermissionOnAttachment(ctx, deleteInfo.AttachmentLink, deleteInfo.UserLink, rbac.Actions.Delete)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnAttachment: %w", err)
+	}
+
+	key, err := s.rep.DeleteAttachmentFromDB(ctx, deleteInfo.AttachmentLink)
+	if err != nil {
+		return fmt.Errorf("CardRepository.DeleteSubtask: %w", err)
+	}
+
+	if err = s.rep.DeleteAttachmentFromS3(ctx, key); err != nil {
+		return fmt.Errorf("CardRepository.DeleteAttachmentFromS3: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateStatusTask(ctx context.Context, updateInfo dto.UpdateStatusTask) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, updateInfo.TaskLink, updateInfo.UserLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.UpdateStatusTask(ctx, repositoryDto.UpdateStatusTask{
+		TaskLink: updateInfo.TaskLink,
+		Status:   updateInfo.Status,
+	})
+	if err != nil {
+		return fmt.Errorf("rep.UpdateStatusTask: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) error {
+	err := s.permissionChecker.CheckPermissionOnCard(ctx, updateInfo.TaskLink, updateInfo.UserLink, rbac.Actions.Edit)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("CardService.CheckPermissionOnCard: %w", err)
+	}
+
+	err = s.rep.UpdateTimeLine(ctx, repositoryDto.UpdateTimeLine{
+		TaskLink: updateInfo.TaskLink,
+		DeadLine: updateInfo.DeadLine,
+		Start:    updateInfo.Start,
+	})
+	if err != nil {
+		return fmt.Errorf("rep.UpdateTimeLine: %w", err)
 	}
 
 	return nil

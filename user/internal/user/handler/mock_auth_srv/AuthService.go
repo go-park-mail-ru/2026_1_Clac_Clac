@@ -119,6 +119,36 @@ func (_m *AuthService) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.
 	return r0, r1
 }
 
+// GetProfiles provides a mock function with given fields: ctx, userLinks
+func (_m *AuthService) GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]dto.UserInfo, error) {
+	ret := _m.Called(ctx, userLinks)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfiles")
+	}
+
+	var r0 []dto.UserInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) ([]dto.UserInfo, error)); ok {
+		return rf(ctx, userLinks)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []uuid.UUID) []dto.UserInfo); ok {
+		r0 = rf(ctx, userLinks)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.UserInfo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []uuid.UUID) error); ok {
+		r1 = rf(ctx, userLinks)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUser provides a mock function with given fields: ctx, requestUser
 func (_m *AuthService) GetUser(ctx context.Context, requestUser dto.GetUserInfo) (dto.UserInfo, error) {
 	ret := _m.Called(ctx, requestUser)

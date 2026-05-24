@@ -18,6 +18,34 @@ type CardRepository struct {
 	mock.Mock
 }
 
+// CreateAttachment provides a mock function with given fields: ctx, createInfo
+func (_m *CardRepository) CreateAttachment(ctx context.Context, createInfo dto.CreateAttachment) (models.AttachmentInfo, error) {
+	ret := _m.Called(ctx, createInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAttachment")
+	}
+
+	var r0 models.AttachmentInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateAttachment) (models.AttachmentInfo, error)); ok {
+		return rf(ctx, createInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.CreateAttachment) models.AttachmentInfo); ok {
+		r0 = rf(ctx, createInfo)
+	} else {
+		r0 = ret.Get(0).(models.AttachmentInfo)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.CreateAttachment) error); ok {
+		r1 = rf(ctx, createInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateCard provides a mock function with given fields: ctx, newCard
 func (_m *CardRepository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, error) {
 	ret := _m.Called(ctx, newCard)
@@ -100,6 +128,52 @@ func (_m *CardRepository) CreateSubtask(ctx context.Context, createInfo dto.Crea
 	}
 
 	return r0, r1
+}
+
+// DeleteAttachmentFromDB provides a mock function with given fields: ctx, attachmentLink
+func (_m *CardRepository) DeleteAttachmentFromDB(ctx context.Context, attachmentLink uuid.UUID) (string, error) {
+	ret := _m.Called(ctx, attachmentLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAttachmentFromDB")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (string, error)); ok {
+		return rf(ctx, attachmentLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) string); ok {
+		r0 = rf(ctx, attachmentLink)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, attachmentLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteAttachmentFromS3 provides a mock function with given fields: ctx, key
+func (_m *CardRepository) DeleteAttachmentFromS3(ctx context.Context, key string) error {
+	ret := _m.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAttachmentFromS3")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, key)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // DeleteCard provides a mock function with given fields: ctx, linkCard
@@ -312,6 +386,34 @@ func (_m *CardRepository) UpdateSubtask(ctx context.Context, updateInfo dto.Upda
 	}
 
 	return r0
+}
+
+// UploadAttachment provides a mock function with given fields: ctx, uploadInfo
+func (_m *CardRepository) UploadAttachment(ctx context.Context, uploadInfo dto.UploadAttachment) (string, error) {
+	ret := _m.Called(ctx, uploadInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UploadAttachment")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UploadAttachment) (string, error)); ok {
+		return rf(ctx, uploadInfo)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UploadAttachment) string); ok {
+		r0 = rf(ctx, uploadInfo)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, dto.UploadAttachment) error); ok {
+		r1 = rf(ctx, uploadInfo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NewCardRepository creates a new instance of CardRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

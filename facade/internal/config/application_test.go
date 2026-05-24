@@ -17,6 +17,7 @@ func TestDefaultApplicationConfig(t *testing.T) {
 			LogLevel:           config.DebugLevel,
 			MaxTextRequestSize: 10 * 1024,
 			MaxUploadImageSize: 10 * 1024 * 1024,
+			MaxFileSize:        10 * 1024 * 1024,
 			RequestTimeout:     5 * time.Second,
 		}
 

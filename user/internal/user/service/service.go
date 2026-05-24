@@ -27,6 +27,7 @@ type AuthRepository interface {
 	UpdatePassword(ctx context.Context, userID uuid.UUID, newPasswordHash string) error
 
 	GetProfile(ctx context.Context, userLink uuid.UUID) (repositoryDto.UserInfoEntity, error)
+	GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]repositoryDto.UserInfoEntity, error)
 	UpdateProfile(ctx context.Context, updatedInfo repositoryDto.UpdatedInfo) error
 	GetAvatarKey(ctx context.Context, userLink uuid.UUID) (string, error)
 	UploadAvatarS3(ctx context.Context, file io.Reader, pathFile, contentType string) (string, error)
@@ -202,6 +203,34 @@ func (s *Service) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.UserI
 	}
 
 	return user, nil
+}
+
+func (s *Service) GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]dto.UserInfo, error) {
+	repositoryUsers, err := s.rep.GetProfiles(ctx, userLinks)
+	if err != nil {
+		return nil, fmt.Errorf("rep.GetProfiles: %w", err)
+	}
+
+	result := make([]dto.UserInfo, 0, len(repositoryUsers))
+	for _, ru := range repositoryUsers {
+		var avatarUrl string
+		if ru.AvatarKey != "" {
+			avatarUrl, err = url.JoinPath(s.cfg.BaseURLAvatar, ru.AvatarKey)
+			if err != nil {
+				return nil, fmt.Errorf("url.JoinPath: %w", err)
+			}
+		}
+
+		result = append(result, dto.UserInfo{
+			Link:        ru.Link,
+			DisplayName: ru.DisplayName,
+			Description: ru.DescriptionUser,
+			Email:       ru.Email,
+			AvatarURL:   avatarUrl,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *Service) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedUserInfo) error {

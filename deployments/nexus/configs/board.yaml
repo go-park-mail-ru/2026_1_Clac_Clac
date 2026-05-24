@@ -1,0 +1,60 @@
+app:
+  log_level: info
+  mapstructure:"max_upload_image_size: 10485760
+
+engine:
+  addr: 0.0.0.0:8080
+  write_timeout: 15
+  read_timeout: 15
+  idle_timeout: 60
+  graceful_shutdown_timeout: 15
+
+database:
+  min_connections: 2
+  max_connections: 10
+  max_connection_lifetime: 1h
+  max_health_check_period: 30s
+  ping_sleep_time: 2s
+  time_out: 5s
+  max_retries: 5
+
+redis:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
+
+board:
+  handler:
+    multipart_background_file_key: "background"
+    max_background_size: 10485760 # 10 МБайтах
+  repository:
+    create_board_default_user_role: "creator"
+
+section:
+  handler:
+    max_quantity_tasks: 1000
+    min_quantity_tasks: 0
+    max_len_name_section: 128
+
+card:
+  handler:
+    max_len_title: 128
+    max_len_description: 500
+  repository:
+    max_attachments: 100
+
+sentry:
+  environment: "production"
+  release: "RK3"
+  service_name: "board"
+  traces_sample_rate: 1.0
+  tags:
+    layer: "grpc"
+    team: "api-platform"
+    protocol: "grpc"
+  repanic: false
+
+metrics:
+  metrics_port: ":9091"

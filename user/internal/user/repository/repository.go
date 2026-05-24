@@ -19,6 +19,7 @@ import (
 type DBEngine interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
 type Repository struct {
@@ -162,6 +163,40 @@ func (r *Repository) GetProfile(ctx context.Context, userLink uuid.UUID) (dto.Us
 	}
 
 	return userInfo, nil
+}
+
+func (r *Repository) GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]dto.UserInfoEntity, error) {
+	query := `
+		SELECT u.link, u.display_name, u.description_user, u.email, u.avatar_key
+		FROM "user" u
+		JOIN UNNEST($1::uuid[]) WITH ORDINALITY AS t(link, ord) ON u.link = t.link
+		ORDER BY t.ord
+	`
+
+	rows, err := r.pool.Query(ctx, query, userLinks)
+	if err != nil {
+		return nil, fmt.Errorf("pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	profiles := make([]dto.UserInfoEntity, 0, len(userLinks))
+	for rows.Next() {
+		var entity dto.UserInfoEntity
+		var avatarKeyPtr *string
+
+		err := rows.Scan(&entity.Link, &entity.DisplayName, &entity.DescriptionUser, &entity.Email, &avatarKeyPtr)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		if avatarKeyPtr != nil {
+			entity.AvatarKey = *avatarKeyPtr
+		}
+
+		profiles = append(profiles, entity)
+	}
+
+	return profiles, nil
 }
 
 func (r *Repository) UpdateProfile(ctx context.Context, updatedInfo dto.UpdatedInfo) error {

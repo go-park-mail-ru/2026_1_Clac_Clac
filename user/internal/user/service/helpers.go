@@ -10,6 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const myCost = 8
+
 var (
 	ErrorCreateHash    = errors.New("failed to cresate hash")
 	ErrorWrongPassword = errors.New("write wrong password")
@@ -19,7 +21,7 @@ func HashPassword(password string) (string, error) {
 	sha256Hash := sha256.Sum256([]byte(password))
 	hashString := hex.EncodeToString(sha256Hash[:])
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(hashString), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(hashString), myCost)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrorCreateHash, err)
 	}

@@ -17,17 +17,28 @@ const (
 	identifierWrongError      = "wrong"
 	identifierNullFieldError  = "null"
 
-	identifierCardNotFound         = "card not found"
-	identifierSectionNotFound      = "section not found"
-	identifierBoardNotFound        = "board not found"
-	identifierCommentNotFound      = "comment not found"
-	identifierSubtaskNotFound      = "sub task not found"
+	identifierCardNotFound       = "card not found"
+	identifierSectionNotFound    = "section not found"
+	identifierBoardNotFound      = "board not found"
+	identifierCommentNotFound    = "comment not found"
+	identifierSubtaskNotFound    = "sub task not found"
+	identifierAttachmentNotFound = "attachment not found"
+
 	identifierTaskLimitError       = "task limit"
+	identifierAttachmentLimitError = "attachment limit"
 	identifierLostMandatorySection = "mandatory section"
 	identifierIncorrectTypeFile    = "invalid content type"
 
 	identifierAppealNotFound  = "appeal not found"
 	identifierInvalidCategory = "invalid category"
+
+	identifierInviteNotFound      = "invite not found"
+	identifierInviteExpired       = "invite is expired"
+	identifierInviteClosed        = "invite is closed"
+	identifierInviteNotForUser    = "this invite targets another user"
+	identifierUserAlreadyMember   = "already"
+	identifierSelfRoleChange      = "cannot change your own role"
+	identifierCreatorCannotLeave  = "creator cannot leave the board"
 )
 
 func convertGRPCError(err error) error {
@@ -63,7 +74,7 @@ func convertGRPCError(err error) error {
 			return common.ErrorInvalidInput
 		}
 	case codes.Unavailable:
-		return common.ErrorVKOAuthUnavailable
+		return common.ErrorServiceUnavailable
 	default:
 		return err
 	}
@@ -86,6 +97,8 @@ func convertCardGRPCError(err error) error {
 			return common.ErrorCommentNotFound
 		case strings.Contains(msg, identifierSubtaskNotFound):
 			return common.ErrorSubtaskNotFound
+		case strings.Contains(msg, identifierAttachmentNotFound):
+			return common.ErrorAttachmentNotFound
 		default:
 			return common.ErrorNonexistentUser
 		}
@@ -97,6 +110,8 @@ func convertCardGRPCError(err error) error {
 		switch {
 		case strings.Contains(msg, identifierTaskLimitError):
 			return common.ErrorTaskLimitReached
+		case strings.Contains(msg, identifierAttachmentLimitError):
+			return common.ErrorAttachmentLimitReached
 		case strings.Contains(msg, identifierLostMandatorySection):
 			return common.ErrCannotSkipMandatorySection
 		}
@@ -120,6 +135,8 @@ func convertBoardGRPCError(err error) error {
 			return common.ErrorBoardNotFound
 		case strings.Contains(msg, identifierSectionNotFound):
 			return common.ErrorSectionNotFound
+		case strings.Contains(msg, identifierInviteNotFound):
+			return common.ErrorInviteNotFound
 		default:
 			return common.ErrorNonexistentUser
 		}
@@ -127,11 +144,34 @@ func convertBoardGRPCError(err error) error {
 		switch {
 		case strings.Contains(msg, identifierIncorrectTypeFile):
 			return common.ErrorInvalidContentType
+		case strings.Contains(msg, identifierSelfRoleChange):
+			return common.ErrorSelfRoleChange
 		default:
 			return common.ErrorInvalidInput
 		}
 	case codes.PermissionDenied:
-		return common.ErrorBoardPermissionDenied
+		switch {
+		case strings.Contains(msg, identifierCreatorCannotLeave):
+			return common.ErrorCreatorCannotLeave
+		default:
+			return common.ErrorBoardPermissionDenied
+		}
+	case codes.AlreadyExists:
+		switch {
+		case strings.Contains(msg, identifierUserAlreadyMember):
+			return common.ErrorUserAlreadyMember
+		default:
+			return common.ErrorExistingUser
+		}
+	case codes.FailedPrecondition:
+		switch {
+		case strings.Contains(msg, identifierInviteExpired):
+			return common.ErrorInviteExpired
+		case strings.Contains(msg, identifierInviteClosed):
+			return common.ErrorInviteClosed
+		default:
+			return common.ErrorInvalidInput
+		}
 	default:
 		return err
 	}

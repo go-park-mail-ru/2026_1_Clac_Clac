@@ -28,8 +28,8 @@ type DatabaseConnection struct {
 	MaxConnections        int32         `mapstructure:"max_connections"`
 	MaxConnectionLifetime time.Duration `mapstructure:"max_connection_lifetime"`
 	MaxHealthCheckPeriod  time.Duration `mapstructure:"max_health_check_period"`
-	PingSleepTime         time.Duration `mapstructue:"ping_sleep_time"`
-	TimeOut               time.Duration `mapstructue:"time_out"`
+	PingSleepTime         time.Duration `mapstructure:"ping_sleep_time"`
+	TimeOut               time.Duration `mapstructure:"time_out"`
 	MaxRetries            int           `mapstructure:"max_retries"`
 }
 

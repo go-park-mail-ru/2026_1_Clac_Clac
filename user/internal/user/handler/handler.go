@@ -47,6 +47,7 @@ type AuthService interface {
 	ResetPassword(ctx context.Context, passwordInfo serviceDto.ResetPasswordInfo) error
 
 	GetProfile(ctx context.Context, userLink uuid.UUID) (serviceDto.UserInfo, error)
+	GetProfiles(ctx context.Context, userLinks []uuid.UUID) ([]serviceDto.UserInfo, error)
 	UpdateProfile(ctx context.Context, updatedInfo serviceDto.UpdatedUserInfo) error
 	UpdateAvatar(ctx context.Context, avatar serviceDto.UpdatedAvatar) (string, error)
 	DeleteAvatar(ctx context.Context, userLink uuid.UUID) error
@@ -81,6 +82,7 @@ func (h *Handler) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.User
 		Email:    req.Email,
 		Password: req.Password,
 	})
+
 	if err != nil {
 		if errors.Is(err, service.ErrorWrongPassword) {
 			return nil, status.Error(codes.InvalidArgument, msgWrongEmailOrPassword)
@@ -287,6 +289,46 @@ func (h *Handler) GetProfile(ctx context.Context, req *pb.UserLinkRequest) (*pb.
 		DisplayName: serviceUser.DisplayName,
 		Description: serviceUser.Description,
 		AvatarUrl:   serviceUser.AvatarURL,
+	}, nil
+}
+
+func (h *Handler) GetProfiles(ctx context.Context, req *pb.GetProfilesRequest) (*pb.GetProfilesResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawLinks := req.GetUserLinks()
+	links := make([]uuid.UUID, 0, len(rawLinks))
+	for _, rawLink := range rawLinks {
+		parsed, err := uuid.Parse(rawLink)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, msgFailParseUserLink)
+		}
+		links = append(links, parsed)
+	}
+
+	serviceUsers, err := h.srv.GetProfiles(ctx, links)
+	if err != nil {
+		logger.Error().Err(err).Msg("srv.GetProfiles failed")
+
+		sentryLogger.CaptureFromContext(ctx, err, "GetProfiles", map[string]interface{}{
+			"action": "get_profiles",
+		})
+
+		return nil, status.Error(codes.Internal, msgInternalError)
+	}
+
+	profiles := make([]*pb.ProfileResponse, 0, len(serviceUsers))
+	for _, su := range serviceUsers {
+		profiles = append(profiles, &pb.ProfileResponse{
+			UserLink:    su.Link.String(),
+			Email:       su.Email,
+			DisplayName: su.DisplayName,
+			Description: su.Description,
+			AvatarUrl:   su.AvatarURL,
+		})
+	}
+
+	return &pb.GetProfilesResponse{
+		Profiles: profiles,
 	}, nil
 }
 

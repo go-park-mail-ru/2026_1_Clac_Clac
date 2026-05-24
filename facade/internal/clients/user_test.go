@@ -27,6 +27,14 @@ func (m *mockUserServiceClient) GetProfile(ctx context.Context, in *pb.UserLinkR
 	return args.Get(0).(*pb.ProfileResponse), args.Error(1)
 }
 
+func (m *mockUserServiceClient) GetProfiles(ctx context.Context, in *pb.GetProfilesRequest, opts ...grpc.CallOption) (*pb.GetProfilesResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetProfilesResponse), args.Error(1)
+}
+
 func (m *mockUserServiceClient) UpdateProfile(ctx context.Context, in *pb.UpdateProfileRequest, opts ...grpc.CallOption) (*pb.UpdateProfileResponse, error) {
 	args := m.Called(ctx, in)
 	if args.Get(0) == nil {
@@ -614,7 +622,7 @@ func TestProcessUserWithVK(t *testing.T) {
 			mockResp:     nil,
 			mockErr:      status.Error(codes.Unavailable, "vk unavailable"),
 			expectedLink: uuid.Nil,
-			expectedErr:  common.ErrorVKOAuthUnavailable,
+			expectedErr:  common.ErrorServiceUnavailable,
 		},
 		{
 			name:         "invalid uuid in response",

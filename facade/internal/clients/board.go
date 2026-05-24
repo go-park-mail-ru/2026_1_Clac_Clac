@@ -18,13 +18,19 @@ var boardBufferPool = sync.Pool{
 	New: func() any { return new(bytes.Buffer) },
 }
 
-type Board struct {
-	client pb.BoardServiceClient
+type ConfigBoard struct {
+	MaxBackgroundBytesSize int
 }
 
-func NewBoardClient(connection *grpc.ClientConn) *Board {
+type Board struct {
+	client pb.BoardServiceClient
+	cfg    ConfigBoard
+}
+
+func NewBoardClient(connection *grpc.ClientConn, cfg ConfigBoard) *Board {
 	return &Board{
 		client: pb.NewBoardServiceClient(connection),
+		cfg:    cfg,
 	}
 }
 
@@ -139,7 +145,11 @@ func (b *Board) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardReq
 func (b *Board) UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error) {
 	buf := boardBufferPool.Get().(*bytes.Buffer)
 	buf.Reset()
-	defer boardBufferPool.Put(buf)
+	defer func() {
+		if buf.Cap() <= b.cfg.MaxBackgroundBytesSize {
+			boardBufferPool.Put(buf)
+		}
+	}()
 
 	if _, err := io.Copy(buf, image); err != nil {
 		return domain.UploadBackgroundResponse{}, fmt.Errorf("read image into buffer: %w", err)
@@ -173,16 +183,153 @@ func (b *Board) GetMembers(ctx context.Context, membersInfo domain.GetMembersReq
 		return domain.GetMembersResponse{}, fmt.Errorf("client.GetMembers: %w", convertBoardGRPCError(err))
 	}
 
-	userLinks := make([]uuid.UUID, 0, len(res.UsersLinks))
-	for _, l := range res.UsersLinks {
-		link, err := uuid.Parse(l)
+	members := make([]domain.MemberInfo, 0, len(res.Members))
+	for _, m := range res.Members {
+		link, err := uuid.Parse(m.Link)
 		if err != nil {
 			return domain.GetMembersResponse{}, common.ErrorParseLink
 		}
-		userLinks = append(userLinks, link)
+		members = append(members, domain.MemberInfo{
+			Link: link,
+			Role: m.Role,
+		})
 	}
 
 	return domain.GetMembersResponse{
-		UserLinks: userLinks,
+		Members: members,
 	}, nil
+}
+
+func (b *Board) CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error) {
+	req := &pb.CreateInviteRequest{
+		UserLink:    inviteInfo.UserLink.String(),
+		BoardLink:   inviteInfo.BoardLink.String(),
+		DefaultRole: inviteInfo.DefaultRole,
+	}
+
+	if inviteInfo.TargetUserLink != nil {
+		target := inviteInfo.TargetUserLink.String()
+		req.TargetUserLink = &target
+	}
+
+	if inviteInfo.ExpireSeconds > 0 {
+		req.ExpireSeconds = inviteInfo.ExpireSeconds
+	}
+
+	res, err := b.client.CreateInvite(ctx, req)
+	if err != nil {
+		return domain.CreateInviteResponse{}, fmt.Errorf("client.CreateInvite: %w", convertBoardGRPCError(err))
+	}
+
+	resp := domain.CreateInviteResponse{
+		InviteLink:  res.InviteLink,
+		BoardLink:   res.BoardLink,
+		DefaultRole: res.DefaultRole,
+		Status:      res.Status,
+		CreatedAt:   res.CreatedAt,
+	}
+
+	if res.TargetUserLink != nil {
+		resp.TargetUserLink = res.TargetUserLink
+	}
+
+	if res.ExpireAt != 0 {
+		resp.ExpireAt = &res.ExpireAt
+	}
+
+	return resp, nil
+}
+
+func (b *Board) AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error) {
+	req := &pb.AcceptInviteRequest{
+		InviteLink: inviteInfo.InviteLink,
+		UserLink:   inviteInfo.UserLink.String(),
+	}
+
+	res, err := b.client.AcceptInvite(ctx, req)
+	if err != nil {
+		return "", "", fmt.Errorf("client.AcceptInvite: %w", convertBoardGRPCError(err))
+	}
+
+	return res.BoardLink, res.Role, nil
+}
+
+func (b *Board) CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error {
+	req := &pb.CloseInviteRequest{
+		UserLink:   inviteInfo.UserLink.String(),
+		InviteLink: inviteInfo.InviteLink,
+	}
+
+	_, err := b.client.CloseInvite(ctx, req)
+	if err != nil {
+		return fmt.Errorf("client.CloseInvite: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (b *Board) UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error {
+	resp := &pb.UpdateMemberRoleRequest{
+		UserLink:       req.UserLink.String(),
+		BoardLink:      req.BoardLink.String(),
+		TargetUserLink: req.TargetUserLink.String(),
+		NewRole:        req.NewRole,
+	}
+
+	_, err := b.client.UpdateMemberRole(ctx, resp)
+	if err != nil {
+		return fmt.Errorf("client.UpdateMemberRole: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (b *Board) RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error {
+	resp := &pb.RemoveMemberFromBoardRequest{
+		UserLink:       req.UserLink.String(),
+		BoardLink:      req.BoardLink.String(),
+		TargetUserLink: req.TargetUserLink.String(),
+	}
+
+	_, err := b.client.RemoveMemberFromBoard(ctx, resp)
+	if err != nil {
+		return fmt.Errorf("client.RemoveMemberFromBoard: %w", convertBoardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (b *Board) GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error) {
+	resp := &pb.GetActiveInvitesRequest{
+		UserLink:  userLink.String(),
+		BoardLink: boardLink.String(),
+	}
+
+	res, err := b.client.GetActiveInvites(ctx, resp)
+	if err != nil {
+		return nil, fmt.Errorf("client.GetActiveInvites: %w", convertBoardGRPCError(err))
+	}
+
+	invites := make([]domain.InviteInfo, 0, len(res.Invites))
+	for _, inv := range res.Invites {
+		info := domain.InviteInfo{
+			InviteLink:  inv.InviteLink,
+			BoardLink:   inv.BoardLink,
+			DefaultRole: inv.DefaultRole,
+			Status:      inv.Status,
+			CreatedAt:   inv.CreatedAt,
+		}
+
+		if inv.TargetUserLink != nil {
+			info.TargetUserLink = inv.TargetUserLink
+		}
+
+		if inv.ExpireAt != 0 {
+			info.ExpireAt = &inv.ExpireAt
+		}
+
+		invites = append(invites, info)
+	}
+
+	return invites, nil
 }

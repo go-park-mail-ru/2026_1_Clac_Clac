@@ -6,6 +6,7 @@ option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/
 
 service UserService {
   rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
+  rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
   rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
@@ -15,6 +16,7 @@ service UserService {
   rpc GetUserLink(GetUserLinkRequest) returns (GetUserLinkResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
   rpc ProcessUserWithVK(ProcessUserVKRequest) returns (ProcessUserVKResponse);
+
 }
 
 message UpdateProfileResponse {}
@@ -86,4 +88,13 @@ message ProcessUserVKRequest {
 
 message ProcessUserVKResponse {
   string user_link = 1;
+}
+
+message GetProfilesRequest {
+  repeated string user_links = 1;
+}
+
+
+message GetProfilesResponse {
+  repeated ProfileResponse profiles = 1;
 }

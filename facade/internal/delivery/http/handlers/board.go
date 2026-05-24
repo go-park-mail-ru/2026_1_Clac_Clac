@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
 )
 
@@ -30,10 +30,20 @@ var (
 	ErrCannotFindBackground   = errors.New("cannot find 'background' key")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetMembers       = errors.New("cannot get members")
+	ErrCannotGetProfiles      = errors.New("cannot get profiles")
+
+	ErrCannotCreateInvite = errors.New("cannot create invite")
+	ErrCannotAcceptInvite = errors.New("cannot accept invite")
+	ErrCannotCloseInvite  = errors.New("cannot close invite")
+	ErrRoleRequired       = errors.New("role is required")
+	ErrInvalidRole        = errors.New("invalid role")
+	ErrInviteLinkMissing  = errors.New("invite link missing")
+	ErrInvalidInviteLink  = errors.New("invalid invite link")
 )
 
 const (
-	boardLinkKey = "link"
+	boardLinkKey  = "link"
+	inviteLinkKey = "invite_link"
 )
 
 //go:generate mockery --name=BoardUsecase --output=mock_board_use_case
@@ -45,6 +55,18 @@ type BoardUsecase interface {
 	UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardRequest) error
 	UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error)
 	GetMembers(ctx context.Context, membersInfo domain.GetMembersRequest) (domain.GetMembersResponse, error)
+
+	CreateInvite(ctx context.Context, inviteInfo domain.CreateInviteRequest) (domain.CreateInviteResponse, error)
+	AcceptInvite(ctx context.Context, inviteInfo domain.AcceptInviteRequest) (string, string, error)
+	CloseInvite(ctx context.Context, inviteInfo domain.CloseInviteRequest) error
+
+	UpdateMemberRole(ctx context.Context, req domain.UpdateMemberRoleRequest) error
+	RemoveMemberFromBoard(ctx context.Context, req domain.RemoveMemberRequest) error
+	GetActiveInvites(ctx context.Context, userLink, boardLink uuid.UUID) ([]domain.InviteInfo, error)
+}
+
+type ProfileUsecase interface {
+	GetProfiles(ctx context.Context, links []uuid.UUID) ([]domain.FullInfoUser, error)
 }
 
 type BoardConfig struct {
@@ -53,14 +75,16 @@ type BoardConfig struct {
 }
 
 type Board struct {
-	srv  BoardUsecase
-	conf BoardConfig
+	boardSrv   BoardUsecase
+	profileSrv ProfileUsecase
+	conf       BoardConfig
 }
 
-func NewBoard(srv BoardUsecase, conf BoardConfig) *Board {
+func NewBoard(boardSrv BoardUsecase, profileSrv ProfileUsecase, conf BoardConfig) *Board {
 	return &Board{
-		srv:  srv,
-		conf: conf,
+		boardSrv:   boardSrv,
+		profileSrv: profileSrv,
+		conf:       conf,
 	}
 }
 
@@ -90,7 +114,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boards, err := h.srv.GetBoards(r.Context(), userLink)
+	boards, err := h.boardSrv.GetBoards(r.Context(), userLink)
 	if err != nil {
 		errLog := fmt.Errorf("srv.GetBoards: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase GetBoards")
@@ -143,7 +167,7 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	board, err := h.srv.GetBoard(r.Context(), domain.GetBoardRequest{
+	board, err := h.boardSrv.GetBoard(r.Context(), domain.GetBoardRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -191,7 +215,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.CreateBoardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
@@ -201,7 +225,7 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	board, err := h.srv.CreateBoard(r.Context(), domain.CreateBoardRequest{
+	board, err := h.boardSrv.CreateBoard(r.Context(), domain.CreateBoardRequest{
 		UserLink:    userLink,
 		Name:        req.Name,
 		Description: req.Description,
@@ -254,7 +278,7 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.srv.DeleteBoard(r.Context(), domain.GetBoardRequest{
+	err = h.boardSrv.DeleteBoard(r.Context(), domain.GetBoardRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -317,12 +341,12 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.UpdateBoardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
-	err = h.srv.UpdateBoard(r.Context(), domain.UpdateBoardRequest{
+	err = h.boardSrv.UpdateBoard(r.Context(), domain.UpdateBoardRequest{
 		UserLink:    userLink,
 		BoardLink:   boardLink,
 		Name:        req.Name,
@@ -409,7 +433,7 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	resp, err := h.srv.UploadBackground(r.Context(), domain.UploadBackgroundRequest{
+	resp, err := h.boardSrv.UploadBackground(r.Context(), domain.UploadBackgroundRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 		Filename:  header.Filename,
@@ -444,17 +468,18 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// @Summary		Получить пользователей доски
-// @Description	Возвращает массив UUID всех пользователей, имеющих доступ к доске
-// @Tags			Boards
+// @Summary		Получить участников доски
+// @Description	Возвращает список участников доски с ролями, аватарами, именами, описаниями и email
+// @Tags		Boards
 // @Produce		json
-// @Param			link	path		string	true	"UUID доски"	Format(uuid)
-// @Success		200		{object}	api.OkResponse[dto.GetMembersResponse]
-// @Failure		400		{object}	api.ErrorResponse	"invalid board link / board link missing"
-// @Failure		401		{object}	api.ErrorResponse	"unauthorized"
-// @Failure		404		{object}	api.ErrorResponse	"board not found"
-// @Failure		500		{object}	api.ErrorResponse	"cannot get members"
-// @Router			/boards/{link}/users [get]
+// @Param		link	path	string	true	"UUID доски"	Format(uuid)
+// @Success		200	{object}	api.OkResponse[dto.GetMembersResponse]
+// @Failure		400	{object}	api.ErrorResponse	"invalid board link / board link missing / invalid input"
+// @Failure		401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure		403	{object}	api.ErrorResponse	"action denied"
+// @Failure		404	{object}	api.ErrorResponse	"board not found / user not found"
+// @Failure		500	{object}	api.ErrorResponse	"cannot get members / cannot get profiles"
+// @Router		/boards/{link}/users [get]
 func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
@@ -476,7 +501,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.srv.GetMembers(r.Context(), domain.GetMembersRequest{
+	members, err := h.boardSrv.GetMembers(r.Context(), domain.GetMembersRequest{
 		UserLink:  userLink,
 		BoardLink: boardLink,
 	})
@@ -500,7 +525,488 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	links := make([]uuid.UUID, 0, len(members.Members))
+	for _, member := range members.Members {
+		links = append(links, member.Link)
+	}
+
+	profiles, err := h.profileSrv.GetProfiles(r.Context(), links)
+	if err != nil {
+		if errors.Is(err, common.ErrorInvalidInput) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidInput.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetProfiles: %w", err)
+		logger.Error().Err(errLog).Msg("profile usecase GetProfiles")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetMembers", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_profiles",
+		})
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetProfiles.Error())
+		return
+	}
+
+	result := make([]dto.MemberInfo, 0, len(members.Members))
+	for index, p := range profiles {
+		result = append(result, dto.MemberInfo{
+			Link:        members.Members[index].Link,
+			Role:        members.Members[index].Role,
+			AvatarUrl:   p.AvatarURL,
+			Description: p.Description,
+			DisplayName: p.DisplayName,
+			Email:       p.Email,
+		})
+	}
+
 	api.HandleError(api.RespondOk(w, dto.GetMembersResponse{
-		UserLinks: members.UserLinks,
+		Members: result,
 	}))
+}
+
+// @Summary		Создать приглашение на доску
+// @Description	Создает ссылку-приглашение для добавления пользователя на доску
+// @Tags		Boards
+// @Accept		json
+// @Produce		json
+// @Param		link	path	string	true	"UUID доски"	Format(uuid)
+// @Param		request	body	dto.CreateInviteRequest	true	"Данные для создания приглашения"
+// @Success		201	{object}	api.OkResponse[dto.CreateInviteResponse]
+// @Failure	400	{object}	api.ErrorResponse	"invalid request schema"
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"action denied"
+// @Failure	404	{object}	api.ErrorResponse	"board not found"
+// @Failure	500	{object}	api.ErrorResponse	"cannot create invite"
+// @Router		/boards/{link}/invites [post]
+func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	var req dto.CreateInviteRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.DefaultRole == "" {
+		api.RespondError(w, http.StatusBadRequest, ErrRoleRequired.Error())
+		return
+	}
+
+	var targetUserLink *uuid.UUID
+	if req.UserLink != "" {
+		parsed, err := uuid.Parse(req.UserLink)
+		if err != nil {
+			api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+			return
+		}
+		targetUserLink = &parsed
+	}
+
+	invite, err := h.boardSrv.CreateInvite(r.Context(), domain.CreateInviteRequest{
+		UserLink:       userLink,
+		BoardLink:      boardLink,
+		TargetUserLink: targetUserLink,
+		DefaultRole:    req.DefaultRole,
+		ExpireSeconds:  req.ExpireSeconds,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.CreateInvite: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase CreateInvite")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CreateInvite", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "create_invite",
+		})
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateInvite.Error())
+		return
+	}
+
+	api.HandleError(api.RespondCreated(w, dto.CreateInviteResponse{
+		InviteLink:     invite.InviteLink,
+		BoardLink:      invite.BoardLink,
+		TargetUserLink: invite.TargetUserLink,
+		DefaultRole:    invite.DefaultRole,
+		Status:         invite.Status,
+		ExpireAt:       invite.ExpireAt,
+		CreatedAt:      invite.CreatedAt,
+	}))
+}
+
+// @Summary		Принять приглашение на доску
+// @Description	Принимает приглашение по ссылке и добавляет пользователя в участники доски
+// @Tags		Boards
+// @Produce		json
+// @Param		invite_link	path	string	true	"UUID ссылки-приглашения"	Format(uuid)
+// @Success		200	{object}	api.OkResponse[dto.AcceptInviteResponse]
+// @Failure	400	{object}	api.ErrorResponse	"invalid invite link"
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"invite not for user"
+// @Failure	404	{object}	api.ErrorResponse	"invite not found"
+// @Failure	409	{object}	api.ErrorResponse	"user is already a member"
+// @Failure	412	{object}	api.ErrorResponse	"invite is expired"
+// @Failure	412	{object}	api.ErrorResponse	"invite is closed"
+// @Failure	500	{object}	api.ErrorResponse	"cannot accept invite"
+// @Router		/invites/{invite_link} [post]
+func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawInviteLink, ok := mux.Vars(r)[inviteLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
+		return
+	}
+
+	boardLink, role, err := h.boardSrv.AcceptInvite(r.Context(), domain.AcceptInviteRequest{
+		InviteLink: rawInviteLink,
+		UserLink:   userLink,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorInviteNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
+			return
+		case errors.Is(err, common.ErrorInviteClosed):
+			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteClosed.Error())
+			return
+		case errors.Is(err, common.ErrorInviteExpired):
+			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteExpired.Error())
+			return
+		case errors.Is(err, common.ErrorInviteNotForUser):
+			api.RespondError(w, http.StatusForbidden, common.ErrorInviteNotForUser.Error())
+			return
+		case errors.Is(err, common.ErrorUserAlreadyMember):
+			api.RespondError(w, http.StatusConflict, common.ErrorUserAlreadyMember.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.AcceptInvite: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase AcceptInvite")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "AcceptInvite", map[string]interface{}{
+			"user_link":   userLink,
+			"invite_link": rawInviteLink,
+			"action":      "accept_invite",
+		})
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotAcceptInvite.Error())
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, dto.AcceptInviteResponse{
+		BoardLink: boardLink,
+		Role:      role,
+	}))
+}
+
+// @Summary		Закрыть приглашение
+// @Description	Закрывает активное приглашение (только для Admin/Creator)
+// @Tags		Boards
+// @Produce		json
+// @Param		invite_link	path	string	true	"UUID ссылки-приглашения"	Format(uuid)
+// @Success		200	{object}	api.Response	"status ok"
+// @Failure	400	{object}	api.ErrorResponse	"invalid invite link"
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"action denied"
+// @Failure	404	{object}	api.ErrorResponse	"invite not found"
+// @Failure	500	{object}	api.ErrorResponse	"cannot close invite"
+// @Router		/invites/{invite_link} [delete]
+func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawInviteLink, ok := mux.Vars(r)[inviteLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
+		return
+	}
+
+	err := h.boardSrv.CloseInvite(r.Context(), domain.CloseInviteRequest{
+		UserLink:   userLink,
+		InviteLink: rawInviteLink,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, common.ErrorInviteNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
+			return
+		case errors.Is(err, common.ErrorBoardPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+
+		errLog := fmt.Errorf("srv.CloseInvite: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase CloseInvite")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "CloseInvite", map[string]interface{}{
+			"user_link":   userLink,
+			"invite_link": rawInviteLink,
+			"action":      "close_invite",
+		})
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotCloseInvite.Error())
+		return
+	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+}
+
+// @Summary		Получить активные приглашения доски
+// @Description	Возвращает все активные приглашения для доски
+// @Tags		Boards
+// @Produce		json
+// @Param		link	path	string	true	"UUID доски"	Format(uuid)
+// @Success		200	{object}	api.OkResponse[[]dto.InviteInfo]
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"action denied"
+// @Failure	500	{object}	api.ErrorResponse	"cannot get boards"
+// @Router		/boards/{link}/invites [get]
+func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	invites, err := h.boardSrv.GetActiveInvites(r.Context(), userLink, boardLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.GetActiveInvites: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase GetActiveInvites")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
+		return
+	}
+
+	result := make([]dto.InviteInfo, 0, len(invites))
+	for _, inv := range invites {
+		info := dto.InviteInfo{
+			InviteLink:  inv.InviteLink,
+			BoardLink:   inv.BoardLink,
+			DefaultRole: inv.DefaultRole,
+			Status:      inv.Status,
+			CreatedAt:   inv.CreatedAt,
+		}
+		if inv.TargetUserLink != nil {
+			info.TargetUserLink = inv.TargetUserLink
+		}
+		if inv.ExpireAt != nil {
+			info.ExpireAt = inv.ExpireAt
+		}
+		result = append(result, info)
+	}
+
+	api.HandleError(api.RespondOk(w, result))
+}
+
+// @Summary		Изменить роль пользователя на доске
+// @Description	Изменяет роль пользователя на доске. Доступно Admin и Creator. Нельзя изменить свою собственную роль.
+// @Tags		Boards
+// @Accept		json
+// @Produce		json
+// @Param		link		path	string					true	"UUID доски"					Format(uuid)
+// @Param		user_link	path	string					true	"UUID пользователя"				Format(uuid)
+// @Param		request		body	dto.UpdateMemberRoleRequest	true	"Новая роль"
+// @Success		200			{object}	api.Response			"status ok"
+// @Failure	400	{object}	api.ErrorResponse	"cannot change your own role"
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"action denied"
+// @Failure	404	{object}	api.ErrorResponse	"board not found / user not found"
+// @Failure	500	{object}	api.ErrorResponse	"cannot update board"
+// @Router		/boards/{link}/members/{user_link}/role [put]
+func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	rawTargetLink, ok := mux.Vars(r)["user_link"]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	targetLink, err := uuid.Parse(rawTargetLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	var req dto.UpdateMemberRoleRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	err = h.boardSrv.UpdateMemberRole(r.Context(), domain.UpdateMemberRoleRequest{
+		UserLink:       userLink,
+		BoardLink:      boardLink,
+		TargetUserLink: targetLink,
+		NewRole:        req.NewRole,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorSelfRoleChange) {
+			api.RespondError(w, http.StatusBadRequest, common.ErrorSelfRoleChange.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase UpdateMemberRole")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
+		return
+	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+}
+
+// @Summary		Удалить пользователя с доски
+// @Description	Удаляет пользователя из участников доски. Пользователь может выйти из доски самостоятельно, но создатель не может покинуть доску. Admin и Creator могут удалять других участников.
+// @Tags		Boards
+// @Produce		json
+// @Param		link		path	string		true	"UUID доски"				Format(uuid)
+// @Param		user_link	path	string		true	"UUID пользователя"			Format(uuid)
+// @Success		200			{object}	api.Response	"status ok"
+// @Failure	400	{object}	api.ErrorResponse	"invalid input"
+// @Failure	401	{object}	api.ErrorResponse	"unauthorized"
+// @Failure	403	{object}	api.ErrorResponse	"action denied / creator cannot leave the board"
+// @Failure	404	{object}	api.ErrorResponse	"board not found / user not found"
+// @Failure	500	{object}	api.ErrorResponse	"cannot update board"
+// @Router		/boards/{link}/members/{user_link} [delete]
+func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
+	if !ok {
+		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		return
+	}
+
+	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	rawTargetLink, ok := mux.Vars(r)["user_link"]
+	if !ok {
+		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		return
+	}
+
+	targetLink, err := uuid.Parse(rawTargetLink)
+	if err != nil {
+		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		return
+	}
+
+	err = h.boardSrv.RemoveMemberFromBoard(r.Context(), domain.RemoveMemberRequest{
+		UserLink:       userLink,
+		BoardLink:      boardLink,
+		TargetUserLink: targetLink,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorBoardNotFound) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			return
+		}
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			return
+		}
+		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
+		logger.Error().Err(errLog).Msg("board usecase RemoveMemberFromBoard")
+		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
+		return
+	}
+
+	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type CardClient interface {
-	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error)
+	GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error)
 	DeleteCard(ctx context.Context, infoCard domain.DeleteCardRequest) error
 	UpdateCard(ctx context.Context, infoCard domain.UpdateCardRequest) error
 	ReorderCards(ctx context.Context, infoCard domain.ReorderCardsRequest) error
@@ -19,7 +19,11 @@ type CardClient interface {
 	UpdateComment(ctx context.Context, infoComment domain.UpdateCommentRequest) error
 	CreateSubtask(ctx context.Context, infoSubtask domain.CreateSubtaskRequest) (domain.SubtaskInfo, error)
 	UpdateSubtask(ctx context.Context, infoSubtask domain.UpdateSubtaskRequest) error
-	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error
+	DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error
+	CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error)
+	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
+	UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error
+	UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error
 }
 
 type Card struct {
@@ -32,10 +36,10 @@ func NewCard(card CardClient) *Card {
 	}
 }
 
-func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardInfo, error) {
+func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (domain.CardFullInfo, error) {
 	cardInfo, err := c.card.GetCard(ctx, infoCard)
 	if err != nil {
-		return domain.CardInfo{}, fmt.Errorf("card.GetCard: %w", err)
+		return domain.CardFullInfo{}, fmt.Errorf("card.GetCard: %w", err)
 	}
 
 	return cardInfo, nil
@@ -131,10 +135,47 @@ func (c *Card) UpdateSubtask(ctx context.Context, infoSubtask domain.UpdateSubta
 	return nil
 }
 
-func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtask) error {
-	err := c.card.DeleteSubtask(ctx, infoSubtask)
-	if err != nil {
+func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubtaskRequest) error {
+	if err := c.card.DeleteSubtask(ctx, infoSubtask); err != nil {
 		return fmt.Errorf("card.DeleteSubtask: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Card) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
+	attachment, err := c.card.CreateAttachment(ctx, infoAttachment)
+	if err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("card.CreateAttachment: %w", err)
+	}
+
+	return domain.AttachmentInfo{
+		AttachmentLink: attachment.AttachmentLink,
+		DisplayName:    attachment.DisplayName,
+		Path:           attachment.Path,
+		Position:       attachment.Position,
+	}, nil
+}
+
+func (c *Card) DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error {
+	if err := c.card.DeleteAttachment(ctx, infoAttachment); err != nil {
+		return fmt.Errorf("card.DeleteAttachment: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error {
+	if err := c.card.UpdateStatusTask(ctx, info); err != nil {
+		return fmt.Errorf("card.UpdateStatusTask: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
+	if err := c.card.UpdateTimeLine(ctx, info); err != nil {
+		return fmt.Errorf("card.UpdateTimeLine: %w", err)
 	}
 
 	return nil

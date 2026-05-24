@@ -82,7 +82,7 @@ func TestUpdateCountRequests(t *testing.T) {
 			mockResp:         nil,
 			mockErr:          status.Error(codes.Unavailable, "service unavailable"),
 			expectedExceeded: false,
-			expectedErr:      common.ErrorVKOAuthUnavailable,
+			expectedErr:      common.ErrorServiceUnavailable,
 		},
 	}
 
@@ -166,7 +166,7 @@ func TestSetCooldown(t *testing.T) {
 			mockResp:       nil,
 			mockErr:        status.Error(codes.Unavailable, "service unavailable"),
 			expectedResult: domain.CooldownResult{},
-			expectedErr:    common.ErrorVKOAuthUnavailable,
+			expectedErr:    common.ErrorServiceUnavailable,
 		},
 	}
 

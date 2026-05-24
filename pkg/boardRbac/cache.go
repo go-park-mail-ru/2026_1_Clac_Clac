@@ -185,6 +185,32 @@ func (s *CachedService) CheckPermissionOnSubtask(ctx context.Context, subtaskLin
 	return nil
 }
 
+func (s *CachedService) CheckPermissionOnAttachment(ctx context.Context, attachementLink uuid.UUID, userLink uuid.UUID, action Action) error {
+	if boardLink, ok := s.getCachedMapping(ctx, "attachment", attachementLink); ok {
+		if role, ok := s.getCachedRole(ctx, userLink, boardLink); ok {
+			if !IsActionAllowed(role, action) {
+				return ErrActionDenied
+			}
+			return nil
+		}
+	}
+
+	role, boardLink, err := s.rep.GetUserRoleByAttachmentLink(ctx, attachementLink, userLink)
+	if err != nil {
+		return fmt.Errorf("rep.GetUserRoleByAttachmentLink: %w", err)
+	}
+
+	if boardLink != uuid.Nil {
+		s.setCachedMapping(ctx, "attachment", attachementLink, boardLink)
+		s.setCachedRole(ctx, userLink, boardLink, role)
+	}
+
+	if !IsActionAllowed(role, action) {
+		return ErrActionDenied
+	}
+	return nil
+}
+
 // Метод нужен, чтобы инвалидировать кеш при изменении роли пользователя
 func (s *CachedService) InvalidateUserBoardRole(ctx context.Context, userLink, boardLink uuid.UUID) error {
 	err := s.redis.Del(ctx, roleKey(userLink, boardLink)).Err()

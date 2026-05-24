@@ -19,12 +19,35 @@ definitions:
       status:
         type: string
     type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_InviteInfo
+  : properties:
+      data:
+        items:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.InviteInfo'
+        type: array
+      status:
+        type: string
+    type: object
   ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_SectionInfo
   : properties:
       data:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SectionInfo'
         type: array
+      status:
+        type: string
+    type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AcceptInviteResponse
+  : properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AcceptInviteResponse'
+      status:
+        type: string
+    type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AttachmentResponse
+  : properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse'
       status:
         type: string
     type: object
@@ -74,6 +97,13 @@ definitions:
   : properties:
       data:
         $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateCommentResponse'
+      status:
+        type: string
+    type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateInviteResponse
+  : properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteResponse'
       status:
         type: string
     type: object
@@ -132,34 +162,74 @@ definitions:
       status:
         type: string
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AcceptInviteResponse:
+    description: Результат принятия приглашения
+    properties:
+      board_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      role:
+        example: editor
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AppealInfo:
+    description: Информация об обращении пользователя
     properties:
       appeal_id:
+        example: 1
         type: integer
       appeal_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       attachment_url:
+        example: https://s3.example.com/attachments/file.png
         type: string
       category:
+        example: technical
         type: string
       created_at:
+        example: "2026-04-12T14:35:00Z"
         type: string
       description:
+        example: Не могу войти в аккаунт
         type: string
       display_name:
+        example: Ivan Ivanov
         type: string
       email:
+        example: user@example.com
         type: string
       status:
+        example: open
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AppealsStats:
+    description: Статистика обращений
     properties:
       close_appeals:
+        example: 12
         type: integer
       in_work_appeals:
+        example: 3
         type: integer
       open_appeals:
+        example: 5
+        type: integer
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse:
+    description: Информация о вложении карточки
+    properties:
+      attachment_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      attachment_path:
+        example: https://s3.example.com/cards/file.pdf
+        type: string
+      display_name:
+        example: report.pdf
+        type: string
+      position:
+        example: 1
         type: integer
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AvatarResponse:
@@ -170,14 +240,19 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.BoardInfo:
+    description: Информация о доске
     properties:
       background:
+        example: https://s3.example.com/backgrounds/bg.jpg
         type: string
       description:
+        example: Доска для трекинга задач
         type: string
       link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       name:
+        example: My Project
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.Card:
@@ -209,6 +284,10 @@ definitions:
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardResponse:
     description: Full information about card
     properties:
+      attachments:
+        items:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AttachmentResponse'
+        type: array
       card_link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
@@ -233,6 +312,7 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CardsResponse:
+    description: Список карточек секции
     properties:
       cards:
         items:
@@ -240,10 +320,13 @@ definitions:
         type: array
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ChangeAppealStatusInfo:
+    description: Данные для изменения статуса обращения
     properties:
       appeal_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       new_status:
+        example: in_work
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CommentResponse:
@@ -269,23 +352,32 @@ definitions:
         type: array
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateAppealRequest:
+    description: Данные для создания нового обращения
     properties:
       category:
+        example: technical
         type: string
       description:
+        example: Не могу войти в аккаунт
         type: string
       display_name:
+        example: Ivan Ivanov
         type: string
       email:
+        example: user@example.com
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateBoardRequest:
+    description: Данные для создания новой доски
     properties:
       background:
+        example: blue
         type: string
       description:
+        example: Доска для трекинга задач
         type: string
       name:
+        example: My Project
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateCardRequest:
@@ -326,7 +418,45 @@ definitions:
       comment_link:
         type: string
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteRequest:
+    description: Данные для создания приглашения
+    properties:
+      default_role:
+        example: editor
+        type: string
+      expire_seconds:
+        example: 86400
+        type: integer
+      user_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteResponse:
+    description: Информация о приглашении
+    properties:
+      board_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      created_at:
+        example: 1712841600
+        type: integer
+      default_role:
+        example: editor
+        type: string
+      expire_at:
+        example: 1712928000
+        type: integer
+      invite_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      status:
+        example: active
+        type: string
+      target_user_link:
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateSectionRequest:
+    description: Данные для создания новой секции на доске
     properties:
       board_link:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -351,22 +481,50 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.GetAppealsResponse:
+    description: Список обращений текущего пользователя
     properties:
       appeals:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.AppealInfo'
         type: array
       role:
+        example: user
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.GetMembersResponse:
+    description: Список участников доски
     properties:
-      user_links:
+      members:
         items:
-          type: string
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo'
         type: array
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.InviteInfo:
+    description: Информация о приглашении
+    properties:
+      board_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      created_at:
+        example: 1712841600
+        type: integer
+      default_role:
+        example: editor
+        type: string
+      expire_at:
+        example: 1712928000
+        type: integer
+      invite_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      status:
+        example: active
+        type: string
+      target_user_link:
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ListSectionLink:
+    description: Упорядоченный список UUID секций для переупорядочивания
     properties:
       list_links:
         example:
@@ -384,6 +542,16 @@ definitions:
         type: string
       password:
         example: p@ssword123
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo:
+    description: Информация об участнике доски
+    properties:
+      link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      role:
+        example: editor
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewPasswordRequest:
@@ -457,6 +625,7 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SectionInfo:
+    description: Информация о секции доски
     properties:
       color:
         example: red
@@ -478,6 +647,7 @@ definitions:
         type: integer
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskInfo:
+    description: Подзадача карточки (краткая форма)
     properties:
       description:
         example: Subtask description
@@ -505,14 +675,19 @@ definitions:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateBoardRequest:
+    description: Данные для обновления информации о доске
     properties:
       background:
+        example: green
         type: string
       board_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       description:
+        example: Обновлённое описание
         type: string
       name:
+        example: My Project
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardRequest:
@@ -531,6 +706,13 @@ definitions:
     description: Данные для редактирования текста комментария
     properties:
       text:
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateMemberRoleRequest:
+    description: Данные для изменения роли
+    properties:
+      new_role:
+        example: editor
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateProfileRequest:
@@ -552,16 +734,21 @@ definitions:
         type: boolean
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UploadAttachmentResponse:
+    description: Ответ после загрузки вложения
     properties:
       attachment_url:
+        example: https://s3.example.com/attachments/screenshot.png
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UploadBackgroundResponse:
+    description: Ответ после загрузки фона доски
     properties:
       background_key:
+        example: https://s3.example.com/backgrounds/bg.jpg
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UserInfoResponse:
+    description: Информация о пользователе после авторизации
     properties:
       avatar:
         example: https://example.com/avatar.jpg
@@ -573,9 +760,10 @@ definitions:
         example: ivan@mail.com
         type: string
       link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
     type: object
-host: clac-clac.mooo.com
+host: clac-clac.ru
 info:
   contact: {}
   description: Наше API
@@ -789,6 +977,47 @@ paths:
       summary: Получить статистику обращений
       tags:
       - Appeals
+  /attachments/{attachment_link}:
+    delete:
+      description: Удаляет вложение карточки по его UUID.
+      parameters:
+      - description: UUID вложения
+        in: path
+        name: attachment_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вложение удалено
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: Некорректный UUID
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: Нет прав доступа
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: Вложение не найдено
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Удалить вложение
+      tags:
+      - Cards
   /boards:
     get:
       description: Возвращает все доски, к которым у авторизованного пользователя
@@ -1087,9 +1316,191 @@ paths:
       summary: Загрузить фон для доски
       tags:
       - Boards
+  /boards/{link}/invites:
+    get:
+      description: Возвращает все активные приглашения для доски
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-array_github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_InviteInfo'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot get boards
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Получить активные приглашения доски
+      tags:
+      - Boards
+    post:
+      consumes:
+      - application/json
+      description: Создает ссылку-приглашение для добавления пользователя на доску
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Данные для создания приглашения
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateInviteResponse'
+        "400":
+          description: invalid request schema
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: board not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot create invite
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Создать приглашение на доску
+      tags:
+      - Boards
+  /boards/{link}/members/{user_link}:
+    delete:
+      description: Удаляет пользователя из участников доски. Пользователь может выйти
+        из доски самостоятельно, но создатель не может покинуть доску. Admin и Creator
+        могут удалять других участников.
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: UUID пользователя
+        format: uuid
+        in: path
+        name: user_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status ok
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied / creator cannot leave the board
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: board not found / user not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot update board
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Удалить пользователя с доски
+      tags:
+      - Boards
+  /boards/{link}/members/{user_link}/role:
+    put:
+      consumes:
+      - application/json
+      description: Изменяет роль пользователя на доске. Доступно Admin и Creator.
+        Нельзя изменить свою собственную роль.
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: UUID пользователя
+        format: uuid
+        in: path
+        name: user_link
+        required: true
+        type: string
+      - description: Новая роль
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateMemberRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status ok
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: cannot change your own role
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: board not found / user not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot update board
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Изменить роль пользователя на доске
+      tags:
+      - Boards
   /boards/{link}/users:
     get:
-      description: Возвращает массив UUID всех пользователей, имеющих доступ к доске
+      description: Возвращает список участников доски с их ролями
       parameters:
       - description: UUID доски
         format: uuid
@@ -1112,6 +1523,10 @@ paths:
           description: unauthorized
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "404":
           description: board not found
           schema:
@@ -1120,7 +1535,7 @@ paths:
           description: cannot get members
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
-      summary: Получить пользователей доски
+      summary: Получить участников доски
       tags:
       - Boards
   /cards:
@@ -1303,6 +1718,58 @@ paths:
       security:
       - sessionCookie: []
       summary: Обновить карточку
+      tags:
+      - Cards
+  /cards/{link}/attachments:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 'Загружает файл как вложение к карточке. Формат запроса: multipart/form-data.'
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Загружаемый файл
+        in: formData
+        name: attachment
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Вложение загружено
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AttachmentResponse'
+        "400":
+          description: Некорректный UUID или формат данных
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: Нет прав доступа
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "413":
+          description: Файл слишком большой
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Загрузить вложение
       tags:
       - Cards
   /cards/{link}/comments:
@@ -1670,6 +2137,94 @@ paths:
       summary: Отправить код восстановления
       tags:
       - Auth
+  /invites/{invite_link}:
+    delete:
+      description: Закрывает активное приглашение (только для Admin/Creator)
+      parameters:
+      - description: UUID ссылки-приглашения
+        format: uuid
+        in: path
+        name: invite_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status ok
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid invite link
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: invite not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot close invite
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Закрыть приглашение
+      tags:
+      - Boards
+    post:
+      description: Принимает приглашение по ссылке и добавляет пользователя в участники
+        доски
+      parameters:
+      - description: UUID ссылки-приглашения
+        format: uuid
+        in: path
+        name: invite_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_AcceptInviteResponse'
+        "400":
+          description: invalid invite link
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: invite not for user
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: invite not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "409":
+          description: user is already a member
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "412":
+          description: invite is closed
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot accept invite
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      summary: Принять приглашение на доску
+      tags:
+      - Boards
   /login:
     post:
       consumes:

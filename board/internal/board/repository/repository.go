@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
+	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 
 	"github.com/jackc/pgerrcode"
@@ -251,34 +252,260 @@ func (r *Repository) UpdateBackground(ctx context.Context, background string, bo
 	return nil
 }
 
-func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]uuid.UUID, error) {
-	getUsersOfBoardQuery := `SELECT user_link FROM member_board WHERE board_link = $1;`
+func (r *Repository) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.MemberEntry, error) {
+	getUsersOfBoardQuery := `SELECT user_link, level_member FROM member_board WHERE board_link = $1;`
 
 	rows, err := r.pool.Query(ctx, getUsersOfBoardQuery, boardLink)
 	if err != nil {
-		return []uuid.UUID{}, fmt.Errorf("pool.Query: %w", err)
+		return []dto.MemberEntry{}, fmt.Errorf("pool.Query: %w", err)
 	}
 
 	defer rows.Close()
 
-	usersLinks := make([]uuid.UUID, 0)
+	members := make([]dto.MemberEntry, 0)
 	for rows.Next() {
-		var link uuid.UUID
+		var member dto.MemberEntry
 
-		err := rows.Scan(&link)
+		err := rows.Scan(&member.Link, &member.Role)
 		if err != nil {
-			return []uuid.UUID{}, fmt.Errorf("rows.Scan: %w", err)
+			return []dto.MemberEntry{}, fmt.Errorf("rows.Scan: %w", err)
 		}
 
-		usersLinks = append(usersLinks, link)
+		members = append(members, member)
 	}
 
-	// Чтобы не делать доп запрос, будем считать,
-	// что если запрос вернул НОЛЬ, значит доски не существует
-	// при создании доски у нее всегда есть пользователь - создатель
-	if len(usersLinks) == 0 {
-		return []uuid.UUID{}, common.ErrBoardNotFound
+	if len(members) == 0 {
+		return []dto.MemberEntry{}, common.ErrBoardNotFound
 	}
 
-	return usersLinks, nil
+	return members, nil
+}
+
+func (r *Repository) CreateInvite(ctx context.Context, inviteInfo dto.NewInviteInfo) (dto.InviteEntry, error) {
+	createInviteQuery := `
+		INSERT INTO invite (board_link, user_link, default_role, expire_time)
+		VALUES ($1, $2, $3::user_level, $4)
+		RETURNING invite_link, board_link, user_link, default_role, expire_time, status, created_at
+	`
+
+	row := r.pool.QueryRow(ctx, createInviteQuery,
+		inviteInfo.BoardLink,
+		inviteInfo.UserLink,
+		inviteInfo.DefaultRole,
+		inviteInfo.ExpireTime,
+	)
+
+	var entry dto.InviteEntry
+	err := row.Scan(
+		&entry.InviteLink,
+		&entry.BoardLink,
+		&entry.UserLink,
+		&entry.DefaultRole,
+		&entry.ExpireTime,
+		&entry.Status,
+		&entry.CreatedAt,
+	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				return dto.InviteEntry{}, common.ErrInvalidBoardReference
+			case pgerrcode.NotNullViolation:
+				return dto.InviteEntry{}, common.ErrNotNullValue
+			}
+		}
+		return dto.InviteEntry{}, fmt.Errorf("create invite: %w", err)
+	}
+
+	if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+		entry.UserLink = nil
+	}
+
+	return entry, nil
+}
+
+func (r *Repository) GetInviteByLink(ctx context.Context, inviteLink uuid.UUID) (dto.InviteEntry, error) {
+	getInviteQuery := `
+		SELECT invite_link, board_link, user_link, default_role, expire_time, status, created_at
+		FROM invite
+		WHERE invite_link = $1
+	`
+
+	row := r.pool.QueryRow(ctx, getInviteQuery, inviteLink)
+
+	var entry dto.InviteEntry
+	err := row.Scan(
+		&entry.InviteLink,
+		&entry.BoardLink,
+		&entry.UserLink,
+		&entry.DefaultRole,
+		&entry.ExpireTime,
+		&entry.Status,
+		&entry.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return dto.InviteEntry{}, common.ErrInviteNotFound
+		}
+		return dto.InviteEntry{}, fmt.Errorf("get invite by link: %w", err)
+	}
+
+	if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+		entry.UserLink = nil
+	}
+
+	return entry, nil
+}
+
+func (r *Repository) AddMemberToBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	addMemberQuery := `
+		INSERT INTO member_board (board_link, user_link, level_member)
+		VALUES ($1, $2, $3::user_level)
+	`
+
+	_, err := r.pool.Exec(ctx, addMemberQuery, boardLink, userLink, role)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				return common.ErrUserAlreadyMember
+			case pgerrcode.ForeignKeyViolation:
+				return common.ErrInvalidBoardReference
+			}
+		}
+		return fmt.Errorf("add member to board: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) CloseInvite(ctx context.Context, inviteLink uuid.UUID) error {
+	closeInviteQuery := `UPDATE invite SET status = 'closed' WHERE invite_link = $1 AND status = 'active'`
+
+	tag, err := r.pool.Exec(ctx, closeInviteQuery, inviteLink)
+	if err != nil {
+		return fmt.Errorf("close invite: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrInviteNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) CloseInviteByBoardForUser(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	closeInviteQuery := `
+		UPDATE invite SET status = 'closed'
+		WHERE board_link = $1 AND user_link = $2 AND status = 'active'
+	`
+
+	_, err := r.pool.Exec(ctx, closeInviteQuery, boardLink, userLink)
+	if err != nil {
+		return fmt.Errorf("close invite by board and user: %w", err)
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, role rbac.Role) error {
+	boardExists, err := r.boardExists(ctx, boardLink)
+	if err != nil {
+		return fmt.Errorf("check board exists: %w", err)
+	}
+	if !boardExists {
+		return common.ErrBoardNotFound
+	}
+
+	updateRoleQuery := `
+		UPDATE member_board SET level_member = $3::user_level
+		WHERE board_link = $1 AND user_link = $2
+	`
+
+	tag, err := r.pool.Exec(ctx, updateRoleQuery, boardLink, userLink, role)
+	if err != nil {
+		return fmt.Errorf("update member role: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	boardExists, err := r.boardExists(ctx, boardLink)
+	if err != nil {
+		return fmt.Errorf("check board exists: %w", err)
+	}
+	if !boardExists {
+		return common.ErrBoardNotFound
+	}
+
+	deleteMemberQuery := `DELETE FROM member_board WHERE board_link = $1 AND user_link = $2`
+
+	tag, err := r.pool.Exec(ctx, deleteMemberQuery, boardLink, userLink)
+	if err != nil {
+		return fmt.Errorf("remove member from board: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return common.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) boardExists(ctx context.Context, boardLink uuid.UUID) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM board WHERE link = $1)`
+	err := r.pool.QueryRow(ctx, query, boardLink).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("query board exists: %w", err)
+	}
+	return exists, nil
+}
+
+func (r *Repository) GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]dto.InviteEntry, error) {
+	getInvitesQuery := `
+		SELECT invite_link, board_link, user_link, default_role, expire_time, status, created_at
+		FROM invite
+		WHERE board_link = $1 AND status = 'active'
+		  AND (expire_time IS NULL OR expire_time > now())
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.pool.Query(ctx, getInvitesQuery, boardLink)
+	if err != nil {
+		return []dto.InviteEntry{}, fmt.Errorf("pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	invites := make([]dto.InviteEntry, 0)
+	for rows.Next() {
+		var entry dto.InviteEntry
+		err := rows.Scan(
+			&entry.InviteLink,
+			&entry.BoardLink,
+			&entry.UserLink,
+			&entry.DefaultRole,
+			&entry.ExpireTime,
+			&entry.Status,
+			&entry.CreatedAt,
+		)
+		if err != nil {
+			return []dto.InviteEntry{}, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		if entry.UserLink != nil && *entry.UserLink == uuid.Nil {
+			entry.UserLink = nil
+		}
+
+		invites = append(invites, entry)
+	}
+
+	return invites, nil
 }

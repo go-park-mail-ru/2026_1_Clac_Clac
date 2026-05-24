@@ -1,0 +1,82 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Chart.Name }}-{{ $svcName }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ $svcName }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ $svcName }}
+  template:
+    metadata:
+      labels:
+        app: {{ $svcName }}
+    spec:
+      containers:
+        - name: {{ $svcName }}
+          image: {{ $svc.image }}
+          ports:
+            - containerPort: {{ $svc.port }}
+              name: http
+            - containerPort: 9091
+              name: metrics
+
+          {{- with $svc.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          {{- if $svc.hasSecrets }}
+          envFrom:
+            - secretRef:
+                name: {{ $svcName }}-secret
+          {{- end }}
+
+          {{- if or (and $svc.hasSecrets $svc.database.enabled) (and $svc.hasSecrets $svc.redis.enabled) }}
+          env:
+            {{- if and $svc.hasSecrets $svc.database.enabled }}
+            - name: DATABASE_HOST
+              value: {{ $.Chart.Name }}-{{ $svcName }}-db-service
+            - name: DATABASE_PORT
+              value: {{ $.Values.postgres.port | quote }}
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_PASSWORD
+            {{- end }}
+            {{- if and $svc.hasSecrets $svc.redis.enabled }}
+            - name: REDIS_HOST
+              value: {{ $.Chart.Name }}-{{ $svcName }}-redis-service
+            - name: REDIS_PORT
+              value: {{ $.Values.redis.port | quote }}
+            {{- end }}
+          {{- end }}
+
+          {{- if $svc.hasConfig }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+          {{- end }}
+
+      {{- if $svc.hasConfig }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ $svcName }}-config
+      {{- end }}
+{{- end }}
+{{- end }}

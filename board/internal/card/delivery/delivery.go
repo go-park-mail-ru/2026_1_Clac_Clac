@@ -1,9 +1,12 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"path/filepath"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -46,6 +49,10 @@ var (
 	ErrCannotCreateSubtask = errors.New("cannot create subtask")
 	ErrCannotDeleteSubtask = errors.New("cannot delete subtask")
 	ErrCannotUpdateSubtask = errors.New("cannot upadate subtask")
+
+	ErrInvalidAttachment      = errors.New("invalid attachment link")
+	ErrCannotCreateAttachment = errors.New("cannot create attachment")
+	ErrCannotDeleteAttachment = errors.New("cannot delete attachment")
 )
 
 //go:generate mockery --name=CardService --output mock_card_srv
@@ -62,6 +69,10 @@ type CardService interface {
 	CreateSubtask(ctx context.Context, createInfo serviceDto.CreateSubtaskInfo, userLink uuid.UUID) (models.SubtaskInfo, error)
 	DeleteSubtask(ctx context.Context, deleteInfo serviceDto.DeleteSubtask, userLink uuid.UUID) error
 	UpdateSubtask(ctx context.Context, updateInfo serviceDto.UpdateSubtask, userLink uuid.UUID) error
+	CreateAttachment(ctx context.Context, createInfo serviceDto.CreateAttachment) (serviceDto.AttachmentInfo, error)
+	DeleteAttachment(ctx context.Context, deleteInfo serviceDto.DeleteAttachment) error
+	UpdateStatusTask(ctx context.Context, updateInfo serviceDto.UpdateStatusTask) error
+	UpdateTimeLine(ctx context.Context, updateInfo serviceDto.UpdateTimeLine) error
 }
 
 type Config struct {
@@ -122,8 +133,22 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		deadline = timestamppb.New(*card.DataDeadLine)
 	}
 
-	subtasks := make([]*pb.SubtaskInfo, 0, len(card.Subtasks))
+	var start *timestamppb.Timestamp
+	if card.DataStart != nil {
+		start = timestamppb.New(*card.DataStart)
+	}
 
+	attachments := make([]*pb.AttachmentInfo, 0, len(card.Attachments))
+	for _, attachment := range card.Attachments {
+		attachments = append(attachments, &pb.AttachmentInfo{
+			AttachmentLink: attachment.AttachmentLink.String(),
+			Path:           attachment.Path,
+			Name:           attachment.Name,
+			Position:       int64(attachment.Position),
+		})
+	}
+
+	subtasks := make([]*pb.SubtaskInfo, 0, len(card.Subtasks))
 	for _, subtask := range card.Subtasks {
 		subtasks = append(subtasks, &pb.SubtaskInfo{
 			SubtaskLink: subtask.SubtaskLink.String(),
@@ -146,8 +171,11 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Description:  card.Description,
 			ExecutorLink: executorLink,
 			Deadline:     deadline,
-			Subtasks:    subtasks,
-			Position:   int64(card.Position),
+			Start:        start,
+			Status:       card.Status,
+			Subtasks:     subtasks,
+			Position:     int64(card.Position),
+			Attachments:  attachments,
 		},
 	}, nil
 }
@@ -220,12 +248,18 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		deadline = &d
 	}
 
+	var start *time.Time
+	if req.Start != nil {
+		s := req.GetStart().AsTime()
+		start = &s
+	}
+
 	updatingInfo := dto.UpdatingCardDetails{
-		LinkCard:     cardLink,
 		Title:        req.GetTitle(),
 		Description:  req.GetDescription(),
 		LinkExecutor: executorLink,
 		DataDeadLine: deadline,
+		DataStart:    start,
 	}
 
 	if !common.CheckCardNameLength(updatingInfo.Title, h.cnf.MaxLenTitle) {
@@ -242,6 +276,7 @@ func (h *CardHandler) UpdateCard(ctx context.Context, req *pb.UpdateCardRequest)
 		Title:        updatingInfo.Title,
 		LinkExecutor: updatingInfo.LinkExecutor,
 		DataDeadLine: updatingInfo.DataDeadLine,
+		DataStart:    updatingInfo.DataStart,
 	}, userLink)
 	if err != nil {
 		switch {
@@ -289,6 +324,10 @@ func (h *CardHandler) ReorderCards(ctx context.Context, req *pb.ReorderCardsRequ
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	if req.GetPosition() < 1 {
+		return nil, status.Error(codes.InvalidArgument, common.ErrInvalidCardData.Error())
 	}
 
 	err = h.srv.ReorderCard(ctx, serviceDto.PlaceCard{
@@ -362,18 +401,11 @@ func (h *CardHandler) CreateCard(ctx context.Context, req *pb.CreateCardRequest)
 		executorLink = &parsed
 	}
 
-	var deadline *time.Time
-	if req.Deadline != nil {
-		d := req.GetDeadline().AsTime()
-		deadline = &d
-	}
-
 	card, err := h.srv.CreateCard(ctx, serviceDto.NewCard{
 		LinkAuthor:   userLink,
 		Title:        title,
 		Description:  description,
 		LinkExecutor: executorLink,
-		DataDeadLine: deadline,
 		LinkSection:  sectionLink,
 	})
 	if err != nil {
@@ -718,4 +750,210 @@ func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRe
 	}
 
 	return &pb.UpdateSubtaskResponse{}, nil
+}
+
+func (h *CardHandler) CreateAttachment(ctx context.Context, req *pb.CreateAttachmentRequest) (*pb.CreateAttachmentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	rawTaskLink := req.GetTaskLink()
+	taskLink, err := uuid.Parse(rawTaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	data := req.GetData()
+
+	contentType := http.DetectContentType(data)
+
+	fileName := req.GetName()
+	extension := filepath.Ext(fileName)
+
+	attachment, err := h.srv.CreateAttachment(ctx, serviceDto.CreateAttachment{
+		TaskLink:    taskLink,
+		UserLink:    userLink,
+		Data:        bytes.NewReader(data),
+		ContentType: contentType,
+		Extension:   extension,
+		DisplayName: fileName,
+	})
+
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrMissingRequiredField):
+			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+		case errors.Is(err, common.ErrInvalidReferenceCardData):
+			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+		case errors.Is(err, common.ErrAttachmentLimitReached):
+			return nil, status.Error(codes.InvalidArgument, common.ErrAttachmentLimitReached.Error())
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("CardService.CreateAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.CreateAttachment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreateAttachment", map[string]interface{}{
+			"user_link": req.UserLink,
+			"action":    "create_attachment",
+		})
+
+		return nil, status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
+	}
+
+	return &pb.CreateAttachmentResponse{
+		AttachmentLink: attachment.AttachmentLink.String(),
+		Path:           attachment.Path,
+		Name:           attachment.DisplayName,
+		Position:       int64(attachment.Position),
+	}, nil
+}
+
+func (h *CardHandler) DeleteAttachment(ctx context.Context, req *pb.DeleteAttachmentRequest) (*pb.DeleteAttachmentResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawAttachmentLink := req.GetAttachmentLink()
+	attachmentLink, err := uuid.Parse(rawAttachmentLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidAttachment.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	err = h.srv.DeleteAttachment(ctx, serviceDto.DeleteAttachment{
+		AttachmentLink: attachmentLink,
+		UserLink:       userLink,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrAttachmentNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrAttachmentNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.DeleteAttachment: %w", err)
+		logger.Error().Err(errLog).Msg("CardService.DeleteAttachment")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeleteAttachment", map[string]interface{}{
+			"user_link":       req.UserLink,
+			"attachment_link": req.AttachmentLink,
+			"action":          "delete_attachment",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotDeleteAttachment.Error())
+	}
+
+	return &pb.DeleteAttachmentResponse{}, nil
+}
+
+func (h *CardHandler) UpdateStatusTask(ctx context.Context, req *pb.UpdateStatusTaskRequest) (*pb.UpdateStatusTaskResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	rawTaskLink := req.GetTaskLink()
+	taskLink, err := uuid.Parse(rawTaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	err = h.srv.UpdateStatusTask(ctx, serviceDto.UpdateStatusTask{
+		TaskLink: taskLink,
+		UserLink: userLink,
+		Status:   req.GetStatus(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.UpdateStatusTask: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.UpdateStatusTask")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateStatusTask", map[string]interface{}{
+			"user_link": rawUserLink,
+			"task_link": rawTaskLink,
+			"action":    "update_status_task",
+		})
+		return nil, status.Error(codes.Internal, "cannot update status task")
+	}
+
+	return &pb.UpdateStatusTaskResponse{}, nil
+}
+
+func (h *CardHandler) UpdateTimeLineTask(ctx context.Context, req *pb.UpdateTimeLineTaskRequest) (*pb.UpdateTimeLineTaskResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	rawTaskLink := req.GetTaskLink()
+	taskLink, err := uuid.Parse(rawTaskLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	deadline := req.GetDeadline().AsTime()
+	deadlinePtr := &deadline
+
+	var startPtr *time.Time
+	if req.Start != nil {
+		s := req.GetStart().AsTime()
+		if s.IsZero() {
+			return nil, status.Error(codes.InvalidArgument, "incorrect time line for card")
+		}
+		startPtr = &s
+	}
+
+	if deadline.IsZero() {
+		return nil, status.Error(codes.InvalidArgument, "incorrect time line for card")
+	}
+
+	if startPtr != nil && startPtr.After(deadline) {
+		return nil, status.Error(codes.InvalidArgument, "incorrect time line for card")
+	}
+
+	err = h.srv.UpdateTimeLine(ctx, serviceDto.UpdateTimeLine{
+		TaskLink: taskLink,
+		UserLink: userLink,
+		DeadLine: deadlinePtr,
+		Start:    startPtr,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.UpdateTimeLine: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.UpdateTimeLineTask")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateTimeLineTask", map[string]interface{}{
+			"user_link": rawUserLink,
+			"task_link": rawTaskLink,
+			"action":    "update_time_line_task",
+		})
+		return nil, status.Error(codes.Internal, "cannot update time line")
+	}
+
+	return &pb.UpdateTimeLineTaskResponse{}, nil
 }

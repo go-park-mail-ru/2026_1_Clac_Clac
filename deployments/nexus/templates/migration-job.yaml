@@ -1,0 +1,82 @@
+{{- range $svcName, $svc := .Values.services }}
+{{- if and $svc.enabled $svc.database.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $svcName }}-migrate-{{ randAlphaNum 5 | lower }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ $.Chart.Name }}-{{ $svcName }}-db-service 5432; do echo waiting for db; sleep 2; done;']
+
+      containers:
+        - name: migrate
+          image: migrate/migrate:v4.16.2
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              migrate -path=/migrations -database="postgres://${DB_USER}:${DB_PASS}@{{ $.Chart.Name }}-{{ $svcName }}-db-service:5432/${DB_NAME}?sslmode=disable" up && \
+              echo "Migrations completed. Setting up service user..." && \
+              apk add --no-cache postgresql-client && \
+              PGPASSWORD=${DB_PASS} psql \
+                -h {{ $.Chart.Name }}-{{ $svcName }}-db-service \
+                -U ${DB_USER} \
+                -d ${DB_NAME} \
+                -v service_user={{ $svcName }}_service \
+                -v service_password=${DB_SERVICE_PASSWORD} \
+                -v admin_user=${DB_USER} \
+                {{- if eq $svcName "user" }}
+                -v permissions='SELECT, INSERT, UPDATE' \
+                {{- end }}
+                -f /init_service_users.sql && \
+              echo "Service user configured."
+
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_NAME
+            - name: DB_SERVICE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $svcName }}-secret
+                  key: DATABASE_SERVICE_PASSWORD
+
+          volumeMounts:
+            - name: migrations-volume
+              mountPath: /migrations
+            - name: init-script-volume
+              mountPath: /init_service_users.sql
+              subPath: init_service_users.sql
+
+      restartPolicy: Never
+
+      volumes:
+        - name: migrations-volume
+          configMap:
+            name: {{ $svcName }}-migrations
+        - name: init-script-volume
+          configMap:
+            name: nexus-init-scripts
+{{- end }}
+{{- end }}
