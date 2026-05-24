@@ -14,6 +14,7 @@ type Config struct {
 	Engine   grpcEngine.Config   `mapstructure:"engine"`
 	Database PostgresConfig      `mapstructure:"database"`
 	Redis    RedisConfig         `mapstructure:"redis"`
+	Broker   BrokerConfig        `mapstructure:"broker"`
 	S3       S3                  `mapstructure:"s3"`
 	Board    Board               `mapstructure:"board"`
 	Section  Section             `mapstructure:"section"`
@@ -30,6 +31,7 @@ func DefaultConfig() Config {
 		Card:     DefaultCardConfig(),
 		Database: DefaultPostgresConfig(),
 		Redis:    DefaultRedisConfig(),
+		Broker:   DefaultBrokerConfig(),
 		Sentry:   DefaultSentryConfig(),
 		Metrics:  DefaultMetrics(),
 	}
@@ -51,6 +53,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 
 	SetupEnvPostgres(v)
 	SetupEnvRedis(v)
+	SetupEnvBroker(v)
 	SetupEnvS3(v)
 	SetupEnvSentryConfig(v)
 

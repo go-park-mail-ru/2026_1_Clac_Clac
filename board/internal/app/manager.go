@@ -25,6 +25,6 @@ func NewManager(store *Store, conf *config.Config) *Manager {
 	return &Manager{
 		Board:   board.NewService(store.Board, permissionChecker),
 		Section: section.NewService(store.Section, permissionChecker),
-		Card:    card.NewService(store.Card, permissionChecker, configCard),
+		Card:    card.NewService(store.Card, permissionChecker, store.Publisher, configCard),
 	}
 }

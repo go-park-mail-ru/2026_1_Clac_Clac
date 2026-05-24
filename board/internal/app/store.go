@@ -11,12 +11,19 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/config"
 	section "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/section/repository"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	brokerEvents "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/postgres"
+	pubsub "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
+	pubsubRedis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub/redis"
 	pkgredis "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/redis"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/jackc/pgx/v5/pgxpool"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
+)
+
+const (
+	DefaultStreamName = "boards"
 )
 
 type Store struct {
@@ -25,9 +32,11 @@ type Store struct {
 	Card              *card.Repository
 	PermissionChecker rbac.Repository
 
-	PostgresPool *pgxpool.Pool
-	S3Client     s3.S3Client
-	RedisClient  *goredis.Client
+	PostgresPool     *pgxpool.Pool
+	S3Client         s3.S3Client
+	RedisClient      *goredis.Client
+	BrokerRedisClient *goredis.Client
+	Publisher         pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
 func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
@@ -40,6 +49,12 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 	if err := store.setupRedis(conf.Redis.ToPkg(), logger); err != nil {
 		return nil, fmt.Errorf("store.setupRedis: %w", err)
 	}
+
+	if err := store.setupBrokerRedis(conf.Broker.ToPkg(), logger); err != nil {
+		return nil, fmt.Errorf("store.setupBrokerRedis: %w", err)
+	}
+
+	store.setupPublisher()
 
 	if err := store.setupS3(&conf.S3); err != nil {
 		return nil, fmt.Errorf("store.setupS3: %w", err)
@@ -76,6 +91,7 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 
 func (s *Store) Close() error {
 	s.PostgresPool.Close()
+	s.BrokerRedisClient.Close()
 	return s.RedisClient.Close()
 }
 
@@ -91,6 +107,24 @@ func (s *Store) setupRedis(conf pkgredis.Config, logger *zerolog.Logger) error {
 
 	s.RedisClient = client
 	return nil
+}
+
+func (s *Store) setupBrokerRedis(conf pkgredis.Config, logger *zerolog.Logger) error {
+	client, err := pkgredis.NewPoolRedis(&goredis.Options{
+		Addr:     fmt.Sprintf("%s:%s", conf.Host, conf.Port),
+		Password: conf.Password,
+		DB:       conf.NumberDB,
+	}, conf, logger)
+	if err != nil {
+		return fmt.Errorf("pkgredis.NewPoolRedis: %w", err)
+	}
+
+	s.BrokerRedisClient = client
+	return nil
+}
+
+func (s *Store) setupPublisher() {
+	s.Publisher = pubsubRedis.NewRedisPublisher[brokerEvents.BoardUpdateEvent](s.BrokerRedisClient, DefaultStreamName)
 }
 
 func (s *Store) setupPostgresPool(conf *postgres.Config, logger *zerolog.Logger) error {

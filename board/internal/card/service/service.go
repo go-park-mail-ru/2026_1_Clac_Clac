@@ -11,6 +11,8 @@ import (
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -22,6 +24,7 @@ type CardRepository interface {
 	UpdateCardDetails(ctx context.Context, updatedCard repositoryDto.UpdatingCardDetails) error
 	ReorderCard(ctx context.Context, updatingPlaceCard repositoryDto.PlaceCard) error
 	CreateCard(ctx context.Context, newCard repositoryDto.NewCard) (int, error)
+	GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID) (uuid.UUID, error)
 	GetComments(ctx context.Context, cardLink uuid.UUID) ([]repositoryDto.CommentInfo, error)
 	CreateComment(ctx context.Context, createCardInfo repositoryDto.CreateCommentInfo) (repositoryDto.CommentInfo, error)
 	IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error)
@@ -46,13 +49,15 @@ type Service struct {
 	rep               CardRepository
 	permissionChecker rbac.Service
 	cfg               Config
+	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
-func NewService(rep CardRepository, permissionChecker rbac.Service, cfg Config) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
 		cfg:               cfg,
+		pub:               pub,
 	}
 }
 
@@ -243,6 +248,31 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 	if err != nil {
 		return dto.CommentInfo{}, fmt.Errorf("CardRepository.CreateComment: %w", err)
 	}
+
+	boardLink, err := s.rep.GetBoardLinkByCard(ctx, createCommentInfo.CardLink)
+	if err != nil {
+		return dto.CommentInfo{}, fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("new_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  createCommentInfo.AuthorLink.String(),
+				Action:    "new_comment",
+				Data: struct {
+					Link string `json:"link"`
+					Text string `json:"text"`
+				}{
+					Link: comment.Link.String(),
+					Text: comment.Text,
+				},
+			},
+		},
+	)
 
 	return dto.CommentInfo{
 		Link:       comment.Link,

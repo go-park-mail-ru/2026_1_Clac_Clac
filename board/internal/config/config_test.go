@@ -22,6 +22,7 @@ func TestConfigReading(t *testing.T) {
 		},
 		Database: config.DefaultPostgresConfig(),
 		Redis:    config.DefaultRedisConfig(),
+		Broker:   config.DefaultBrokerConfig(),
 		S3:       config.S3{},
 		Board:    config.DefaultBoardConfig(),
 		Section: config.Section{

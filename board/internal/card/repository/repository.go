@@ -537,6 +537,25 @@ func (r *Repository) CreateCard(ctx context.Context, newCard dto.NewCard) (int, 
 	return position, nil
 }
 
+func (r *Repository) GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID) (uuid.UUID, error) {
+	query := `
+		SELECT s.board_link
+		FROM section s
+		JOIN task_actual t ON s.section_link = t.section_link
+		WHERE t.task_link = $1 AND s.deleted_at IS NULL
+	`
+
+	var boardLink uuid.UUID
+	err := r.pool.QueryRow(ctx, query, cardLink).Scan(&boardLink)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, common.ErrCardNotFound
+		}
+		return uuid.Nil, fmt.Errorf("pool.QueryRow: %w", err)
+	}
+	return boardLink, nil
+}
+
 func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
 	getCommentsQuery := `
 		SELECT

@@ -43,10 +43,9 @@ func setupHandlerTest(boardInCtx bool) (*httptest.ResponseRecorder, *http.Reques
 
 func TestEventsLongPolling(t *testing.T) {
 	eventPayload := common.BoardUpdateEvent{
-		BoardLink:  testBoardLink.String(),
-		EntityType: "card",
-		EntityLink: "card-link-123",
-		Action:     "create",
+		BoardLink: testBoardLink.String(),
+		UserLink:  "user-link-123",
+		Action:    "create",
 	}
 
 	tests := []struct {

@@ -227,7 +227,7 @@ func TestGetCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, test.cfg)
+			service := NewService(mockRep, mockPerm, nil, test.cfg)
 			res, err := service.GetCard(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -272,7 +272,7 @@ func TestDeleteCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.DeleteCard(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -334,7 +334,7 @@ func TestUpdateCardDetails(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.UpdateCardDetails(context.Background(), updateDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -391,7 +391,7 @@ func TestReorderCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.ReorderCard(context.Background(), placeDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -446,7 +446,7 @@ func TestCreateCard(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			res, err := service.CreateCard(context.Background(), newCardDto)
 
 			if test.expectedError != nil {
@@ -503,7 +503,7 @@ func TestGetComments(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			res, err := service.GetComments(context.Background(), targetCardLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -561,7 +561,7 @@ func TestCreateComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			res, err := service.CreateComment(context.Background(), createDto)
 
 			if test.expectedError != nil {
@@ -617,7 +617,7 @@ func TestDeleteComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.DeleteComment(context.Background(), targetCommentLink, targetUserLink)
 
 			if test.expectedError != nil {
@@ -700,7 +700,7 @@ func TestUpdateComment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.UpdateComment(context.Background(), updateDto)
 
 			if test.expectedError != nil {
@@ -771,7 +771,7 @@ func TestCreateSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			res, err := service.CreateSubtask(context.Background(), createDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -833,7 +833,7 @@ func TestDeleteSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.DeleteSubtask(context.Background(), deleteDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -898,7 +898,7 @@ func TestUpdateSubtask(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.UpdateSubtask(context.Background(), updateDto, targetUserLink)
 
 			if test.expectedError != nil {
@@ -985,7 +985,7 @@ func TestCreateAttachment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			res, err := service.CreateAttachment(context.Background(), createDto)
 
 			if test.expectedError != nil {
@@ -1062,7 +1062,7 @@ func TestDeleteAttachment(t *testing.T) {
 			mockPerm := new(MockRbacService)
 			test.mockBehavior(mockRep, mockPerm)
 
-			service := NewService(mockRep, mockPerm, Config{})
+			service := NewService(mockRep, mockPerm, nil, Config{})
 			err := service.DeleteAttachment(context.Background(), deleteDto)
 
 			if test.expectedError != nil {
