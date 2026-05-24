@@ -216,6 +216,11 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			deadline = timestamppb.New(*card.DeadLine)
 		}
 
+		var start *timestamppb.Timestamp
+		if card.Start != nil {
+			start = timestamppb.New(*card.Start)
+		}
+
 		var subtasks []*pb.SubtaskInfo
 
 		for _, sub := range card.Subtasks {
@@ -238,8 +243,10 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			ExecutorLink: executorLink,
 			Title:        card.Title,
 			Deadline:     deadline,
+			Start:        start,
 			Subtasks:     subtasks,
 			Position:     int64(card.Position),
+			Status:       card.Status,
 		})
 	}
 

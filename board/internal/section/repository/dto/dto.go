@@ -34,6 +34,8 @@ type Card struct {
 	ExecutorLink *uuid.UUID
 	Title        string
 	DeadLine     *time.Time
+	Start        *time.Time
 	Subtasks     []models.SubtaskInfo
-	Position    int
+	Position     int
+	Status       bool
 }

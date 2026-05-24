@@ -30,6 +30,8 @@ message CardInfo {
   optional google.protobuf.Timestamp deadline = 5;
   repeated SubtaskInfo subtasks = 6;
   int64 position = 7;
+  bool status = 8;
+  optional google.protobuf.Timestamp start = 9;
 }
 
 // GetSections

@@ -21,8 +21,10 @@ type CardInfo struct {
 	Title        string
 	Description  string
 	Deadline     *time.Time
+	Start        *time.Time
 	Subtasks     []SubtaskInfo
 	Position     int
+	Status       bool
 }
 
 type SubtaskInfo struct {
