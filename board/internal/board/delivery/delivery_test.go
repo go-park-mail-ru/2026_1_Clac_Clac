@@ -1068,6 +1068,68 @@ func TestRemoveMemberFromBoardHandler(t *testing.T) {
 	}
 }
 
+func TestCanViewHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	tests := []struct {
+		name         string
+		req          *pb.CanViewRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success can view",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, userLink, boardLink).Return(nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "Error invalid user link",
+			req:          &pb.CanViewRequest{UserLink: "bad-uuid", BoardLink: boardLink.String()},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "Error invalid board link",
+			req:          &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: "bad-uuid"},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error permission denied",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, userLink, boardLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Error internal server",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, userLink, boardLink).Return(errors.New("db error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.CanView(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
 func TestGetActiveInvitesHandler(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()
