@@ -10,8 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll"
-	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
+	boardCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
+	boardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
@@ -52,12 +52,12 @@ type Config struct {
 type Service struct {
 	rep               CardRepository
 	permissionChecker rbac.Service
-	pollStore         *poll.PollStore
+	pollStore         *boardService.PollStore
 	cfg               Config
 	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
-func NewService(rep CardRepository, permissionChecker rbac.Service, pollStore *poll.PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service, pollStore *boardService.PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
@@ -101,6 +101,7 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		Subtasks:     card.Subtasks,
 		Position:     card.Position,
 		Attachments:  card.Attachments,
+		Points:       card.Points,
 	}, nil
 }
 
@@ -592,7 +593,7 @@ func (s *Service) UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.
 
 	if poll, ok := s.pollStore.GetActivePoll(boardLink); ok {
 		if poll.AdminLink != userLink {
-			return pollCommon.ErrNotPollAdmin
+			return boardCommon.ErrNotPollAdmin
 		}
 	}
 

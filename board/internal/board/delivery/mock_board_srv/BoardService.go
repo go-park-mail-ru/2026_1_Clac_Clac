@@ -141,12 +141,48 @@ func (_m *BoardService) CreateInvite(ctx context.Context, inviteInfo dto.NewInvi
 	return r0, r1
 }
 
+// CreatePoll provides a mock function with given fields: ctx, boardLink, adminLink, cards, invitees
+func (_m *BoardService) CreatePoll(ctx context.Context, boardLink uuid.UUID, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, adminLink, cards, invitees)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePoll")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, []uuid.UUID, []uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, adminLink, cards, invitees)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteBoard provides a mock function with given fields: ctx, boardLink, userLink
 func (_m *BoardService) DeleteBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
 	ret := _m.Called(ctx, boardLink, userLink)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteBoard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeletePoll provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) DeletePoll(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeletePoll")
 	}
 
 	var r0 error
@@ -277,6 +313,24 @@ func (_m *BoardService) GetUsersOfBoard(ctx context.Context, boardLink uuid.UUID
 	return r0, r1
 }
 
+// NextPollCard provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) NextPollCard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for NextPollCard")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RemoveMemberFromBoard provides a mock function with given fields: ctx, boardLink, userLink, callerLink
 func (_m *BoardService) RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error {
 	ret := _m.Called(ctx, boardLink, userLink, callerLink)
@@ -352,6 +406,24 @@ func (_m *BoardService) UpdateMemberRole(ctx context.Context, boardLink uuid.UUI
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, rbac.Role, uuid.UUID) error); ok {
 		r0 = rf(ctx, boardLink, userLink, newRole, callerLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// VotePoll provides a mock function with given fields: ctx, boardLink, userLink, points
+func (_m *BoardService) VotePoll(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, points int) error {
+	ret := _m.Called(ctx, boardLink, userLink, points)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VotePoll")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, int) error); ok {
+		r0 = rf(ctx, boardLink, userLink, points)
 	} else {
 		r0 = ret.Error(0)
 	}

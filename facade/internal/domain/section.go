@@ -25,6 +25,7 @@ type CardInfo struct {
 	Subtasks     []SubtaskInfo
 	Position     int
 	Status       bool
+	Points       *int
 }
 
 type SubtaskInfo struct {

@@ -18,8 +18,6 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll"
-	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
@@ -73,6 +71,11 @@ type BoardService interface {
 	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
 	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
 	CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
+
+	CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error
+	DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error
+	NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error
+	VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error
 }
 
 type Config struct {
@@ -81,22 +84,18 @@ type Config struct {
 	MaxBackgroundSize          int64
 }
 
-func NewHandler(srv BoardService, permissionChecker rbac.Service, pollStore *poll.PollStore, conf Config) *BoardHandler {
+func NewHandler(srv BoardService, conf Config) *BoardHandler {
 	return &BoardHandler{
-		srv:               srv,
-		permissionChecker: permissionChecker,
-		pollStore:         pollStore,
-		conf:              conf,
+		srv:  srv,
+		conf: conf,
 	}
 }
 
 type BoardHandler struct {
 	pb.UnimplementedBoardServiceServer
 
-	conf              Config
-	srv               BoardService
-	permissionChecker rbac.Service
-	pollStore         *poll.PollStore
+	conf Config
+	srv  BoardService
 }
 
 func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) (*pb.GetBoardsResponse, error) {
@@ -798,20 +797,6 @@ func (h *BoardHandler) CreatePoll(ctx context.Context, req *pb.CreatePollRequest
 		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
-	if err := h.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.Invite); err != nil {
-		if errors.Is(err, rbac.ErrActionDenied) {
-			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
-		}
-		errLog := fmt.Errorf("permissionChecker.CheckPermissionOnBoard: %w", err)
-		logger.Error().Err(errLog).Msg("CreatePoll permission check")
-		sentryLogger.CaptureFromContext(ctx, errLog, "CreatePoll", map[string]interface{}{
-			"user_link":  rawUserLink,
-			"board_link": rawBoardLink,
-			"action":     "create_poll",
-		})
-		return nil, status.Error(codes.Internal, "cannot create poll")
-	}
-
 	cards := make([]uuid.UUID, 0, len(req.GetCardLinks()))
 	for _, raw := range req.GetCardLinks() {
 		cardLink, err := uuid.Parse(raw)
@@ -830,11 +815,14 @@ func (h *BoardHandler) CreatePoll(ctx context.Context, req *pb.CreatePollRequest
 		invitees = append(invitees, uid)
 	}
 
-	if err := h.pollStore.Create(boardLink, userLink, cards, invitees); err != nil {
-		if errors.Is(err, pollCommon.ErrPollAlreadyExists) {
-			return nil, status.Error(codes.AlreadyExists, pollCommon.ErrPollAlreadyExists.Error())
+	if err := h.srv.CreatePoll(ctx, boardLink, userLink, cards, invitees); err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
-		errLog := fmt.Errorf("pollStore.Create: %w", err)
+		if errors.Is(err, common.ErrPollAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, common.ErrPollAlreadyExists.Error())
+		}
+		errLog := fmt.Errorf("srv.CreatePoll: %w", err)
 		logger.Error().Err(errLog).Msg("CreatePoll")
 		sentryLogger.CaptureFromContext(ctx, errLog, "CreatePoll", map[string]interface{}{
 			"user_link":  rawUserLink,
@@ -862,14 +850,14 @@ func (h *BoardHandler) DeletePoll(ctx context.Context, req *pb.DeletePollRequest
 		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
-	if err := h.pollStore.Delete(boardLink, userLink); err != nil {
-		if errors.Is(err, pollCommon.ErrPollNotFound) {
-			return nil, status.Error(codes.NotFound, pollCommon.ErrPollNotFound.Error())
+	if err := h.srv.DeletePoll(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
 		}
-		if errors.Is(err, pollCommon.ErrNotPollAdmin) {
-			return nil, status.Error(codes.PermissionDenied, pollCommon.ErrNotPollAdmin.Error())
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
 		}
-		errLog := fmt.Errorf("pollStore.Delete: %w", err)
+		errLog := fmt.Errorf("srv.DeletePoll: %w", err)
 		logger.Error().Err(errLog).Msg("DeletePoll")
 		sentryLogger.CaptureFromContext(ctx, errLog, "DeletePoll", map[string]interface{}{
 			"user_link":  rawUserLink,
@@ -897,18 +885,17 @@ func (h *BoardHandler) NextPollCard(ctx context.Context, req *pb.NextPollCardReq
 		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
-	_, err = h.pollStore.NextCard(boardLink, userLink)
-	if err != nil {
-		if errors.Is(err, pollCommon.ErrPollNotFound) {
-			return nil, status.Error(codes.NotFound, pollCommon.ErrPollNotFound.Error())
+	if err := h.srv.NextPollCard(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
 		}
-		if errors.Is(err, pollCommon.ErrNotPollAdmin) {
-			return nil, status.Error(codes.PermissionDenied, pollCommon.ErrNotPollAdmin.Error())
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
 		}
-		if errors.Is(err, pollCommon.ErrPollNoMoreCards) {
+		if errors.Is(err, common.ErrPollNoMoreCards) {
 			return &pb.NextPollCardResponse{}, nil
 		}
-		errLog := fmt.Errorf("pollStore.NextCard: %w", err)
+		errLog := fmt.Errorf("srv.NextPollCard: %w", err)
 		logger.Error().Err(errLog).Msg("NextPollCard")
 		sentryLogger.CaptureFromContext(ctx, errLog, "NextPollCard", map[string]interface{}{
 			"user_link":  rawUserLink,
@@ -936,14 +923,14 @@ func (h *BoardHandler) VotePoll(ctx context.Context, req *pb.VotePollRequest) (*
 		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
-	if err := h.pollStore.Vote(boardLink, userLink, int(req.GetPoints())); err != nil {
-		if errors.Is(err, pollCommon.ErrPollNotFound) {
-			return nil, status.Error(codes.NotFound, pollCommon.ErrPollNotFound.Error())
+	if err := h.srv.VotePoll(ctx, boardLink, userLink, int(req.GetPoints())); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
 		}
-		if errors.Is(err, pollCommon.ErrUserNotInvited) {
-			return nil, status.Error(codes.PermissionDenied, pollCommon.ErrUserNotInvited.Error())
+		if errors.Is(err, common.ErrUserNotInvited) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrUserNotInvited.Error())
 		}
-		errLog := fmt.Errorf("pollStore.Vote: %w", err)
+		errLog := fmt.Errorf("srv.VotePoll: %w", err)
 		logger.Error().Err(errLog).Msg("VotePoll")
 		sentryLogger.CaptureFromContext(ctx, errLog, "VotePoll", map[string]interface{}{
 			"user_link":  rawUserLink,

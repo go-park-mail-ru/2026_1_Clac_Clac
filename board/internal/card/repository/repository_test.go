@@ -48,8 +48,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, nil, false, []byte("[]"), []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, nil, false, nil, []byte("[]"), []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -84,8 +84,8 @@ func TestRepositoryGetCard(t *testing.T) {
 				attJSON, _ := json.Marshal([]rawAttachment{
 					{AttachmentLink: targetAttLink.String(), Name: "photo.png", Path: "cards-attachments/uuid.png", Position: 1},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, nil, []byte("[]"), attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -114,8 +114,8 @@ func TestRepositoryGetCard(t *testing.T) {
 					{AttachmentLink: targetAttLink1.String(), Name: "doc.pdf", Path: "cards-attachments/doc.pdf", Position: 1},
 					{AttachmentLink: targetAttLink2.String(), Name: "img.png", Path: "cards-attachments/img.png", Position: 2},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, nil, false, subJSON, attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, nil, false, nil, subJSON, attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -140,8 +140,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Error invalid attachments json",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), []byte("{invalid"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, nil, []byte("[]"), []byte("{invalid"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).

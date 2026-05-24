@@ -165,6 +165,12 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		executorLink = &s
 	}
 
+	var points *int32
+	if card.Points != nil {
+		p := int32(*card.Points)
+		points = &p
+	}
+
 	return &pb.GetCardResponse{
 		CardInfo: &pb.CardInfo{
 			Link:         cardLink.String(),
@@ -177,6 +183,7 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Subtasks:     subtasks,
 			Position:     int64(card.Position),
 			Attachments:  attachments,
+			Points:       points,
 		},
 	}, nil
 }

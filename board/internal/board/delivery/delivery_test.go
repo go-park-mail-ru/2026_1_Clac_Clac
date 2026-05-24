@@ -71,7 +71,7 @@ func TestGetBoards(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.GetBoards(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -157,7 +157,7 @@ func TestCreateBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.CreateBoard(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -227,7 +227,7 @@ func TestDeleteBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.DeleteBoard(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -316,7 +316,7 @@ func TestUpdateBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.UpdateBoard(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -387,7 +387,7 @@ func TestGetBoard(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.GetBoard(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -489,7 +489,7 @@ func TestUploadBackground(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.UploadBackground(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -565,7 +565,7 @@ func TestGetMembers(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.GetMembers(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -677,7 +677,7 @@ func TestCreateInviteHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.CreateInvite(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -806,7 +806,7 @@ func TestAcceptInviteHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.AcceptInvite(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -894,7 +894,7 @@ func TestCloseInviteHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.CloseInvite(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -984,7 +984,7 @@ func TestUpdateMemberRoleHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.UpdateMemberRole(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -1059,7 +1059,7 @@ func TestRemoveMemberFromBoardHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.RemoveMemberFromBoard(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -1121,7 +1121,7 @@ func TestCanViewHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.CanView(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
@@ -1173,7 +1173,7 @@ func TestGetActiveInvitesHandler(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
-			h := handler.NewHandler(mockSrv, nil, nil, testConf)
+			h := handler.NewHandler(mockSrv, testConf)
 			_, err := h.GetActiveInvites(context.Background(), test.req)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))

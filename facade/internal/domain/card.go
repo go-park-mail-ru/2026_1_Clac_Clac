@@ -18,6 +18,7 @@ type CardFullInfo struct {
 	Subtasks     []SubtaskInfo
 	Position     int
 	Attachments  []AttachmentInfo
+	Points       *int
 }
 
 type AttachmentInfo struct {

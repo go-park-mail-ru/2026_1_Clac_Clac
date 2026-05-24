@@ -10,8 +10,8 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll"
-	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
+	boardCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
+	boardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	mockCardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/mock_card_rep"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
@@ -1115,24 +1115,24 @@ func TestUpdateCardPoints(t *testing.T) {
 
 	tests := []struct {
 		nameTest      string
-		mockBehavior  func(m *testCardRepository, perm *MockRbacService) *poll.PollStore
+		mockBehavior  func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore
 		userLink      uuid.UUID
 		expectedError error
 	}{
 		{
 			nameTest: "Success_NoActivePoll",
-			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *poll.PollStore {
+			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				m.On("UpdateCardPoints", mock.Anything, repositoryDto.UpdateCardPoints{CardLink: targetCardLink, Points: &points}).Return(nil)
-				return poll.NewPollStore()
+				return boardService.NewPollStore()
 			},
 			expectedError: nil,
 		},
 		{
 			nameTest: "Success_PollAdmin",
-			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *poll.PollStore {
-				ps := poll.NewPollStore()
+			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
+				ps := boardService.NewPollStore()
 			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
 			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, pollAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
@@ -1144,30 +1144,30 @@ func TestUpdateCardPoints(t *testing.T) {
 		},
 		{
 			nameTest: "Error_RbacDenied",
-			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *poll.PollStore {
+			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(rbac.ErrActionDenied)
-				return poll.NewPollStore()
+				return boardService.NewPollStore()
 			},
 			expectedError: rbac.ErrActionDenied,
 		},
 		{
 			nameTest: "Error_NotPollAdmin",
-			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *poll.PollStore {
-				ps := poll.NewPollStore()
+			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
+				ps := boardService.NewPollStore()
 			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
 			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, nonAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				return ps
 			},
 			userLink:      nonAdminLink,
-			expectedError: pollCommon.ErrNotPollAdmin,
+			expectedError: boardCommon.ErrNotPollAdmin,
 		},
 		{
 			nameTest: "Error_CardNotFound",
-			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *poll.PollStore {
+			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, targetUserLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(uuid.Nil, common.ErrCardNotFound)
-				return poll.NewPollStore()
+				return boardService.NewPollStore()
 			},
 			expectedError: common.ErrCardNotFound,
 		},

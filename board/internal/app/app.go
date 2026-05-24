@@ -131,7 +131,7 @@ func (a *App) setupManager(store *Store, conf *config.Config) {
 func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 	boardPB.RegisterBoardServiceServer(
 		engine.Server,
-		board.NewHandler(manager.Board, manager.PermissionChecker, manager.PollStore, board.Config{
+		board.NewHandler(manager.Board, board.Config{
 			BaseBackgroundURL:          s3.GetURL(a.Config.S3.Endpoint, a.Config.S3.BoardsBackgroundsBucket),
 			MultipartBackgroundFileKey: a.Config.Board.Handler.MultipartBackgroundFileKey,
 			MaxBackgroundSize:          a.Config.Board.Handler.MaxBackgroundSize,

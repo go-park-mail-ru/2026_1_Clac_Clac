@@ -140,6 +140,7 @@ func (s *Section) GetCards(ctx context.Context, cardRequest domain.GetCardsReque
 			Subtasks:     subtasks,
 			Position:    int(ci.Position),
 			Status:       ci.Status,
+			Points:       convertInt32PtrToIntPtr(ci.Points),
 		})
 	}
 

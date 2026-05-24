@@ -4792,6 +4792,20 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 				}
 				in.Delim(']')
 			}
+		case "points":
+			if in.IsNull() {
+				in.Skip()
+				out.Points = nil
+			} else {
+				if out.Points == nil {
+					out.Points = new(int)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					*out.Points = int(in.Int())
+				}
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -4876,6 +4890,15 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 				(v30).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"points\":"
+		out.RawString(prefix)
+		if in.Points == nil {
+			out.RawString("null")
+		} else {
+			out.Int(int(*in.Points))
 		}
 	}
 	out.RawByte('}')
@@ -5025,6 +5048,20 @@ func easyjson56de76c1DecodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 			} else {
 				out.Status = bool(in.Bool())
 			}
+		case "points":
+			if in.IsNull() {
+				in.Skip()
+				out.Points = nil
+			} else {
+				if out.Points == nil {
+					out.Points = new(int)
+				}
+				if in.IsNull() {
+					in.Skip()
+				} else {
+					*out.Points = int(in.Int())
+				}
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -5106,6 +5143,15 @@ func easyjson56de76c1EncodeGithubComGoParkMailRu20261ClacClacFacadeInternalDeliv
 		const prefix string = ",\"status\":"
 		out.RawString(prefix)
 		out.Bool(bool(in.Status))
+	}
+	{
+		const prefix string = ",\"points\":"
+		out.RawString(prefix)
+		if in.Points == nil {
+			out.RawString("null")
+		} else {
+			out.Int(int(*in.Points))
+		}
 	}
 	out.RawByte('}')
 }

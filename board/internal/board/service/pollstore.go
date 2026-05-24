@@ -1,10 +1,10 @@
-package poll
+package service
 
 import (
 	"slices"
 	"sync"
 
-	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/google/uuid"
 )
 
@@ -39,7 +39,7 @@ func (ps *PollStore) Create(boardLink, adminLink uuid.UUID, cards []uuid.UUID, i
 
 	key := boardLink.String()
 	if _, ok := ps.polls[key]; ok {
-		return pollCommon.ErrPollAlreadyExists
+		return common.ErrPollAlreadyExists
 	}
 
 	tasks := make([]PollTask, len(cards))
@@ -69,11 +69,11 @@ func (ps *PollStore) Delete(boardLink, userLink uuid.UUID) error {
 	key := boardLink.String()
 	poll, ok := ps.polls[key]
 	if !ok {
-		return pollCommon.ErrPollNotFound
+		return common.ErrPollNotFound
 	}
 
 	if poll.AdminLink != userLink {
-		return pollCommon.ErrNotPollAdmin
+		return common.ErrNotPollAdmin
 	}
 
 	delete(ps.polls, key)
@@ -87,18 +87,18 @@ func (ps *PollStore) NextCard(boardLink, userLink uuid.UUID) (*Poll, error) {
 	key := boardLink.String()
 	poll, ok := ps.polls[key]
 	if !ok {
-		return nil, pollCommon.ErrPollNotFound
+		return nil, common.ErrPollNotFound
 	}
 
 	if poll.AdminLink != userLink {
-		return nil, pollCommon.ErrNotPollAdmin
+		return nil, common.ErrNotPollAdmin
 	}
 
 	poll.CurrentIdx++
 
 	if poll.CurrentIdx >= len(poll.Tasks) {
 		delete(ps.polls, key)
-		return nil, pollCommon.ErrPollNoMoreCards
+		return nil, common.ErrPollNoMoreCards
 	}
 
 	return poll, nil
@@ -111,11 +111,11 @@ func (ps *PollStore) Vote(boardLink, userLink uuid.UUID, points int) error {
 	key := boardLink.String()
 	poll, ok := ps.polls[key]
 	if !ok {
-		return pollCommon.ErrPollNotFound
+		return common.ErrPollNotFound
 	}
 
 	if !slices.Contains(poll.Invitees, userLink) {
-		return pollCommon.ErrUserNotInvited
+		return common.ErrUserNotInvited
 	}
 
 	poll.Tasks[poll.CurrentIdx].Votes[userLink] = &points

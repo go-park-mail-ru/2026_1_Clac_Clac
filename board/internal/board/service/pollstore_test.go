@@ -1,10 +1,10 @@
-package poll
+package service
 
 import (
 	"sync"
 	"testing"
 
-	pollCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/poll/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +30,7 @@ func TestPollStore_Create(t *testing.T) {
 		ps := NewPollStore()
 		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, invitees)
 		err := ps.Create(boardLink, uuid.New(), []uuid.UUID{}, invitees)
-		assert.ErrorIs(t, err, pollCommon.ErrPollAlreadyExists)
+		assert.ErrorIs(t, err, common.ErrPollAlreadyExists)
 	})
 }
 
@@ -52,14 +52,14 @@ func TestPollStore_Delete(t *testing.T) {
 	t.Run("Error_NotFound", func(t *testing.T) {
 		ps := NewPollStore()
 		err := ps.Delete(boardLink, adminLink)
-		assert.ErrorIs(t, err, pollCommon.ErrPollNotFound)
+		assert.ErrorIs(t, err, common.ErrPollNotFound)
 	})
 
 	t.Run("Error_NotAdmin", func(t *testing.T) {
 		ps := NewPollStore()
 		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, nil)
 		err := ps.Delete(boardLink, otherLink)
-		assert.ErrorIs(t, err, pollCommon.ErrNotPollAdmin)
+		assert.ErrorIs(t, err, common.ErrNotPollAdmin)
 	})
 }
 
@@ -85,7 +85,7 @@ func TestPollStore_NextCard(t *testing.T) {
 		ps := NewPollStore()
 		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card1}, nil)
 		_, err := ps.NextCard(boardLink, adminLink)
-		assert.ErrorIs(t, err, pollCommon.ErrPollNoMoreCards)
+		assert.ErrorIs(t, err, common.ErrPollNoMoreCards)
 
 		_, ok := ps.GetActivePoll(boardLink)
 		assert.False(t, ok)
@@ -94,14 +94,14 @@ func TestPollStore_NextCard(t *testing.T) {
 	t.Run("Error_NotFound", func(t *testing.T) {
 		ps := NewPollStore()
 		_, err := ps.NextCard(boardLink, adminLink)
-		assert.ErrorIs(t, err, pollCommon.ErrPollNotFound)
+		assert.ErrorIs(t, err, common.ErrPollNotFound)
 	})
 
 	t.Run("Error_NotAdmin", func(t *testing.T) {
 		ps := NewPollStore()
 		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card1, card2}, nil)
 		_, err := ps.NextCard(boardLink, otherLink)
-		assert.ErrorIs(t, err, pollCommon.ErrNotPollAdmin)
+		assert.ErrorIs(t, err, common.ErrNotPollAdmin)
 	})
 }
 
@@ -137,14 +137,14 @@ func TestPollStore_Vote(t *testing.T) {
 	t.Run("Error_NotFound", func(t *testing.T) {
 		ps := NewPollStore()
 		err := ps.Vote(boardLink, invitedUser, 5)
-		assert.ErrorIs(t, err, pollCommon.ErrPollNotFound)
+		assert.ErrorIs(t, err, common.ErrPollNotFound)
 	})
 
 	t.Run("Error_NotInvited", func(t *testing.T) {
 		ps := NewPollStore()
 		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card}, []uuid.UUID{invitedUser})
 		err := ps.Vote(boardLink, nonInvitedUser, 5)
-		assert.ErrorIs(t, err, pollCommon.ErrUserNotInvited)
+		assert.ErrorIs(t, err, common.ErrUserNotInvited)
 	})
 }
 

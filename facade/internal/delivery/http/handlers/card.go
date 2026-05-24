@@ -1371,6 +1371,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.Car
 		Subtasks:     subtasks,
 		Position:     card.Position,
 		Attachments:  attachments,
+		Points:       card.Points,
 	}
 }
 

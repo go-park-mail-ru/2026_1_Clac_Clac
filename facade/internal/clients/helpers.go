@@ -248,3 +248,11 @@ func convertTimestamppbToTime(time *timestamppb.Timestamp) *time.Time {
 
 	return nil
 }
+
+func convertInt32PtrToIntPtr(p *int32) *int {
+	if p != nil {
+		v := int(*p)
+		return &v
+	}
+	return nil
+}

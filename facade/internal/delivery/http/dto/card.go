@@ -69,6 +69,7 @@ type CardResponse struct {
 	Subtasks     []SubtaskResponse    `json:"subtasks"`
 	Position     int                  `json:"position" example:"2"`
 	Attachments  []AttachmentResponse `json:"attachments"`
+	Points       *int                 `json:"points" example:"5"`
 }
 
 // CreateCardResponse содержит ответ при создании карточки.

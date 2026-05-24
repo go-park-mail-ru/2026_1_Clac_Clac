@@ -56,6 +56,7 @@ type Card struct {
 	Subtasks     []SubtaskInfo `json:"subtasks"`
 	Position     int           `json:"position" example:"2"`
 	Status       bool          `json:"status" example:"false"`
+	Points       *int          `json:"points" example:"5"`
 }
 
 // SubtaskInfo описывает подзадачу карточки в контексте секции.

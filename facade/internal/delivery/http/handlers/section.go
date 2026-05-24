@@ -89,6 +89,7 @@ func cardInfoToDTO(c domain.CardInfo) dto.Card {
 		Subtasks:     subtasks,
 		Position:     c.Position,
 		Status:       c.Status,
+		Points:       c.Points,
 	}
 }
 

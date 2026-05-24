@@ -18,6 +18,7 @@ type InfoCard struct {
 	Subtasks     []models.SubtaskInfo
 	Position     int
 	Attachments  []models.AttachmentInfo
+	Points       *int
 }
 
 type UpdatingCardDetails struct {

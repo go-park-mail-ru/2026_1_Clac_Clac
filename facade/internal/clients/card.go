@@ -94,6 +94,7 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 		Subtasks:     subtasks,
 		Position:     int(resp.CardInfo.Position),
 		Attachments:  attachments,
+		Points:       convertInt32PtrToIntPtr(resp.CardInfo.Points),
 	}, nil
 }
 
