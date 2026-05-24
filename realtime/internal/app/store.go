@@ -26,7 +26,7 @@ type Store struct {
 func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 	store := &Store{}
 
-	if err := store.setupRedis(conf.Redis.ToPkg(), logger); err != nil {
+	if err := store.setupRedis(conf.Broker.ToPkg(), logger); err != nil {
 		return nil, fmt.Errorf("store.setupRedis: %w", err)
 	}
 

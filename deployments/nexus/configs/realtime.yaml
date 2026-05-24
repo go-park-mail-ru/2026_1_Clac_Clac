@@ -9,7 +9,7 @@ engine:
   idle_timeout: 60s
   graceful_shutdown_timeout: 60s
 
-redis:
+broker:
   number_db: 0
   min_connections: 20
   max_connections: 100

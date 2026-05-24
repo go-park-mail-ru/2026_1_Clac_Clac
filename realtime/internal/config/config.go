@@ -11,7 +11,7 @@ import (
 type Config struct {
 	App      Application   `mapstructure:"app"`
 	Engine   engine.Config `mapstructure:"engine"`
-	Redis    RedisConfig   `mapstructure:"redis"`
+	Broker   BrokerConfig  `mapstructure:"broker"`
 	Services Services      `mapstructure:"services"`
 }
 
@@ -19,7 +19,7 @@ func DefaultConfig() Config {
 	return Config{
 		App:      DefaultApplicationConfig(),
 		Engine:   engine.Config{},
-		Redis:    DefaultRedisConfig(),
+		Broker:   DefaultBrokerConfig(),
 		Services: DefaultServicesConfig(),
 	}
 }
@@ -38,7 +38,7 @@ func SetupViper(configPath string) (*viper.Viper, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	SetupEnvRedis(v)
+	SetupEnvBroker(v)
 
 	return v, nil
 }
