@@ -35,6 +35,12 @@ func (w *LoggerResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+func (w *LoggerResponseWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 type LoggerLimitWriter struct {
 	Destination io.Writer
 	Remaining   int
