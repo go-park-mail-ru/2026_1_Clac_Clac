@@ -9,6 +9,10 @@ data:
         listen 80;
         server_name _;
 
+        if ($host = "clac-clac.mooo.com") {
+            return 301 https://clac-clac.ru$request_uri;
+        }
+
         gzip on;
         gzip_proxied any;
         gzip_comp_level 6;

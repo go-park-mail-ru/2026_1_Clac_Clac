@@ -2,7 +2,9 @@ namespace: "nexus-prod"
 
 ingress:
   enabled: true
-  host: clac-clac.ru
+  hosts:
+    - clac-clac.ru
+    - clac-clac.mooo.com
 
 broker:
   enabled: true
@@ -48,7 +50,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-facade:sha-493bed1
+=======
+    image: nisakoo/nexus-facade:sha-b43847e
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: false
@@ -88,7 +94,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-authorization:sha-43cbe76
+=======
+    image: nisakoo/nexus-authorization:sha-688020b
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: false
@@ -108,7 +118,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-user:sha-493bed1
+=======
+    image: nisakoo/nexus-user:sha-47f537c
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: true
@@ -128,7 +142,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-mail_sender:sha-43cbe76
+=======
+    image: nisakoo/nexus-mail_sender:sha-fa33b1c
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: false
@@ -148,7 +166,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-board:sha-493bed1
+=======
+    image: nisakoo/nexus-board:sha-58748d5
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: true
@@ -168,7 +190,11 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
+<<<<<<< HEAD
     image: nisakoo/nexus-appeal:sha-43cbe76
+=======
+    image: nisakoo/nexus-appeal:sha-47f537c
+>>>>>>> fix/vk-oauth
     port: 8080
     database:
       enabled: true
