@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/go-park-mail-ru/2026_1_Clac_Clac
     path: deployments/nexus
-    targetRevision: feat/add-GANT
+    targetRevision: feat/poker_2
   destination:
     server: https://kubernetes.default.svc
     namespace: nexus-prod
