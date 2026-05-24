@@ -31,10 +31,10 @@ func TestGracefulShutdown(t *testing.T) {
 	const timeout = 16 * time.Second
 	cfg := engine.Config{
 		Addr:                    ":0",
-		WriteTimeout:            15,
-		ReadTimeout:             15,
-		IdleTimeout:             60,
-		GracefulShutdownTimeout: 15,
+		WriteTimeout:            15 * time.Second,
+		ReadTimeout:             15 * time.Second,
+		IdleTimeout:             60 * time.Second,
+		GracefulShutdownTimeout: 15 * time.Second,
 	}
 
 	buf := &bytes.Buffer{}

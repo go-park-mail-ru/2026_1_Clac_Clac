@@ -17,6 +17,7 @@ func TestDefaultConfig(t *testing.T) {
 		conf := config.DefaultConfig()
 
 		assert.Equal(t, config.DefaultApplicationConfig(), conf.App)
+		assert.Equal(t, config.DefaultEngineConfig(), conf.Engine)
 		assert.Equal(t, config.DefaultBrokerConfig(), conf.Broker)
 		assert.Equal(t, config.DefaultServicesConfig(), conf.Services)
 	})

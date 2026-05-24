@@ -30,7 +30,7 @@ func (s *stubBoardChecker) CanView(ctx context.Context, userLink, boardLink uuid
 
 type stubRealtimeHandler struct{}
 
-func (s *stubRealtimeHandler) EventsLongPolling(w http.ResponseWriter, r *http.Request) {
+func (s *stubRealtimeHandler) EventsSSE(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -68,7 +68,7 @@ func TestNewRouter_RouteRegistration(t *testing.T) {
 		expectStatus int
 	}{
 		{
-			name:         "EventsLongPolling route exists with board_link",
+			name:         "EventsSSE route exists with board_link",
 			method:       http.MethodGet,
 			path:         "/api/events/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
 			addCookie:    true,
