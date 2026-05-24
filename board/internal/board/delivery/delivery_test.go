@@ -1082,7 +1082,7 @@ func TestCanViewHandler(t *testing.T) {
 			name: "Success can view",
 			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("CanView", mock.Anything, userLink, boardLink).Return(nil).Once()
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(nil).Once()
 			},
 			expectedCode: codes.OK,
 		},
@@ -1102,7 +1102,7 @@ func TestCanViewHandler(t *testing.T) {
 			name: "Error permission denied",
 			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("CanView", mock.Anything, userLink, boardLink).Return(rbac.ErrActionDenied).Once()
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(rbac.ErrActionDenied).Once()
 			},
 			expectedCode: codes.PermissionDenied,
 		},
@@ -1110,7 +1110,7 @@ func TestCanViewHandler(t *testing.T) {
 			name: "Error internal server",
 			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
 			setupMock: func(m *mocks.BoardService) {
-				m.On("CanView", mock.Anything, userLink, boardLink).Return(errors.New("db error")).Once()
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(errors.New("db error")).Once()
 			},
 			expectedCode: codes.Internal,
 		},

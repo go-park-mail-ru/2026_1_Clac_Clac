@@ -71,7 +71,7 @@ type BoardService interface {
 	UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error
 	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
 	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
-	CanView(ctx context.Context, userLink uuid.UUID, boardLink uuid.UUID) error
+	CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
 }
 
 type Config struct {
@@ -760,7 +760,7 @@ func (h *BoardHandler) CanView(ctx context.Context, req *pb.CanViewRequest) (*pb
 		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
 	}
 
-	if err := h.srv.CanView(ctx, userLink, boardLink); err != nil {
+	if err := h.srv.CanView(ctx, boardLink, userLink); err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
