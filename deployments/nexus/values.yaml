@@ -188,7 +188,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-realtime:sha-7dc0bc6
+    image: nisakoo/nexus-realtime:sha-a208790
     port: 8080
     database:
       enabled: false
