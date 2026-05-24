@@ -21,7 +21,6 @@ import (
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -125,7 +124,7 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 		}
 
 		if strings.HasPrefix(info.Background, "backgrounds") {
-			info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+			info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 		}
 
 		boardsResponse = append(boardsResponse, info)
@@ -178,7 +177,7 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 	}
 
 	if strings.HasPrefix(info.Background, "backgrounds") {
-		info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+		info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 	}
 
 	return &pb.GetBoardResponse{

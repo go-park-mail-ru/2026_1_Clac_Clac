@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	msgInvalidUnmarshalSubtasks = "can not unmurshal subtasks"
+	msgInvalidUnmarshalSubtasks = "can not unmarshal subtasks"
 )
 
 type DBEngine interface {

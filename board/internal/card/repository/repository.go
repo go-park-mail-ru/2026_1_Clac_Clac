@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	msgInvalidUnmarshalSubtasks    = "can not unmurshal subtasks"
-	msgInvalidUnmarshalAttachments = "can not unmurshal attachments"
+	msgInvalidUnmarshalSubtasks    = "can not unmarshal subtasks"
+	msgInvalidUnmarshalAttachments = "can not unmarshal attachments"
 )
 
 type Config struct {
@@ -65,7 +65,6 @@ type rawAttachment struct {
 }
 
 func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
-	// TODO: Delete comme
 	query := `
 	SELECT
 		t.title,
@@ -556,6 +555,26 @@ func (r *Repository) GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID)
 	return boardLink, nil
 }
 
+func (r *Repository) GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error) {
+	query := `
+		SELECT s.board_link
+		FROM section s
+		JOIN task_actual t ON s.section_link = t.section_link
+		JOIN comment_task c ON c.task_id = t.task_id
+		WHERE c.link = $1 AND s.deleted_at IS NULL
+	`
+
+	var boardLink uuid.UUID
+	err := r.pool.QueryRow(ctx, query, commentLink).Scan(&boardLink)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, common.ErrCommentNotFound
+		}
+		return uuid.Nil, fmt.Errorf("pool.QueryRow: %w", err)
+	}
+	return boardLink, nil
+}
+
 func (r *Repository) GetComments(ctx context.Context, cardLink uuid.UUID) ([]dto.CommentInfo, error) {
 	getCommentsQuery := `
 		SELECT
@@ -829,7 +848,7 @@ func (r *Repository) CreateAttachment(ctx context.Context, createInfo dto.Create
 		return models.AttachmentInfo{}, fmt.Errorf("RepositoryCard tx.QueryRow count: %w", errTx)
 	}
 
-	if count > r.cfg.MaxAttachments {
+	if count >= r.cfg.MaxAttachments {
 		errTx = common.ErrAttachmentLimitReached
 		return models.AttachmentInfo{}, errTx
 	}

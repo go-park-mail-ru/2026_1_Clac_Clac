@@ -65,7 +65,7 @@ engine:
 	v.SetConfigType("yaml")
 	err := v.ReadConfig(bytes.NewBuffer(yamlTest))
 
-	require.NoError(t, err, "reading should not returt error")
+	require.NoError(t, err, "reading should not return error")
 
 	conf := config.DefaultConfig()
 	err = v.Unmarshal(&conf)

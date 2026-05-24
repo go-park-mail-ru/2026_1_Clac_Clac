@@ -39,6 +39,7 @@ type CardRepository interface {
 	DeleteAttachmentFromS3(ctx context.Context, key string) error
 	UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error
 	UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error
+	GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error)
 }
 
 type Config struct {
@@ -310,6 +311,29 @@ func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, user
 		return fmt.Errorf("CardService.DeleteComment: %w", err)
 	}
 
+	boardLink, err := s.rep.GetBoardLinkByComment(ctx, commentLink)
+	if err != nil {
+		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("delete_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  userLink.String(),
+				Action:    "delete_comment",
+				Data: struct {
+					Link string `json:"link"`
+				}{
+					Link: commentLink.String(),
+				},
+			},
+		},
+	)
+
 	return nil
 }
 
@@ -344,6 +368,31 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 		return fmt.Errorf("CardRepository.UpdateComment: %w", err)
 	}
 
+	boardLink, err := s.rep.GetBoardLinkByComment(ctx, updateCommentInfo.CommentLink)
+	if err != nil {
+		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("update_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  updateCommentInfo.UserLink.String(),
+				Action:    "update_comment",
+				Data: struct {
+					Link string `json:"link"`
+					Text string `json:"text"`
+				}{
+					Link: updateCommentInfo.CommentLink.String(),
+					Text: updateCommentInfo.Text,
+				},
+			},
+		},
+	)
+
 	return nil
 }
 
@@ -366,7 +415,7 @@ func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtas
 	})
 
 	if err != nil {
-		return models.SubtaskInfo{}, fmt.Errorf("CardRepository.CreateSubtas: %w", err)
+		return models.SubtaskInfo{}, fmt.Errorf("CardRepository.CreateSubtask: %w", err)
 	}
 
 	return models.SubtaskInfo{
@@ -478,7 +527,7 @@ func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAtt
 
 	key, err := s.rep.DeleteAttachmentFromDB(ctx, deleteInfo.AttachmentLink)
 	if err != nil {
-		return fmt.Errorf("CardRepository.DeleteSubtask: %w", err)
+		return fmt.Errorf("CardRepository.DeleteAttachmentFromDB: %w", err)
 	}
 
 	if err = s.rep.DeleteAttachmentFromS3(ctx, key); err != nil {

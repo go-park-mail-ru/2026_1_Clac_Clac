@@ -1957,6 +1957,81 @@ func TestRepositoryGetBoardLinkByCard(t *testing.T) {
 	}
 }
 
+func TestRepositoryGetBoardLinkByComment(t *testing.T) {
+	ctx := context.Background()
+	targetCommentLink := uuid.New()
+	targetBoardLink := uuid.New()
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedData  uuid.UUID
+		expectedError error
+	}{
+		{
+			nameTest: "Success get board link by comment",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link"}).AddRow(targetBoardLink))
+			},
+			expectedData:  targetBoardLink,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error comment not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expectedData:  uuid.Nil,
+			expectedError: common.ErrCommentNotFound,
+		},
+		{
+			nameTest: "Error query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedData:  uuid.Nil,
+			expectedError: errors.New("pool.QueryRow: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
+			result, err := repo.GetBoardLinkByComment(ctx, targetCommentLink)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrCommentNotFound) {
+						assert.ErrorIs(t, err, common.ErrCommentNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				if assert.NoError(t, err) {
+					assert.Equal(t, test.expectedData, result)
+				}
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
 func TestRepositoryDeleteAttachmentFromS3(t *testing.T) {
 	ctx := context.Background()
 	s3Key := "uploads/file.png"
