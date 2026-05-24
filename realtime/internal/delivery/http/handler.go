@@ -10,6 +10,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/realtime/internal/api"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/realtime/internal/common"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/realtime/internal/delivery/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/realtime/internal/middleware"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -86,7 +87,10 @@ func (h *RealtimeHandler) EventsSSE(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			data, err := json.Marshal(event)
+			data, err := json.Marshal(dto.BoardUpdateInfo{
+				Type:    string(event.Type),
+				Payload: event.Payload,
+			})
 			if err != nil {
 				logger.Error().Err(err).Msg("json.Marshal")
 				api.RespondError(w, http.StatusInternalServerError, internalServerError)

@@ -11,13 +11,11 @@ func TestBoardUpdateEvent(t *testing.T) {
 	event := common.BoardUpdateEvent{
 		BoardLink: "board-link-123",
 		UserLink:  "user-link-456",
-		Action:    "create",
 		Data:      map[string]string{"key": "value"},
 	}
 
 	assert.Equal(t, "board-link-123", event.BoardLink)
 	assert.Equal(t, "user-link-456", event.UserLink)
-	assert.Equal(t, "create", event.Action)
 	assert.Equal(t, map[string]string{"key": "value"}, event.Data)
 }
 
@@ -25,6 +23,5 @@ func TestBoardUpdateEventZeroValue(t *testing.T) {
 	event := common.BoardUpdateEvent{}
 	assert.Empty(t, event.BoardLink)
 	assert.Empty(t, event.UserLink)
-	assert.Empty(t, event.Action)
 	assert.Nil(t, event.Data)
 }

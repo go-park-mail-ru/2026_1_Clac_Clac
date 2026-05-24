@@ -263,7 +263,6 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 			Payload: brokerEvents.BoardUpdateEvent{
 				BoardLink: boardLink.String(),
 				UserLink:  createCommentInfo.AuthorLink.String(),
-				Action:    "new_comment",
 				Data: struct {
 					Link string `json:"link"`
 					Text string `json:"text"`
@@ -324,7 +323,6 @@ func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, user
 			Payload: brokerEvents.BoardUpdateEvent{
 				BoardLink: boardLink.String(),
 				UserLink:  userLink.String(),
-				Action:    "delete_comment",
 				Data: struct {
 					Link string `json:"link"`
 				}{
@@ -381,7 +379,6 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 			Payload: brokerEvents.BoardUpdateEvent{
 				BoardLink: boardLink.String(),
 				UserLink:  updateCommentInfo.UserLink.String(),
-				Action:    "update_comment",
 				Data: struct {
 					Link string `json:"link"`
 					Text string `json:"text"`
