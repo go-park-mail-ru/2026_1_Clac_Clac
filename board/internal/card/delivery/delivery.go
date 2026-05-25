@@ -73,6 +73,7 @@ type CardService interface {
 	DeleteAttachment(ctx context.Context, deleteInfo serviceDto.DeleteAttachment) error
 	UpdateStatusTask(ctx context.Context, updateInfo serviceDto.UpdateStatusTask) error
 	UpdateTimeLine(ctx context.Context, updateInfo serviceDto.UpdateTimeLine) error
+	UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.UUID, points *int) error
 }
 
 type Config struct {
@@ -164,6 +165,12 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 		executorLink = &s
 	}
 
+	var points *int32
+	if card.Points != nil {
+		p := int32(*card.Points)
+		points = &p
+	}
+
 	return &pb.GetCardResponse{
 		CardInfo: &pb.CardInfo{
 			Link:         cardLink.String(),
@@ -176,6 +183,7 @@ func (h *CardHandler) GetCard(ctx context.Context, req *pb.GetCardRequest) (*pb.
 			Subtasks:     subtasks,
 			Position:     int64(card.Position),
 			Attachments:  attachments,
+			Points:       points,
 		},
 	}, nil
 }
@@ -956,4 +964,47 @@ func (h *CardHandler) UpdateTimeLineTask(ctx context.Context, req *pb.UpdateTime
 	}
 
 	return &pb.UpdateTimeLineTaskResponse{}, nil
+}
+
+func (h *CardHandler) UpdateCardPoints(ctx context.Context, req *pb.UpdateCardPointsRequest) (*pb.UpdateCardPointsResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawCardLink := req.GetCardLink()
+	cardLink, err := uuid.Parse(rawCardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+	}
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+	}
+
+	var points *int
+	if req.Points != nil {
+		p := int(req.GetPoints())
+		points = &p
+	}
+
+	err = h.srv.UpdateCardPoints(ctx, cardLink, userLink, points)
+	if err != nil {
+		switch {
+		case errors.Is(err, rbac.ErrActionDenied):
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		case errors.Is(err, common.ErrCardNotFound):
+			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+		}
+
+		errLog := fmt.Errorf("srv.UpdateCardPoints: %w", err)
+		logger.Error().Err(errLog).Msg("CardHandler.UpdateCardPoints")
+		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateCardPoints", map[string]interface{}{
+			"user_link": rawUserLink,
+			"card_link": rawCardLink,
+			"action":    "update_card_points",
+		})
+		return nil, status.Error(codes.Internal, "cannot update card points")
+	}
+
+	return &pb.UpdateCardPointsResponse{}, nil
 }

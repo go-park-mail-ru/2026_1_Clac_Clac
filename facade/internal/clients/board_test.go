@@ -131,6 +131,46 @@ func (m *mockBoardServiceClient) CanView(ctx context.Context, in *pb.CanViewRequ
 	return args.Get(0).(*pb.CanViewResponse), args.Error(1)
 }
 
+func (m *mockBoardServiceClient) CreatePoll(ctx context.Context, in *pb.CreatePollRequest, opts ...grpc.CallOption) (*pb.CreatePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.CreatePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) DeletePoll(ctx context.Context, in *pb.DeletePollRequest, opts ...grpc.CallOption) (*pb.DeletePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.DeletePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) NextPollCard(ctx context.Context, in *pb.NextPollCardRequest, opts ...grpc.CallOption) (*pb.NextPollCardResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.NextPollCardResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) VotePoll(ctx context.Context, in *pb.VotePollRequest, opts ...grpc.CallOption) (*pb.VotePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.VotePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) GetActivePoll(ctx context.Context, in *pb.GetActivePollRequest, opts ...grpc.CallOption) (*pb.GetActivePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetActivePollResponse), args.Error(1)
+}
+
 func TestBoardCreateInvite(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()

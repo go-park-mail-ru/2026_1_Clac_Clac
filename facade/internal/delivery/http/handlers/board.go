@@ -1002,6 +1002,10 @@ func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
 			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
+		if errors.Is(err, common.ErrorCreatorCannotLeave) {
+			api.RespondError(w, http.StatusForbidden, common.ErrorCreatorCannotLeave.Error())
+			return
+		}
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase RemoveMemberFromBoard")
 		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())

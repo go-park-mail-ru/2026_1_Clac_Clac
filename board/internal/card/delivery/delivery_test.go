@@ -61,6 +61,11 @@ func (m *testCardService) UpdateTimeLine(ctx context.Context, updateInfo service
 	return args.Error(0)
 }
 
+func (m *testCardService) UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.UUID, points *int) error {
+	args := m.Called(ctx, cardLink, userLink, points)
+	return args.Error(0)
+}
+
 func newTestCardService(t *testing.T) *testCardService {
 	return &testCardService{mockCardSrv.NewCardService(t)}
 }

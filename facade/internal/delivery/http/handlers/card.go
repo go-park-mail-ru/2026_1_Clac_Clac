@@ -36,6 +36,7 @@ type CardUsecase interface {
 	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
 	UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error
 	UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error
+	UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error
 }
 
 const (
@@ -1248,6 +1249,70 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 	api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
+// UpdatePoints устанавливает оценку (story points) на карточку
+//
+//	@Summary		Установить оценку на карточку
+//	@Description	Администратор/создатель доски устанавливает финальную оценку (story points) на карточку. Если активен полл — только администратор полла может установить оценку.
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string							true	"UUID карточки" Format(uuid)
+//	@Param			request	body		dto.UpdateCardPointsRequest		true	"Оценка"
+//	@Success		200		{object}	api.Response					"points updated"
+//	@Failure		400		{object}	api.ErrorResponse				"invalid card link / invalid request"
+//	@Failure		401		{object}	api.ErrorResponse				"unauthorized"
+//	@Failure		403		{object}	api.ErrorResponse				"permission denied / not poll admin"
+//	@Failure		404		{object}	api.ErrorResponse				"card not found"
+//	@Failure		500		{object}	api.ErrorResponse				"cannot update points"
+//	@Router			/cards/{link}/points [put]
+func (c *Card) UpdatePoints(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	cardLink, ok := parseCardLink(w, r)
+	if !ok {
+		return
+	}
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateCardPointsRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	err := c.card.UpdateCardPoints(r.Context(), domain.UpdateCardPointsRequest{
+		UserLink: userLink,
+		CardLink: cardLink,
+		Points:   req.Points,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorCardNotFound) {
+			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			return
+		}
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+		errLog := fmt.Errorf("card.UpdateCardPoints: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateCardPoints failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateCardPoints", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_card_points",
+		})
+		api.RespondError(w, http.StatusInternalServerError, "cannot update points")
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
 func parseCardLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	linkParam := mux.Vars(r)[cardLinkKey]
 	cardLink, err := uuid.Parse(linkParam)
@@ -1306,6 +1371,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.Car
 		Subtasks:     subtasks,
 		Position:     card.Position,
 		Attachments:  attachments,
+		Points:       card.Points,
 	}
 }
 

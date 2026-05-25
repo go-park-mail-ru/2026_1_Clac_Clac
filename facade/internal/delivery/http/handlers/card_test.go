@@ -116,6 +116,11 @@ func (m *mockCardUsecase) UpdateTimeLine(ctx context.Context, info domain.NewTim
 	return args.Error(0)
 }
 
+func (m *mockCardUsecase) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
 func newTestCardHandler(uc CardUsecase) *Card {
 	return NewCard(uc, defaultCardCfg)
 }

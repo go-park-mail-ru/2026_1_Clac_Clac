@@ -36,7 +36,6 @@ type App struct {
 }
 
 func NewApp(conf config.Config) (*App, error) {
-	// TODO: delete this comment
 	app := &App{
 		Config: conf,
 	}
@@ -93,7 +92,7 @@ func (a *App) setupMetricsServer() {
 	a.Logger.Info().Msg(fmt.Sprintf("Metrics server listening on: %s", a.Config.Metrics.MetricsPort))
 
 	if err := a.MetricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		sentryLogger.CaptureError(err, "listen and serve Prometheous", map[string]interface{}{"component": "prometheous"})
+		sentryLogger.CaptureError(err, "listen and serve Prometheus", map[string]interface{}{"component": "prometheus"})
 	}
 }
 

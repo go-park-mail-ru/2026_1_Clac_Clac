@@ -17,11 +17,11 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -72,6 +72,12 @@ type BoardService interface {
 	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
 	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
 	CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
+
+	CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error
+	DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error
+	NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error
+	VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error
+	GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*service.Poll, error)
 }
 
 type Config struct {
@@ -125,7 +131,7 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 		}
 
 		if strings.HasPrefix(info.Background, "backgrounds") {
-			info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+			info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 		}
 
 		boardsResponse = append(boardsResponse, info)
@@ -178,7 +184,7 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 	}
 
 	if strings.HasPrefix(info.Background, "backgrounds") {
-		info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+		info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 	}
 
 	return &pb.GetBoardResponse{
@@ -776,4 +782,230 @@ func (h *BoardHandler) CanView(ctx context.Context, req *pb.CanViewRequest) (*pb
 	}
 
 	return &pb.CanViewResponse{}, nil
+}
+
+func (h *BoardHandler) CreatePoll(ctx context.Context, req *pb.CreatePollRequest) (*pb.CreatePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	cards := make([]uuid.UUID, 0, len(req.GetCardLinks()))
+	for _, raw := range req.GetCardLinks() {
+		cardLink, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid card link in poll")
+		}
+		cards = append(cards, cardLink)
+	}
+
+	invitees := make([]uuid.UUID, 0, len(req.GetInvitees()))
+	for _, raw := range req.GetInvitees() {
+		uid, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid invitee link")
+		}
+		invitees = append(invitees, uid)
+	}
+
+	if err := h.srv.CreatePoll(ctx, boardLink, userLink, cards, invitees); err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		if errors.Is(err, common.ErrPollAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, common.ErrPollAlreadyExists.Error())
+		}
+		errLog := fmt.Errorf("srv.CreatePoll: %w", err)
+		logger.Error().Err(errLog).Msg("CreatePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreatePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "create_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot create poll")
+	}
+
+	return &pb.CreatePollResponse{}, nil
+}
+
+func (h *BoardHandler) DeletePoll(ctx context.Context, req *pb.DeletePollRequest) (*pb.DeletePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.DeletePoll(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
+		}
+		errLog := fmt.Errorf("srv.DeletePoll: %w", err)
+		logger.Error().Err(errLog).Msg("DeletePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeletePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "delete_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot delete poll")
+	}
+
+	return &pb.DeletePollResponse{}, nil
+}
+
+func (h *BoardHandler) NextPollCard(ctx context.Context, req *pb.NextPollCardRequest) (*pb.NextPollCardResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.NextPollCard(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
+		}
+		if errors.Is(err, common.ErrPollNoMoreCards) {
+			return &pb.NextPollCardResponse{}, nil
+		}
+		errLog := fmt.Errorf("srv.NextPollCard: %w", err)
+		logger.Error().Err(errLog).Msg("NextPollCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "NextPollCard", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "next_poll_card",
+		})
+		return nil, status.Error(codes.Internal, "cannot advance poll")
+	}
+
+	return &pb.NextPollCardResponse{}, nil
+}
+
+func (h *BoardHandler) VotePoll(ctx context.Context, req *pb.VotePollRequest) (*pb.VotePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.VotePoll(ctx, boardLink, userLink, int(req.GetPoints())); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrUserNotInvited) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrUserNotInvited.Error())
+		}
+		errLog := fmt.Errorf("srv.VotePoll: %w", err)
+		logger.Error().Err(errLog).Msg("VotePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "VotePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "vote_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot vote")
+	}
+
+	return &pb.VotePollResponse{}, nil
+}
+
+func (h *BoardHandler) GetActivePoll(ctx context.Context, req *pb.GetActivePollRequest) (*pb.GetActivePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	poll, err := h.srv.GetActivePoll(ctx, boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		errLog := fmt.Errorf("srv.GetActivePoll: %w", err)
+		logger.Error().Err(errLog).Msg("GetActivePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetActivePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_active_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot get active poll")
+	}
+
+	tasks := make([]*pb.PollTaskInfo, 0, len(poll.Tasks))
+	for _, t := range poll.Tasks {
+		votes := make([]*pb.VoteEntry, 0, len(t.Votes))
+		for userID, points := range t.Votes {
+			if points == nil {
+				continue
+			}
+			votes = append(votes, &pb.VoteEntry{
+				UserLink: userID.String(),
+				Points:   int32(*points),
+			})
+		}
+		tasks = append(tasks, &pb.PollTaskInfo{
+			CardLink: t.CardLink.String(),
+			Title:    t.Title,
+			Votes:    votes,
+		})
+	}
+
+	rawInvitees := make([]string, 0, len(poll.Invitees))
+	for _, i := range poll.Invitees {
+		rawInvitees = append(rawInvitees, i.String())
+	}
+
+	return &pb.GetActivePollResponse{
+		AdminLink:  poll.AdminLink.String(),
+		CurrentIdx: int32(poll.CurrentIdx),
+		Tasks:      tasks,
+		Invitees:   rawInvitees,
+	}, nil
 }

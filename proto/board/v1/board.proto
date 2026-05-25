@@ -176,6 +176,61 @@ message CanViewRequest {
 
 message CanViewResponse {}
 
+message CreatePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  repeated string card_links = 3;
+  repeated string invitees = 4;
+}
+
+message CreatePollResponse {}
+
+message DeletePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message DeletePollResponse {}
+
+message NextPollCardRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message NextPollCardResponse {}
+
+message VotePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  int32 points = 3;
+}
+
+message VotePollResponse {}
+
+// GetActivePoll
+message GetActivePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message VoteEntry {
+  string user_link = 1;
+  int32 points = 2;
+}
+
+message PollTaskInfo {
+  string card_link = 1;
+  string title = 2;
+  repeated VoteEntry votes = 3;
+}
+
+message GetActivePollResponse {
+  string admin_link = 1;
+  int32 current_idx = 2;
+  repeated PollTaskInfo tasks = 3;
+  repeated string invitees = 4;
+}
+
 service BoardService {
   rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
   rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
@@ -191,4 +246,9 @@ service BoardService {
   rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
   rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
   rpc CanView(CanViewRequest) returns (CanViewResponse);
+  rpc CreatePoll(CreatePollRequest) returns (CreatePollResponse);
+  rpc DeletePoll(DeletePollRequest) returns (DeletePollResponse);
+  rpc NextPollCard(NextPollCardRequest) returns (NextPollCardResponse);
+  rpc VotePoll(VotePollRequest) returns (VotePollResponse);
+  rpc GetActivePoll(GetActivePollRequest) returns (GetActivePollResponse);
 }

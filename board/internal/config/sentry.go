@@ -10,7 +10,7 @@ const (
 	defaultEnvironment      = "production"
 	defaultRelease          = "RK3"
 	defaultServiceName      = "board"
-	defaulTtracesSampleRate = 1.0
+	defaultTracesSampleRate = 1.0
 	defaultRepanic          = true
 )
 
@@ -28,7 +28,7 @@ func DefaultSentryConfig() sentryLogger.Sentry {
 		Release:          defaultRelease,
 		ServiceName:      defaultServiceName,
 		Tags:             defaultTags,
-		TracesSampleRate: defaulTtracesSampleRate,
+		TracesSampleRate: defaultTracesSampleRate,
 		Repanic:          defaultRepanic,
 	}
 }

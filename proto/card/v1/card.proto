@@ -17,6 +17,7 @@ message CardInfo {
   int64 position = 8;
   repeated AttachmentInfo attachments = 9;
   bool status = 10;
+  optional int32 points = 11;
 }
 
 message SubtaskInfo {
@@ -203,6 +204,14 @@ message UpdateTimeLineTaskRequest {
 
 message UpdateTimeLineTaskResponse {}
 
+message UpdateCardPointsRequest {
+  string user_link = 1;
+  string card_link = 2;
+  optional int32 points = 3;
+}
+
+message UpdateCardPointsResponse {}
+
 service CardService {
   rpc GetCard(GetCardRequest) returns (GetCardResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
@@ -220,4 +229,5 @@ service CardService {
   rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse);
   rpc UpdateStatusTask(UpdateStatusTaskRequest) returns (UpdateStatusTaskResponse);
   rpc UpdateTimeLineTask(UpdateTimeLineTaskRequest) returns (UpdateTimeLineTaskResponse);
+  rpc UpdateCardPoints(UpdateCardPointsRequest) returns (UpdateCardPointsResponse);
 }

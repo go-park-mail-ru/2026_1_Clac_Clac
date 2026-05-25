@@ -38,4 +38,5 @@ type Card struct {
 	Subtasks     []models.SubtaskInfo
 	Position     int
 	Status       bool
+	Points       *int
 }

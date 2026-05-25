@@ -230,6 +230,66 @@ func (_m *CardRepository) DeleteSubtask(ctx context.Context, deleteInfo dto.Dele
 	return r0
 }
 
+// GetBoardLinkByCard provides a mock function with given fields: ctx, cardLink
+func (_m *CardRepository) GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID) (uuid.UUID, error) {
+	ret := _m.Called(ctx, cardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBoardLinkByCard")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (uuid.UUID, error)); ok {
+		return rf(ctx, cardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) uuid.UUID); ok {
+		r0 = rf(ctx, cardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, cardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetBoardLinkByComment provides a mock function with given fields: ctx, commentLink
+func (_m *CardRepository) GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error) {
+	ret := _m.Called(ctx, commentLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBoardLinkByComment")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (uuid.UUID, error)); ok {
+		return rf(ctx, commentLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) uuid.UUID); ok {
+		r0 = rf(ctx, commentLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, commentLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetCard provides a mock function with given fields: ctx, linkCard
 func (_m *CardRepository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
 	ret := _m.Called(ctx, linkCard)

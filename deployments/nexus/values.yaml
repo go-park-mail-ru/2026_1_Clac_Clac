@@ -48,7 +48,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-493bed1
+    image: nisakoo/nexus-facade:sha-abe4117
     port: 8080
     database:
       enabled: false
@@ -148,14 +148,14 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-493bed1
+    image: nisakoo/nexus-board:sha-abe4117
     port: 8080
     database:
       enabled: true
     redis:
       enabled: true
     broker:
-      enabled: false
+      enabled: true
     resources:
       limits:
         memory: "64Mi"
@@ -188,7 +188,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-realtime:sha-94ed0eb
+    image: nisakoo/nexus-realtime:sha-abe4117
     port: 8080
     database:
       enabled: false

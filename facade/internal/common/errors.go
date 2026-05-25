@@ -52,4 +52,7 @@ var (
 	ErrorUserAlreadyMember    = errors.New("user is already a member of this board")
 	ErrorSelfRoleChange       = errors.New("cannot change your own role")
 	ErrorCreatorCannotLeave   = errors.New("creator cannot leave the board")
+
+	ErrorPollAlreadyExists = errors.New("poll already exists for this board")
+	ErrorPollNotFound      = errors.New("no active poll for this board")
 )

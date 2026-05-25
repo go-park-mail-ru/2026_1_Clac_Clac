@@ -39,6 +39,8 @@ const (
 	identifierUserAlreadyMember   = "already"
 	identifierSelfRoleChange      = "cannot change your own role"
 	identifierCreatorCannotLeave  = "creator cannot leave the board"
+	identifierPollAlreadyExists   = "poll already exists"
+	identifierPollNotFound        = "no active poll"
 )
 
 func convertGRPCError(err error) error {
@@ -137,6 +139,8 @@ func convertBoardGRPCError(err error) error {
 			return common.ErrorSectionNotFound
 		case strings.Contains(msg, identifierInviteNotFound):
 			return common.ErrorInviteNotFound
+		case strings.Contains(msg, identifierPollNotFound):
+			return common.ErrorPollNotFound
 		default:
 			return common.ErrorNonexistentUser
 		}
@@ -158,6 +162,8 @@ func convertBoardGRPCError(err error) error {
 		}
 	case codes.AlreadyExists:
 		switch {
+		case strings.Contains(msg, identifierPollAlreadyExists):
+			return common.ErrorPollAlreadyExists
 		case strings.Contains(msg, identifierUserAlreadyMember):
 			return common.ErrorUserAlreadyMember
 		default:
@@ -246,5 +252,13 @@ func convertTimestamppbToTime(time *timestamppb.Timestamp) *time.Time {
 		return &convertedTime
 	}
 
+	return nil
+}
+
+func convertInt32PtrToIntPtr(p *int32) *int {
+	if p != nil {
+		v := int(*p)
+		return &v
+	}
 	return nil
 }

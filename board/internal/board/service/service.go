@@ -11,6 +11,8 @@ import (
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
 	"github.com/rs/zerolog"
 
 	"github.com/google/uuid"
@@ -41,12 +43,16 @@ type BoardRepository interface {
 type Service struct {
 	rep               BoardRepository
 	permissionChecker rbac.Service
+	pollStore         *PollStore
+	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
-func NewService(rep BoardRepository, permissionChecker rbac.Service) *Service {
+func NewService(rep BoardRepository, permissionChecker rbac.Service, pollStore *PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent]) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
+		pollStore:         pollStore,
+		pub:               pub,
 	}
 }
 
@@ -418,4 +424,142 @@ func (s *Service) GetActiveInvites(ctx context.Context, boardLink uuid.UUID, use
 	}
 
 	return invites, nil
+}
+
+func (s *Service) CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, adminLink, rbac.Actions.Invite)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return rbac.ErrActionDenied
+		}
+		return fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	if err := s.pollStore.Create(boardLink, adminLink, cards, invitees); err != nil {
+		return fmt.Errorf("pollStore.Create: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("poll_start"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  adminLink.String(),
+				Data: struct {
+					ParticipantCount int `json:"participant_count"`
+				}{
+					ParticipantCount: len(invitees),
+				},
+			},
+		},
+	)
+
+	return nil
+}
+
+func (s *Service) DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error {
+	if err := s.pollStore.Delete(boardLink, userLink); err != nil {
+		return fmt.Errorf("pollStore.Delete: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("poll_end"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  userLink.String(),
+				Data:      struct{}{},
+			},
+		},
+	)
+
+	return nil
+}
+
+func (s *Service) NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error {
+	poll, err := s.pollStore.NextCard(boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrPollNoMoreCards) {
+			s.pub.Publish(
+				ctx,
+				pubsub.Channel(boardLink.String()),
+				pubsub.Event[brokerEvents.BoardUpdateEvent]{
+					Type: pubsub.Type("poll_end"),
+					Payload: brokerEvents.BoardUpdateEvent{
+						BoardLink: boardLink.String(),
+						UserLink:  userLink.String(),
+						Data:      struct{}{},
+					},
+				},
+			)
+			return common.ErrPollNoMoreCards
+		}
+		return fmt.Errorf("pollStore.NextCard: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("next_card"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  userLink.String(),
+				Data: struct {
+					Title string `json:"title"`
+				}{
+					Title: poll.Tasks[poll.CurrentIdx].Title,
+				},
+			},
+		},
+	)
+
+	return nil
+}
+
+func (s *Service) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error {
+	if err := s.pollStore.Vote(boardLink, userLink, points); err != nil {
+		return fmt.Errorf("pollStore.Vote: %w", err)
+	}
+
+	s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("new_answer"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  userLink.String(),
+				Data: struct {
+					UserLink string `json:"user_link"`
+					Points   int    `json:"points"`
+				}{
+					UserLink: userLink.String(),
+					Points:   points,
+				},
+			},
+		},
+	)
+
+	return nil
+}
+
+func (s *Service) GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*Poll, error) {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, rbac.ErrActionDenied
+		}
+		return nil, fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	poll, ok := s.pollStore.GetActivePoll(boardLink)
+	if !ok {
+		return nil, common.ErrPollNotFound
+	}
+	return poll, nil
 }

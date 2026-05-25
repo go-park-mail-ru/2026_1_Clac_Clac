@@ -14,6 +14,7 @@ type Delivery struct {
 	Board      *handlers.Board
 	Section    *handlers.Section
 	Appeal     *handlers.Appeal
+	Poll       *handlers.PollHandler
 }
 
 func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
@@ -64,5 +65,6 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		Board:      handlers.NewBoard(manager.Board, manager.User, boardConfig),
 		Section:    handlers.NewSection(manager.Section),
 		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
+		Poll:       handlers.NewPollHandler(manager.Poll),
 	}
 }

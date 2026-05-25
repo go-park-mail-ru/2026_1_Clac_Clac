@@ -10,7 +10,7 @@ import (
 )
 
 type RealtimeHandler interface {
-	EventsLongPolling(w http.ResponseWriter, r *http.Request)
+	EventsSSE(w http.ResponseWriter, r *http.Request)
 }
 
 type Tools struct {
@@ -28,7 +28,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	subRouter.Use(middleware.AuthMiddleware(deps.AuthChecker, logger, conf.Services.Auth.SessionLifetime))
 	subRouter.Use(middleware.BoardAccessMiddleware(deps.BoardChecker))
 
-	subRouter.HandleFunc("/{board_link}", deps.Realtime.EventsLongPolling).Methods(http.MethodGet)
+	subRouter.HandleFunc("/{board_link}", deps.Realtime.EventsSSE).Methods(http.MethodGet)
 
 	return mainRouter
 }

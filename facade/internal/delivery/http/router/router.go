@@ -58,6 +58,7 @@ type CardHandler interface {
 	DeleteAttachment(w http.ResponseWriter, r *http.Request)
 	UpdateStatusTask(w http.ResponseWriter, r *http.Request)
 	UpdateTimeLine(w http.ResponseWriter, r *http.Request)
+	UpdatePoints(w http.ResponseWriter, r *http.Request)
 }
 type BoardHandler interface {
 	GetBoards(w http.ResponseWriter, r *http.Request)
@@ -93,6 +94,14 @@ type AppealHandler interface {
 	ChangeAppealStatus(w http.ResponseWriter, r *http.Request)
 }
 
+type PollerHandler interface {
+	CreatePoll(w http.ResponseWriter, r *http.Request)
+	DeletePoll(w http.ResponseWriter, r *http.Request)
+	NextCard(w http.ResponseWriter, r *http.Request)
+	Vote(w http.ResponseWriter, r *http.Request)
+	GetActivePoll(w http.ResponseWriter, r *http.Request)
+}
+
 type Tools struct {
 	Auth        AuthHandler
 	Profile     ProfileHandler
@@ -105,6 +114,7 @@ type Tools struct {
 	Board       BoardHandler
 	Section     SectionHandler
 	Appeal      AppealHandler
+	Poll        PollerHandler
 }
 
 func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Router {
@@ -197,6 +207,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 
 	withTextLimit.HandleFunc("/cards/{link}/status", deps.Card.UpdateStatusTask).Methods(http.MethodPatch)
 	withTextLimit.HandleFunc("/cards/{link}/timeline", deps.Card.UpdateTimeLine).Methods(http.MethodPatch)
+	withTextLimit.HandleFunc("/cards/{link}/points", deps.Card.UpdatePoints).Methods(http.MethodPut)
 
 	withTextLimit.HandleFunc("/sections", deps.Section.CreateSection).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/sections/{link}", deps.Section.GetSection).Methods(http.MethodGet)
@@ -228,6 +239,12 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.DeleteAppeal).Methods(http.MethodDelete)
 	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
+
+	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.GetActivePoll).Methods(http.MethodGet)
+	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.CreatePoll).Methods(http.MethodPost)
+	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.Vote).Methods(http.MethodPut)
+	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.DeletePoll).Methods(http.MethodDelete)
+	withTextLimit.HandleFunc("/boards/{board_link}/polls/next", deps.Poll.NextCard).Methods(http.MethodPost)
 
 	r.PathPrefix("/docs/").Handler(httpSwagger.Handler())
 

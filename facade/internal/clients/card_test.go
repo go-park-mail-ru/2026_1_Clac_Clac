@@ -149,6 +149,14 @@ func (m *mockCardServiceClient) UpdateTimeLineTask(ctx context.Context, in *pb.U
 	return args.Get(0).(*pb.UpdateTimeLineTaskResponse), args.Error(1)
 }
 
+func (m *mockCardServiceClient) UpdateCardPoints(ctx context.Context, in *pb.UpdateCardPointsRequest, opts ...grpc.CallOption) (*pb.UpdateCardPointsResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.UpdateCardPointsResponse), args.Error(1)
+}
+
 func strPtr(s string) *string {
 	return &s
 }

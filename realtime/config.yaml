@@ -4,12 +4,12 @@ app:
 
 engine:
   addr: 0.0.0.0:8080
-  write_timeout: 40s
-  read_timeout: 40s
+  write_timeout: 0s
+  read_timeout: 0s
   idle_timeout: 60s
   graceful_shutdown_timeout: 60s
 
-redis:
+broker:
   number_db: 0
   min_connections: 20
   max_connections: 100

@@ -3,10 +3,27 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/engine"
 	"github.com/spf13/viper"
 )
+
+const (
+	defaultWriteTimeout            = 15 * time.Second
+	defaultReadTimeout             = 15 * time.Second
+	defaultIdleTimeout             = 60 * time.Second
+	defaultGracefulShutdownTimeout = 15 * time.Second
+)
+
+func DefaultEngineConfig() engine.Config {
+	return engine.Config{
+		WriteTimeout:            defaultWriteTimeout,
+		ReadTimeout:             defaultReadTimeout,
+		IdleTimeout:             defaultIdleTimeout,
+		GracefulShutdownTimeout: defaultGracefulShutdownTimeout,
+	}
+}
 
 type Config struct {
 	App      Application   `mapstructure:"app"`
@@ -18,7 +35,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		App:      DefaultApplicationConfig(),
-		Engine:   engine.Config{},
+		Engine:   DefaultEngineConfig(),
 		Broker:   DefaultBrokerConfig(),
 		Services: DefaultServicesConfig(),
 	}

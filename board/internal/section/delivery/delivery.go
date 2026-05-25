@@ -238,6 +238,12 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			executorLink = &s
 		}
 
+		var points *int32
+		if card.Points != nil {
+			p := int32(*card.Points)
+			points = &p
+		}
+
 		cardsResponse = append(cardsResponse, &pb.CardInfo{
 			Link:         card.CardLink.String(),
 			ExecutorLink: executorLink,
@@ -247,6 +253,7 @@ func (h *SectionHandler) GetCards(ctx context.Context, req *pb.GetCardsRequest) 
 			Subtasks:     subtasks,
 			Position:     int64(card.Position),
 			Status:       card.Status,
+			Points:       points,
 		})
 	}
 
