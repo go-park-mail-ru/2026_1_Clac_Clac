@@ -148,7 +148,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-324bb2e
+    image: nisakoo/nexus-board:sha-6b4061e
     port: 8080
     database:
       enabled: true
