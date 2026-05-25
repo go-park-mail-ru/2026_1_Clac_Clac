@@ -48,7 +48,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-324bb2e
+    image: nisakoo/nexus-facade:sha-abe4117
     port: 8080
     database:
       enabled: false
@@ -148,7 +148,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-6b4061e
+    image: nisakoo/nexus-board:sha-abe4117
     port: 8080
     database:
       enabled: true
@@ -188,7 +188,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-realtime:sha-7ce6d46
+    image: nisakoo/nexus-realtime:sha-abe4117
     port: 8080
     database:
       enabled: false
