@@ -2883,7 +2883,7 @@ const docTemplate = `{
                         "sessionCookie": []
                     }
                 ],
-                "description": "Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.",
+                "description": "Возвращает 200, userLink и профиль если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.",
                 "produces": [
                     "application/json"
                 ],
@@ -2895,11 +2895,17 @@ const docTemplate = `{
                     "200": {
                         "description": "Пользователь авторизован",
                         "schema": {
-                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse"
                         }
                     },
                     "401": {
                         "description": "Сессия отсутствует или истекла",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера при получении профиля",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -3921,6 +3927,17 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_ProfileResponse": {
             "type": "object",
             "properties": {
@@ -4571,6 +4588,19 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "p@ssword123"
+                }
+            }
+        },
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse": {
+            "description": "Информация об авторизованном пользователе",
+            "type": "object",
+            "properties": {
+                "profile": {
+                    "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ProfileResponse"
+                },
+                "user_link": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         },

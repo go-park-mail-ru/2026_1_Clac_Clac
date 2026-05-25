@@ -27,3 +27,11 @@ type UpdateProfileRequest struct {
 type AvatarResponse struct {
 	AvatarURL string `json:"avatar_url" example:"https://storage.yoursite.com/avatars/123.jpg"`
 }
+
+// MeResponse содержит userLink и профиль пользователя.
+//
+//	@Description	Информация об авторизованном пользователе
+type MeResponse struct {
+	UserLink uuid.UUID       `json:"user_link" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Profile  ProfileResponse `json:"profile"`
+}
