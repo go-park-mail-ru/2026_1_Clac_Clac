@@ -99,6 +99,7 @@ type PollerHandler interface {
 	DeletePoll(w http.ResponseWriter, r *http.Request)
 	NextCard(w http.ResponseWriter, r *http.Request)
 	Vote(w http.ResponseWriter, r *http.Request)
+	GetActivePoll(w http.ResponseWriter, r *http.Request)
 }
 
 type Tools struct {
@@ -239,6 +240,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	withTextLimit.HandleFunc("/appeals/stats", deps.Appeal.GetStats).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/appeals/{link}", deps.Appeal.ChangeAppealStatus).Methods(http.MethodPatch)
 
+	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.GetActivePoll).Methods(http.MethodGet)
 	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.CreatePoll).Methods(http.MethodPost)
 	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.Vote).Methods(http.MethodPut)
 	withTextLimit.HandleFunc("/boards/{board_link}/polls", deps.Poll.DeletePoll).Methods(http.MethodDelete)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
@@ -76,6 +77,7 @@ type BoardService interface {
 	DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error
 	NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error
 	VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error
+	GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*service.Poll, error)
 }
 
 type Config struct {
@@ -941,4 +943,69 @@ func (h *BoardHandler) VotePoll(ctx context.Context, req *pb.VotePollRequest) (*
 	}
 
 	return &pb.VotePollResponse{}, nil
+}
+
+func (h *BoardHandler) GetActivePoll(ctx context.Context, req *pb.GetActivePollRequest) (*pb.GetActivePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	poll, err := h.srv.GetActivePoll(ctx, boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		errLog := fmt.Errorf("srv.GetActivePoll: %w", err)
+		logger.Error().Err(errLog).Msg("GetActivePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetActivePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_active_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot get active poll")
+	}
+
+	tasks := make([]*pb.PollTaskInfo, 0, len(poll.Tasks))
+	for _, t := range poll.Tasks {
+		votes := make([]*pb.VoteEntry, 0, len(t.Votes))
+		for userID, points := range t.Votes {
+			if points == nil {
+				continue
+			}
+			votes = append(votes, &pb.VoteEntry{
+				UserLink: userID.String(),
+				Points:   int32(*points),
+			})
+		}
+		tasks = append(tasks, &pb.PollTaskInfo{
+			CardLink: t.CardLink.String(),
+			Title:    t.Title,
+			Votes:    votes,
+		})
+	}
+
+	rawInvitees := make([]string, 0, len(poll.Invitees))
+	for _, i := range poll.Invitees {
+		rawInvitees = append(rawInvitees, i.String())
+	}
+
+	return &pb.GetActivePollResponse{
+		AdminLink:  poll.AdminLink.String(),
+		CurrentIdx: int32(poll.CurrentIdx),
+		Tasks:      tasks,
+		Invitees:   rawInvitees,
+	}, nil
 }

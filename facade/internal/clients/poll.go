@@ -88,3 +88,17 @@ func (p *Poll) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, poin
 	return nil
 }
 
+func (p *Poll) GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*pb.GetActivePollResponse, error) {
+	req := &pb.GetActivePollRequest{
+		UserLink:  userLink.String(),
+		BoardLink: boardLink.String(),
+	}
+
+	res, err := p.client.GetActivePoll(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("PollClient.GetActivePoll: %w", convertBoardGRPCError(err))
+	}
+
+	return res, nil
+}
+

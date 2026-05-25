@@ -484,6 +484,69 @@ const docTemplate = `{
             }
         },
         "/boards/{board_link}/polls": {
+            "get": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Возвращает текущий активный Planning Poker для доски, включая задачи, голоса и приглашённых участников",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Polls"
+                ],
+                "summary": "Получить активный опрос",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID доски",
+                        "name": "board_link",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "active poll data",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid board link",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "access to board denied",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no active poll for this board",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "cannot get active poll",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {

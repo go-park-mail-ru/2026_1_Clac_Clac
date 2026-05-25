@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/clients"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	"github.com/google/uuid"
 )
 
@@ -48,4 +49,13 @@ func (p *Poll) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, poin
 	}
 
 	return nil
+}
+
+func (p *Poll) GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*pb.GetActivePollResponse, error) {
+	resp, err := p.client.GetActivePoll(ctx, boardLink, userLink)
+	if err != nil {
+		return nil, fmt.Errorf("poll.GetActivePoll: %w", err)
+	}
+
+	return resp, nil
 }

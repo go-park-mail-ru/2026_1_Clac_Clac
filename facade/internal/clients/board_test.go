@@ -163,6 +163,14 @@ func (m *mockBoardServiceClient) VotePoll(ctx context.Context, in *pb.VotePollRe
 	return args.Get(0).(*pb.VotePollResponse), args.Error(1)
 }
 
+func (m *mockBoardServiceClient) GetActivePoll(ctx context.Context, in *pb.GetActivePollRequest, opts ...grpc.CallOption) (*pb.GetActivePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetActivePollResponse), args.Error(1)
+}
+
 func TestBoardCreateInvite(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()

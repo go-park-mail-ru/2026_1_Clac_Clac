@@ -15,6 +15,7 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	handler "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/mock_board_srv"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
@@ -1126,6 +1127,126 @@ func TestCanViewHandler(t *testing.T) {
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetActivePollHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	adminLink := uuid.New()
+	cardLink := uuid.New()
+	invitedUser := uuid.New()
+	points := 5
+	poll := &service.Poll{
+		BoardLink:  boardLink,
+		AdminLink:  adminLink,
+		CurrentIdx: 0,
+		Tasks: []service.PollTask{
+			{
+				CardLink: cardLink,
+				Title:    "Task 1",
+				Votes:    map[uuid.UUID]*int{invitedUser: &points},
+			},
+		},
+		Invitees: []uuid.UUID{invitedUser},
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetActivePollRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(poll, nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Error_InvalidUserLink",
+			req: &pb.GetActivePollRequest{
+				UserLink:  "bad-uuid",
+				BoardLink: boardLink.String(),
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error_InvalidBoardLink",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: "bad-uuid",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error_PermissionDenied",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Error_PollNotFound",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, common.ErrPollNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Error_InternalServerError",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, errors.New("some error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			resp, err := h.GetActivePoll(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+
+			if test.expectedCode == codes.OK {
+				assert.NotNil(t, resp)
+				assert.Equal(t, adminLink.String(), resp.AdminLink)
+				assert.Equal(t, int32(0), resp.CurrentIdx)
+				assert.Len(t, resp.Tasks, 1)
+				assert.Equal(t, cardLink.String(), resp.Tasks[0].CardLink)
+				assert.Equal(t, "Task 1", resp.Tasks[0].Title)
+				assert.Len(t, resp.Tasks[0].Votes, 1)
+				assert.Equal(t, invitedUser.String(), resp.Tasks[0].Votes[0].UserLink)
+				assert.Equal(t, int32(5), resp.Tasks[0].Votes[0].Points)
+				assert.Len(t, resp.Invitees, 1)
+				assert.Equal(t, invitedUser.String(), resp.Invitees[0])
+			}
 		})
 	}
 }

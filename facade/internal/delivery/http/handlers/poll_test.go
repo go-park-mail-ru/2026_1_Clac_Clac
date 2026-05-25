@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -43,6 +44,14 @@ func (m *mockPollUsecase) NextPollCard(ctx context.Context, boardLink, userLink 
 func (m *mockPollUsecase) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error {
 	args := m.Called(ctx, boardLink, userLink, points)
 	return args.Error(0)
+}
+
+func (m *mockPollUsecase) GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*pb.GetActivePollResponse, error) {
+	args := m.Called(ctx, boardLink, userLink)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetActivePollResponse), args.Error(1)
 }
 
 func newTestPollHandler(uc PollUsecase) *PollHandler {
@@ -307,6 +316,74 @@ func TestPollHandler_NextCard(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			handler.NextCard(w, req)
+			assert.Equal(t, tt.expectedCode, w.Code)
+		})
+	}
+}
+
+func TestPollHandler_GetActivePoll(t *testing.T) {
+	mockResponse := &pb.GetActivePollResponse{
+		AdminLink:  fixedUserLinkP.String(),
+		CurrentIdx: 0,
+		Tasks: []*pb.PollTaskInfo{
+			{
+				CardLink: fixedBoardLinkP.String(),
+				Title:    "Task 1",
+				Votes:    []*pb.VoteEntry{},
+			},
+		},
+		Invitees: []string{fixedUserLinkP.String()},
+	}
+
+	tests := []struct {
+		name         string
+		boardLinkVar string
+		mockBehavior func(m *mockPollUsecase)
+		setupCtx     bool
+		expectedCode int
+	}{
+		{
+			name:         "Success",
+			boardLinkVar: fixedBoardLinkP.String(),
+			mockBehavior: func(m *mockPollUsecase) {
+				m.On("GetActivePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(mockResponse, nil)
+			},
+			setupCtx:     true,
+			expectedCode: http.StatusOK,
+		},
+		{
+			name:         "Error_InvalidBoardLink",
+			boardLinkVar: "not-a-uuid",
+			mockBehavior: func(m *mockPollUsecase) {},
+			setupCtx:     true,
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "Error_Unauthorized",
+			boardLinkVar: fixedBoardLinkP.String(),
+			mockBehavior: func(m *mockPollUsecase) {
+				m.On("GetActivePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(nil, pollTestError)
+			},
+			setupCtx:     true,
+			expectedCode: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockPollUsecase)
+			tt.mockBehavior(m)
+
+			handler := newTestPollHandler(m)
+			path := "/boards/" + tt.boardLinkVar + "/polls"
+			req := newPollRequest(http.MethodGet, path, "")
+			if tt.setupCtx {
+				req = setPollUserContext(req)
+			}
+			req = mux.SetURLVars(req, map[string]string{pollBoardLinkKey: tt.boardLinkVar})
+
+			w := httptest.NewRecorder()
+			handler.GetActivePoll(w, req)
 			assert.Equal(t, tt.expectedCode, w.Code)
 		})
 	}

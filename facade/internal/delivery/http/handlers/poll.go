@@ -12,6 +12,7 @@ import (
 	handlerCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/delivery/http/handlers/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/middleware"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
+	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/mailru/easyjson"
@@ -23,6 +24,7 @@ type PollUsecase interface {
 	DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error
 	NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error
 	VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error
+	GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*pb.GetActivePollResponse, error)
 }
 
 const (
@@ -99,6 +101,10 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
 			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+		if errors.Is(err, common.ErrorPollAlreadyExists) {
+			api.RespondError(w, http.StatusConflict, "poll already exists")
 			return
 		}
 		errLog := fmt.Errorf("poll.CreatePoll: %w", err)
@@ -265,6 +271,58 @@ func (h *PollHandler) NextCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
+// GetActivePoll получает активный опрос
+//
+//	@Summary		Получить активный опрос
+//	@Description	Возвращает текущий активный Planning Poker для доски, включая задачи, голоса и приглашённых участников
+//	@Tags			Polls
+//	@Security		sessionCookie
+//	@Produce		json
+//	@Param			board_link	path		string				true	"UUID доски" Format(uuid)
+//	@Success		200			{object}	api.Response		"active poll data"
+//	@Failure		400			{object}	api.ErrorResponse	"invalid board link"
+//	@Failure		401			{object}	api.ErrorResponse	"unauthorized"
+//	@Failure		403			{object}	api.ErrorResponse	"access to board denied"
+//	@Failure		404			{object}	api.ErrorResponse	"no active poll for this board"
+//	@Failure		500			{object}	api.ErrorResponse	"cannot get active poll"
+//	@Router			/boards/{board_link}/polls [get]
+func (h *PollHandler) GetActivePoll(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	boardLink, ok := parsePollBoardLink(w, r)
+	if !ok {
+		return
+	}
+
+	userLink, ok := getPollUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	poll, err := h.poll.GetActivePoll(r.Context(), boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorBoardPermissionDenied) {
+			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+		if errors.Is(err, common.ErrorPollNotFound) {
+			api.RespondError(w, http.StatusNotFound, "no active poll for this board")
+			return
+		}
+		errLog := fmt.Errorf("poll.GetActivePoll: %w", err)
+		logger.Error().Err(errLog).Msg("poll.GetActivePoll failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "GetActivePoll", map[string]interface{}{
+			"user_link":  userLink,
+			"board_link": boardLink,
+			"action":     "get_active_poll",
+		})
+		api.RespondError(w, http.StatusInternalServerError, "cannot get active poll")
+		return
+	}
+
+	api.HandleError(api.RespondOk(w, poll))
 }
 
 func parsePollBoardLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {

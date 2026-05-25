@@ -547,3 +547,19 @@ func (s *Service) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, p
 
 	return nil
 }
+
+func (s *Service) GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*Poll, error) {
+	err := s.permissionChecker.CheckPermissionOnBoard(ctx, boardLink, userLink, rbac.Actions.View)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, rbac.ErrActionDenied
+		}
+		return nil, fmt.Errorf("service.CheckPermission: %w", err)
+	}
+
+	poll, ok := s.pollStore.GetActivePoll(boardLink)
+	if !ok {
+		return nil, common.ErrPollNotFound
+	}
+	return poll, nil
+}

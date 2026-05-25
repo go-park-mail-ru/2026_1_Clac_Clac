@@ -37,6 +37,7 @@ const (
 	BoardService_DeletePoll_FullMethodName            = "/proto.board.v1.BoardService/DeletePoll"
 	BoardService_NextPollCard_FullMethodName          = "/proto.board.v1.BoardService/NextPollCard"
 	BoardService_VotePoll_FullMethodName              = "/proto.board.v1.BoardService/VotePoll"
+	BoardService_GetActivePoll_FullMethodName         = "/proto.board.v1.BoardService/GetActivePoll"
 )
 
 // BoardServiceClient is the client API for BoardService service.
@@ -61,6 +62,7 @@ type BoardServiceClient interface {
 	DeletePoll(ctx context.Context, in *DeletePollRequest, opts ...grpc.CallOption) (*DeletePollResponse, error)
 	NextPollCard(ctx context.Context, in *NextPollCardRequest, opts ...grpc.CallOption) (*NextPollCardResponse, error)
 	VotePoll(ctx context.Context, in *VotePollRequest, opts ...grpc.CallOption) (*VotePollResponse, error)
+	GetActivePoll(ctx context.Context, in *GetActivePollRequest, opts ...grpc.CallOption) (*GetActivePollResponse, error)
 }
 
 type boardServiceClient struct {
@@ -251,6 +253,16 @@ func (c *boardServiceClient) VotePoll(ctx context.Context, in *VotePollRequest, 
 	return out, nil
 }
 
+func (c *boardServiceClient) GetActivePoll(ctx context.Context, in *GetActivePollRequest, opts ...grpc.CallOption) (*GetActivePollResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetActivePollResponse)
+	err := c.cc.Invoke(ctx, BoardService_GetActivePoll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BoardServiceServer is the server API for BoardService service.
 // All implementations must embed UnimplementedBoardServiceServer
 // for forward compatibility.
@@ -273,6 +285,7 @@ type BoardServiceServer interface {
 	DeletePoll(context.Context, *DeletePollRequest) (*DeletePollResponse, error)
 	NextPollCard(context.Context, *NextPollCardRequest) (*NextPollCardResponse, error)
 	VotePoll(context.Context, *VotePollRequest) (*VotePollResponse, error)
+	GetActivePoll(context.Context, *GetActivePollRequest) (*GetActivePollResponse, error)
 	mustEmbedUnimplementedBoardServiceServer()
 }
 
@@ -336,6 +349,9 @@ func (UnimplementedBoardServiceServer) NextPollCard(context.Context, *NextPollCa
 }
 func (UnimplementedBoardServiceServer) VotePoll(context.Context, *VotePollRequest) (*VotePollResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VotePoll not implemented")
+}
+func (UnimplementedBoardServiceServer) GetActivePoll(context.Context, *GetActivePollRequest) (*GetActivePollResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetActivePoll not implemented")
 }
 func (UnimplementedBoardServiceServer) mustEmbedUnimplementedBoardServiceServer() {}
 func (UnimplementedBoardServiceServer) testEmbeddedByValue()                      {}
@@ -682,6 +698,24 @@ func _BoardService_VotePoll_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BoardService_GetActivePoll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActivePollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BoardServiceServer).GetActivePoll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BoardService_GetActivePoll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BoardServiceServer).GetActivePoll(ctx, req.(*GetActivePollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BoardService_ServiceDesc is the grpc.ServiceDesc for BoardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -760,6 +794,10 @@ var BoardService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VotePoll",
 			Handler:    _BoardService_VotePoll_Handler,
+		},
+		{
+			MethodName: "GetActivePoll",
+			Handler:    _BoardService_GetActivePoll_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
