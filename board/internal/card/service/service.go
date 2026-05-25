@@ -430,7 +430,7 @@ func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtas
 }
 
 func (s *Service) DeleteSubtask(ctx context.Context, deleteInfo dto.DeleteSubtask, userLink uuid.UUID) error {
-	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, deleteInfo.SubTaskLink, userLink, rbac.Actions.Delete)
+	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, deleteInfo.SubTaskLink, userLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return rbac.ErrActionDenied
@@ -520,7 +520,7 @@ func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAtt
 }
 
 func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAttachment) error {
-	err := s.permissionChecker.CheckPermissionOnAttachment(ctx, deleteInfo.AttachmentLink, deleteInfo.UserLink, rbac.Actions.Delete)
+	err := s.permissionChecker.CheckPermissionOnAttachment(ctx, deleteInfo.AttachmentLink, deleteInfo.UserLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return rbac.ErrActionDenied
