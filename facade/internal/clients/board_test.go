@@ -208,12 +208,12 @@ func TestBoardCreateInvite(t *testing.T) {
 			setupMock: func(m *mockBoardServiceClient) {
 				target := targetUser.String()
 				resp := &pb.CreateInviteResponse{
-					InviteLink:      inviteLink.String(),
-					BoardLink:       boardLink.String(),
-					TargetUserLink:  &target,
-					DefaultRole:     "viewer",
-					Status:          "active",
-					CreatedAt:       100,
+					InviteLink:     inviteLink.String(),
+					BoardLink:      boardLink.String(),
+					TargetUserLink: &target,
+					DefaultRole:    "viewer",
+					Status:         "active",
+					CreatedAt:      100,
 				}
 				m.On("CreateInvite", mock.Anything, mock.Anything).Return(resp, nil)
 			},

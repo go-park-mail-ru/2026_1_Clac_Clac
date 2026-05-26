@@ -64,12 +64,18 @@ message UpdateBoardRequest {
 
 message UpdateBoardResponse {}
 
-// UploadBackground
-message UploadBackgroundRequest {
+message MetadataUploadBackground {
   string user_link = 1;
   string board_link = 2;
-  bytes image = 3;
-  string filename = 4;
+  string filename = 3;
+}
+
+// UploadBackground
+message UploadBackgroundRequest {
+  oneof request {
+    MetadataUploadBackground metadata = 1;
+    bytes image = 2;
+  }
 }
 
 message UploadBackgroundResponse {
@@ -237,7 +243,7 @@ service BoardService {
   rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
   rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
   rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
-  rpc UploadBackground(UploadBackgroundRequest) returns (UploadBackgroundResponse);
+  rpc UploadBackground(stream UploadBackgroundRequest) returns (UploadBackgroundResponse);
   rpc GetMembers(GetMembersRequest) returns (GetMembersResponse);
   rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
   rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);

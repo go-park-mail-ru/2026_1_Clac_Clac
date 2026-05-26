@@ -122,7 +122,7 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 
 	if err := ms.mailSender.SendRecoveryCode(r.Context(), userLink, request.Email); err != nil {
 		if errors.Is(err, common.ErrorNonexistentEmail) || errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
+			api.Respond(w, http.StatusOK, api.StatusOK)
 			return
 		}
 		errLog := fmt.Errorf("auth.SendRecoveryCode: %w", err)

@@ -47,6 +47,8 @@ type AppealUsecase interface {
 type AppealConfig struct {
 	MultipartAttachmentFileKey string
 	MaxAttachmentSize          int64
+	MaxLenDisplayName          int
+	MaxLenDescription          int
 }
 
 type Appeal struct {
@@ -89,6 +91,21 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateAppealRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if ok = ValidateEmail(request.Email); !ok {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrOAuthInvalidEmail.Error())
+		return
+	}
+
+	if len([]rune(request.DisplayName)) > h.conf.MaxLenDisplayName {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		return
+	}
+
+	if len([]rune(request.Description)) > h.conf.MaxLenDescription {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDescription.Error())
 		return
 	}
 

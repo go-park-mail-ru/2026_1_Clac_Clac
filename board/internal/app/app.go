@@ -137,6 +137,7 @@ func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 			MaxBackgroundSize:          a.Config.Board.Handler.MaxBackgroundSize,
 		}),
 	)
+
 	sectionPB.RegisterSectionServiceServer(
 		engine.Server,
 		section.NewHandler(manager.Section, section.Config(a.Config.Section.Handler)),

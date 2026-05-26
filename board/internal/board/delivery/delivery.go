@@ -1,16 +1,16 @@
 package delivery
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -41,17 +41,25 @@ var (
 	ErrCannotFindBackground   = errors.New("cannot find 'background' key")
 	ErrCannotReadFile         = errors.New("cannot read file")
 	ErrInvalidContentType     = errors.New("invalid content type")
+	ErrCannotGetContentType   = errors.New("can not get content type")
 	ErrCannotOperateWithFile  = errors.New("cannot operate with file")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetUsersOfBoard  = errors.New("cannot get users of board")
+	ErrCloseStream            = errors.New("invalid close stream")
 
-	ErrInviteLinkRequired      = errors.New("invite link is required")
-	ErrInvalidInviteLink       = errors.New("invalid invite link")
-	ErrCannotCreateInvite      = errors.New("cannot create invite")
-	ErrCannotAcceptInvite      = errors.New("cannot accept invite")
-	ErrCannotCloseInvite       = errors.New("cannot close invite")
-	ErrRoleRequired            = errors.New("role is required")
-	ErrInvalidRole             = errors.New("invalid role")
+	ErrInviteLinkRequired = errors.New("invite link is required")
+	ErrInvalidInviteLink  = errors.New("invalid invite link")
+	ErrCannotCreateInvite = errors.New("cannot create invite")
+	ErrCannotAcceptInvite = errors.New("cannot accept invite")
+	ErrCannotCloseInvite  = errors.New("cannot close invite")
+	ErrRoleRequired       = errors.New("role is required")
+	ErrInvalidRole        = errors.New("invalid role")
+
+	ErrAbortConnection  = errors.New("connection is failed")
+	ErrInvalidMetadata  = errors.New("invalid metadata for background")
+	ErrCannotCreateFile = errors.New("can not create file for download image")
+	ErrWriteInFile      = errors.New("invalid write in file")
+	ErrCursorOffset     = errors.New("invalid cursor offset")
 )
 
 //go:generate mockery --name=BoardService --output mock_board_srv
@@ -326,50 +334,99 @@ func (h *BoardHandler) UpdateBoard(ctx context.Context, req *pb.UpdateBoardReque
 	return &pb.UpdateBoardResponse{}, nil
 }
 
-func (h *BoardHandler) UploadBackground(ctx context.Context, req *pb.UploadBackgroundRequest) (*pb.UploadBackgroundResponse, error) {
+func (h *BoardHandler) UploadBackground(stream grpc.ClientStreamingServer[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse]) error {
+	ctx := stream.Context()
 	logger := zerolog.Ctx(ctx)
 
-	rawUserLink := req.GetUserLink()
-	userLink, err := uuid.Parse(rawUserLink)
+	req, err := stream.Recv()
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return status.Error(codes.Aborted, ErrAbortConnection.Error())
 	}
 
-	rawBoardLink := req.GetBoardLink()
-	boardLink, err := uuid.Parse(rawBoardLink)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	metadata := req.GetMetadata()
+	if metadata == nil {
+		return status.Error(codes.InvalidArgument, ErrInvalidMetadata.Error())
 	}
 
-	image := req.GetImage()
+	validFileName := filepath.Base(metadata.Filename)
 
-	contentType := http.DetectContentType(image)
+	extension := filepath.Ext(validFileName)
+
+	uniqueFileName := fmt.Sprintf("%s_%s", uuid.New().String(), validFileName)
+	tempFilePath := filepath.Join(os.TempDir(), uniqueFileName)
+
+	file, err := os.Create(tempFilePath)
+
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateFile.Error())
+	}
+
+	defer func() {
+		file.Close()
+		os.Remove(tempFilePath)
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Aborted, ErrAbortConnection.Error())
+		}
+
+		chunk := req.GetImage()
+		if _, err := file.Write(chunk); err != nil {
+			return status.Error(codes.Internal, ErrWriteInFile.Error())
+		}
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return status.Error(codes.Internal, ErrCursorOffset.Error())
+	}
+
+	contentType, err := GetContentType(file)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotGetContentType.Error())
+	}
 	if !strings.HasPrefix(contentType, "image/") {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
 	}
 
-	filename := req.GetFilename()
-	extension := filepath.Ext(filename)
+	parseBoardLink, err := uuid.Parse(metadata.BoardLink)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "invalid boardLink format")
+	}
 
-	backgroundKey, err := h.srv.UpdateBackground(ctx, bytes.NewReader(image), contentType, extension, boardLink, userLink)
+	parseUserLink, err := uuid.Parse(metadata.UserLink)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "invalid userLink format")
+	}
+
+	backgroundKey, err := h.srv.UpdateBackground(ctx, file, contentType, extension, parseBoardLink, parseUserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrBoardNotFound) {
-			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+			return status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
 		errLog := fmt.Errorf("srv.UpdateBackground: %w", err)
 		logger.Error().Err(errLog).Msg("board service UpdateBackground")
 		sentryLogger.CaptureFromContext(ctx, errLog, "UploadBackground", map[string]interface{}{
-			"user_link":  rawUserLink,
-			"board_link": rawBoardLink,
+			"user_link":  metadata.UserLink,
+			"board_link": metadata.BoardLink,
 			"action":     "upload_background",
 		})
-		return nil, status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
+		return status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
 	}
 
-	return &pb.UploadBackgroundResponse{
+	err = stream.SendAndClose(&pb.UploadBackgroundResponse{
 		BackgroundKey: fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, backgroundKey),
-	}, nil
+	})
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
+	}
+
+	return nil
 }
 
 func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest) (*pb.GetMembersResponse, error) {
@@ -484,19 +541,19 @@ func (h *BoardHandler) CreateInvite(ctx context.Context, req *pb.CreateInviteReq
 		errLog := fmt.Errorf("srv.CreateInvite: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.CreateInvite")
 		sentryLogger.CaptureFromContext(ctx, errLog, "CreateInvite", map[string]interface{}{
-			"user_link":   rawUserLink,
-			"board_link":  rawBoardLink,
-			"action":      "create_invite",
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "create_invite",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateInvite.Error())
 	}
 
 	resp := &pb.CreateInviteResponse{
-		InviteLink:   invite.InviteLink.String(),
-		BoardLink:    invite.BoardLink.String(),
-		DefaultRole:  invite.DefaultRole.String(),
-		Status:       invite.Status.String(),
-		CreatedAt:    invite.CreatedAt.Unix(),
+		InviteLink:  invite.InviteLink.String(),
+		BoardLink:   invite.BoardLink.String(),
+		DefaultRole: invite.DefaultRole.String(),
+		Status:      invite.Status.String(),
+		CreatedAt:   invite.CreatedAt.Unix(),
 	}
 
 	if invite.TargetUser != nil {
@@ -636,10 +693,10 @@ func (h *BoardHandler) UpdateMemberRole(ctx context.Context, req *pb.UpdateMembe
 		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.UpdateMemberRole")
 		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateMemberRole", map[string]interface{}{
-			"user_link":    rawUserLink,
-			"board_link":   rawBoardLink,
-			"target_link":  rawTargetLink,
-			"action":       "update_member_role",
+			"user_link":   rawUserLink,
+			"board_link":  rawBoardLink,
+			"target_link": rawTargetLink,
+			"action":      "update_member_role",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
@@ -683,10 +740,10 @@ func (h *BoardHandler) RemoveMemberFromBoard(ctx context.Context, req *pb.Remove
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.RemoveMemberFromBoard")
 		sentryLogger.CaptureFromContext(ctx, errLog, "RemoveMemberFromBoard", map[string]interface{}{
-			"user_link":    rawUserLink,
-			"board_link":   rawBoardLink,
-			"target_link":  rawTargetLink,
-			"action":       "remove_member",
+			"user_link":   rawUserLink,
+			"board_link":  rawBoardLink,
+			"target_link": rawTargetLink,
+			"action":      "remove_member",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
