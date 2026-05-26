@@ -224,13 +224,13 @@ CREATE TABLE worker_task (
 );
 
 CREATE TABLE listener_task (
-    listener_id INT NOT NULL,
-    task_id INT NOT NULL,
+    user_link gen_random_uuid() NOT NULL UNIQUE,
+    task_link gen_random_uuid() NOT NULL UNIQUE,
 
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 
-    CONSTRAINT pk_listener_task PRIMARY KEY (listener_id, task_id),
-    CONSTRAINT fk_lt_task FOREIGN KEY (task_id) REFERENCES task(task_id) ON DELETE CASCADE
+    CONSTRAINT pk_listener_task PRIMARY KEY (listener_link, task_link),
+    CONSTRAINT fk_lt_task FOREIGN KEY (task_link) REFERENCES task(task_link) ON DELETE CASCADE
 );
 
 CREATE TABLE comment_task (
