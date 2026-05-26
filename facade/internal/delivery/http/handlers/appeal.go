@@ -72,10 +72,10 @@ func NewAppeal(service AppealUsecase, conf AppealConfig) *Appeal {
 //	@Produce		json
 //	@Param			request	body		dto.CreateAppealRequest		true	"Данные обращения"
 //	@Success		200		{object}	object{appeal_link=string}	"Appeal link UUID"
-//	@Failure		400		{string}	string						"Bad Request"
-//	@Failure		401		{string}	string						"Unauthorized"
-//	@Failure		500		{string}	string						"Internal Server Error"
-//	@Security		BearerAuth
+//	@Failure		400		{object}	api.ErrorResponse			"Bad Request"
+//	@Failure		401		{object}	api.ErrorResponse			"Unauthorized"
+//	@Failure		500		{object}	api.ErrorResponse			"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals [post]
 func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -101,6 +101,16 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 
 	if len([]rune(request.DisplayName)) > h.conf.MaxLenDisplayName {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		return
+	}
+
+	if err := common.ValidateTextInfo(request.Description, h.conf.MaxLenDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		return
+	}
+
+	if request.Category == "" {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidCategory.Error())
 		return
 	}
 
@@ -146,9 +156,9 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Appeals
 //	@Produce		json
 //	@Success		200	{object}	dto.GetAppealsResponse	"Успешный ответ со списком обращений"
-//	@Failure		401	{string}	string					"Unauthorized"
-//	@Failure		500	{string}	string					"Internal Server Error"
-//	@Security		BearerAuth
+//	@Failure		401	{object}	api.ErrorResponse		"Unauthorized"
+//	@Failure		500	{object}	api.ErrorResponse		"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals [get]
 func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -205,10 +215,10 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 //	@Param			link		path		string	true	"UUID обращения"	format(uuid)
 //	@Param			attachment	formData	file	true	"Файл вложения (PNG/JPEG)"
 //	@Success		200			{object}	api.OkResponse[dto.UploadAttachmentResponse]
-//	@Failure		400			{string}	string	"Bad Request"
-//	@Failure		401			{string}	string	"Unauthorized"
-//	@Failure		500			{string}	string	"Internal Server Error"
-//	@Security		BearerAuth
+//	@Failure		400			{object}	api.ErrorResponse	"Bad Request / invalid description / invalid category"
+//	@Failure		401			{object}	api.ErrorResponse	"Unauthorized"
+//	@Failure		500			{object}	api.ErrorResponse	"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals/{link}/attachment [put]
 func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -298,11 +308,11 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 //	@Description	Удаляет конкретное обращение по его UUID
 //	@Tags			Appeals
 //	@Param			link	path		string	true	"UUID обращения"	format(uuid)
-//	@Success		200		{string}	string	"OK"
-//	@Failure		400		{string}	string	"Bad Request (невалидный UUID)"
-//	@Failure		401		{string}	string	"Unauthorized"
-//	@Failure		500		{string}	string	"Internal Server Error"
-//	@Security		BearerAuth
+//	@Success		200		{object}	api.Response		"OK"
+//	@Failure		400		{object}	api.ErrorResponse	"Bad Request (невалидный UUID)"
+//	@Failure		401		{object}	api.ErrorResponse	"Unauthorized"
+//	@Failure		500		{object}	api.ErrorResponse	"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals/{link} [delete]
 func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -363,10 +373,10 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 //	@Tags			Appeals
 //	@Produce		json
 //	@Success		200	{object}	dto.AppealsStats	"Успешный ответ со статистикой"
-//	@Failure		401	{string}	string				"Unauthorized"
-//	@Failure		403	{string}	string				"Forbidden (Недостаточно прав)"
-//	@Failure		500	{string}	string				"Internal Server Error"
-//	@Security		BearerAuth
+//	@Failure		401	{object}	api.ErrorResponse	"Unauthorized"
+//	@Failure		403	{object}	api.ErrorResponse	"Forbidden (Недостаточно прав)"
+//	@Failure		500	{object}	api.ErrorResponse	"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals/stats [get]
 func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
@@ -413,12 +423,12 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			link	path		string						true	"UUID обращения"	format(uuid)
 //	@Param			request	body		dto.ChangeAppealStatusInfo	true	"Новый статус"
-//	@Success		200		{string}	string						"OK"
-//	@Failure		400		{string}	string						"Bad Request"
-//	@Failure		401		{string}	string						"Unauthorized"
-//	@Failure		403		{string}	string						"Forbidden (Недостаточно прав)"
-//	@Failure		500		{string}	string						"Internal Server Error"
-//	@Security		BearerAuth
+//	@Success		200		{object}	api.Response				"OK"
+//	@Failure		400		{object}	api.ErrorResponse			"Bad Request"
+//	@Failure		401		{object}	api.ErrorResponse			"Unauthorized"
+//	@Failure		403		{object}	api.ErrorResponse			"Forbidden (Недостаточно прав)"
+//	@Failure		500		{object}	api.ErrorResponse			"Internal Server Error"
+//	@Security		sessionCookie
 //	@Router			/appeals/{link} [patch]
 func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())

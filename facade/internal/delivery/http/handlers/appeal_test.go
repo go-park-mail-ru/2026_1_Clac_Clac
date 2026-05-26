@@ -25,6 +25,8 @@ import (
 var defaultAppealCfg = AppealConfig{
 	MultipartAttachmentFileKey: "attachment",
 	MaxAttachmentSize:          5 << 20,
+	MaxLenDisplayName:          128,
+	MaxLenDescription:          500,
 }
 
 func newTestAppealHandler(svc AppealUsecase) *Appeal {

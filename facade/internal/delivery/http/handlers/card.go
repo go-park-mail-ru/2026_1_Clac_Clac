@@ -78,8 +78,12 @@ const (
 )
 
 type CardConfig struct {
-	MaxLenTitle       int
-	MaxLenDescription int
+	MaxLenTitle              int
+	MaxLenDescription        int
+	MaxLenComment            int
+	MaxLenSubtaskDescription int
+	MinPoints                int
+	MaxPoints                int
 
 	MultipartAttachmentFileKey string
 	MaxAttachmentSize          int64
@@ -409,7 +413,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			input	body		dto.CreateCardRequest					true	"Данные карточки"
 //	@Success		200		{object}	api.OkResponse[dto.CreateCardResponse]	"Карточка создана"
-//	@Failure		400		{object}	api.ErrorResponse						"Некорректные данные или лимит задач"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректные данные или лимит задач / incorrect title / incorrect description"
 //	@Failure		401		{object}	api.ErrorResponse						"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse						"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse						"Секция не найдена"
@@ -434,6 +438,11 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 
 	if err := common.ValidateTextInfo(req.Title, c.cfg.MaxLenTitle); err != nil {
 		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect title: %s", err.Error()))
+		return
+	}
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -561,7 +570,7 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 //	@Param			link	path		string										true	"UUID карточки"
 //	@Param			input	body		dto.CreateCommentRequest					true	"Данные комментария"
 //	@Success		200		{object}	api.OkResponse[dto.CreateCommentResponse]	"Комментарий создан"
-//	@Failure		400		{object}	api.ErrorResponse							"Некорректные данные"
+//	@Failure		400		{object}	api.ErrorResponse							"Некорректные данные / incorrect comment text"
 //	@Failure		401		{object}	api.ErrorResponse							"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse							"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse							"Карточка не найдена"
@@ -587,6 +596,11 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Text, c.cfg.MaxLenComment); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect comment text: %s", err.Error()))
+		return
+	}
 
 	var parentLink *uuid.UUID
 	if req.ParentLink != nil && *req.ParentLink != "" {
@@ -699,7 +713,7 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 //	@Param			comment_link	path		string						true	"UUID комментария"
 //	@Param			input			body		dto.UpdateCommentRequest	true	"Новый текст"
 //	@Success		200				{object}	api.Response				"Комментарий обновлён"
-//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные"
+//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные / incorrect comment text"
 //	@Failure		401				{object}	api.ErrorResponse			"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Комментарий не найден"
@@ -727,6 +741,11 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Text, c.cfg.MaxLenComment); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect comment text: %s", err.Error()))
+		return
+	}
 
 	err = c.card.UpdateComment(r.Context(), domain.UpdateCommentRequest{
 		UserLink:    userLink,
@@ -771,7 +790,7 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 //	@Param			link	path		string								true	"UUID карточки"
 //	@Param			input	body		dto.CreateSubtaskRequest			true	"Данные подзадачи"
 //	@Success		200		{object}	api.OkResponse[dto.SubtaskResponse]	"Подзадача создана"
-//	@Failure		400		{object}	api.ErrorResponse					"Некорректные данные"
+//	@Failure		400		{object}	api.ErrorResponse					"Некорректные данные / incorrect subtask description"
 //	@Failure		401		{object}	api.ErrorResponse					"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse					"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse					"Карточка не найдена"
@@ -797,6 +816,11 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenSubtaskDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect subtask description: %s", err.Error()))
+		return
+	}
 
 	subtask, err := c.card.CreateSubtask(r.Context(), domain.CreateSubtaskRequest{
 		UserLink:    userLink,
@@ -841,7 +865,7 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 //	@Param			subtask_link	path		string						true	"UUID подзадачи"
 //	@Param			input			body		dto.UpdateSubtaskRequest	true	"Данные подзадачи"
 //	@Success		200				{object}	api.Response				"Подзадача обновлена"
-//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные"
+//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные / incorrect subtask description"
 //	@Failure		401				{object}	api.ErrorResponse			"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Подзадача не найдена"
@@ -869,6 +893,11 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenSubtaskDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect subtask description: %s", err.Error()))
+		return
+	}
 
 	err = c.card.UpdateSubtask(r.Context(), domain.UpdateSubtaskRequest{
 		UserLink:    userLink,
@@ -1260,7 +1289,7 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 //	@Param			link	path		string							true	"UUID карточки" Format(uuid)
 //	@Param			request	body		dto.UpdateCardPointsRequest		true	"Оценка"
 //	@Success		200		{object}	api.Response					"points updated"
-//	@Failure		400		{object}	api.ErrorResponse				"invalid card link / invalid request"
+//	@Failure		400		{object}	api.ErrorResponse				"invalid card link / invalid request / points out of range"
 //	@Failure		401		{object}	api.ErrorResponse				"unauthorized"
 //	@Failure		403		{object}	api.ErrorResponse				"permission denied / not poll admin"
 //	@Failure		404		{object}	api.ErrorResponse				"card not found"
@@ -1282,6 +1311,11 @@ func (c *Card) UpdatePoints(w http.ResponseWriter, r *http.Request) {
 	var req dto.UpdateCardPointsRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.Points != nil && (*req.Points < c.cfg.MinPoints || *req.Points > c.cfg.MaxPoints) {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("points must be between %d and %d", c.cfg.MinPoints, c.cfg.MaxPoints))
 		return
 	}
 

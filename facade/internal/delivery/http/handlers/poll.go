@@ -31,13 +31,20 @@ const (
 	pollBoardLinkKey = "board_link"
 )
 
-type PollHandler struct {
-	poll PollUsecase
+type PollConfig struct {
+	MinVotePoints int
+	MaxVotePoints int
 }
 
-func NewPollHandler(poll PollUsecase) *PollHandler {
+type PollHandler struct {
+	poll PollUsecase
+	cfg  PollConfig
+}
+
+func NewPollHandler(poll PollUsecase, cfg PollConfig) *PollHandler {
 	return &PollHandler{
 		poll: poll,
+		cfg:  cfg,
 	}
 }
 
@@ -52,7 +59,7 @@ func NewPollHandler(poll PollUsecase) *PollHandler {
 //	@Param			board_link	path		string					true	"UUID доски" Format(uuid)
 //	@Param			request		body		dto.CreatePollRequest	true	"Карточки и приглашённые участники"
 //	@Success		201			{object}	api.Response			"poll created"
-//	@Failure		400			{object}	api.ErrorResponse		"invalid board link / invalid request schema"
+//	@Failure		400			{object}	api.ErrorResponse		"invalid board link / invalid request schema / card links must not be empty / too many cards / too many invitees"
 //	@Failure		401			{object}	api.ErrorResponse		"unauthorized"
 //	@Failure		403			{object}	api.ErrorResponse		"action denied (not admin/creator)"
 //	@Failure		409			{object}	api.ErrorResponse		"poll already exists"
@@ -74,6 +81,11 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreatePollRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if len(req.CardLinks) == 0 {
+		api.RespondError(w, http.StatusBadRequest, "card links must not be empty")
 		return
 	}
 
@@ -132,7 +144,7 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 //	@Param			board_link	path		string					true	"UUID доски" Format(uuid)
 //	@Param			request		body		dto.VotePollRequest		true	"Оценка"
 //	@Success		200			{object}	api.Response			"vote accepted"
-//	@Failure		400			{object}	api.ErrorResponse		"invalid board link / invalid request schema"
+//	@Failure		400			{object}	api.ErrorResponse		"invalid board link / invalid request schema / points out of range"
 //	@Failure		401			{object}	api.ErrorResponse		"unauthorized"
 //	@Failure		403			{object}	api.ErrorResponse		"user not invited"
 //	@Failure		404			{object}	api.ErrorResponse		"poll not found"
@@ -154,6 +166,11 @@ func (h *PollHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	var req dto.VotePollRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.Points < h.cfg.MinVotePoints || req.Points > h.cfg.MaxVotePoints {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("points must be between %d and %d", h.cfg.MinVotePoints, h.cfg.MaxVotePoints))
 		return
 	}
 

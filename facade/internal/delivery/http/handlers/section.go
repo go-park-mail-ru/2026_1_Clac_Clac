@@ -320,7 +320,7 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.MaxTasks != nil && *req.MaxTasks > h.cfg.MaxQuantityTasks && *req.MaxTasks >= 0 {
+	if req.MaxTasks != nil && (*req.MaxTasks > h.cfg.MaxQuantityTasks || *req.MaxTasks < 0) {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
 		return
 	}
@@ -511,7 +511,7 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.MaxTasks != nil && *req.MaxTasks > h.cfg.MaxQuantityTasks {
+	if req.MaxTasks != nil && (*req.MaxTasks > h.cfg.MaxQuantityTasks || *req.MaxTasks < 0) {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
 		return
 	}

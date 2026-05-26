@@ -73,6 +73,7 @@ type BoardConfig struct {
 	MultipartBackgroundFileKey string
 	MaxBackgroundSize          int64
 	MaxDisplayName             int
+	MaxLenDescription          int
 }
 
 type Board struct {
@@ -202,7 +203,7 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 // @Produce		json
 // @Param			request	body		dto.CreateBoardRequest	true	"DTO для создания доски"
 // @Success		201		{object}	api.OkResponse[dto.BoardInfo]
-// @Failure		400		{object}	api.ErrorResponse	"invalid request schema"
+// @Failure		400		{object}	api.ErrorResponse	"invalid request schema / incorrect description / incorrect background"
 // @Failure		401		{object}	api.ErrorResponse	"unauthorized"
 // @Failure		500		{object}	api.ErrorResponse	"cannot create board"
 // @Router			/boards [post]
@@ -228,6 +229,11 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if err := common.ValidateTextInfo(req.Description, h.conf.MaxLenDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -320,7 +326,7 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 // @Param			link	path		string					true	"UUID доски"	Format(uuid)
 // @Param			request	body		dto.UpdateBoardRequest	true	"DTO с новыми данными для обновления"
 // @Success		200		{object}	api.Response			"status ok"
-// @Failure		400		{object}	api.ErrorResponse		"invalid request schema"
+// @Failure		400		{object}	api.ErrorResponse		"invalid request schema / incorrect display name size / incorrect description / incorrect background"
 // @Failure		401		{object}	api.ErrorResponse		"unauthorized"
 // @Failure		403		{object}	api.ErrorResponse		"action denied"
 // @Failure		404		{object}	api.ErrorResponse		"board not found"
@@ -355,6 +361,11 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		return
+	}
+
+	if err := common.ValidateTextInfo(req.Description, h.conf.MaxLenDescription); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 

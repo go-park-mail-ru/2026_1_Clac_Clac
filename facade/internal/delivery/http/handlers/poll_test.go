@@ -55,7 +55,10 @@ func (m *mockPollUsecase) GetActivePoll(ctx context.Context, boardLink, userLink
 }
 
 func newTestPollHandler(uc PollUsecase) *PollHandler {
-	return NewPollHandler(uc)
+	return NewPollHandler(uc, PollConfig{
+		MinVotePoints: 1,
+		MaxVotePoints: 21,
+	})
 }
 
 func newPollRequest(method, path, body string) *http.Request {

@@ -26,6 +26,7 @@ import (
 var defaultAuthCfg = AuthConfig{
 	MaxLenPassword:    128,
 	MinLenPassword:    8,
+	MaxLenNameUser:    128,
 	SessionLifetime:   24 * time.Hour,
 	VKOAuthRedirectTo: "http://localhost/oauth",
 }

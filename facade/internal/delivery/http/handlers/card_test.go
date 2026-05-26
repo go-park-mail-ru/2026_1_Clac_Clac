@@ -30,7 +30,14 @@ var (
 	fixedAttachmentLinkH = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 )
 
-var defaultCardCfg = CardConfig{MaxLenTitle: 128, MaxLenDescription: 500}
+var defaultCardCfg = CardConfig{
+	MaxLenTitle:              128,
+	MaxLenDescription:        500,
+	MaxLenComment:            2000,
+	MaxLenSubtaskDescription: 500,
+	MinPoints:                1,
+	MaxPoints:                21,
+}
 
 type mockCardUsecase struct {
 	mock.Mock

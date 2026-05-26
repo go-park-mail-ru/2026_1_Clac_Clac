@@ -48,4 +48,6 @@ var (
 	ErrInvalidCardData     = errors.New("invalid card data")
 
 	ErrInccorectQuantityTasks = errors.New("inccorect quantity tasks per section")
+
+	ErrInvalidCategory = errors.New("invalid category")
 )

@@ -40,6 +40,7 @@ type UserUsecase interface {
 type AuthConfig struct {
 	MaxLenPassword    int
 	MinLenPassword    int
+	MaxLenNameUser    int
 	SessionLifetime   time.Duration
 	VKOAuthRedirectTo string
 }
@@ -181,7 +182,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			input	body		dto.RegisterRequest						true	"Данные для регистрации"
 //	@Success		201		{object}	api.OkResponse[dto.UserInfoResponse]	"Аккаунт создан, cookie session_id установлен"
-//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают; некорректная длина display_name"
 //	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден (ошибка при создании сессии)"
 //	@Failure		409		{object}	api.ErrorResponse						"Пользователь с таким email уже существует"
 //	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток регистрации"
@@ -197,6 +198,11 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	request.Sanitize()
+
+	if err := common.ValidateTextInfo(request.DisplayName, a.cfg.MaxLenNameUser); err != nil {
+		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect display name: %s", err.Error()))
+		return
+	}
 
 	if err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword, a.cfg.MaxLenPassword, a.cfg.MinLenPassword); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())

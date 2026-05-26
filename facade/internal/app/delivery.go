@@ -21,6 +21,7 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	authConfig := handlers.AuthConfig{
 		MaxLenPassword:    conf.Services.Auth.Handler.MaxLenPassword,
 		MinLenPassword:    conf.Services.Auth.Handler.MinLenPassword,
+		MaxLenNameUser:    conf.Services.Auth.Handler.MaxLenNameUser,
 		SessionLifetime:   conf.Services.Auth.Handler.SessionLifetime,
 		VKOAuthRedirectTo: conf.Services.Auth.Handler.VKOAuthRedirectTo,
 	}
@@ -40,8 +41,12 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	}
 
 	cardConfig := handlers.CardConfig{
-		MaxLenTitle:       conf.Services.Card.Handler.MaxLenTitle,
-		MaxLenDescription: conf.Services.Card.Handler.MaxLenDescription,
+		MaxLenTitle:              conf.Services.Card.Handler.MaxLenTitle,
+		MaxLenDescription:        conf.Services.Card.Handler.MaxLenDescription,
+		MaxLenComment:            conf.Services.Card.Handler.MaxLenComment,
+		MaxLenSubtaskDescription: conf.Services.Card.Handler.MaxLenSubtaskDescription,
+		MinPoints:                conf.Services.Card.Handler.MinPoints,
+		MaxPoints:                conf.Services.Card.Handler.MaxPoints,
 
 		MultipartAttachmentFileKey: conf.Services.Card.Handler.MultipartAttachmentFileKey,
 		MaxAttachmentSize:          conf.App.MaxFileSize,
@@ -51,6 +56,7 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
 		MaxBackgroundSize:          conf.App.MaxUploadImageSize,
 		MaxDisplayName:             conf.Services.Board.Handler.MaxDisplayName,
+		MaxLenDescription:          conf.Services.Board.Handler.MaxLenDescription,
 	}
 	appealConfig := handlers.AppealConfig{
 		MultipartAttachmentFileKey: conf.Services.Appeal.Handler.MultipartAttachmentFileKey,
@@ -64,6 +70,11 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		MaxQuantityTasks:  conf.Services.Section.Handler.MaxQuantityTasks,
 	}
 
+	pollConfig := handlers.PollConfig{
+		MinVotePoints: conf.Services.Card.Handler.MinPoints,
+		MaxVotePoints: conf.Services.Card.Handler.MaxPoints,
+	}
+
 	return &Delivery{
 		Auth:       handlers.NewAuthHandler(manager.Auth, manager.User, authConfig),
 		Profile:    handlers.NewProfileHandler(manager.User, manager.MailSender, profileConfig),
@@ -73,6 +84,6 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		Board:      handlers.NewBoard(manager.Board, manager.User, boardConfig),
 		Section:    handlers.NewSection(manager.Section, sectionConfig),
 		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
-		Poll:       handlers.NewPollHandler(manager.Poll),
+		Poll:       handlers.NewPollHandler(manager.Poll, pollConfig),
 	}
 }

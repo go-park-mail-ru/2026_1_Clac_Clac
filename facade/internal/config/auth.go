@@ -7,14 +7,15 @@ import (
 const (
 	authConfigDefaultMaxLenPassword    = 128
 	authConfigDefaultMinLenPassword    = 8
+	authConfigDefaultMaxLenNameUser    = 128
 	authConfigSessionLifeTime          = 24 * time.Hour
 	authConfigDefaultVKOAuthRedirectTo = "/"
-	vkOAuthDefaultValue                = ""
 )
 
 type HandlerAuth struct {
 	MaxLenPassword    int           `mapstructure:"max_len_password"`
 	MinLenPassword    int           `mapstructure:"min_len_password"`
+	MaxLenNameUser    int           `mapstructure:"max_len_name_user"`
 	SessionLifetime   time.Duration `mapstructure:"session_life_time"`
 	VKOAuthRedirectTo string        `mapstructure:"vk_oauth_redirect_to"`
 }
@@ -33,6 +34,7 @@ func DefaultAuthConfig() Auth {
 		Handler: HandlerAuth{
 			MaxLenPassword:    authConfigDefaultMaxLenPassword,
 			MinLenPassword:    authConfigDefaultMinLenPassword,
+			MaxLenNameUser:    authConfigDefaultMaxLenNameUser,
 			SessionLifetime:   authConfigSessionLifeTime,
 			VKOAuthRedirectTo: authConfigDefaultVKOAuthRedirectTo,
 		},
