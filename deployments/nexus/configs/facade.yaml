@@ -63,6 +63,7 @@ services:
       addr: "nexus-board-service:8080"
       timeout: 5s
       retries: 5
+      chunk_size: 1048576
     handler:
       multipart_background_file_key: "background"
 

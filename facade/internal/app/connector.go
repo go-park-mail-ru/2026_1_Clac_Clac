@@ -102,6 +102,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 
 	configBoard := clients.ConfigBoard{
 		MaxBackgroundBytesSize: int(app.MaxUploadImageSize),
+		ChunkSize:              config.Board.Client.ChunkSize,
 	}
 
 	configCard := clients.CardConfig{

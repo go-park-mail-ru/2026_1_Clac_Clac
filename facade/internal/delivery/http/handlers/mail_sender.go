@@ -107,7 +107,7 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	userLink, err := ms.geterUserLink.GetUserLink(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentEmail) || errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
+			api.Respond(w, http.StatusOK, api.StatusOK)
 			return
 		}
 		errLog := fmt.Errorf("GetUserLink: %w", err)
