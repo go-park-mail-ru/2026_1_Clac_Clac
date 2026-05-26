@@ -49,10 +49,14 @@ services:
     hasConfig: true
     hasSecrets: true
 <<<<<<< HEAD
+<<<<<<< HEAD
     image: nisakoo/nexus-facade:sha-ee25d13
 =======
     image: nisakoo/nexus-facade:sha-0a7cdc5
 >>>>>>> ref/me
+=======
+    image: nisakoo/nexus-facade:sha-6479256
+>>>>>>> 6046f702c42be157bb09bc53e77a9cd0beefb647
     port: 8080
     database:
       enabled: false
@@ -152,7 +156,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-board:sha-ee25d13
+    image: nisakoo/nexus-board:sha-6479256
     port: 8080
     database:
       enabled: true
