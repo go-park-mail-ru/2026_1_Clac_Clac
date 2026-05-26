@@ -37,7 +37,6 @@ services:
       max_len_description_user: 500
       max_len_password: 128
       min_len_password: 8
-      max_len_name_user: 128
       valid_extensions:
         image/png:
         image/jpg:
