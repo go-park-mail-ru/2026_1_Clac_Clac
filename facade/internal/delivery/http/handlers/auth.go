@@ -35,6 +35,7 @@ type UserUsecase interface {
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
 	ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
+	GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error)
 }
 
 type AuthConfig struct {
@@ -59,25 +60,55 @@ func NewAuthHandler(auth AuthUsecase, user UserUsecase, cfg AuthConfig) *Auth {
 	}
 }
 
-// MeHandler проверяет текущую сессию пользователя
+// MeHandler проверяет текущую сессию пользователя и возвращает его ссылку и профиль
 //
 //	@Summary		Проверка авторизации (Me)
-//	@Description	Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
+//	@Description	Возвращает 200, userLink и профиль если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
 //	@Tags			Auth
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Success		200	{object}	api.Response		"Пользователь авторизован"
-//	@Failure		401	{object}	api.ErrorResponse	"Сессия отсутствует или истекла"
+//	@Success		200	{object}	api.OkResponse[dto.MeResponse]	"Пользователь авторизован"
+//	@Failure		401	{object}	api.ErrorResponse				"Сессия отсутствует или истекла"
+//	@Failure		500	{object}	api.ErrorResponse				"Внутренняя ошибка сервера при получении профиля"
 //	@Router			/me [get]
 func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	value := r.Context().Value(middleware.UserContextLink{})
-	_, ok := value.(uuid.UUID)
+	userLink, ok := value.(uuid.UUID)
 	if !ok {
 		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	user, err := a.user.GetProfile(r.Context(), userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+			return
+		}
+		errLog := fmt.Errorf("user.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("MeHandler failed to get profile")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "MeHandler", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile",
+		})
+		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		return
+	}
+
+	response := dto.MeResponse{
+		UserLink: userLink,
+		Profile: dto.ProfileResponse{
+			Link:        user.UserLink,
+			DisplayName: user.DisplayName,
+			Description: user.Description,
+			Email:       user.Email,
+			AvatarURL:   user.AvatarURL,
+		},
+	}
+
+	api.HandleError(api.RespondOk(w, response))
 }
 
 // LogInUser выполняет вход пользователя

@@ -114,6 +114,13 @@ definitions:
       status:
         type: string
     type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse
+  : properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse'
+      status:
+        type: string
+    type: object
   ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_ProfileResponse
   : properties:
       data:
@@ -570,6 +577,15 @@ definitions:
         type: string
       password:
         example: p@ssword123
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse:
+    description: Информация об авторизованном пользователе
+    properties:
+      profile:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ProfileResponse'
+      user_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo:
@@ -2725,17 +2741,21 @@ paths:
       - Auth
   /me:
     get:
-      description: Возвращает 200 если сессия активна (пользователь авторизован).
-        Используется для проверки состояния авторизации на клиенте.
+      description: Возвращает 200, userLink и профиль если сессия активна (пользователь
+        авторизован). Используется для проверки состояния авторизации на клиенте.
       produces:
       - application/json
       responses:
         "200":
           description: Пользователь авторизован
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse'
         "401":
           description: Сессия отсутствует или истекла
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера при получении профиля
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
