@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/user/v1"
@@ -16,6 +18,7 @@ import (
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/user/internal/user/service/dto"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -37,6 +40,10 @@ const (
 	msgFailFoundUser      = "user not found"
 	msgFailNullValue      = "get null, but wait not null"
 	msgInvalidProfileData = "invalid profile data"
+	msgInvalidMetadata    = "invalid metadata for avatar"
+	msgCannotCreateFile   = "cannot create temp file for download avatar"
+	msgWriteInFile        = "cannot write chunk to file"
+	msgCursorOffset       = "cannot set cursor offset"
 )
 
 type AuthService interface {
@@ -365,39 +372,86 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *pb.UpdateProfileReques
 	return &pb.UpdateProfileResponse{}, nil
 }
 
-func (h *Handler) UpdateAvatar(ctx context.Context, req *pb.UpdateAvatarRequest) (*pb.AvatarResponse, error) {
+func (h *Handler) UpdateAvatar(stream grpc.ClientStreamingServer[pb.UpdateAvatarRequest, pb.AvatarResponse]) error {
+	ctx := stream.Context()
 	logger := zerolog.Ctx(ctx)
 
-	parseUserLink, err := uuid.Parse(req.UserLink)
+	req, err := stream.Recv()
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, msgFailParseUserLink)
+		return status.Error(codes.Aborted, "connection is failed")
 	}
 
-	if len(req.FileData) == 0 {
-		return nil, status.Error(codes.InvalidArgument, msgEmptyFile)
+	metadata := req.GetMetadata()
+	if metadata == nil {
+		return status.Error(codes.InvalidArgument, msgInvalidMetadata)
+	}
+
+	parseUserLink, err := uuid.Parse(metadata.UserLink)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, msgFailParseUserLink)
+	}
+
+	uniqueFileName := fmt.Sprintf("%s_avatar", uuid.New().String())
+	tempFilePath := filepath.Join(os.TempDir(), uniqueFileName)
+
+	file, err := os.Create(tempFilePath)
+	if err != nil {
+		return status.Error(codes.Internal, msgCannotCreateFile)
+	}
+
+	defer func() {
+		file.Close()
+		os.Remove(tempFilePath)
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Aborted, "connection is failed")
+		}
+
+		chunk := req.GetFileData()
+		if len(chunk) == 0 && err != io.EOF {
+			continue
+		}
+		if _, err := file.Write(chunk); err != nil {
+			return status.Error(codes.Internal, msgWriteInFile)
+		}
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return status.Error(codes.Internal, msgCursorOffset)
 	}
 
 	avatarUrl, err := h.srv.UpdateAvatar(ctx, serviceDto.UpdatedAvatar{
 		UserLink: parseUserLink,
-		MimeType: req.ContentType,
-		File:     bytes.NewReader(req.FileData),
+		MimeType: metadata.ContentType,
+		File:     file,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			return nil, status.Error(codes.NotFound, msgFailFoundUser)
+			return status.Error(codes.NotFound, msgFailFoundUser)
 		}
 		logger.Error().Err(err).Msg("UpdateAvatar failed")
 
 		sentryLogger.CaptureFromContext(ctx, err, "UpdateAvatar", map[string]interface{}{
-			"user_link": req.UserLink,
-			"mime_type": req.ContentType,
+			"user_link": metadata.UserLink,
+			"mime_type": metadata.ContentType,
 			"action":    "update_avatar",
 		})
 
-		return nil, status.Error(codes.Internal, msgInternalError)
+		return status.Error(codes.Internal, msgInternalError)
 	}
 
-	return &pb.AvatarResponse{AvatarUrl: avatarUrl}, nil
+	err = stream.SendAndClose(&pb.AvatarResponse{AvatarUrl: avatarUrl})
+	if err != nil {
+		return status.Error(codes.Internal, msgInternalError)
+	}
+
+	return nil
 }
 
 func (h *Handler) DeleteAvatar(ctx context.Context, req *pb.UserLinkRequest) (*pb.DeleteAvatarResponse, error) {

@@ -46,4 +46,6 @@ var (
 	ErrIncorrectUniqCard   = errors.New("link card must be unique")
 	ErrIncorrectReferences = errors.New("incorrect foreign key")
 	ErrInvalidCardData     = errors.New("invalid card data")
+
+	ErrInccorectQuantityTasks = errors.New("inccorect quantity tasks per section")
 )

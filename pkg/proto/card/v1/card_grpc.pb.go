@@ -54,7 +54,7 @@ type CardServiceClient interface {
 	CreateSubtask(ctx context.Context, in *CreateSubtaskRequest, opts ...grpc.CallOption) (*CreateSubtaskResponse, error)
 	UpdateSubtask(ctx context.Context, in *UpdateSubtaskRequest, opts ...grpc.CallOption) (*UpdateSubtaskResponse, error)
 	DeleteSubtask(ctx context.Context, in *DeleteSubtaskRequest, opts ...grpc.CallOption) (*DeleteSubtaskResponse, error)
-	CreateAttachment(ctx context.Context, in *CreateAttachmentRequest, opts ...grpc.CallOption) (*CreateAttachmentResponse, error)
+	CreateAttachment(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateAttachmentRequest, CreateAttachmentResponse], error)
 	DeleteAttachment(ctx context.Context, in *DeleteAttachmentRequest, opts ...grpc.CallOption) (*DeleteAttachmentResponse, error)
 	UpdateStatusTask(ctx context.Context, in *UpdateStatusTaskRequest, opts ...grpc.CallOption) (*UpdateStatusTaskResponse, error)
 	UpdateTimeLineTask(ctx context.Context, in *UpdateTimeLineTaskRequest, opts ...grpc.CallOption) (*UpdateTimeLineTaskResponse, error)
@@ -189,15 +189,18 @@ func (c *cardServiceClient) DeleteSubtask(ctx context.Context, in *DeleteSubtask
 	return out, nil
 }
 
-func (c *cardServiceClient) CreateAttachment(ctx context.Context, in *CreateAttachmentRequest, opts ...grpc.CallOption) (*CreateAttachmentResponse, error) {
+func (c *cardServiceClient) CreateAttachment(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateAttachmentRequest, CreateAttachmentResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateAttachmentResponse)
-	err := c.cc.Invoke(ctx, CardService_CreateAttachment_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &CardService_ServiceDesc.Streams[0], CardService_CreateAttachment_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[CreateAttachmentRequest, CreateAttachmentResponse]{ClientStream: stream}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CardService_CreateAttachmentClient = grpc.ClientStreamingClient[CreateAttachmentRequest, CreateAttachmentResponse]
 
 func (c *cardServiceClient) DeleteAttachment(ctx context.Context, in *DeleteAttachmentRequest, opts ...grpc.CallOption) (*DeleteAttachmentResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -255,7 +258,7 @@ type CardServiceServer interface {
 	CreateSubtask(context.Context, *CreateSubtaskRequest) (*CreateSubtaskResponse, error)
 	UpdateSubtask(context.Context, *UpdateSubtaskRequest) (*UpdateSubtaskResponse, error)
 	DeleteSubtask(context.Context, *DeleteSubtaskRequest) (*DeleteSubtaskResponse, error)
-	CreateAttachment(context.Context, *CreateAttachmentRequest) (*CreateAttachmentResponse, error)
+	CreateAttachment(grpc.ClientStreamingServer[CreateAttachmentRequest, CreateAttachmentResponse]) error
 	DeleteAttachment(context.Context, *DeleteAttachmentRequest) (*DeleteAttachmentResponse, error)
 	UpdateStatusTask(context.Context, *UpdateStatusTaskRequest) (*UpdateStatusTaskResponse, error)
 	UpdateTimeLineTask(context.Context, *UpdateTimeLineTaskRequest) (*UpdateTimeLineTaskResponse, error)
@@ -306,8 +309,8 @@ func (UnimplementedCardServiceServer) UpdateSubtask(context.Context, *UpdateSubt
 func (UnimplementedCardServiceServer) DeleteSubtask(context.Context, *DeleteSubtaskRequest) (*DeleteSubtaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteSubtask not implemented")
 }
-func (UnimplementedCardServiceServer) CreateAttachment(context.Context, *CreateAttachmentRequest) (*CreateAttachmentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateAttachment not implemented")
+func (UnimplementedCardServiceServer) CreateAttachment(grpc.ClientStreamingServer[CreateAttachmentRequest, CreateAttachmentResponse]) error {
+	return status.Error(codes.Unimplemented, "method CreateAttachment not implemented")
 }
 func (UnimplementedCardServiceServer) DeleteAttachment(context.Context, *DeleteAttachmentRequest) (*DeleteAttachmentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteAttachment not implemented")
@@ -558,23 +561,12 @@ func _CardService_DeleteSubtask_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CardService_CreateAttachment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateAttachmentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CardServiceServer).CreateAttachment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CardService_CreateAttachment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CardServiceServer).CreateAttachment(ctx, req.(*CreateAttachmentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func _CardService_CreateAttachment_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CardServiceServer).CreateAttachment(&grpc.GenericServerStream[CreateAttachmentRequest, CreateAttachmentResponse]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CardService_CreateAttachmentServer = grpc.ClientStreamingServer[CreateAttachmentRequest, CreateAttachmentResponse]
 
 func _CardService_DeleteAttachment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteAttachmentRequest)
@@ -704,10 +696,6 @@ var CardService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CardService_DeleteSubtask_Handler,
 		},
 		{
-			MethodName: "CreateAttachment",
-			Handler:    _CardService_CreateAttachment_Handler,
-		},
-		{
 			MethodName: "DeleteAttachment",
 			Handler:    _CardService_DeleteAttachment_Handler,
 		},
@@ -724,6 +712,12 @@ var CardService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CardService_UpdateCardPoints_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CreateAttachment",
+			Handler:       _CardService_CreateAttachment_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "proto/card/v1/card.proto",
 }

@@ -59,12 +59,12 @@ func (m *mockBoardServiceClient) UpdateBoard(ctx context.Context, in *pb.UpdateB
 	return args.Get(0).(*pb.UpdateBoardResponse), args.Error(1)
 }
 
-func (m *mockBoardServiceClient) UploadBackground(ctx context.Context, in *pb.UploadBackgroundRequest, opts ...grpc.CallOption) (*pb.UploadBackgroundResponse, error) {
-	args := m.Called(ctx, in)
+func (m *mockBoardServiceClient) UploadBackground(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse], error) {
+	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*pb.UploadBackgroundResponse), args.Error(1)
+	return args.Get(0).(grpc.ClientStreamingClient[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse]), args.Error(1)
 }
 
 func (m *mockBoardServiceClient) GetMembers(ctx context.Context, in *pb.GetMembersRequest, opts ...grpc.CallOption) (*pb.GetMembersResponse, error) {

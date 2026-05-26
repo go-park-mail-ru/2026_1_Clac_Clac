@@ -104,11 +104,6 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len([]rune(request.Description)) > h.conf.MaxLenDescription {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDescription.Error())
-		return
-	}
-
 	appealLink, err := h.service.CreateAppeal(r.Context(), domain.CreateAppealInfo{
 		UserLink:    userLink,
 		DisplayName: request.DisplayName,
@@ -241,13 +236,18 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 
 	if err := r.ParseMultipartForm(h.conf.MaxAttachmentSize); err != nil {
 		logger.Error().Err(err).Msg("parse multipart form")
-		api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+		} else {
+			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+		}
 		return
 	}
 
 	file, header, err := r.FormFile(h.conf.MultipartAttachmentFileKey)
 	if err != nil {
-		logger.Error().Err(err).Msg("cannot find attachment key")
+		logger.Error().Err(err).Str("expected key", h.conf.MultipartAttachmentFileKey).Msg("cannot find attachment key")
 		api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
 		return
 	}
@@ -263,14 +263,27 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		Filename:   header.Filename,
 	}, file)
 	if err != nil {
-		errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
-		logger.Error().Err(errLog).Msg("failed to upload attachment")
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadAttachment", map[string]interface{}{
-			"user_link":   userLink,
-			"appeal_link": appealLink,
-			"action":      "upload_attachment",
-		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
+		switch {
+		case errors.Is(err, common.ErrorNonexistentUser):
+			api.RespondError(w, http.StatusNotFound, err.Error())
+		case errors.Is(err, common.ErrorAppealNotFound):
+			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+		case errors.Is(err, common.ErrorPermissionDenied):
+			api.RespondError(w, http.StatusForbidden, common.ErrorPermissionDenied.Error())
+		case errors.Is(err, common.ErrorInvalidInput):
+			api.RespondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, common.ErrorInvalidContentType):
+			api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
+		default:
+			errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
+			logger.Error().Err(errLog).Msg("failed to upload attachment")
+			sentryLogger.CaptureFromContext(r.Context(), errLog, "UploadAttachment", map[string]interface{}{
+				"user_link":   userLink,
+				"appeal_link": appealLink,
+				"action":      "upload_attachment",
+			})
+			api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
+		}
 		return
 	}
 

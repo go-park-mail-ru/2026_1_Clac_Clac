@@ -1631,19 +1631,80 @@ func (*DeleteSubtaskResponse) Descriptor() ([]byte, []int) {
 	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{27}
 }
 
-type CreateAttachmentRequest struct {
+type MetadataCreateAttachment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskLink      string                 `protobuf:"bytes,1,opt,name=task_link,json=taskLink,proto3" json:"task_link,omitempty"`
 	UserLink      string                 `protobuf:"bytes,2,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
-	Data          []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetadataCreateAttachment) Reset() {
+	*x = MetadataCreateAttachment{}
+	mi := &file_proto_card_v1_card_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetadataCreateAttachment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetadataCreateAttachment) ProtoMessage() {}
+
+func (x *MetadataCreateAttachment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_card_v1_card_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetadataCreateAttachment.ProtoReflect.Descriptor instead.
+func (*MetadataCreateAttachment) Descriptor() ([]byte, []int) {
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *MetadataCreateAttachment) GetTaskLink() string {
+	if x != nil {
+		return x.TaskLink
+	}
+	return ""
+}
+
+func (x *MetadataCreateAttachment) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *MetadataCreateAttachment) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type CreateAttachmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Request:
+	//
+	//	*CreateAttachmentRequest_Metadata
+	//	*CreateAttachmentRequest_Data
+	Request       isCreateAttachmentRequest_Request `protobuf_oneof:"request"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateAttachmentRequest) Reset() {
 	*x = CreateAttachmentRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[28]
+	mi := &file_proto_card_v1_card_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1655,7 +1716,7 @@ func (x *CreateAttachmentRequest) String() string {
 func (*CreateAttachmentRequest) ProtoMessage() {}
 
 func (x *CreateAttachmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[28]
+	mi := &file_proto_card_v1_card_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1668,36 +1729,49 @@ func (x *CreateAttachmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAttachmentRequest.ProtoReflect.Descriptor instead.
 func (*CreateAttachmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{28}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{29}
 }
 
-func (x *CreateAttachmentRequest) GetTaskLink() string {
+func (x *CreateAttachmentRequest) GetRequest() isCreateAttachmentRequest_Request {
 	if x != nil {
-		return x.TaskLink
-	}
-	return ""
-}
-
-func (x *CreateAttachmentRequest) GetUserLink() string {
-	if x != nil {
-		return x.UserLink
-	}
-	return ""
-}
-
-func (x *CreateAttachmentRequest) GetData() []byte {
-	if x != nil {
-		return x.Data
+		return x.Request
 	}
 	return nil
 }
 
-func (x *CreateAttachmentRequest) GetName() string {
+func (x *CreateAttachmentRequest) GetMetadata() *MetadataCreateAttachment {
 	if x != nil {
-		return x.Name
+		if x, ok := x.Request.(*CreateAttachmentRequest_Metadata); ok {
+			return x.Metadata
+		}
 	}
-	return ""
+	return nil
 }
+
+func (x *CreateAttachmentRequest) GetData() []byte {
+	if x != nil {
+		if x, ok := x.Request.(*CreateAttachmentRequest_Data); ok {
+			return x.Data
+		}
+	}
+	return nil
+}
+
+type isCreateAttachmentRequest_Request interface {
+	isCreateAttachmentRequest_Request()
+}
+
+type CreateAttachmentRequest_Metadata struct {
+	Metadata *MetadataCreateAttachment `protobuf:"bytes,1,opt,name=metadata,proto3,oneof"`
+}
+
+type CreateAttachmentRequest_Data struct {
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
+}
+
+func (*CreateAttachmentRequest_Metadata) isCreateAttachmentRequest_Request() {}
+
+func (*CreateAttachmentRequest_Data) isCreateAttachmentRequest_Request() {}
 
 type CreateAttachmentResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
@@ -1711,7 +1785,7 @@ type CreateAttachmentResponse struct {
 
 func (x *CreateAttachmentResponse) Reset() {
 	*x = CreateAttachmentResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[29]
+	mi := &file_proto_card_v1_card_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1723,7 +1797,7 @@ func (x *CreateAttachmentResponse) String() string {
 func (*CreateAttachmentResponse) ProtoMessage() {}
 
 func (x *CreateAttachmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[29]
+	mi := &file_proto_card_v1_card_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1736,7 +1810,7 @@ func (x *CreateAttachmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAttachmentResponse.ProtoReflect.Descriptor instead.
 func (*CreateAttachmentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{29}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CreateAttachmentResponse) GetAttachmentLink() string {
@@ -1777,7 +1851,7 @@ type DeleteAttachmentRequest struct {
 
 func (x *DeleteAttachmentRequest) Reset() {
 	*x = DeleteAttachmentRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[30]
+	mi := &file_proto_card_v1_card_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1789,7 +1863,7 @@ func (x *DeleteAttachmentRequest) String() string {
 func (*DeleteAttachmentRequest) ProtoMessage() {}
 
 func (x *DeleteAttachmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[30]
+	mi := &file_proto_card_v1_card_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1802,7 +1876,7 @@ func (x *DeleteAttachmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAttachmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAttachmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{30}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DeleteAttachmentRequest) GetUserLink() string {
@@ -1827,7 +1901,7 @@ type DeleteAttachmentResponse struct {
 
 func (x *DeleteAttachmentResponse) Reset() {
 	*x = DeleteAttachmentResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[31]
+	mi := &file_proto_card_v1_card_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1839,7 +1913,7 @@ func (x *DeleteAttachmentResponse) String() string {
 func (*DeleteAttachmentResponse) ProtoMessage() {}
 
 func (x *DeleteAttachmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[31]
+	mi := &file_proto_card_v1_card_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1852,7 +1926,7 @@ func (x *DeleteAttachmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAttachmentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAttachmentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{31}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{32}
 }
 
 type UpdateStatusTaskRequest struct {
@@ -1866,7 +1940,7 @@ type UpdateStatusTaskRequest struct {
 
 func (x *UpdateStatusTaskRequest) Reset() {
 	*x = UpdateStatusTaskRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[32]
+	mi := &file_proto_card_v1_card_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1878,7 +1952,7 @@ func (x *UpdateStatusTaskRequest) String() string {
 func (*UpdateStatusTaskRequest) ProtoMessage() {}
 
 func (x *UpdateStatusTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[32]
+	mi := &file_proto_card_v1_card_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1891,7 +1965,7 @@ func (x *UpdateStatusTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateStatusTaskRequest.ProtoReflect.Descriptor instead.
 func (*UpdateStatusTaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{32}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdateStatusTaskRequest) GetUserLink() string {
@@ -1923,7 +1997,7 @@ type UpdateStatusTaskResponse struct {
 
 func (x *UpdateStatusTaskResponse) Reset() {
 	*x = UpdateStatusTaskResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[33]
+	mi := &file_proto_card_v1_card_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1935,7 +2009,7 @@ func (x *UpdateStatusTaskResponse) String() string {
 func (*UpdateStatusTaskResponse) ProtoMessage() {}
 
 func (x *UpdateStatusTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[33]
+	mi := &file_proto_card_v1_card_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1948,7 +2022,7 @@ func (x *UpdateStatusTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateStatusTaskResponse.ProtoReflect.Descriptor instead.
 func (*UpdateStatusTaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{33}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{34}
 }
 
 type UpdateTimeLineTaskRequest struct {
@@ -1963,7 +2037,7 @@ type UpdateTimeLineTaskRequest struct {
 
 func (x *UpdateTimeLineTaskRequest) Reset() {
 	*x = UpdateTimeLineTaskRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[34]
+	mi := &file_proto_card_v1_card_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1975,7 +2049,7 @@ func (x *UpdateTimeLineTaskRequest) String() string {
 func (*UpdateTimeLineTaskRequest) ProtoMessage() {}
 
 func (x *UpdateTimeLineTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[34]
+	mi := &file_proto_card_v1_card_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1988,7 +2062,7 @@ func (x *UpdateTimeLineTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTimeLineTaskRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTimeLineTaskRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{34}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UpdateTimeLineTaskRequest) GetUserLink() string {
@@ -2027,7 +2101,7 @@ type UpdateTimeLineTaskResponse struct {
 
 func (x *UpdateTimeLineTaskResponse) Reset() {
 	*x = UpdateTimeLineTaskResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[35]
+	mi := &file_proto_card_v1_card_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2039,7 +2113,7 @@ func (x *UpdateTimeLineTaskResponse) String() string {
 func (*UpdateTimeLineTaskResponse) ProtoMessage() {}
 
 func (x *UpdateTimeLineTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[35]
+	mi := &file_proto_card_v1_card_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2052,7 +2126,7 @@ func (x *UpdateTimeLineTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTimeLineTaskResponse.ProtoReflect.Descriptor instead.
 func (*UpdateTimeLineTaskResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{35}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{36}
 }
 
 type UpdateCardPointsRequest struct {
@@ -2066,7 +2140,7 @@ type UpdateCardPointsRequest struct {
 
 func (x *UpdateCardPointsRequest) Reset() {
 	*x = UpdateCardPointsRequest{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[36]
+	mi := &file_proto_card_v1_card_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2078,7 +2152,7 @@ func (x *UpdateCardPointsRequest) String() string {
 func (*UpdateCardPointsRequest) ProtoMessage() {}
 
 func (x *UpdateCardPointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[36]
+	mi := &file_proto_card_v1_card_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2091,7 +2165,7 @@ func (x *UpdateCardPointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCardPointsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCardPointsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{36}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *UpdateCardPointsRequest) GetUserLink() string {
@@ -2123,7 +2197,7 @@ type UpdateCardPointsResponse struct {
 
 func (x *UpdateCardPointsResponse) Reset() {
 	*x = UpdateCardPointsResponse{}
-	mi := &file_proto_card_v1_card_proto_msgTypes[37]
+	mi := &file_proto_card_v1_card_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2135,7 +2209,7 @@ func (x *UpdateCardPointsResponse) String() string {
 func (*UpdateCardPointsResponse) ProtoMessage() {}
 
 func (x *UpdateCardPointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_card_v1_card_proto_msgTypes[37]
+	mi := &file_proto_card_v1_card_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2148,7 +2222,7 @@ func (x *UpdateCardPointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCardPointsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCardPointsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{37}
+	return file_proto_card_v1_card_proto_rawDescGZIP(), []int{38}
 }
 
 var File_proto_card_v1_card_proto protoreflect.FileDescriptor
@@ -2273,12 +2347,15 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\x14DeleteSubtaskRequest\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12!\n" +
 	"\fsubtask_link\x18\x02 \x01(\tR\vsubtaskLink\"\x17\n" +
-	"\x15DeleteSubtaskResponse\"{\n" +
-	"\x17CreateAttachmentRequest\x12\x1b\n" +
+	"\x15DeleteSubtaskResponse\"h\n" +
+	"\x18MetadataCreateAttachment\x12\x1b\n" +
 	"\ttask_link\x18\x01 \x01(\tR\btaskLink\x12\x1b\n" +
 	"\tuser_link\x18\x02 \x01(\tR\buserLink\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04data\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\"\x87\x01\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\x81\x01\n" +
+	"\x17CreateAttachmentRequest\x12E\n" +
+	"\bmetadata\x18\x01 \x01(\v2'.proto.card.v1.MetadataCreateAttachmentH\x00R\bmetadata\x12\x14\n" +
+	"\x04data\x18\x02 \x01(\fH\x00R\x04dataB\t\n" +
+	"\arequest\"\x87\x01\n" +
 	"\x18CreateAttachmentResponse\x12'\n" +
 	"\x0fattachment_link\x18\x01 \x01(\tR\x0eattachmentLink\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x1a\n" +
@@ -2304,7 +2381,7 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\tcard_link\x18\x02 \x01(\tR\bcardLink\x12\x1b\n" +
 	"\x06points\x18\x03 \x01(\x05H\x00R\x06points\x88\x01\x01B\t\n" +
 	"\a_points\"\x1a\n" +
-	"\x18UpdateCardPointsResponse2\xa6\f\n" +
+	"\x18UpdateCardPointsResponse2\xa8\f\n" +
 	"\vCardService\x12H\n" +
 	"\aGetCard\x12\x1d.proto.card.v1.GetCardRequest\x1a\x1e.proto.card.v1.GetCardResponse\x12Q\n" +
 	"\n" +
@@ -2320,8 +2397,8 @@ const file_proto_card_v1_card_proto_rawDesc = "" +
 	"\rUpdateComment\x12#.proto.card.v1.UpdateCommentRequest\x1a$.proto.card.v1.UpdateCommentResponse\x12Z\n" +
 	"\rCreateSubtask\x12#.proto.card.v1.CreateSubtaskRequest\x1a$.proto.card.v1.CreateSubtaskResponse\x12Z\n" +
 	"\rUpdateSubtask\x12#.proto.card.v1.UpdateSubtaskRequest\x1a$.proto.card.v1.UpdateSubtaskResponse\x12Z\n" +
-	"\rDeleteSubtask\x12#.proto.card.v1.DeleteSubtaskRequest\x1a$.proto.card.v1.DeleteSubtaskResponse\x12c\n" +
-	"\x10CreateAttachment\x12&.proto.card.v1.CreateAttachmentRequest\x1a'.proto.card.v1.CreateAttachmentResponse\x12c\n" +
+	"\rDeleteSubtask\x12#.proto.card.v1.DeleteSubtaskRequest\x1a$.proto.card.v1.DeleteSubtaskResponse\x12e\n" +
+	"\x10CreateAttachment\x12&.proto.card.v1.CreateAttachmentRequest\x1a'.proto.card.v1.CreateAttachmentResponse(\x01\x12c\n" +
 	"\x10DeleteAttachment\x12&.proto.card.v1.DeleteAttachmentRequest\x1a'.proto.card.v1.DeleteAttachmentResponse\x12c\n" +
 	"\x10UpdateStatusTask\x12&.proto.card.v1.UpdateStatusTaskRequest\x1a'.proto.card.v1.UpdateStatusTaskResponse\x12i\n" +
 	"\x12UpdateTimeLineTask\x12(.proto.card.v1.UpdateTimeLineTaskRequest\x1a).proto.card.v1.UpdateTimeLineTaskResponse\x12c\n" +
@@ -2339,7 +2416,7 @@ func file_proto_card_v1_card_proto_rawDescGZIP() []byte {
 	return file_proto_card_v1_card_proto_rawDescData
 }
 
-var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_proto_card_v1_card_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_proto_card_v1_card_proto_goTypes = []any{
 	(*CardInfo)(nil),                   // 0: proto.card.v1.CardInfo
 	(*SubtaskInfo)(nil),                // 1: proto.card.v1.SubtaskInfo
@@ -2369,69 +2446,71 @@ var file_proto_card_v1_card_proto_goTypes = []any{
 	(*UpdateSubtaskResponse)(nil),      // 25: proto.card.v1.UpdateSubtaskResponse
 	(*DeleteSubtaskRequest)(nil),       // 26: proto.card.v1.DeleteSubtaskRequest
 	(*DeleteSubtaskResponse)(nil),      // 27: proto.card.v1.DeleteSubtaskResponse
-	(*CreateAttachmentRequest)(nil),    // 28: proto.card.v1.CreateAttachmentRequest
-	(*CreateAttachmentResponse)(nil),   // 29: proto.card.v1.CreateAttachmentResponse
-	(*DeleteAttachmentRequest)(nil),    // 30: proto.card.v1.DeleteAttachmentRequest
-	(*DeleteAttachmentResponse)(nil),   // 31: proto.card.v1.DeleteAttachmentResponse
-	(*UpdateStatusTaskRequest)(nil),    // 32: proto.card.v1.UpdateStatusTaskRequest
-	(*UpdateStatusTaskResponse)(nil),   // 33: proto.card.v1.UpdateStatusTaskResponse
-	(*UpdateTimeLineTaskRequest)(nil),  // 34: proto.card.v1.UpdateTimeLineTaskRequest
-	(*UpdateTimeLineTaskResponse)(nil), // 35: proto.card.v1.UpdateTimeLineTaskResponse
-	(*UpdateCardPointsRequest)(nil),    // 36: proto.card.v1.UpdateCardPointsRequest
-	(*UpdateCardPointsResponse)(nil),   // 37: proto.card.v1.UpdateCardPointsResponse
-	(*timestamppb.Timestamp)(nil),      // 38: google.protobuf.Timestamp
+	(*MetadataCreateAttachment)(nil),   // 28: proto.card.v1.MetadataCreateAttachment
+	(*CreateAttachmentRequest)(nil),    // 29: proto.card.v1.CreateAttachmentRequest
+	(*CreateAttachmentResponse)(nil),   // 30: proto.card.v1.CreateAttachmentResponse
+	(*DeleteAttachmentRequest)(nil),    // 31: proto.card.v1.DeleteAttachmentRequest
+	(*DeleteAttachmentResponse)(nil),   // 32: proto.card.v1.DeleteAttachmentResponse
+	(*UpdateStatusTaskRequest)(nil),    // 33: proto.card.v1.UpdateStatusTaskRequest
+	(*UpdateStatusTaskResponse)(nil),   // 34: proto.card.v1.UpdateStatusTaskResponse
+	(*UpdateTimeLineTaskRequest)(nil),  // 35: proto.card.v1.UpdateTimeLineTaskRequest
+	(*UpdateTimeLineTaskResponse)(nil), // 36: proto.card.v1.UpdateTimeLineTaskResponse
+	(*UpdateCardPointsRequest)(nil),    // 37: proto.card.v1.UpdateCardPointsRequest
+	(*UpdateCardPointsResponse)(nil),   // 38: proto.card.v1.UpdateCardPointsResponse
+	(*timestamppb.Timestamp)(nil),      // 39: google.protobuf.Timestamp
 }
 var file_proto_card_v1_card_proto_depIdxs = []int32{
-	38, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
-	38, // 1: proto.card.v1.CardInfo.start:type_name -> google.protobuf.Timestamp
+	39, // 0: proto.card.v1.CardInfo.deadline:type_name -> google.protobuf.Timestamp
+	39, // 1: proto.card.v1.CardInfo.start:type_name -> google.protobuf.Timestamp
 	1,  // 2: proto.card.v1.CardInfo.subtasks:type_name -> proto.card.v1.SubtaskInfo
 	2,  // 3: proto.card.v1.CardInfo.attachments:type_name -> proto.card.v1.AttachmentInfo
-	38, // 4: proto.card.v1.CommentInfo.created_at:type_name -> google.protobuf.Timestamp
+	39, // 4: proto.card.v1.CommentInfo.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 5: proto.card.v1.GetCardResponse.card_info:type_name -> proto.card.v1.CardInfo
-	38, // 6: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
-	38, // 7: proto.card.v1.UpdateCardRequest.start:type_name -> google.protobuf.Timestamp
+	39, // 6: proto.card.v1.UpdateCardRequest.deadline:type_name -> google.protobuf.Timestamp
+	39, // 7: proto.card.v1.UpdateCardRequest.start:type_name -> google.protobuf.Timestamp
 	3,  // 8: proto.card.v1.GetCommentsResponse.comments_info:type_name -> proto.card.v1.CommentInfo
-	38, // 9: proto.card.v1.UpdateTimeLineTaskRequest.deadline:type_name -> google.protobuf.Timestamp
-	38, // 10: proto.card.v1.UpdateTimeLineTaskRequest.start:type_name -> google.protobuf.Timestamp
-	4,  // 11: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
-	6,  // 12: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
-	8,  // 13: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
-	10, // 14: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
-	12, // 15: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
-	14, // 16: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
-	16, // 17: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
-	18, // 18: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
-	20, // 19: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
-	22, // 20: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
-	24, // 21: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
-	26, // 22: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
-	28, // 23: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
-	30, // 24: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
-	32, // 25: proto.card.v1.CardService.UpdateStatusTask:input_type -> proto.card.v1.UpdateStatusTaskRequest
-	34, // 26: proto.card.v1.CardService.UpdateTimeLineTask:input_type -> proto.card.v1.UpdateTimeLineTaskRequest
-	36, // 27: proto.card.v1.CardService.UpdateCardPoints:input_type -> proto.card.v1.UpdateCardPointsRequest
-	5,  // 28: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
-	7,  // 29: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
-	9,  // 30: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
-	11, // 31: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
-	13, // 32: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
-	15, // 33: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
-	17, // 34: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
-	19, // 35: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
-	21, // 36: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
-	23, // 37: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
-	25, // 38: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
-	27, // 39: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
-	29, // 40: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
-	31, // 41: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
-	33, // 42: proto.card.v1.CardService.UpdateStatusTask:output_type -> proto.card.v1.UpdateStatusTaskResponse
-	35, // 43: proto.card.v1.CardService.UpdateTimeLineTask:output_type -> proto.card.v1.UpdateTimeLineTaskResponse
-	37, // 44: proto.card.v1.CardService.UpdateCardPoints:output_type -> proto.card.v1.UpdateCardPointsResponse
-	28, // [28:45] is the sub-list for method output_type
-	11, // [11:28] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	28, // 9: proto.card.v1.CreateAttachmentRequest.metadata:type_name -> proto.card.v1.MetadataCreateAttachment
+	39, // 10: proto.card.v1.UpdateTimeLineTaskRequest.deadline:type_name -> google.protobuf.Timestamp
+	39, // 11: proto.card.v1.UpdateTimeLineTaskRequest.start:type_name -> google.protobuf.Timestamp
+	4,  // 12: proto.card.v1.CardService.GetCard:input_type -> proto.card.v1.GetCardRequest
+	6,  // 13: proto.card.v1.CardService.DeleteCard:input_type -> proto.card.v1.DeleteCardRequest
+	8,  // 14: proto.card.v1.CardService.UpdateCard:input_type -> proto.card.v1.UpdateCardRequest
+	10, // 15: proto.card.v1.CardService.ReorderCards:input_type -> proto.card.v1.ReorderCardsRequest
+	12, // 16: proto.card.v1.CardService.CreateCard:input_type -> proto.card.v1.CreateCardRequest
+	14, // 17: proto.card.v1.CardService.GetComments:input_type -> proto.card.v1.GetCommentsRequest
+	16, // 18: proto.card.v1.CardService.CreateComment:input_type -> proto.card.v1.CreateCommentRequest
+	18, // 19: proto.card.v1.CardService.DeleteComment:input_type -> proto.card.v1.DeleteCommentRequest
+	20, // 20: proto.card.v1.CardService.UpdateComment:input_type -> proto.card.v1.UpdateCommentRequest
+	22, // 21: proto.card.v1.CardService.CreateSubtask:input_type -> proto.card.v1.CreateSubtaskRequest
+	24, // 22: proto.card.v1.CardService.UpdateSubtask:input_type -> proto.card.v1.UpdateSubtaskRequest
+	26, // 23: proto.card.v1.CardService.DeleteSubtask:input_type -> proto.card.v1.DeleteSubtaskRequest
+	29, // 24: proto.card.v1.CardService.CreateAttachment:input_type -> proto.card.v1.CreateAttachmentRequest
+	31, // 25: proto.card.v1.CardService.DeleteAttachment:input_type -> proto.card.v1.DeleteAttachmentRequest
+	33, // 26: proto.card.v1.CardService.UpdateStatusTask:input_type -> proto.card.v1.UpdateStatusTaskRequest
+	35, // 27: proto.card.v1.CardService.UpdateTimeLineTask:input_type -> proto.card.v1.UpdateTimeLineTaskRequest
+	37, // 28: proto.card.v1.CardService.UpdateCardPoints:input_type -> proto.card.v1.UpdateCardPointsRequest
+	5,  // 29: proto.card.v1.CardService.GetCard:output_type -> proto.card.v1.GetCardResponse
+	7,  // 30: proto.card.v1.CardService.DeleteCard:output_type -> proto.card.v1.DeleteCardResponse
+	9,  // 31: proto.card.v1.CardService.UpdateCard:output_type -> proto.card.v1.UpdateCardResponse
+	11, // 32: proto.card.v1.CardService.ReorderCards:output_type -> proto.card.v1.ReorderCardsResponse
+	13, // 33: proto.card.v1.CardService.CreateCard:output_type -> proto.card.v1.CreateCardResponse
+	15, // 34: proto.card.v1.CardService.GetComments:output_type -> proto.card.v1.GetCommentsResponse
+	17, // 35: proto.card.v1.CardService.CreateComment:output_type -> proto.card.v1.CreateCommentResponse
+	19, // 36: proto.card.v1.CardService.DeleteComment:output_type -> proto.card.v1.DeleteCommentResponse
+	21, // 37: proto.card.v1.CardService.UpdateComment:output_type -> proto.card.v1.UpdateCommentResponse
+	23, // 38: proto.card.v1.CardService.CreateSubtask:output_type -> proto.card.v1.CreateSubtaskResponse
+	25, // 39: proto.card.v1.CardService.UpdateSubtask:output_type -> proto.card.v1.UpdateSubtaskResponse
+	27, // 40: proto.card.v1.CardService.DeleteSubtask:output_type -> proto.card.v1.DeleteSubtaskResponse
+	30, // 41: proto.card.v1.CardService.CreateAttachment:output_type -> proto.card.v1.CreateAttachmentResponse
+	32, // 42: proto.card.v1.CardService.DeleteAttachment:output_type -> proto.card.v1.DeleteAttachmentResponse
+	34, // 43: proto.card.v1.CardService.UpdateStatusTask:output_type -> proto.card.v1.UpdateStatusTaskResponse
+	36, // 44: proto.card.v1.CardService.UpdateTimeLineTask:output_type -> proto.card.v1.UpdateTimeLineTaskResponse
+	38, // 45: proto.card.v1.CardService.UpdateCardPoints:output_type -> proto.card.v1.UpdateCardPointsResponse
+	29, // [29:46] is the sub-list for method output_type
+	12, // [12:29] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_card_v1_card_proto_init() }
@@ -2444,14 +2523,18 @@ func file_proto_card_v1_card_proto_init() {
 	file_proto_card_v1_card_proto_msgTypes[8].OneofWrappers = []any{}
 	file_proto_card_v1_card_proto_msgTypes[12].OneofWrappers = []any{}
 	file_proto_card_v1_card_proto_msgTypes[16].OneofWrappers = []any{}
-	file_proto_card_v1_card_proto_msgTypes[36].OneofWrappers = []any{}
+	file_proto_card_v1_card_proto_msgTypes[29].OneofWrappers = []any{
+		(*CreateAttachmentRequest_Metadata)(nil),
+		(*CreateAttachmentRequest_Data)(nil),
+	}
+	file_proto_card_v1_card_proto_msgTypes[37].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_card_v1_card_proto_rawDesc), len(file_proto_card_v1_card_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   38,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

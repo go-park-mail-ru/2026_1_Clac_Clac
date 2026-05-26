@@ -72,6 +72,7 @@ type ProfileUsecase interface {
 type BoardConfig struct {
 	MultipartBackgroundFileKey string
 	MaxBackgroundSize          int64
+	MaxDisplayName             int
 }
 
 type Board struct {
@@ -225,12 +226,18 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
 	board, err := h.boardSrv.CreateBoard(r.Context(), domain.CreateBoardRequest{
 		UserLink:    userLink,
 		Name:        req.Name,
 		Description: req.Description,
 		Background:  req.Background,
 	})
+
 	if err != nil {
 		errLog := fmt.Errorf("srv.CreateBoard: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase CreateBoard")
@@ -343,6 +350,11 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	var req dto.UpdateBoardRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 

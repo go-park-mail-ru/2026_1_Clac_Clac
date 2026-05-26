@@ -66,12 +66,16 @@ services:
       chunk_size: 1048576
     handler:
       multipart_background_file_key: "background"
+      max_display_name: 128
 
   section:
     client:
       addr: "nexus-board-service:8080"
       timeout: 5s
       retries: 5
+    handler:
+      max_len_display_name: 128
+      max_quantity_tasks: 200
 
   card:
     client:
@@ -106,6 +110,8 @@ services:
       retries: 5
     handler:
       multipart_attachment_file_key: "attachment"
+      max_len_display_name: 128
+      max_len_description: 500
 
   sentry:
     environment: "production"

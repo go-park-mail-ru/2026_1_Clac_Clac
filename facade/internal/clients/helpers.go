@@ -230,9 +230,13 @@ func convertAppealGRPCError(err error) error {
 			return common.ErrInvalidCategory
 		case strings.Contains(msg, identifierNullFieldError):
 			return common.ErrorNotNullValue
+		case strings.Contains(msg, identifierIncorrectTypeFile):
+			return common.ErrorInvalidContentType
 		default:
 			return common.ErrorInvalidInput
 		}
+	case codes.Aborted:
+		return common.ErrorServiceUnavailable
 	default:
 		return err
 	}

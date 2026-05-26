@@ -117,12 +117,28 @@ func (m *mockCardServiceClient) DeleteSubtask(ctx context.Context, in *pb.Delete
 	return args.Get(0).(*pb.DeleteSubtaskResponse), args.Error(1)
 }
 
-func (m *mockCardServiceClient) CreateAttachment(ctx context.Context, in *pb.CreateAttachmentRequest, opts ...grpc.CallOption) (*pb.CreateAttachmentResponse, error) {
-	args := m.Called(ctx, in)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+type mockAttachmentStream struct {
+	grpc.ClientStream
+	resp *pb.CreateAttachmentResponse
+	err  error
+}
+
+func (m *mockAttachmentStream) Send(req *pb.CreateAttachmentRequest) error {
+	return nil
+}
+
+func (m *mockAttachmentStream) CloseAndRecv() (*pb.CreateAttachmentResponse, error) {
+	return m.resp, m.err
+}
+
+func (m *mockCardServiceClient) CreateAttachment(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pb.CreateAttachmentRequest, pb.CreateAttachmentResponse], error) {
+	args := m.Called(ctx)
+	stream := &mockAttachmentStream{}
+	if args.Get(0) != nil {
+		stream.resp = args.Get(0).(*pb.CreateAttachmentResponse)
 	}
-	return args.Get(0).(*pb.CreateAttachmentResponse), args.Error(1)
+	stream.err = args.Error(1)
+	return stream, nil
 }
 
 func (m *mockCardServiceClient) DeleteAttachment(ctx context.Context, in *pb.DeleteAttachmentRequest, opts ...grpc.CallOption) (*pb.DeleteAttachmentResponse, error) {
@@ -873,9 +889,7 @@ func TestCardClient_CreateAttachment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mc := new(mockCardServiceClient)
-			mc.On("CreateAttachment", ctx, mock.MatchedBy(func(r *pb.CreateAttachmentRequest) bool {
-				return r.UserLink == cardClientUserLink.String() && r.TaskLink == cardClientCardLink.String()
-			})).Return(tt.mockResp, tt.mockErr)
+			mc.On("CreateAttachment", ctx).Return(tt.mockResp, tt.mockErr)
 
 			c := &Card{client: mc}
 			_, err := c.CreateAttachment(ctx, req)

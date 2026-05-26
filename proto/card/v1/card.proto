@@ -166,11 +166,17 @@ message DeleteSubtaskRequest {
 
 message DeleteSubtaskResponse {}
 
-message CreateAttachmentRequest {
+message MetadataCreateAttachment {
   string task_link = 1;
   string user_link = 2;
-  bytes data = 3;
-  string name = 4;
+  string name = 3;
+}
+
+message CreateAttachmentRequest {
+  oneof request {
+    MetadataCreateAttachment metadata = 1;
+    bytes data = 2;
+  }
 }
 
 message CreateAttachmentResponse {
@@ -225,7 +231,7 @@ service CardService {
   rpc CreateSubtask(CreateSubtaskRequest) returns (CreateSubtaskResponse);
   rpc UpdateSubtask(UpdateSubtaskRequest) returns (UpdateSubtaskResponse);
   rpc DeleteSubtask(DeleteSubtaskRequest) returns (DeleteSubtaskResponse);
-  rpc CreateAttachment(CreateAttachmentRequest) returns (CreateAttachmentResponse);
+  rpc CreateAttachment(stream CreateAttachmentRequest) returns (CreateAttachmentResponse);
   rpc DeleteAttachment(DeleteAttachmentRequest) returns (DeleteAttachmentResponse);
   rpc UpdateStatusTask(UpdateStatusTaskRequest) returns (UpdateStatusTaskResponse);
   rpc UpdateTimeLineTask(UpdateTimeLineTaskRequest) returns (UpdateTimeLineTaskResponse);

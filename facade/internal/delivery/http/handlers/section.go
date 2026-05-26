@@ -47,13 +47,20 @@ type SectionUsecase interface {
 	UpdateSection(ctx context.Context, sectionInfo domain.UpdateSectionRequest) error
 }
 
-type Section struct {
-	srv SectionUsecase
+type SectionConfig struct {
+	MaxLenDisplayName int
+	MaxQuantityTasks  int64
 }
 
-func NewSection(srv SectionUsecase) *Section {
+type Section struct {
+	srv SectionUsecase
+	cfg SectionConfig
+}
+
+func NewSection(srv SectionUsecase, cfg SectionConfig) *Section {
 	return &Section{
 		srv: srv,
+		cfg: cfg,
 	}
 }
 
@@ -313,6 +320,16 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.MaxTasks != nil && *req.MaxTasks > h.cfg.MaxQuantityTasks && *req.MaxTasks >= 0 {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
+		return
+	}
+
+	if len([]rune(req.Name)) > h.cfg.MaxLenDisplayName {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		return
+	}
+
 	section, err := h.srv.CreateSection(r.Context(), domain.CreateSectionRequest{
 		UserLink:    userLink,
 		BoardLink:   req.BoardLink,
@@ -491,6 +508,16 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	var req dto.SectionInfo
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
 		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.MaxTasks != nil && *req.MaxTasks > h.cfg.MaxQuantityTasks {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
+		return
+	}
+
+	if len([]rune(req.Name)) > h.cfg.MaxLenDisplayName {
+		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 

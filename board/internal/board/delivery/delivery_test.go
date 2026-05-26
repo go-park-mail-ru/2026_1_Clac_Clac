@@ -3,13 +3,16 @@ package delivery_test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
@@ -397,6 +400,39 @@ func TestGetBoard(t *testing.T) {
 	}
 }
 
+type mockUploadStream struct {
+	grpc.ServerStream
+	ctx      context.Context
+	requests []*pb.UploadBackgroundRequest
+	callIdx  int
+	resp     *pb.UploadBackgroundResponse
+	sendErr  error
+}
+
+func (m *mockUploadStream) Recv() (*pb.UploadBackgroundRequest, error) {
+	if m.callIdx >= len(m.requests) {
+		return nil, io.EOF
+	}
+	req := m.requests[m.callIdx]
+	m.callIdx++
+	return req, nil
+}
+
+func (m *mockUploadStream) SendAndClose(res *pb.UploadBackgroundResponse) error {
+	m.resp = res
+	return m.sendErr
+}
+
+func (m *mockUploadStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockUploadStream) SetHeader(md metadata.MD) error  { return nil }
+func (m *mockUploadStream) SendHeader(md metadata.MD) error { return nil }
+func (m *mockUploadStream) SetTrailer(md metadata.MD)       {}
+func (m *mockUploadStream) SendMsg(msg any) error           { return nil }
+func (m *mockUploadStream) RecvMsg(msg any) error           { return nil }
+
 func TestUploadBackground(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()
@@ -404,18 +440,19 @@ func TestUploadBackground(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		req          *pb.UploadBackgroundRequest
+		metadata     *pb.MetadataUploadBackground
+		imageData    []byte
 		setupMock    func(m *mocks.BoardService)
 		expectedCode codes.Code
 	}{
 		{
 			name: "Success upload background",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("backgrounds/bg.png", nil).Once()
@@ -424,45 +461,45 @@ func TestUploadBackground(t *testing.T) {
 		},
 		{
 			name: "Error invalid user link",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  "bad-uuid",
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData:    pngImage,
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error invalid board link",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: "bad-uuid",
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData:    pngImage,
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error invalid content type",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     []byte("just a regular text string"),
 				Filename:  "text.txt",
 			},
+			imageData:    []byte("just a regular text string"),
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error board not found",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("", common.ErrBoardNotFound).Once()
@@ -471,12 +508,12 @@ func TestUploadBackground(t *testing.T) {
 		},
 		{
 			name: "Error internal service",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("", errors.New("s3 upload failed")).Once()
@@ -490,8 +527,24 @@ func TestUploadBackground(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
+			stream := &mockUploadStream{
+				ctx: context.Background(),
+				requests: []*pb.UploadBackgroundRequest{
+					{
+						Request: &pb.UploadBackgroundRequest_Metadata{
+							Metadata: test.metadata,
+						},
+					},
+					{
+						Request: &pb.UploadBackgroundRequest_Image{
+							Image: test.imageData,
+						},
+					},
+				},
+			}
+
 			h := handler.NewHandler(mockSrv, testConf)
-			_, err := h.UploadBackground(context.Background(), test.req)
+			err := h.UploadBackground(stream)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			mockSrv.AssertExpectations(t)

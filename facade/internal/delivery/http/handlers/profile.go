@@ -251,8 +251,13 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := r.ParseMultipartForm(p.cfg.MaxReadBytes); err != nil {
-		logger.Error().Err(err).Msg(msgTooLargeAvatar)
-		api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
+		logger.Error().Err(err).Msg("parse multipart form")
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			api.RespondError(w, http.StatusRequestEntityTooLarge, msgTooLargeAvatar)
+		} else {
+			api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
+		}
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
@@ -293,18 +298,6 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		errLog := fmt.Errorf("io.ReadAll avatar: %w", err)
-		logger.Error().Err(errLog).Msg("failed to read all file data")
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
-			"user_link": userLink,
-			"action":    "read_file_data",
-		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
-		return
-	}
-
 	ext := ""
 	if header != nil {
 		ext = filepath.Ext(header.Filename)
@@ -312,7 +305,7 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	avatarURL, err := p.profile.UpdateAvatar(r.Context(), domain.AvatarInfo{
 		UserLink:      userLink,
-		FileData:      fileData,
+		FileData:      file,
 		ContentType:   mimeType,
 		FileExtension: ext,
 	})

@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -12,6 +11,17 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
+
+const (
+	appealChunkSize = 1024 * 1024
+)
+
+var appealBufferPool = sync.Pool{
+	New: func() any {
+		buffer := make([]byte, appealChunkSize)
+		return &buffer
+	},
+}
 
 type ConfigAppeal struct {
 	MaxAppealAttachmentBytesSize int
@@ -151,32 +161,55 @@ func (a *Appeal) GetAppeal(ctx context.Context, userLink uuid.UUID) (string, []d
 	return a.parseProtoRole(res.Role), appeals, nil
 }
 
-var bufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
-}
-
 func (a *Appeal) UploadAttachment(ctx context.Context, attachmentInfo domain.UploadAttachmentInfo, attachment io.Reader) (string, error) {
-	buf := bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer func() {
-		if buf.Cap() <= a.cfg.MaxAppealAttachmentBytesSize {
-			bufferPool.Put(buf)
-		}
-	}()
-
-	_, err := io.Copy(buf, attachment)
+	stream, err := a.client.UploadAttachment(ctx)
 	if err != nil {
-		return "", fmt.Errorf("read attachment into buffer: %w", err)
+		return "", fmt.Errorf("can not open stream client.UploadAttachment: %w", err)
 	}
 
 	req := &pb.UploadAttachmentRequest{
-		UserLink:   attachmentInfo.UserLink.String(),
-		AppealLink: attachmentInfo.AppealLink.String(),
-		Filename:   attachmentInfo.Filename,
-		Image:      buf.Bytes(),
+		Request: &pb.UploadAttachmentRequest_Metadata{
+			Metadata: &pb.MetadataUploadAttachment{
+				UserLink:   attachmentInfo.UserLink.String(),
+				AppealLink: attachmentInfo.AppealLink.String(),
+				Filename:   attachmentInfo.Filename,
+			},
+		},
 	}
 
-	res, err := a.client.UploadAttachment(ctx, req)
+	if err := stream.Send(req); err != nil {
+		return "", fmt.Errorf("metadata appeal stream.Send: %w", err)
+	}
+
+	bufPtr := appealBufferPool.Get().(*[]byte)
+	buffer := *bufPtr
+
+	defer appealBufferPool.Put(bufPtr)
+
+	for {
+		n, err := attachment.Read(buffer)
+		if err != nil && err != io.EOF {
+			return "", fmt.Errorf("attachment.Read: %w", err)
+		}
+
+		if n > 0 {
+			chunkReq := &pb.UploadAttachmentRequest{
+				Request: &pb.UploadAttachmentRequest_Image{
+					Image: buffer[:n],
+				},
+			}
+
+			if err := stream.Send(chunkReq); err != nil {
+				return "", fmt.Errorf("stream.Send: %w", err)
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		return "", fmt.Errorf("AppealService.UploadAttachment: %w", convertAppealGRPCError(err))
 	}

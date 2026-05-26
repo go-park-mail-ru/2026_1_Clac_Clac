@@ -505,19 +505,80 @@ func (x *GetAppealsResponse) GetAppealsInfo() []*AppealInfo {
 }
 
 // UploadAttachment
-type UploadAttachmentRequest struct {
+type MetadataUploadAttachment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserLink      string                 `protobuf:"bytes,1,opt,name=user_link,json=userLink,proto3" json:"user_link,omitempty"`
 	AppealLink    string                 `protobuf:"bytes,2,opt,name=appeal_link,json=appealLink,proto3" json:"appeal_link,omitempty"`
 	Filename      string                 `protobuf:"bytes,3,opt,name=filename,proto3" json:"filename,omitempty"`
-	Image         []byte                 `protobuf:"bytes,4,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetadataUploadAttachment) Reset() {
+	*x = MetadataUploadAttachment{}
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetadataUploadAttachment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetadataUploadAttachment) ProtoMessage() {}
+
+func (x *MetadataUploadAttachment) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetadataUploadAttachment.ProtoReflect.Descriptor instead.
+func (*MetadataUploadAttachment) Descriptor() ([]byte, []int) {
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *MetadataUploadAttachment) GetUserLink() string {
+	if x != nil {
+		return x.UserLink
+	}
+	return ""
+}
+
+func (x *MetadataUploadAttachment) GetAppealLink() string {
+	if x != nil {
+		return x.AppealLink
+	}
+	return ""
+}
+
+func (x *MetadataUploadAttachment) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+type UploadAttachmentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Request:
+	//
+	//	*UploadAttachmentRequest_Metadata
+	//	*UploadAttachmentRequest_Image
+	Request       isUploadAttachmentRequest_Request `protobuf_oneof:"request"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UploadAttachmentRequest) Reset() {
 	*x = UploadAttachmentRequest{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[5]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -529,7 +590,7 @@ func (x *UploadAttachmentRequest) String() string {
 func (*UploadAttachmentRequest) ProtoMessage() {}
 
 func (x *UploadAttachmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[5]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -542,36 +603,49 @@ func (x *UploadAttachmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAttachmentRequest.ProtoReflect.Descriptor instead.
 func (*UploadAttachmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{5}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *UploadAttachmentRequest) GetUserLink() string {
+func (x *UploadAttachmentRequest) GetRequest() isUploadAttachmentRequest_Request {
 	if x != nil {
-		return x.UserLink
+		return x.Request
 	}
-	return ""
+	return nil
 }
 
-func (x *UploadAttachmentRequest) GetAppealLink() string {
+func (x *UploadAttachmentRequest) GetMetadata() *MetadataUploadAttachment {
 	if x != nil {
-		return x.AppealLink
+		if x, ok := x.Request.(*UploadAttachmentRequest_Metadata); ok {
+			return x.Metadata
+		}
 	}
-	return ""
-}
-
-func (x *UploadAttachmentRequest) GetFilename() string {
-	if x != nil {
-		return x.Filename
-	}
-	return ""
+	return nil
 }
 
 func (x *UploadAttachmentRequest) GetImage() []byte {
 	if x != nil {
-		return x.Image
+		if x, ok := x.Request.(*UploadAttachmentRequest_Image); ok {
+			return x.Image
+		}
 	}
 	return nil
 }
+
+type isUploadAttachmentRequest_Request interface {
+	isUploadAttachmentRequest_Request()
+}
+
+type UploadAttachmentRequest_Metadata struct {
+	Metadata *MetadataUploadAttachment `protobuf:"bytes,1,opt,name=metadata,proto3,oneof"`
+}
+
+type UploadAttachmentRequest_Image struct {
+	Image []byte `protobuf:"bytes,2,opt,name=image,proto3,oneof"`
+}
+
+func (*UploadAttachmentRequest_Metadata) isUploadAttachmentRequest_Request() {}
+
+func (*UploadAttachmentRequest_Image) isUploadAttachmentRequest_Request() {}
 
 type UploadAttachmentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -582,7 +656,7 @@ type UploadAttachmentResponse struct {
 
 func (x *UploadAttachmentResponse) Reset() {
 	*x = UploadAttachmentResponse{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[6]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -594,7 +668,7 @@ func (x *UploadAttachmentResponse) String() string {
 func (*UploadAttachmentResponse) ProtoMessage() {}
 
 func (x *UploadAttachmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[6]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -607,7 +681,7 @@ func (x *UploadAttachmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAttachmentResponse.ProtoReflect.Descriptor instead.
 func (*UploadAttachmentResponse) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{6}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UploadAttachmentResponse) GetAttachmentUrl() string {
@@ -628,7 +702,7 @@ type DeleteAppealRequest struct {
 
 func (x *DeleteAppealRequest) Reset() {
 	*x = DeleteAppealRequest{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[7]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -640,7 +714,7 @@ func (x *DeleteAppealRequest) String() string {
 func (*DeleteAppealRequest) ProtoMessage() {}
 
 func (x *DeleteAppealRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[7]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -653,7 +727,7 @@ func (x *DeleteAppealRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppealRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAppealRequest) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{7}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *DeleteAppealRequest) GetUserLink() string {
@@ -678,7 +752,7 @@ type DeleteAppealResponse struct {
 
 func (x *DeleteAppealResponse) Reset() {
 	*x = DeleteAppealResponse{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[8]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +764,7 @@ func (x *DeleteAppealResponse) String() string {
 func (*DeleteAppealResponse) ProtoMessage() {}
 
 func (x *DeleteAppealResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[8]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +777,7 @@ func (x *DeleteAppealResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppealResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAppealResponse) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{8}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{9}
 }
 
 // GetStats
@@ -716,7 +790,7 @@ type GetStatsRequest struct {
 
 func (x *GetStatsRequest) Reset() {
 	*x = GetStatsRequest{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[9]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -728,7 +802,7 @@ func (x *GetStatsRequest) String() string {
 func (*GetStatsRequest) ProtoMessage() {}
 
 func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[9]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -741,7 +815,7 @@ func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{9}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetStatsRequest) GetUserLink() string {
@@ -762,7 +836,7 @@ type GetStatsResponse struct {
 
 func (x *GetStatsResponse) Reset() {
 	*x = GetStatsResponse{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[10]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -774,7 +848,7 @@ func (x *GetStatsResponse) String() string {
 func (*GetStatsResponse) ProtoMessage() {}
 
 func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[10]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -787,7 +861,7 @@ func (x *GetStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetStatsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{10}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetStatsResponse) GetOpenAppeals() int64 {
@@ -824,7 +898,7 @@ type ChangeAppealStatusRequest struct {
 
 func (x *ChangeAppealStatusRequest) Reset() {
 	*x = ChangeAppealStatusRequest{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[11]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -836,7 +910,7 @@ func (x *ChangeAppealStatusRequest) String() string {
 func (*ChangeAppealStatusRequest) ProtoMessage() {}
 
 func (x *ChangeAppealStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[11]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -849,7 +923,7 @@ func (x *ChangeAppealStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeAppealStatusRequest.ProtoReflect.Descriptor instead.
 func (*ChangeAppealStatusRequest) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{11}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ChangeAppealStatusRequest) GetUserLink() string {
@@ -888,7 +962,7 @@ type ChangeAppealStatusResponse struct {
 
 func (x *ChangeAppealStatusResponse) Reset() {
 	*x = ChangeAppealStatusResponse{}
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[12]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -900,7 +974,7 @@ func (x *ChangeAppealStatusResponse) String() string {
 func (*ChangeAppealStatusResponse) ProtoMessage() {}
 
 func (x *ChangeAppealStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[12]
+	mi := &file_proto_appeal_v1_appeal_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -913,7 +987,7 @@ func (x *ChangeAppealStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeAppealStatusResponse.ProtoReflect.Descriptor instead.
 func (*ChangeAppealStatusResponse) Descriptor() ([]byte, []int) {
-	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{12}
+	return file_proto_appeal_v1_appeal_proto_rawDescGZIP(), []int{13}
 }
 
 var File_proto_appeal_v1_appeal_proto protoreflect.FileDescriptor
@@ -947,13 +1021,16 @@ const file_proto_appeal_v1_appeal_proto_rawDesc = "" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\"\x7f\n" +
 	"\x12GetAppealsResponse\x12)\n" +
 	"\x04role\x18\x01 \x01(\x0e2\x15.proto.appeal.v1.RoleR\x04role\x12>\n" +
-	"\fappeals_info\x18\x02 \x03(\v2\x1b.proto.appeal.v1.AppealInfoR\vappealsInfo\"\x89\x01\n" +
-	"\x17UploadAttachmentRequest\x12\x1b\n" +
+	"\fappeals_info\x18\x02 \x03(\v2\x1b.proto.appeal.v1.AppealInfoR\vappealsInfo\"t\n" +
+	"\x18MetadataUploadAttachment\x12\x1b\n" +
 	"\tuser_link\x18\x01 \x01(\tR\buserLink\x12\x1f\n" +
 	"\vappeal_link\x18\x02 \x01(\tR\n" +
 	"appealLink\x12\x1a\n" +
-	"\bfilename\x18\x03 \x01(\tR\bfilename\x12\x14\n" +
-	"\x05image\x18\x04 \x01(\fR\x05image\"A\n" +
+	"\bfilename\x18\x03 \x01(\tR\bfilename\"\x85\x01\n" +
+	"\x17UploadAttachmentRequest\x12G\n" +
+	"\bmetadata\x18\x01 \x01(\v2).proto.appeal.v1.MetadataUploadAttachmentH\x00R\bmetadata\x12\x16\n" +
+	"\x05image\x18\x02 \x01(\fH\x00R\x05imageB\t\n" +
+	"\arequest\"A\n" +
 	"\x18UploadAttachmentResponse\x12%\n" +
 	"\x0eattachment_url\x18\x01 \x01(\tR\rattachmentUrl\"S\n" +
 	"\x13DeleteAppealRequest\x12\x1b\n" +
@@ -990,12 +1067,12 @@ const file_proto_appeal_v1_appeal_proto_rawDesc = "" +
 	"\tROLE_USER\x10\x01\x12\x10\n" +
 	"\fROLE_SUPPORT\x10\x02\x12\x0e\n" +
 	"\n" +
-	"ROLE_ADMIN\x10\x032\xc9\x04\n" +
+	"ROLE_ADMIN\x10\x032\xcb\x04\n" +
 	"\rAppealService\x12[\n" +
 	"\fCreateAppeal\x12$.proto.appeal.v1.CreateAppealRequest\x1a%.proto.appeal.v1.CreateAppealResponse\x12U\n" +
 	"\n" +
-	"GetAppeals\x12\".proto.appeal.v1.GetAppealsRequest\x1a#.proto.appeal.v1.GetAppealsResponse\x12g\n" +
-	"\x10UploadAttachment\x12(.proto.appeal.v1.UploadAttachmentRequest\x1a).proto.appeal.v1.UploadAttachmentResponse\x12[\n" +
+	"GetAppeals\x12\".proto.appeal.v1.GetAppealsRequest\x1a#.proto.appeal.v1.GetAppealsResponse\x12i\n" +
+	"\x10UploadAttachment\x12(.proto.appeal.v1.UploadAttachmentRequest\x1a).proto.appeal.v1.UploadAttachmentResponse(\x01\x12[\n" +
 	"\fDeleteAppeal\x12$.proto.appeal.v1.DeleteAppealRequest\x1a%.proto.appeal.v1.DeleteAppealResponse\x12O\n" +
 	"\bGetStats\x12 .proto.appeal.v1.GetStatsRequest\x1a!.proto.appeal.v1.GetStatsResponse\x12m\n" +
 	"\x12ChangeAppealStatus\x12*.proto.appeal.v1.ChangeAppealStatusRequest\x1a+.proto.appeal.v1.ChangeAppealStatusResponseBAZ?github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1b\x06proto3"
@@ -1013,7 +1090,7 @@ func file_proto_appeal_v1_appeal_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_appeal_v1_appeal_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_proto_appeal_v1_appeal_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_proto_appeal_v1_appeal_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_appeal_v1_appeal_proto_goTypes = []any{
 	(Category)(0),                      // 0: proto.appeal.v1.Category
 	(Status)(0),                        // 1: proto.appeal.v1.Status
@@ -1023,41 +1100,43 @@ var file_proto_appeal_v1_appeal_proto_goTypes = []any{
 	(*CreateAppealResponse)(nil),       // 5: proto.appeal.v1.CreateAppealResponse
 	(*GetAppealsRequest)(nil),          // 6: proto.appeal.v1.GetAppealsRequest
 	(*GetAppealsResponse)(nil),         // 7: proto.appeal.v1.GetAppealsResponse
-	(*UploadAttachmentRequest)(nil),    // 8: proto.appeal.v1.UploadAttachmentRequest
-	(*UploadAttachmentResponse)(nil),   // 9: proto.appeal.v1.UploadAttachmentResponse
-	(*DeleteAppealRequest)(nil),        // 10: proto.appeal.v1.DeleteAppealRequest
-	(*DeleteAppealResponse)(nil),       // 11: proto.appeal.v1.DeleteAppealResponse
-	(*GetStatsRequest)(nil),            // 12: proto.appeal.v1.GetStatsRequest
-	(*GetStatsResponse)(nil),           // 13: proto.appeal.v1.GetStatsResponse
-	(*ChangeAppealStatusRequest)(nil),  // 14: proto.appeal.v1.ChangeAppealStatusRequest
-	(*ChangeAppealStatusResponse)(nil), // 15: proto.appeal.v1.ChangeAppealStatusResponse
-	(*timestamppb.Timestamp)(nil),      // 16: google.protobuf.Timestamp
+	(*MetadataUploadAttachment)(nil),   // 8: proto.appeal.v1.MetadataUploadAttachment
+	(*UploadAttachmentRequest)(nil),    // 9: proto.appeal.v1.UploadAttachmentRequest
+	(*UploadAttachmentResponse)(nil),   // 10: proto.appeal.v1.UploadAttachmentResponse
+	(*DeleteAppealRequest)(nil),        // 11: proto.appeal.v1.DeleteAppealRequest
+	(*DeleteAppealResponse)(nil),       // 12: proto.appeal.v1.DeleteAppealResponse
+	(*GetStatsRequest)(nil),            // 13: proto.appeal.v1.GetStatsRequest
+	(*GetStatsResponse)(nil),           // 14: proto.appeal.v1.GetStatsResponse
+	(*ChangeAppealStatusRequest)(nil),  // 15: proto.appeal.v1.ChangeAppealStatusRequest
+	(*ChangeAppealStatusResponse)(nil), // 16: proto.appeal.v1.ChangeAppealStatusResponse
+	(*timestamppb.Timestamp)(nil),      // 17: google.protobuf.Timestamp
 }
 var file_proto_appeal_v1_appeal_proto_depIdxs = []int32{
 	1,  // 0: proto.appeal.v1.AppealInfo.status:type_name -> proto.appeal.v1.Status
 	0,  // 1: proto.appeal.v1.AppealInfo.category:type_name -> proto.appeal.v1.Category
-	16, // 2: proto.appeal.v1.AppealInfo.created_at:type_name -> google.protobuf.Timestamp
+	17, // 2: proto.appeal.v1.AppealInfo.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 3: proto.appeal.v1.CreateAppealRequest.category:type_name -> proto.appeal.v1.Category
 	2,  // 4: proto.appeal.v1.GetAppealsResponse.role:type_name -> proto.appeal.v1.Role
 	3,  // 5: proto.appeal.v1.GetAppealsResponse.appeals_info:type_name -> proto.appeal.v1.AppealInfo
-	1,  // 6: proto.appeal.v1.ChangeAppealStatusRequest.new_status:type_name -> proto.appeal.v1.Status
-	4,  // 7: proto.appeal.v1.AppealService.CreateAppeal:input_type -> proto.appeal.v1.CreateAppealRequest
-	6,  // 8: proto.appeal.v1.AppealService.GetAppeals:input_type -> proto.appeal.v1.GetAppealsRequest
-	8,  // 9: proto.appeal.v1.AppealService.UploadAttachment:input_type -> proto.appeal.v1.UploadAttachmentRequest
-	10, // 10: proto.appeal.v1.AppealService.DeleteAppeal:input_type -> proto.appeal.v1.DeleteAppealRequest
-	12, // 11: proto.appeal.v1.AppealService.GetStats:input_type -> proto.appeal.v1.GetStatsRequest
-	14, // 12: proto.appeal.v1.AppealService.ChangeAppealStatus:input_type -> proto.appeal.v1.ChangeAppealStatusRequest
-	5,  // 13: proto.appeal.v1.AppealService.CreateAppeal:output_type -> proto.appeal.v1.CreateAppealResponse
-	7,  // 14: proto.appeal.v1.AppealService.GetAppeals:output_type -> proto.appeal.v1.GetAppealsResponse
-	9,  // 15: proto.appeal.v1.AppealService.UploadAttachment:output_type -> proto.appeal.v1.UploadAttachmentResponse
-	11, // 16: proto.appeal.v1.AppealService.DeleteAppeal:output_type -> proto.appeal.v1.DeleteAppealResponse
-	13, // 17: proto.appeal.v1.AppealService.GetStats:output_type -> proto.appeal.v1.GetStatsResponse
-	15, // 18: proto.appeal.v1.AppealService.ChangeAppealStatus:output_type -> proto.appeal.v1.ChangeAppealStatusResponse
-	13, // [13:19] is the sub-list for method output_type
-	7,  // [7:13] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	8,  // 6: proto.appeal.v1.UploadAttachmentRequest.metadata:type_name -> proto.appeal.v1.MetadataUploadAttachment
+	1,  // 7: proto.appeal.v1.ChangeAppealStatusRequest.new_status:type_name -> proto.appeal.v1.Status
+	4,  // 8: proto.appeal.v1.AppealService.CreateAppeal:input_type -> proto.appeal.v1.CreateAppealRequest
+	6,  // 9: proto.appeal.v1.AppealService.GetAppeals:input_type -> proto.appeal.v1.GetAppealsRequest
+	9,  // 10: proto.appeal.v1.AppealService.UploadAttachment:input_type -> proto.appeal.v1.UploadAttachmentRequest
+	11, // 11: proto.appeal.v1.AppealService.DeleteAppeal:input_type -> proto.appeal.v1.DeleteAppealRequest
+	13, // 12: proto.appeal.v1.AppealService.GetStats:input_type -> proto.appeal.v1.GetStatsRequest
+	15, // 13: proto.appeal.v1.AppealService.ChangeAppealStatus:input_type -> proto.appeal.v1.ChangeAppealStatusRequest
+	5,  // 14: proto.appeal.v1.AppealService.CreateAppeal:output_type -> proto.appeal.v1.CreateAppealResponse
+	7,  // 15: proto.appeal.v1.AppealService.GetAppeals:output_type -> proto.appeal.v1.GetAppealsResponse
+	10, // 16: proto.appeal.v1.AppealService.UploadAttachment:output_type -> proto.appeal.v1.UploadAttachmentResponse
+	12, // 17: proto.appeal.v1.AppealService.DeleteAppeal:output_type -> proto.appeal.v1.DeleteAppealResponse
+	14, // 18: proto.appeal.v1.AppealService.GetStats:output_type -> proto.appeal.v1.GetStatsResponse
+	16, // 19: proto.appeal.v1.AppealService.ChangeAppealStatus:output_type -> proto.appeal.v1.ChangeAppealStatusResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_proto_appeal_v1_appeal_proto_init() }
@@ -1065,13 +1144,17 @@ func file_proto_appeal_v1_appeal_proto_init() {
 	if File_proto_appeal_v1_appeal_proto != nil {
 		return
 	}
+	file_proto_appeal_v1_appeal_proto_msgTypes[6].OneofWrappers = []any{
+		(*UploadAttachmentRequest_Metadata)(nil),
+		(*UploadAttachmentRequest_Image)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_appeal_v1_appeal_proto_rawDesc), len(file_proto_appeal_v1_appeal_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

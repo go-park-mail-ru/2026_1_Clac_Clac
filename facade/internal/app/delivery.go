@@ -50,10 +50,18 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 	boardConfig := handlers.BoardConfig{
 		MultipartBackgroundFileKey: conf.Services.Board.Handler.MultipartBackgroundFileKey,
 		MaxBackgroundSize:          conf.App.MaxUploadImageSize,
+		MaxDisplayName:             conf.Services.Board.Handler.MaxDisplayName,
 	}
 	appealConfig := handlers.AppealConfig{
 		MultipartAttachmentFileKey: conf.Services.Appeal.Handler.MultipartAttachmentFileKey,
 		MaxAttachmentSize:          conf.App.MaxUploadImageSize,
+		MaxLenDisplayName:          conf.Services.Appeal.Handler.MaxLenDisplayName,
+		MaxLenDescription:          conf.Services.Appeal.Handler.MaxLenDescription,
+	}
+
+	sectionConfig := handlers.SectionConfig{
+		MaxLenDisplayName: conf.Services.Section.Handler.MaxLenDisplayName,
+		MaxQuantityTasks:  conf.Services.Section.Handler.MaxQuantityTasks,
 	}
 
 	return &Delivery{
@@ -63,7 +71,7 @@ func NewDelivery(manager *Manager, conf *config.Config) *Delivery {
 		CSRF:       handlers.NewCSRF(manager.CSRF),
 		Card:       handlers.NewCard(manager.Card, cardConfig),
 		Board:      handlers.NewBoard(manager.Board, manager.User, boardConfig),
-		Section:    handlers.NewSection(manager.Section),
+		Section:    handlers.NewSection(manager.Section, sectionConfig),
 		Appeal:     handlers.NewAppeal(manager.Appeal, appealConfig),
 		Poll:       handlers.NewPollHandler(manager.Poll),
 	}

@@ -1,14 +1,15 @@
 package delivery
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
+	"io"
+	"os"
 	"path/filepath"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -53,6 +54,12 @@ var (
 	ErrInvalidAttachment      = errors.New("invalid attachment link")
 	ErrCannotCreateAttachment = errors.New("cannot create attachment")
 	ErrCannotDeleteAttachment = errors.New("cannot delete attachment")
+
+	ErrAbortConnection  = errors.New("connection is failed")
+	ErrInvalidMetadata  = errors.New("invalid metadata for attachment")
+	ErrCannotCreateFile = errors.New("can not create file for download attachment")
+	ErrWriteInFile      = errors.New("invalid write in file")
+	ErrCursorOffset     = errors.New("invalid cursor offset")
 )
 
 //go:generate mockery --name=CardService --output mock_card_srv
@@ -760,67 +767,117 @@ func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRe
 	return &pb.UpdateSubtaskResponse{}, nil
 }
 
-func (h *CardHandler) CreateAttachment(ctx context.Context, req *pb.CreateAttachmentRequest) (*pb.CreateAttachmentResponse, error) {
+func (h *CardHandler) CreateAttachment(stream grpc.ClientStreamingServer[pb.CreateAttachmentRequest, pb.CreateAttachmentResponse]) error {
+	ctx := stream.Context()
 	logger := zerolog.Ctx(ctx)
 
-	rawUserLink := req.GetUserLink()
+	req, err := stream.Recv()
+	if err != nil {
+		return status.Error(codes.Aborted, ErrAbortConnection.Error())
+	}
+
+	metadata := req.GetMetadata()
+	if metadata == nil {
+		return status.Error(codes.InvalidArgument, ErrInvalidMetadata.Error())
+	}
+
+	validFileName := filepath.Base(metadata.Name)
+
+	extension := filepath.Ext(validFileName)
+
+	uniqueFileName := fmt.Sprintf("%s_%s", uuid.New().String(), validFileName)
+	tempFilePath := filepath.Join(os.TempDir(), uniqueFileName)
+
+	file, err := os.Create(tempFilePath)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateFile.Error())
+	}
+
+	defer func() {
+		file.Close()
+		os.Remove(tempFilePath)
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Aborted, ErrAbortConnection.Error())
+		}
+
+		chunk := req.GetData()
+		if _, err := file.Write(chunk); err != nil {
+			return status.Error(codes.Internal, ErrWriteInFile.Error())
+		}
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return status.Error(codes.Internal, ErrCursorOffset.Error())
+	}
+
+	contentType, err := GetCardContentType(file)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
+	}
+
+	rawUserLink := metadata.UserLink
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	rawTaskLink := req.GetTaskLink()
+	rawTaskLink := metadata.TaskLink
 	taskLink, err := uuid.Parse(rawTaskLink)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidCardLink.Error())
 	}
-
-	data := req.GetData()
-
-	contentType := http.DetectContentType(data)
-
-	fileName := req.GetName()
-	extension := filepath.Ext(fileName)
 
 	attachment, err := h.srv.CreateAttachment(ctx, serviceDto.CreateAttachment{
 		TaskLink:    taskLink,
 		UserLink:    userLink,
-		Data:        bytes.NewReader(data),
+		Data:        file,
 		ContentType: contentType,
 		Extension:   extension,
-		DisplayName: fileName,
+		DisplayName: validFileName,
 	})
 
 	if err != nil {
 		switch {
 		case errors.Is(err, rbac.ErrActionDenied):
-			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+			return status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		case errors.Is(err, common.ErrMissingRequiredField):
-			return nil, status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
+			return status.Error(codes.InvalidArgument, common.ErrMissingRequiredField.Error())
 		case errors.Is(err, common.ErrInvalidReferenceCardData):
-			return nil, status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
+			return status.Error(codes.InvalidArgument, common.ErrInvalidReferenceCardData.Error())
 		case errors.Is(err, common.ErrAttachmentLimitReached):
-			return nil, status.Error(codes.InvalidArgument, common.ErrAttachmentLimitReached.Error())
+			return status.Error(codes.InvalidArgument, common.ErrAttachmentLimitReached.Error())
 		case errors.Is(err, common.ErrCardNotFound):
-			return nil, status.Error(codes.NotFound, common.ErrCardNotFound.Error())
+			return status.Error(codes.NotFound, common.ErrCardNotFound.Error())
 		}
 
 		errLog := fmt.Errorf("CardService.CreateAttachment: %w", err)
 		logger.Error().Err(errLog).Msg("CardService.CreateAttachment")
 		sentryLogger.CaptureFromContext(ctx, errLog, "CreateAttachment", map[string]interface{}{
-			"user_link": req.UserLink,
+			"user_link": metadata.UserLink,
 			"action":    "create_attachment",
 		})
 
-		return nil, status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
+		return status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
 	}
 
-	return &pb.CreateAttachmentResponse{
+	err = stream.SendAndClose(&pb.CreateAttachmentResponse{
 		AttachmentLink: attachment.AttachmentLink.String(),
 		Path:           attachment.Path,
 		Name:           attachment.DisplayName,
 		Position:       int64(attachment.Position),
-	}, nil
+	})
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateAttachment.Error())
+	}
+
+	return nil
 }
 
 func (h *CardHandler) DeleteAttachment(ctx context.Context, req *pb.DeleteAttachmentRequest) (*pb.DeleteAttachmentResponse, error) {
