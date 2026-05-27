@@ -41,10 +41,19 @@ on:
         default: false
 
 jobs:
+  check-generated-code-consistency:
+    uses: ./.github/workflows/generated-code-consistency.yaml
+
+  linter-and-tests:
+    needs: check-generated-code-consistency
+    uses: ./.github/workflows/linter-and-tests.yaml
+
   setup-build:
+    needs: linter-and-tests
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+
     steps:
       - name: Generate Build Matrix
         id: set-matrix
@@ -82,7 +91,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-docs:
-    needs: run-deployment
+    needs: linter-and-tests
     uses: ./.github/workflows/deploy-docs.yaml
     with:
       endpoint-url: hb.ru-msk.vkcloud-storage.ru

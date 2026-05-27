@@ -412,6 +412,24 @@ func (_m *CardRepository) UpdateCardDetails(ctx context.Context, updatedCard dto
 	return r0
 }
 
+// UpdateCardPoints provides a mock function with given fields: ctx, _a1
+func (_m *CardRepository) UpdateCardPoints(ctx context.Context, _a1 dto.UpdateCardPoints) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateCardPoints")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateCardPoints) error); ok {
+		r0 = rf(ctx, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateComment provides a mock function with given fields: ctx, updateCommentInfo
 func (_m *CardRepository) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
 	ret := _m.Called(ctx, updateCommentInfo)

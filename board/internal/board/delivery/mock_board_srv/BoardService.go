@@ -9,11 +9,11 @@ import (
 
 	io "io"
 
-	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
-
 	mock "github.com/stretchr/testify/mock"
 
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+
+	service "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 
 	uuid "github.com/google/uuid"
 )
@@ -227,34 +227,6 @@ func (_m *BoardService) GetActiveInvites(ctx context.Context, boardLink uuid.UUI
 	return r0, r1
 }
 
-// GetBoard provides a mock function with given fields: ctx, boardLink, userLink
-func (_m *BoardService) GetBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) (dto.BoardInfo, error) {
-	ret := _m.Called(ctx, boardLink, userLink)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetBoard")
-	}
-
-	var r0 dto.BoardInfo
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (dto.BoardInfo, error)); ok {
-		return rf(ctx, boardLink, userLink)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) dto.BoardInfo); ok {
-		r0 = rf(ctx, boardLink, userLink)
-	} else {
-		r0 = ret.Get(0).(dto.BoardInfo)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
-		r1 = rf(ctx, boardLink, userLink)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // GetActivePoll provides a mock function with given fields: ctx, boardLink, userLink
 func (_m *BoardService) GetActivePoll(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) (*service.Poll, error) {
 	ret := _m.Called(ctx, boardLink, userLink)
@@ -274,6 +246,34 @@ func (_m *BoardService) GetActivePoll(ctx context.Context, boardLink uuid.UUID, 
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*service.Poll)
 		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {
+		r1 = rf(ctx, boardLink, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetBoard provides a mock function with given fields: ctx, boardLink, userLink
+func (_m *BoardService) GetBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) (dto.BoardInfo, error) {
+	ret := _m.Called(ctx, boardLink, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBoard")
+	}
+
+	var r0 dto.BoardInfo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) (dto.BoardInfo, error)); ok {
+		return rf(ctx, boardLink, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID) dto.BoardInfo); ok {
+		r0 = rf(ctx, boardLink, userLink)
+	} else {
+		r0 = ret.Get(0).(dto.BoardInfo)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID) error); ok {

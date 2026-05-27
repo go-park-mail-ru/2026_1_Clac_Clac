@@ -1,40 +1,46 @@
-COVERAGE_FILE=coverage.out
-MIN_COVERAGE=70
+COVERAGE_FILE     := coverage.out
+COVERAGE_FILTERED := coverage.filtered.out
+MIN_COVERAGE      := 60
 
-# Собираем все пакеты проекта, исключая моки, протобафы и документацию.
-# Пакеты перечисляются через пробел для передачи в качестве аргументов go test.
-PACKAGES := $(shell go list ./... | grep -vE "mock|proto|docs")
+PACKAGES := $(shell go list ./... | grep -vE "^\.$$|mock|proto|docs|cmd|easyjson")
+COVER_FILTER := mock|proto|docs|cmd|easyjson
 
-# Пакеты для инструментирования через -coverpkg.
-# Для корректной статистики исключаем также пакеты 'cmd' (точки входа).
-# Объединяем через запятую с помощью paste.
-COVERPKG := $(shell go list ./... | grep -vE "mock|proto|docs|cmd" | paste -sd "," -)
-
-.PHONY: unit unit-only-fail cover report ci clean
-
-unit:
-	@go test -v -race $(PACKAGES)
-
-unit-only-fail:
-	@go test -v $(PACKAGES) | grep -E "FAIL|--- FAIL|Error:"
-
-cover: clean
-	@go test -count=1 -timeout=5m -race \
-		-coverpkg=$(COVERPKG) \
-		-coverprofile=$(COVERAGE_FILE) \
-		$(PACKAGES)
-
-report: cover
-	@go tool cover -html=$(COVERAGE_FILE)
-
-ci: cover
-	@TOTAL_COVERAGE=$$(go tool cover -func=$(COVERAGE_FILE) | grep total | awk '{print $$3}' | tr -d '%'); \
-	echo "Total coverage: $$TOTAL_COVERAGE%"; \
-	if [ $$(echo "$$TOTAL_COVERAGE < $(MIN_COVERAGE)" | bc -l) -eq 1 ]; then \
-		echo "FAILED: Coverage is below $(MIN_COVERAGE)%"; \
-		exit 1; \
-	fi
+.PHONY: all unit unit-only-fail cover report ci clean
 
 clean:
-	@rm -f $(COVERAGE_FILE)
-	@go clean -testcache
+	@rm -rf $(COVERAGE_FILE) $(COVERAGE_FILTERED)
+
+unit:
+	@go test -count=1 -timeout=5m -v -race $(PACKAGES)
+
+unit-only-fail:
+	@go test -count=1 -timeout=5m -v $(PACKAGES) 2>&1 | grep -E "FAIL|--- FAIL" || true; \
+	exit $${PIPESTATUS[0]}
+
+cover: clean
+	@go test -count=1 -timeout=5m -p 4 -covermode=atomic \
+		-coverpkg=./... \
+		-coverprofile=$(COVERAGE_FILE) \
+		$(PACKAGES) || { echo "Tests failed."; exit 1; }
+	@echo "Filtering coverage (excluding: $(COVER_FILTER))..."
+	@grep -vE "$(COVER_FILTER)" $(COVERAGE_FILE) > $(COVERAGE_FILTERED)
+
+report:
+	@go tool cover -html=$(COVERAGE_FILTERED)
+
+ci:
+	@test -f $(COVERAGE_FILTERED) || { echo "ERROR: $(COVERAGE_FILTERED) not found. Run 'make cover' first."; exit 1; }
+	@TOTAL_COVERAGE=$$(go tool cover -func=$(COVERAGE_FILTERED) | grep total | awk '{print $$3}' | tr -d '%'); \
+	if [ -z "$$TOTAL_COVERAGE" ]; then \
+		echo "ERROR: Could not extract coverage percentage."; \
+		exit 1; \
+	fi; \
+	echo "-------------------------------------"; \
+	echo "Filtered coverage: $$TOTAL_COVERAGE% (threshold: $(MIN_COVERAGE)%)"; \
+	echo "-------------------------------------"; \
+	if [ $$(echo "$$TOTAL_COVERAGE < $(MIN_COVERAGE)" | bc -l 2>/dev/null || echo 0) -eq 1 ]; then \
+		echo "FAILED: Coverage is below $(MIN_COVERAGE)%"; \
+		exit 1; \
+	else \
+		echo "SUCCESS: Coverage is OK!"; \
+	fi

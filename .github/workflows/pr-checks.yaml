@@ -1,0 +1,17 @@
+name: PR Checks
+
+on:
+  pull_request:
+    paths:
+      - "**/*.go"
+      - "proto/**"
+      - "pkg/proto/**"
+      - "deployments/**"
+
+jobs:
+  check-generated-code-consistency:
+    uses: ./.github/workflows/generated-code-consistency.yaml
+
+  linter-and-tests:
+    needs: check-generated-code-consistency
+    uses: ./.github/workflows/linter-and-tests.yaml
