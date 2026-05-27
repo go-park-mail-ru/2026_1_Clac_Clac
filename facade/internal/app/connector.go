@@ -88,7 +88,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		return nil, fmt.Errorf("failed to connect to MailSender service: %w", err)
 	}
 
-	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.ClientConfig.TimeOut, config.RateLimiters.ClientConfig.Retries, defaultGRPCMsgSize)
+	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.TimeOut, config.RateLimiters.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to RateLimiter service: %w", err)

@@ -115,19 +115,19 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[sectionBoardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
@@ -137,11 +137,11 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSectionPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 
@@ -154,7 +154,7 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 			"action":     "get_sections",
 		})
 
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSections.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSections.Error())
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *Section) GetSections(w http.ResponseWriter, r *http.Request) {
 		response = append(response, sectionInfoToDTO(s))
 	}
 
-	api.HandleError(api.RespondOk(w, response))
+	_ = api.HandleError(api.RespondOk(w, response))
 }
 
 // @Summary		Получить секцию
@@ -182,19 +182,19 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawSectionLink, ok := mux.Vars(r)[sectionLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
 		return
 	}
 
 	sectionLink, err := uuid.Parse(rawSectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
@@ -204,11 +204,11 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSectionPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetSection: %w", err)
@@ -218,11 +218,11 @@ func (h *Section) GetSection(w http.ResponseWriter, r *http.Request) {
 			"section_link": sectionLink,
 			"action":       "get_section",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSection.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetSection.Error())
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, sectionInfoToDTO(section)))
+	_ = api.HandleError(api.RespondOk(w, sectionInfoToDTO(section)))
 }
 
 // @Summary		Получить карточки секции
@@ -241,19 +241,19 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawSectionLink, ok := mux.Vars(r)[sectionLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
 		return
 	}
 
 	sectionLink, err := uuid.Parse(rawSectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
@@ -263,11 +263,11 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSectionPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetCards: %w", err)
@@ -277,7 +277,7 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 			"section_link": sectionLink,
 			"action":       "get_cards",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetCards.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetCards.Error())
 		return
 	}
 
@@ -286,7 +286,7 @@ func (h *Section) GetCards(w http.ResponseWriter, r *http.Request) {
 		response = append(response, cardInfoToDTO(c))
 	}
 
-	api.HandleError(api.RespondOk(w, dto.CardsResponse{Cards: response}))
+	_ = api.HandleError(api.RespondOk(w, dto.CardsResponse{Cards: response}))
 }
 
 // @Summary		Создать секцию
@@ -305,28 +305,28 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	var req dto.CreateSectionRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.Name == "" || req.BoardLink == uuid.Nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.MaxTasks != nil && (*req.MaxTasks > h.cfg.MaxQuantityTasks || *req.MaxTasks < 0) {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
 		return
 	}
 
 	if len([]rune(req.Name)) > h.cfg.MaxLenDisplayName {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 
@@ -346,11 +346,11 @@ func (h *Section) CreateSection(w http.ResponseWriter, r *http.Request) {
 			"board_link": req.BoardLink,
 			"action":     "create_section",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateSection.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateSection.Error())
 		return
 	}
 
-	api.HandleError(api.RespondCreated(w, sectionInfoToDTO(section)))
+	_ = api.HandleError(api.RespondCreated(w, sectionInfoToDTO(section)))
 }
 
 // @Summary		Удалить секцию
@@ -369,19 +369,19 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawSectionLink, ok := mux.Vars(r)[sectionLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
 		return
 	}
 
 	sectionLink, err := uuid.Parse(rawSectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
@@ -391,11 +391,11 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSectionPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.DeleteSection: %w", err)
@@ -405,11 +405,11 @@ func (h *Section) DeleteSection(w http.ResponseWriter, r *http.Request) {
 			"section_link": sectionLink,
 			"action":       "delete_section",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteSection.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteSection.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Переупорядочить секции
@@ -429,25 +429,25 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[sectionBoardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
 	var req dto.ListSectionLink
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -464,11 +464,11 @@ func (h *Section) ReorderSections(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "reorder_sections",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotReorderSections.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotReorderSections.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Обновить секцию
@@ -489,35 +489,35 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawSectionLink, ok := mux.Vars(r)[sectionLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrSectionLinkMissing.Error())
 		return
 	}
 
 	sectionLink, err := uuid.Parse(rawSectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidSectionLink.Error())
 		return
 	}
 
 	var req dto.SectionInfo
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.MaxTasks != nil && (*req.MaxTasks > h.cfg.MaxQuantityTasks || *req.MaxTasks < 0) {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInccorectQuantityTasks.Error())
 		return
 	}
 
 	if len([]rune(req.Name)) > h.cfg.MaxLenDisplayName {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 
@@ -531,11 +531,11 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorSectionNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSectionPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorSectionPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.UpdateSection: %w", err)
@@ -545,9 +545,9 @@ func (h *Section) UpdateSection(w http.ResponseWriter, r *http.Request) {
 			"section_link": sectionLink,
 			"action":       "update_section",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateSection.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateSection.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

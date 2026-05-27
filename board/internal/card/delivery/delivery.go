@@ -794,8 +794,8 @@ func (h *CardHandler) CreateAttachment(stream grpc.ClientStreamingServer[pb.Crea
 	}
 
 	defer func() {
-		file.Close()
-		os.Remove(tempFilePath)
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
 	}()
 
 	for {

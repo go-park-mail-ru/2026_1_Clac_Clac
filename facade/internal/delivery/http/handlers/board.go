@@ -112,7 +112,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "get_boards",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *Board) GetBoards(w http.ResponseWriter, r *http.Request) {
 		response = append(response, boardInfoToDTO(b))
 	}
 
-	api.HandleError(api.RespondOk(w, response))
+	_ = api.HandleError(api.RespondOk(w, response))
 }
 
 // @Summary		Получить информацию о доске
@@ -153,19 +153,19 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
@@ -175,11 +175,11 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetBoard: %w", err)
@@ -189,11 +189,11 @@ func (h *Board) GetBoard(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "get_board",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, boardInfoToDTO(board)))
+	_ = api.HandleError(api.RespondOk(w, boardInfoToDTO(board)))
 }
 
 // @Summary		Создать новую доску
@@ -212,28 +212,28 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	var req dto.CreateBoardRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.Name == "" {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if err := common.ValidateTextInfo(req.Description, h.conf.MaxLenDescription); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -251,11 +251,11 @@ func (h *Board) CreateBoard(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "create_board",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateBoard.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateBoard.Error())
 		return
 	}
 
-	api.HandleError(api.RespondCreated(w, boardInfoToDTO(board)))
+	_ = api.HandleError(api.RespondCreated(w, boardInfoToDTO(board)))
 }
 
 // @Summary		Удалить доску
@@ -275,19 +275,19 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
@@ -297,11 +297,11 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.DeleteBoard: %w", err)
@@ -311,11 +311,11 @@ func (h *Board) DeleteBoard(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "delete_board",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteBoard.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteBoard.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Обновить информацию о доске
@@ -337,35 +337,35 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	var req dto.UpdateBoardRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if len([]rune(req.Name)) > h.conf.MaxDisplayName {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 
 	if err := common.ValidateTextInfo(req.Description, h.conf.MaxLenDescription); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -378,11 +378,11 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.UpdateBoard: %w", err)
@@ -392,11 +392,11 @@ func (h *Board) UpdateBoard(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "update_board",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Загрузить фон для доски
@@ -417,19 +417,19 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
@@ -437,9 +437,9 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(err).Msg("parse multipart form")
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
 		} else {
-			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
 		}
 		return
 	}
@@ -447,7 +447,7 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile(h.conf.MultipartBackgroundFileKey)
 	if err != nil {
 		logger.Error().Err(err).Str("expected key", h.conf.MultipartBackgroundFileKey).Msg("cannot find background key")
-		api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrCannotFindBackground.Error())
 		return
 	}
 	defer func() {
@@ -464,15 +464,15 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorNonexistentUser):
-			api.RespondError(w, http.StatusNotFound, err.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, err.Error())
 		case errors.Is(err, common.ErrorBoardNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 		case errors.Is(err, common.ErrorBoardPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 		case errors.Is(err, common.ErrorInvalidInput):
-			api.RespondError(w, http.StatusBadRequest, err.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, common.ErrorInvalidContentType):
-			api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
+			_, _ = api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
 		default:
 			errLog := fmt.Errorf("srv.UploadBackground: %w", err)
 			logger.Error().Err(errLog).Msg("board usecase UploadBackground")
@@ -481,12 +481,12 @@ func (h *Board) UploadBackground(w http.ResponseWriter, r *http.Request) {
 				"board_link": boardLink,
 				"action":     "upload_background",
 			})
-			api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
+			_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBackground.Error())
 		}
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.UploadBackgroundResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.UploadBackgroundResponse{
 		BackgroundKey: resp.BackgroundKey,
 	}))
 }
@@ -508,19 +508,19 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
@@ -530,11 +530,11 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetMembers: %w", err)
@@ -544,7 +544,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "get_members",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetMembers.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetMembers.Error())
 		return
 	}
 
@@ -556,11 +556,11 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 	profiles, err := h.profileSrv.GetProfiles(r.Context(), links)
 	if err != nil {
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidInput.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidInput.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetProfiles: %w", err)
@@ -570,7 +570,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "get_profiles",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetProfiles.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetProfiles.Error())
 		return
 	}
 
@@ -586,7 +586,7 @@ func (h *Board) GetMembers(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	api.HandleError(api.RespondOk(w, dto.GetMembersResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.GetMembersResponse{
 		Members: result,
 	}))
 }
@@ -610,30 +610,30 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	var req dto.CreateInviteRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.DefaultRole == "" {
-		api.RespondError(w, http.StatusBadRequest, ErrRoleRequired.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrRoleRequired.Error())
 		return
 	}
 
@@ -641,7 +641,7 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 	if req.UserLink != "" {
 		parsed, err := uuid.Parse(req.UserLink)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 			return
 		}
 		targetUserLink = &parsed
@@ -656,11 +656,11 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 
@@ -671,11 +671,11 @@ func (h *Board) CreateInvite(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "create_invite",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateInvite.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateInvite.Error())
 		return
 	}
 
-	api.HandleError(api.RespondCreated(w, dto.CreateInviteResponse{
+	_ = api.HandleError(api.RespondCreated(w, dto.CreateInviteResponse{
 		InviteLink:     invite.InviteLink,
 		BoardLink:      invite.BoardLink,
 		TargetUserLink: invite.TargetUserLink,
@@ -706,13 +706,13 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawInviteLink, ok := mux.Vars(r)[inviteLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
 		return
 	}
 
@@ -723,19 +723,19 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorInviteNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
 			return
 		case errors.Is(err, common.ErrorInviteClosed):
-			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteClosed.Error())
+			_, _ = api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteClosed.Error())
 			return
 		case errors.Is(err, common.ErrorInviteExpired):
-			api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteExpired.Error())
+			_, _ = api.RespondError(w, http.StatusPreconditionFailed, common.ErrorInviteExpired.Error())
 			return
 		case errors.Is(err, common.ErrorInviteNotForUser):
-			api.RespondError(w, http.StatusForbidden, common.ErrorInviteNotForUser.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorInviteNotForUser.Error())
 			return
 		case errors.Is(err, common.ErrorUserAlreadyMember):
-			api.RespondError(w, http.StatusConflict, common.ErrorUserAlreadyMember.Error())
+			_, _ = api.RespondError(w, http.StatusConflict, common.ErrorUserAlreadyMember.Error())
 			return
 		}
 
@@ -746,11 +746,11 @@ func (h *Board) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			"invite_link": rawInviteLink,
 			"action":      "accept_invite",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotAcceptInvite.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotAcceptInvite.Error())
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.AcceptInviteResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.AcceptInviteResponse{
 		BoardLink: boardLink,
 		Role:      role,
 	}))
@@ -773,13 +773,13 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawInviteLink, ok := mux.Vars(r)[inviteLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInviteLinkMissing.Error())
 		return
 	}
 
@@ -790,10 +790,10 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorInviteNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorInviteNotFound.Error())
 			return
 		case errors.Is(err, common.ErrorBoardPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 
@@ -804,11 +804,11 @@ func (h *Board) CloseInvite(w http.ResponseWriter, r *http.Request) {
 			"invite_link": rawInviteLink,
 			"action":      "close_invite",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotCloseInvite.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotCloseInvite.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Получить активные приглашения доски
@@ -826,31 +826,31 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	invites, err := h.boardSrv.GetActiveInvites(r.Context(), userLink, boardLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.GetActiveInvites: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase GetActiveInvites")
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetBoards.Error())
 		return
 	}
 
@@ -872,7 +872,7 @@ func (h *Board) GetActiveInvites(w http.ResponseWriter, r *http.Request) {
 		result = append(result, info)
 	}
 
-	api.HandleError(api.RespondOk(w, result))
+	_ = api.HandleError(api.RespondOk(w, result))
 }
 
 // @Summary		Изменить роль пользователя на доске
@@ -895,37 +895,37 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	rawTargetLink, ok := mux.Vars(r)["user_link"]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	targetLink, err := uuid.Parse(rawTargetLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	var req dto.UpdateMemberRoleRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -937,28 +937,28 @@ func (h *Board) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorSelfRoleChange) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorSelfRoleChange.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorSelfRoleChange.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase UpdateMemberRole")
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // @Summary		Удалить пользователя с доски
@@ -979,31 +979,31 @@ func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := r.Context().Value(middleware.UserContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	boardLink, err := uuid.Parse(rawBoardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
 	rawTargetLink, ok := mux.Vars(r)["user_link"]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrBoardLinkMissing.Error())
 		return
 	}
 
 	targetLink, err := uuid.Parse(rawTargetLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidBoardLink.Error())
 		return
 	}
 
@@ -1014,26 +1014,26 @@ func (h *Board) RemoveMemberFromBoard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardNotFound) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorBoardNotFound.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorBoardPermissionDenied.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorCreatorCannotLeave) {
-			api.RespondError(w, http.StatusForbidden, common.ErrorCreatorCannotLeave.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorCreatorCannotLeave.Error())
 			return
 		}
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
 		logger.Error().Err(errLog).Msg("board usecase RemoveMemberFromBoard")
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUpdateBoard.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

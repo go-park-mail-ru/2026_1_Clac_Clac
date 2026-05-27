@@ -19,7 +19,7 @@ import (
 var (
 	fixedBoardLinkP = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixedUserLinkP  = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	pollTestError   = errors.New("poll error")
+	errPollTest   = errors.New("poll error")
 )
 
 type mockPollUsecase struct {
@@ -115,7 +115,7 @@ func TestPollHandler_CreatePoll(t *testing.T) {
 			boardLinkVar: fixedBoardLinkP.String(),
 			body:         validBody,
 			mockBehavior: func(m *mockPollUsecase) {
-				m.On("CreatePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP, mock.Anything, mock.Anything).Return(pollTestError)
+				m.On("CreatePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP, mock.Anything, mock.Anything).Return(errPollTest)
 			},
 			setupCtx:     true,
 			expectedCode: http.StatusInternalServerError,
@@ -185,7 +185,7 @@ func TestPollHandler_Vote(t *testing.T) {
 			boardLinkVar: fixedBoardLinkP.String(),
 			body:         validBody,
 			mockBehavior: func(m *mockPollUsecase) {
-				m.On("VotePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP, 5).Return(pollTestError)
+				m.On("VotePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP, 5).Return(errPollTest)
 			},
 			setupCtx:     true,
 			expectedCode: http.StatusInternalServerError,
@@ -241,7 +241,7 @@ func TestPollHandler_DeletePoll(t *testing.T) {
 			name:         "Error_NotPollAdmin",
 			boardLinkVar: fixedBoardLinkP.String(),
 			mockBehavior: func(m *mockPollUsecase) {
-				m.On("DeletePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(pollTestError)
+				m.On("DeletePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(errPollTest)
 			},
 			setupCtx:     true,
 			expectedCode: http.StatusInternalServerError,
@@ -297,7 +297,7 @@ func TestPollHandler_NextCard(t *testing.T) {
 			name:         "Error_NotPollAdmin",
 			boardLinkVar: fixedBoardLinkP.String(),
 			mockBehavior: func(m *mockPollUsecase) {
-				m.On("NextPollCard", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(pollTestError)
+				m.On("NextPollCard", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(errPollTest)
 			},
 			setupCtx:     true,
 			expectedCode: http.StatusInternalServerError,
@@ -365,7 +365,7 @@ func TestPollHandler_GetActivePoll(t *testing.T) {
 			name:         "Error_Unauthorized",
 			boardLinkVar: fixedBoardLinkP.String(),
 			mockBehavior: func(m *mockPollUsecase) {
-				m.On("GetActivePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(nil, pollTestError)
+				m.On("GetActivePoll", mock.Anything, fixedBoardLinkP, fixedUserLinkP).Return(nil, errPollTest)
 			},
 			setupCtx:     true,
 			expectedCode: http.StatusInternalServerError,

@@ -51,13 +51,13 @@ func (h *RealtimeHandler) EventsSSE(w http.ResponseWriter, r *http.Request) {
 
 	boardLink, ok := ctx.Value(middleware.BoardContextLink{}).(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, common.ErrBoardLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrBoardLinkMissing.Error())
 		return
 	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		api.RespondError(w, http.StatusInternalServerError, streamingUnsupported)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, streamingUnsupported)
 		return
 	}
 
@@ -67,10 +67,10 @@ func (h *RealtimeHandler) EventsSSE(w http.ResponseWriter, r *http.Request) {
 
 	sub, err := h.service.Subscribe(ctx, boardLink)
 	if err != nil {
-		api.RespondError(w, http.StatusInternalServerError, subscribeFailed)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, subscribeFailed)
 		return
 	}
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	keepAliveTicker := time.NewTicker(keepAliveInterval * time.Second)
 	defer keepAliveTicker.Stop()
@@ -93,14 +93,14 @@ func (h *RealtimeHandler) EventsSSE(w http.ResponseWriter, r *http.Request) {
 			})
 			if err != nil {
 				logger.Error().Err(err).Msg("json.Marshal")
-				api.RespondError(w, http.StatusInternalServerError, internalServerError)
+				_, _ = api.RespondError(w, http.StatusInternalServerError, internalServerError)
 				return
 			}
 
-			fmt.Fprintf(w, "data: %s\n\n", data)
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
 		case <-keepAliveTicker.C:
-			fmt.Fprint(w, ": heartbeat\n\n")
+			_, _ = fmt.Fprint(w, ": heartbeat\n\n")
 			flusher.Flush()
 		}
 	}

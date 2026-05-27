@@ -283,8 +283,8 @@ func (h *Handler) UploadAttachment(stream grpc.ClientStreamingServer[pb.UploadAt
 	}
 
 	defer func() {
-		file.Close()
-		os.Remove(tempFilePath)
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
 	}()
 
 	for {

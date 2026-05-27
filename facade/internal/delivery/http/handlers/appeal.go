@@ -84,33 +84,33 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	var request dto.CreateAppealRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if ok = ValidateEmail(request.Email); !ok {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrOAuthInvalidEmail.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrOAuthInvalidEmail.Error())
 		return
 	}
 
 	if len([]rune(request.DisplayName)) > h.conf.MaxLenDisplayName {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidSizeDisplayName.Error())
 		return
 	}
 
 	if err := common.ValidateTextInfo(request.Description, h.conf.MaxLenDescription); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
 	if request.Category == "" {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidCategory.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidCategory.Error())
 		return
 	}
 
@@ -124,13 +124,13 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorExistingUser):
-			api.RespondError(w, http.StatusBadRequest, common.ErrorExistingUser.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorExistingUser.Error())
 			return
 		case errors.Is(err, common.ErrorNotNullValue):
-			api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorNotNullValue.Error())
 			return
 		case errors.Is(err, common.ErrInvalidCategory):
-			api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrInvalidCategory.Error())
 			return
 		}
 
@@ -140,11 +140,11 @@ func (h *Appeal) CreateAppeal(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "create_appeal",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateAppeal.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotCreateAppeal.Error())
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.CreateAppealResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.CreateAppealResponse{
 		AppealLink: appealLink,
 	}))
 }
@@ -167,7 +167,7 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "get_appeals",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetAppeals.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetAppeals.Error())
 		return
 	}
 
@@ -202,7 +202,7 @@ func (h *Appeal) GetAppeals(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	api.HandleError(api.RespondOk(w, response))
+	_ = api.HandleError(api.RespondOk(w, response))
 }
 
 // UploadAttachment godoc
@@ -227,20 +227,20 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	vars := mux.Vars(r)
 	rawAppealLink, ok := vars["link"]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
 		return
 	}
 
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
 		return
 	}
 
@@ -248,9 +248,9 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(err).Msg("parse multipart form")
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
 		} else {
-			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
 		}
 		return
 	}
@@ -258,7 +258,7 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile(h.conf.MultipartAttachmentFileKey)
 	if err != nil {
 		logger.Error().Err(err).Str("expected key", h.conf.MultipartAttachmentFileKey).Msg("cannot find attachment key")
-		api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
 		return
 	}
 	defer func() {
@@ -275,15 +275,15 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorNonexistentUser):
-			api.RespondError(w, http.StatusNotFound, err.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, err.Error())
 		case errors.Is(err, common.ErrorAppealNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, common.ErrorPermissionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, common.ErrorPermissionDenied.Error())
 		case errors.Is(err, common.ErrorInvalidInput):
-			api.RespondError(w, http.StatusBadRequest, err.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, err.Error())
 		case errors.Is(err, common.ErrorInvalidContentType):
-			api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
+			_, _ = api.RespondError(w, http.StatusUnsupportedMediaType, err.Error())
 		default:
 			errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
 			logger.Error().Err(errLog).Msg("failed to upload attachment")
@@ -292,12 +292,12 @@ func (h *Appeal) UploadAttachment(w http.ResponseWriter, r *http.Request) {
 				"appeal_link": appealLink,
 				"action":      "upload_attachment",
 			})
-			api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
+			_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotUploadFile.Error())
 		}
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.UploadAttachmentResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.UploadAttachmentResponse{
 		AttachmentURL: attachmentURL,
 	}))
 }
@@ -321,20 +321,20 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	vars := mux.Vars(r)
 	rawAppealLink, ok := vars["link"]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
 		return
 	}
 
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
 		return
 	}
 
@@ -345,10 +345,10 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
 			return
 		case errors.Is(err, common.ErrorAppealNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
 			return
 		}
 
@@ -359,11 +359,11 @@ func (h *Appeal) DeleteAppeal(w http.ResponseWriter, r *http.Request) {
 			"appeal_link": appealLink,
 			"action":      "delete_appeal",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteAppeal.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotDeleteAppeal.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }
 
 // GetStats godoc
@@ -385,7 +385,7 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
@@ -393,7 +393,7 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
 			return
 		}
 
@@ -403,11 +403,11 @@ func (h *Appeal) GetStats(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "get_stats",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotGetStats.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotGetStats.Error())
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.AppealsStats{
+	_ = api.HandleError(api.RespondOk(w, dto.AppealsStats{
 		OpenAppeals:   stats.OpenAppeals,
 		InWorkAppeals: stats.InWorkAppeals,
 		CloseAppeals:  stats.CloseAppeals,
@@ -437,27 +437,27 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
 	vars := mux.Vars(r)
 	rawAppealLink, ok := vars["link"]
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrAppealLinkMissing.Error())
 		return
 	}
 
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrInvalidAppealLink.Error())
 		return
 	}
 
 	var request dto.ChangeAppealStatusInfo
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
 		logger.Error().Err(err).Msg("can not decode status")
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -469,10 +469,10 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
+			_, _ = api.RespondError(w, http.StatusForbidden, ErrActionDenied.Error())
 			return
 		case errors.Is(err, common.ErrorAppealNotFound):
-			api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorAppealNotFound.Error())
 			return
 		}
 
@@ -483,9 +483,9 @@ func (h *Appeal) ChangeAppealStatus(w http.ResponseWriter, r *http.Request) {
 			"appeal_link": appealLink,
 			"action":      "change_appeal_status",
 		})
-		api.RespondError(w, http.StatusInternalServerError, ErrCannotChangeStatus.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, ErrCannotChangeStatus.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

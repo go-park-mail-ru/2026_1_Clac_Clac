@@ -73,13 +73,13 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 
 	var request dto.PasswordRecoveryRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	ok := ValidateEmail(request.Email)
 	if !ok {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -93,13 +93,13 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 			"email":  request.Email,
 			"action": "check_cool_down",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
 	if !result.Allowed {
 		w.Header().Set("Retry-After", fmt.Sprintf("%d", result.WaitS))
-		api.RespondError(w, http.StatusTooManyRequests,
+		_, _ = api.RespondError(w, http.StatusTooManyRequests,
 			fmt.Sprintf("Too many requests. Wait %d seconds", result.WaitS))
 		return
 	}
@@ -107,7 +107,7 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 	userLink, err := ms.geterUserLink.GetUserLink(r.Context(), request.Email)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentEmail) || errors.Is(err, common.ErrorNonexistentUser) {
-			api.Respond(w, http.StatusOK, api.StatusOK)
+			_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 			return
 		}
 		errLog := fmt.Errorf("GetUserLink: %w", err)
@@ -116,13 +116,13 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 			"email":  request.Email,
 			"action": "get_user_link",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
 	if err := ms.mailSender.SendRecoveryCode(r.Context(), userLink, request.Email); err != nil {
 		if errors.Is(err, common.ErrorNonexistentEmail) || errors.Is(err, common.ErrorNonexistentUser) {
-			api.Respond(w, http.StatusOK, api.StatusOK)
+			_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 			return
 		}
 		errLog := fmt.Errorf("auth.SendRecoveryCode: %w", err)
@@ -131,11 +131,11 @@ func (ms *MailSender) SendRecoveryEmail(w http.ResponseWriter, r *http.Request) 
 			"email":  request.Email,
 			"action": "send_recovery_code",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotSendRecoveryCode.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotSendRecoveryCode.Error())
 		return
 	}
 
-	api.Respond(w, http.StatusOK, api.StatusOK)
+	_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // CheckRecoveryCode проверяет отправленный на почту код
@@ -154,7 +154,7 @@ func (ms *MailSender) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 
 	var request dto.RecoveryCodeRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -162,15 +162,15 @@ func (ms *MailSender) CheckRecoveryCode(w http.ResponseWriter, r *http.Request) 
 		errLog := fmt.Errorf("mailSender.CheckRecoveryCode: %w", err)
 		logger.Error().Err(errLog).Msg("auth.CheckRecoveryCode failed")
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
 			return
 		}
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "CheckRecoveryCode", map[string]interface{}{
 			"action": "check_recovery_code",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
-	api.Respond(w, http.StatusOK, api.StatusOK)
+	_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 }

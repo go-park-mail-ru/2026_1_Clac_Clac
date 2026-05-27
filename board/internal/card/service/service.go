@@ -261,7 +261,7 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 		return dto.CommentInfo{}, fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -278,7 +278,9 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish new_comment event")
+	}
 
 	return dto.CommentInfo{
 		Link:       comment.Link,
@@ -321,7 +323,7 @@ func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, user
 		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -336,7 +338,9 @@ func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, user
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish delete_comment event")
+	}
 
 	return nil
 }
@@ -377,7 +381,7 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -394,7 +398,9 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish update_comment event")
+	}
 
 	return nil
 }

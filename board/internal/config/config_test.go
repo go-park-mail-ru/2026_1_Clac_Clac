@@ -93,8 +93,8 @@ engine:
 		var envTest = []byte(`MAIL_SENDER_HOST=test.ru`)
 
 		tempDir := t.TempDir()
-		os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
-		os.WriteFile(filepath.Join(tempDir, envFilename), envTest, 0644)
+		_ = os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
+		_ = os.WriteFile(filepath.Join(tempDir, envFilename), envTest, 0644)
 
 		v, err := config.SetupViper(tempDir)
 

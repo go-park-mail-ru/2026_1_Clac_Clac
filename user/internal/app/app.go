@@ -188,6 +188,9 @@ func setupStore(conf *config.Config, logger *zerolog.Logger) (*Store, error) {
 	const intConvertationBase = 10
 	const intConvertationSize = 64
 	s3ConnectTimeout, err := strconv.ParseInt(conf.S3.ConnectTimeout, intConvertationBase, intConvertationSize)
+	if err != nil {
+		return nil, fmt.Errorf("parse S3.ConnectTimeout: %w", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(s3ConnectTimeout)*time.Second)
 	defer cancel()

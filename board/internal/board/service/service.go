@@ -439,7 +439,7 @@ func (s *Service) CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID
 		return fmt.Errorf("pollStore.Create: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -454,7 +454,9 @@ func (s *Service) CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish poll_start event")
+	}
 
 	return nil
 }
@@ -464,7 +466,7 @@ func (s *Service) DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID)
 		return fmt.Errorf("pollStore.Delete: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -475,7 +477,9 @@ func (s *Service) DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID)
 				Data:      struct{}{},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish poll_end event")
+	}
 
 	return nil
 }
@@ -484,7 +488,7 @@ func (s *Service) NextPollCard(ctx context.Context, boardLink, userLink uuid.UUI
 	poll, err := s.pollStore.NextCard(boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrPollNoMoreCards) {
-			s.pub.Publish(
+			if _, pubErr := s.pub.Publish(
 				ctx,
 				pubsub.Channel(boardLink.String()),
 				pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -495,13 +499,15 @@ func (s *Service) NextPollCard(ctx context.Context, boardLink, userLink uuid.UUI
 						Data:      struct{}{},
 					},
 				},
-			)
+			); pubErr != nil {
+				zerolog.Ctx(ctx).Error().Err(pubErr).Msg("failed to publish poll_end event")
+			}
 			return common.ErrPollNoMoreCards
 		}
 		return fmt.Errorf("pollStore.NextCard: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -516,7 +522,9 @@ func (s *Service) NextPollCard(ctx context.Context, boardLink, userLink uuid.UUI
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish next_card event")
+	}
 
 	return nil
 }
@@ -526,7 +534,7 @@ func (s *Service) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, p
 		return fmt.Errorf("pollStore.Vote: %w", err)
 	}
 
-	s.pub.Publish(
+	if _, err := s.pub.Publish(
 		ctx,
 		pubsub.Channel(boardLink.String()),
 		pubsub.Event[brokerEvents.BoardUpdateEvent]{
@@ -543,7 +551,9 @@ func (s *Service) VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, p
 				},
 			},
 		},
-	)
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish new_answer event")
+	}
 
 	return nil
 }

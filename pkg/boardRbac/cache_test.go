@@ -47,7 +47,7 @@ func TestCachedService_CheckPermissionOnBoard(t *testing.T) {
 		{
 			nameTest: "Cache hit - allowed",
 			setupCache: func(mr *miniredis.Miniredis) {
-				mr.Set(roleKey(userLink, boardLink), string(Roles.Editor))
+				_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Editor))
 			},
 			mockBehavior:  func(m *MockRbacRepository) {},
 			action:        Actions.Edit,
@@ -56,7 +56,7 @@ func TestCachedService_CheckPermissionOnBoard(t *testing.T) {
 		{
 			nameTest: "Cache hit - denied",
 			setupCache: func(mr *miniredis.Miniredis) {
-				mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
+				_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
 			},
 			mockBehavior:  func(m *MockRbacRepository) {},
 			action:        Actions.Edit,
@@ -132,8 +132,8 @@ func TestCachedService_CheckPermissionOnSection(t *testing.T) {
 		{
 			nameTest: "Cache hit for mapping and role - allowed",
 			setupCache: func(mr *miniredis.Miniredis) {
-				mr.Set(mappingKey("section", sectionLink), boardLink.String())
-				mr.Set(roleKey(userLink, boardLink), string(Roles.Admin))
+				_ = mr.Set(mappingKey("section", sectionLink), boardLink.String())
+				_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Admin))
 			},
 			mockBehavior:  func(m *MockRbacRepository) {},
 			action:        Actions.Edit,
@@ -142,7 +142,7 @@ func TestCachedService_CheckPermissionOnSection(t *testing.T) {
 		{
 			nameTest: "Cache mapping hit, role miss - repo success",
 			setupCache: func(mr *miniredis.Miniredis) {
-				mr.Set(mappingKey("section", sectionLink), boardLink.String())
+				_ = mr.Set(mappingKey("section", sectionLink), boardLink.String())
 			},
 			mockBehavior: func(m *MockRbacRepository) {
 				m.On("GetUserRoleBySectionLink", ctx, sectionLink, userLink).Return(Roles.Editor, boardLink, nil)
@@ -234,8 +234,8 @@ func TestCachedService_CheckPermissionOnComment(t *testing.T) {
 
 	t.Run("Cache hit mapping and role denied", func(t *testing.T) {
 		mr, client := newTestRedis(t)
-		mr.Set(mappingKey("comment", commentLink), boardLink.String())
-		mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
+		_ = mr.Set(mappingKey("comment", commentLink), boardLink.String())
+		_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
 
 		mockRepo := new(MockRbacRepository)
 		svc := NewCachedService(mockRepo, client)
@@ -274,8 +274,8 @@ func TestCachedService_CheckPermissionOnSubtask(t *testing.T) {
 
 	t.Run("Cache hit mapping and role allowed", func(t *testing.T) {
 		mr, client := newTestRedis(t)
-		mr.Set(mappingKey("subtask", subtaskLink), boardLink.String())
-		mr.Set(roleKey(userLink, boardLink), string(Roles.Creator))
+		_ = mr.Set(mappingKey("subtask", subtaskLink), boardLink.String())
+		_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Creator))
 
 		mockRepo := new(MockRbacRepository)
 		svc := NewCachedService(mockRepo, client)
@@ -314,8 +314,8 @@ func TestCachedService_CheckPermissionOnAttachment(t *testing.T) {
 
 	t.Run("Cache hit mapping and role allowed", func(t *testing.T) {
 		mr, client := newTestRedis(t)
-		mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
-		mr.Set(roleKey(userLink, boardLink), string(Roles.Creator))
+		_ = mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
+		_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Creator))
 
 		mockRepo := new(MockRbacRepository)
 		svc := NewCachedService(mockRepo, client)
@@ -325,8 +325,8 @@ func TestCachedService_CheckPermissionOnAttachment(t *testing.T) {
 
 	t.Run("Cache hit mapping role denied", func(t *testing.T) {
 		mr, client := newTestRedis(t)
-		mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
-		mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
+		_ = mr.Set(mappingKey("attachment", attachmentLink), boardLink.String())
+		_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Viewer))
 
 		mockRepo := new(MockRbacRepository)
 		svc := NewCachedService(mockRepo, client)
@@ -342,7 +342,7 @@ func TestCachedService_InvalidateUserBoardRole(t *testing.T) {
 
 	t.Run("Key exists - deleted successfully", func(t *testing.T) {
 		mr, client := newTestRedis(t)
-		mr.Set(roleKey(userLink, boardLink), string(Roles.Admin))
+		_ = mr.Set(roleKey(userLink, boardLink), string(Roles.Admin))
 
 		mockRepo := new(MockRbacRepository)
 		svc := NewCachedService(mockRepo, client)

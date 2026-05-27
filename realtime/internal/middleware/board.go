@@ -25,24 +25,24 @@ func BoardAccessMiddleware(client BoardChecker) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userLink, ok := r.Context().Value(UserContextLink{}).(uuid.UUID)
 			if !ok {
-				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+				_, _ = api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 
 			rawBoardLink, ok := mux.Vars(r)[boardLinkKey]
 			if !ok {
-				api.RespondError(w, http.StatusBadRequest, "board link missing")
+				_, _ = api.RespondError(w, http.StatusBadRequest, "board link missing")
 				return
 			}
 
 			boardLink, err := uuid.Parse(rawBoardLink)
 			if err != nil {
-				api.RespondError(w, http.StatusBadRequest, "invalid board link")
+				_, _ = api.RespondError(w, http.StatusBadRequest, "invalid board link")
 				return
 			}
 
 			if err := client.CanView(r.Context(), userLink, boardLink); err != nil {
-				api.RespondError(w, http.StatusForbidden, boardPermissionDenied)
+				_, _ = api.RespondError(w, http.StatusForbidden, boardPermissionDenied)
 				return
 			}
 

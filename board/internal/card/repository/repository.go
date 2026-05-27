@@ -129,12 +129,12 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 
 	var rawSubtasks []rawSubtask
 	if err := json.Unmarshal(subtasks, &rawSubtasks); err != nil {
-		return dto.InfoCard{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
+		return dto.InfoCard{}, errors.New(msgInvalidUnmarshalSubtasks)
 	}
 
 	var rawAttachments []rawAttachment
 	if err := json.Unmarshal(attachments, &rawAttachments); err != nil {
-		return dto.InfoCard{}, fmt.Errorf(msgInvalidUnmarshalAttachments)
+		return dto.InfoCard{}, errors.New(msgInvalidUnmarshalAttachments)
 	}
 
 	infoCard.Subtasks = make([]models.SubtaskInfo, 0, len(rawSubtasks))

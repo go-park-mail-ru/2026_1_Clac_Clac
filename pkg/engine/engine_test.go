@@ -51,7 +51,7 @@ func TestGracefulShutdown(t *testing.T) {
 	serverStopped := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		e.Start(ctx)
+		_ = e.Start(ctx)
 		close(serverStopped)
 	}()
 

@@ -16,7 +16,7 @@ import (
 
 var (
 	fixedBoardLink = uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	boardTestErr   = errors.New("client error")
+	errBoardTest   = errors.New("client error")
 )
 
 func TestBoardGetBoards(t *testing.T) {
@@ -41,7 +41,7 @@ func TestBoardGetBoards(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("GetBoards", context.Background(), fixedUserLink).Return([]domain.BoardInfo(nil), boardTestErr)
+				m.On("GetBoards", context.Background(), fixedUserLink).Return([]domain.BoardInfo(nil), errBoardTest)
 			},
 			expected:    nil,
 			expectError: true,
@@ -94,7 +94,7 @@ func TestBoardGetBoard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("GetBoard", context.Background(), req).Return(domain.BoardInfo{}, boardTestErr)
+				m.On("GetBoard", context.Background(), req).Return(domain.BoardInfo{}, errBoardTest)
 			},
 			expected:    domain.BoardInfo{},
 			expectError: true,
@@ -139,7 +139,7 @@ func TestBoardCreateBoard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("CreateBoard", context.Background(), req).Return(domain.BoardInfo{}, boardTestErr)
+				m.On("CreateBoard", context.Background(), req).Return(domain.BoardInfo{}, errBoardTest)
 			},
 			expected:    domain.BoardInfo{},
 			expectError: true,
@@ -188,7 +188,7 @@ func TestBoardDeleteBoard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("DeleteBoard", context.Background(), req).Return(boardTestErr)
+				m.On("DeleteBoard", context.Background(), req).Return(errBoardTest)
 			},
 			expectError: true,
 		},
@@ -228,7 +228,7 @@ func TestBoardUpdateBoard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("UpdateBoard", context.Background(), req).Return(boardTestErr)
+				m.On("UpdateBoard", context.Background(), req).Return(errBoardTest)
 			},
 			expectError: true,
 		},
@@ -276,7 +276,7 @@ func TestBoardUploadBackground(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("UploadBackground", context.Background(), bgReq, reader).Return(domain.UploadBackgroundResponse{}, boardTestErr)
+				m.On("UploadBackground", context.Background(), bgReq, reader).Return(domain.UploadBackgroundResponse{}, errBoardTest)
 			},
 			expected:    domain.UploadBackgroundResponse{},
 			expectError: true,
@@ -329,7 +329,7 @@ func TestBoardGetMembers(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("GetMembers", context.Background(), req).Return(domain.GetMembersResponse{}, boardTestErr)
+				m.On("GetMembers", context.Background(), req).Return(domain.GetMembersResponse{}, errBoardTest)
 			},
 			expected:    domain.GetMembersResponse{},
 			expectError: true,
@@ -383,7 +383,7 @@ func TestBoardCreateInviteUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("CreateInvite", context.Background(), req).Return(domain.CreateInviteResponse{}, boardTestErr)
+				m.On("CreateInvite", context.Background(), req).Return(domain.CreateInviteResponse{}, errBoardTest)
 			},
 			expected:    domain.CreateInviteResponse{},
 			expectError: true,
@@ -432,7 +432,7 @@ func TestBoardAcceptInviteUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("AcceptInvite", context.Background(), req).Return("", "", boardTestErr)
+				m.On("AcceptInvite", context.Background(), req).Return("", "", errBoardTest)
 			},
 			expectError: true,
 		},
@@ -477,7 +477,7 @@ func TestBoardCloseInviteUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("CloseInvite", context.Background(), req).Return(boardTestErr)
+				m.On("CloseInvite", context.Background(), req).Return(errBoardTest)
 			},
 			expectError: true,
 		},
@@ -522,7 +522,7 @@ func TestBoardUpdateMemberRoleUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("UpdateMemberRole", context.Background(), req).Return(boardTestErr)
+				m.On("UpdateMemberRole", context.Background(), req).Return(errBoardTest)
 			},
 			expectError: true,
 		},
@@ -566,7 +566,7 @@ func TestBoardRemoveMemberFromBoardUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("RemoveMemberFromBoard", context.Background(), req).Return(boardTestErr)
+				m.On("RemoveMemberFromBoard", context.Background(), req).Return(errBoardTest)
 			},
 			expectError: true,
 		},
@@ -610,7 +610,7 @@ func TestBoardGetActiveInvitesUsecase(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockBoardClient.BoardClient) {
-				m.On("GetActiveInvites", context.Background(), fixedUserLink, fixedBoardLink).Return(nil, boardTestErr)
+				m.On("GetActiveInvites", context.Background(), fixedUserLink, fixedBoardLink).Return(nil, errBoardTest)
 			},
 			expected:    nil,
 			expectError: true,

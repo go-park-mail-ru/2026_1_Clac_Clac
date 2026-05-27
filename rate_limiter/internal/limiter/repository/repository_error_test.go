@@ -24,7 +24,7 @@ func TestCheckLimitPipeExecError(t *testing.T) {
 		rep := NewRepository(client)
 
 		mr.Close()
-		client.Close()
+		_ = client.Close()
 
 		config := dto.RateLimiterConfig{
 			UserIP: "192.168.1.1",

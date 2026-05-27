@@ -80,12 +80,12 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.CreatePollRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if len(req.CardLinks) == 0 {
-		api.RespondError(w, http.StatusBadRequest, "card links must not be empty")
+		_, _ = api.RespondError(w, http.StatusBadRequest, "card links must not be empty")
 		return
 	}
 
@@ -93,7 +93,7 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 	for _, raw := range req.CardLinks {
 		cardLink, err := uuid.Parse(raw)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 			return
 		}
 		cards = append(cards, cardLink)
@@ -103,7 +103,7 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 	for _, raw := range req.Invitees {
 		uid, err := uuid.Parse(raw)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 			return
 		}
 		invitees = append(invitees, uid)
@@ -112,11 +112,11 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 	err := h.poll.CreatePoll(r.Context(), boardLink, userLink, cards, invitees)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorPollAlreadyExists) {
-			api.RespondError(w, http.StatusConflict, "poll already exists")
+			_, _ = api.RespondError(w, http.StatusConflict, "poll already exists")
 			return
 		}
 		errLog := fmt.Errorf("poll.CreatePoll: %w", err)
@@ -126,11 +126,11 @@ func (h *PollHandler) CreatePoll(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "create_poll",
 		})
-		api.RespondError(w, http.StatusInternalServerError, "cannot create poll")
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot create poll")
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusCreated, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusCreated, api.StatusOK))
 }
 
 // Vote проголосовать за текущую карточку
@@ -165,19 +165,19 @@ func (h *PollHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.VotePollRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.Points < h.cfg.MinVotePoints || req.Points > h.cfg.MaxVotePoints {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("points must be between %d and %d", h.cfg.MinVotePoints, h.cfg.MaxVotePoints))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("points must be between %d and %d", h.cfg.MinVotePoints, h.cfg.MaxVotePoints))
 		return
 	}
 
 	err := h.poll.VotePoll(r.Context(), boardLink, userLink, req.Points)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, "user not invited")
+			_, _ = api.RespondError(w, http.StatusForbidden, "user not invited")
 			return
 		}
 		errLog := fmt.Errorf("poll.VotePoll: %w", err)
@@ -187,11 +187,11 @@ func (h *PollHandler) Vote(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "vote_poll",
 		})
-		api.RespondError(w, http.StatusInternalServerError, "cannot vote")
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot vote")
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // DeletePoll завершает покер-комнату
@@ -225,7 +225,7 @@ func (h *PollHandler) DeletePoll(w http.ResponseWriter, r *http.Request) {
 	err := h.poll.DeletePoll(r.Context(), boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, "not poll admin")
+			_, _ = api.RespondError(w, http.StatusForbidden, "not poll admin")
 			return
 		}
 		errLog := fmt.Errorf("poll.DeletePoll: %w", err)
@@ -235,11 +235,11 @@ func (h *PollHandler) DeletePoll(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "delete_poll",
 		})
-		api.RespondError(w, http.StatusInternalServerError, "cannot delete poll")
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot delete poll")
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // NextCard переходит к следующей карточке
@@ -273,7 +273,7 @@ func (h *PollHandler) NextCard(w http.ResponseWriter, r *http.Request) {
 	err := h.poll.NextPollCard(r.Context(), boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, "not poll admin")
+			_, _ = api.RespondError(w, http.StatusForbidden, "not poll admin")
 			return
 		}
 		errLog := fmt.Errorf("poll.NextPollCard: %w", err)
@@ -283,11 +283,11 @@ func (h *PollHandler) NextCard(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "next_poll_card",
 		})
-		api.RespondError(w, http.StatusInternalServerError, "cannot advance poll")
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot advance poll")
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // GetActivePoll получает активный опрос
@@ -321,11 +321,11 @@ func (h *PollHandler) GetActivePoll(w http.ResponseWriter, r *http.Request) {
 	poll, err := h.poll.GetActivePoll(r.Context(), boardLink, userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorBoardPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorPollNotFound) {
-			api.RespondError(w, http.StatusNotFound, "no active poll for this board")
+			_, _ = api.RespondError(w, http.StatusNotFound, "no active poll for this board")
 			return
 		}
 		errLog := fmt.Errorf("poll.GetActivePoll: %w", err)
@@ -335,18 +335,18 @@ func (h *PollHandler) GetActivePoll(w http.ResponseWriter, r *http.Request) {
 			"board_link": boardLink,
 			"action":     "get_active_poll",
 		})
-		api.RespondError(w, http.StatusInternalServerError, "cannot get active poll")
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot get active poll")
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, poll))
+	_ = api.HandleError(api.RespondOk(w, poll))
 }
 
 func parsePollBoardLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	linkParam := mux.Vars(r)[pollBoardLinkKey]
 	boardLink, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return uuid.Nil, false
 	}
 	return boardLink, true
@@ -356,7 +356,7 @@ func getPollUserLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return uuid.Nil, false
 	}
 	return userLink, true

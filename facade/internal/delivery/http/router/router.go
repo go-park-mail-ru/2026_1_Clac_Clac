@@ -252,5 +252,5 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 }
 
 func healthcheck(w http.ResponseWriter, r *http.Request) {
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	_ = api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
 }

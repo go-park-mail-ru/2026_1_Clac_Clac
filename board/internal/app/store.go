@@ -91,7 +91,11 @@ func NewStore(logger *zerolog.Logger, conf config.Config) (*Store, error) {
 
 func (s *Store) Close() error {
 	s.PostgresPool.Close()
-	s.BrokerRedisClient.Close()
+
+	if err := s.BrokerRedisClient.Close(); err != nil {
+		return fmt.Errorf("BrokerRedisClient.Close: %w", err)
+	}
+
 	return s.RedisClient.Close()
 }
 

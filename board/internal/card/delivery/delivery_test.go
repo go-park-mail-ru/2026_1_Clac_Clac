@@ -77,10 +77,6 @@ func grpcCode(err error) codes.Code {
 	return status.Code(err)
 }
 
-func grpcMsg(err error) string {
-	return status.Convert(err).Message()
-}
-
 func TestGetCard(t *testing.T) {
 	targetCardLink := uuid.New()
 	targetUserLink := uuid.New()

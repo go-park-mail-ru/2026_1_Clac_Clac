@@ -48,7 +48,7 @@ func (c *CSRF) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie(middleware.SessiondIdKey)
 	if err != nil {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 	sessionID := cookie.Value
@@ -62,10 +62,10 @@ func (c *CSRF) SetCSRFCookieHandler(w http.ResponseWriter, r *http.Request) {
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "SetCSRFCookieHandler", map[string]interface{}{
 			"action": "generate_csrf_token",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotCreateCSRFToken.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotCreateCSRFToken.Error())
 		return
 	}
 
 	http.SetCookie(w, api.NewCSRFCookie(csrfCookieKey, token, expireTime))
-	api.Respond(w, http.StatusOK, api.StatusOK)
+	_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 }

@@ -60,8 +60,8 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	testRedis.Close()
-	redisC.Terminate(ctx)
+	_ = testRedis.Close()
+	_ = redisC.Terminate(ctx)
 	os.Exit(code)
 }
 
@@ -132,7 +132,7 @@ func TestE2EPublishSubscribe(t *testing.T) {
 	channel := pubsub.Channel("comments")
 	sub, err := subscriber.Subscribe(ctx, channel)
 	require.NoError(t, err)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -166,11 +166,11 @@ func TestE2EDifferentChannels(t *testing.T) {
 
 	subA, err := subscriber.Subscribe(ctx, channelA)
 	require.NoError(t, err)
-	defer subA.Close()
+	defer func() { _ = subA.Close() }()
 
 	subB, err := subscriber.Subscribe(ctx, channelB)
 	require.NoError(t, err)
-	defer subB.Close()
+	defer func() { _ = subB.Close() }()
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -224,11 +224,11 @@ func TestE2EMultipleSubscribers(t *testing.T) {
 
 	sub1, err := subscriber.Subscribe(ctx, channel)
 	require.NoError(t, err)
-	defer sub1.Close()
+	defer func() { _ = sub1.Close() }()
 
 	sub2, err := subscriber.Subscribe(ctx, channel)
 	require.NoError(t, err)
-	defer sub2.Close()
+	defer func() { _ = sub2.Close() }()
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -353,7 +353,7 @@ func TestMuxSubscriberCustomBufferSize(t *testing.T) {
 
 	sub, err := subscriber.Subscribe(ctx, channel, bufOpt)
 	require.NoError(t, err)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -430,7 +430,7 @@ func TestMuxSubscriberUnsubscribeRemovesListener(t *testing.T) {
 	mux.mu.RUnlock()
 	assert.Equal(t, 1, listenerCount)
 
-	sub.Close()
+	_ = sub.Close()
 	time.Sleep(200 * time.Millisecond)
 
 	mux.mu.RLock()
@@ -449,7 +449,7 @@ func TestMultiplePublishEvents(t *testing.T) {
 	channel := pubsub.Channel("multi")
 	sub, err := subscriber.Subscribe(ctx, channel)
 	require.NoError(t, err)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	time.Sleep(200 * time.Millisecond)
 

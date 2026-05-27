@@ -362,8 +362,8 @@ func (h *BoardHandler) UploadBackground(stream grpc.ClientStreamingServer[pb.Upl
 	}
 
 	defer func() {
-		file.Close()
-		os.Remove(tempFilePath)
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
 	}()
 
 	for {

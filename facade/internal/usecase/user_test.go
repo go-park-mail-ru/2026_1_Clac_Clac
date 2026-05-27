@@ -38,7 +38,7 @@ func TestProcessUserWithVK(t *testing.T) {
 			accessToken: "bad_token",
 			email:       "test@vk.com",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ProcessUserWithVK", context.Background(), "bad_token", "test@vk.com").Return(uuid.Nil, testError)
+				m.On("ProcessUserWithVK", context.Background(), "bad_token", "test@vk.com").Return(uuid.Nil, errTest)
 			},
 			expectedLink: uuid.Nil,
 			expectError:  true,
@@ -308,7 +308,7 @@ func TestResetPassword(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ResetPassword", context.Background(), updatedPassword).Return(testError)
+				m.On("ResetPassword", context.Background(), updatedPassword).Return(errTest)
 			},
 			expectError: true,
 		},

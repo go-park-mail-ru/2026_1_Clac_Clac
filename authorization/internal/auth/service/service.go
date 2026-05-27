@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/auth/repository/dto"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/authorization/internal/auth/repository/dto"
 	"github.com/google/uuid"
 )
@@ -78,7 +77,7 @@ func (s *Service) DeleteSession(ctx context.Context, sessionID string) error {
 }
 
 func (s *Service) ExtendSession(ctx context.Context, sessionID string) error {
-	err := s.rep.ExtendSession(ctx, dto.ExtendedSession{
+	err := s.rep.ExtendSession(ctx, repositoryDto.ExtendedSession{
 		SessionKey: s.tools.CreateSessionKey(sessionID),
 		Expiration: s.cfg.SessionLifetime,
 	})

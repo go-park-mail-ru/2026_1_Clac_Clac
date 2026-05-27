@@ -27,7 +27,7 @@ func TestNewPoolRedisSuccess(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 	if client != nil {
-		client.Close()
+		_ = client.Close()
 	}
 }
 

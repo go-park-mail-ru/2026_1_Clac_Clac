@@ -141,7 +141,7 @@ func (r *Repository) GetCards(ctx context.Context, linkSection uuid.UUID) ([]dto
 
 		var rawSubtasks []rawSubtask
 		if err := json.Unmarshal(subtasks, &rawSubtasks); err != nil {
-			return []dto.Card{}, fmt.Errorf(msgInvalidUnmarshalSubtasks)
+			return []dto.Card{}, errors.New(msgInvalidUnmarshalSubtasks)
 		}
 
 		card.Subtasks = make([]models.SubtaskInfo, 0, len(rawSubtasks))
@@ -170,7 +170,9 @@ func (r *Repository) CreateSection(ctx context.Context, newSection dto.CreatingS
 	if err != nil {
 		return dto.FullSectionInfo{}, fmt.Errorf("pool.Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	querySection := `
 		INSERT INTO section (section_link, board_link)
@@ -254,7 +256,9 @@ func (r *Repository) DeleteSection(ctx context.Context, linksSection uuid.UUID) 
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	var boardLink uuid.UUID
 	var position int
@@ -350,7 +354,9 @@ func (r *Repository) ReorderSection(ctx context.Context, linkBoard uuid.UUID, li
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	query := `
 		WITH new_positions AS (
@@ -404,7 +410,9 @@ func (r *Repository) UpdateSection(ctx context.Context, updatingSection dto.Full
 	if err != nil {
 		return fmt.Errorf("pool.Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
 
 	queryClose := `
 		UPDATE section_version

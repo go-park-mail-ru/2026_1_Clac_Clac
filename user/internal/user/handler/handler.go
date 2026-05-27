@@ -400,8 +400,8 @@ func (h *Handler) UpdateAvatar(stream grpc.ClientStreamingServer[pb.UpdateAvatar
 	}
 
 	defer func() {
-		file.Close()
-		os.Remove(tempFilePath)
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
 	}()
 
 	for {
