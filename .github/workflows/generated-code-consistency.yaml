@@ -18,8 +18,8 @@ jobs:
       - name: Install Go Dependencies
         run: |
           go install github.com/mailru/easyjson/easyjson@latest
-          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@1.6.2
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
           go install github.com/vektra/mockery/v2@latest
 
       - name: Install protoc
