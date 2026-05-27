@@ -25,6 +25,13 @@ redis:
   ping_sleep_time: 2s
   max_retries: 5
 
+broker:
+  number_db: 0
+  min_connections: 20
+  max_connections: 100
+  ping_sleep_time: 2s
+  max_retries: 5
+
 board:
   handler:
     multipart_background_file_key: "background"

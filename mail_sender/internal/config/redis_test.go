@@ -19,9 +19,9 @@ func TestRedisConnectionConfig(t *testing.T) {
 			Port:     "6379",
 		}
 
-		os.Setenv("REDIS_PASSWORD", expected.Password)
-		os.Setenv("REDIS_HOST", expected.Host)
-		os.Setenv("REDIS_PORT", expected.Port)
+		_ = os.Setenv("REDIS_PASSWORD", expected.Password)
+		_ = os.Setenv("REDIS_HOST", expected.Host)
+		_ = os.Setenv("REDIS_PORT", expected.Port)
 
 		v := viper.New()
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -40,8 +40,8 @@ func TestRedisConnectionConfig(t *testing.T) {
 		assert.Equal(t, expected.Host, conf.Redis.Host)
 		assert.Equal(t, expected.Port, conf.Redis.Port)
 
-		os.Unsetenv("REDIS_PASSWORD")
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("REDIS_PORT")
+		_ = os.Unsetenv("REDIS_PASSWORD")
+		_ = os.Unsetenv("REDIS_HOST")
+		_ = os.Unsetenv("REDIS_PORT")
 	})
 }

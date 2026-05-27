@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -14,6 +15,20 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type mockAvatarStream struct {
+	grpc.ClientStream
+	resp *pb.AvatarResponse
+	err  error
+}
+
+func (m *mockAvatarStream) Send(req *pb.UpdateAvatarRequest) error {
+	return nil
+}
+
+func (m *mockAvatarStream) CloseAndRecv() (*pb.AvatarResponse, error) {
+	return m.resp, m.err
+}
 
 type mockUserServiceClient struct {
 	mock.Mock
@@ -43,12 +58,14 @@ func (m *mockUserServiceClient) UpdateProfile(ctx context.Context, in *pb.Update
 	return args.Get(0).(*pb.UpdateProfileResponse), args.Error(1)
 }
 
-func (m *mockUserServiceClient) UpdateAvatar(ctx context.Context, in *pb.UpdateAvatarRequest, opts ...grpc.CallOption) (*pb.AvatarResponse, error) {
-	args := m.Called(ctx, in)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+func (m *mockUserServiceClient) UpdateAvatar(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pb.UpdateAvatarRequest, pb.AvatarResponse], error) {
+	args := m.Called(ctx)
+	stream := &mockAvatarStream{}
+	if args.Get(0) != nil {
+		stream.resp = args.Get(0).(*pb.AvatarResponse)
 	}
-	return args.Get(0).(*pb.AvatarResponse), args.Error(1)
+	stream.err = args.Error(1)
+	return stream, nil
 }
 
 func (m *mockUserServiceClient) DeleteAvatar(ctx context.Context, in *pb.UserLinkRequest, opts ...grpc.CallOption) (*pb.DeleteAvatarResponse, error) {
@@ -227,7 +244,6 @@ func TestUpdateProfile(t *testing.T) {
 func TestUpdateAvatar(t *testing.T) {
 	ctx := context.Background()
 	validUUID := uuid.New()
-	fileData := []byte("image-data")
 
 	tests := []struct {
 		name        string
@@ -241,7 +257,7 @@ func TestUpdateAvatar(t *testing.T) {
 			name: "success",
 			avatarInfo: domain.AvatarInfo{
 				UserLink:      validUUID,
-				FileData:      fileData,
+				FileData:      bytes.NewReader([]byte("image-data")),
 				ContentType:   "image/png",
 				FileExtension: "png",
 			},
@@ -254,7 +270,7 @@ func TestUpdateAvatar(t *testing.T) {
 			name: "grpc error",
 			avatarInfo: domain.AvatarInfo{
 				UserLink:      validUUID,
-				FileData:      fileData,
+				FileData:      bytes.NewReader([]byte("image-data")),
 				ContentType:   "image/png",
 				FileExtension: "png",
 			},
@@ -268,12 +284,7 @@ func TestUpdateAvatar(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mc := new(mockUserServiceClient)
-			mc.On("UpdateAvatar", ctx, &pb.UpdateAvatarRequest{
-				UserLink:      tt.avatarInfo.UserLink.String(),
-				FileData:      tt.avatarInfo.FileData,
-				ContentType:   tt.avatarInfo.ContentType,
-				FileExtension: tt.avatarInfo.FileExtension,
-			}).Return(tt.mockResp, tt.mockErr)
+			mc.On("UpdateAvatar", ctx).Return(tt.mockResp, tt.mockErr)
 
 			u := &User{client: mc}
 			url, err := u.UpdateAvatar(ctx, tt.avatarInfo)

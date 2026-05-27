@@ -24,6 +24,7 @@ type Connector struct {
 	Board   *clients.Board
 	Section *clients.Section
 	Card    *clients.Card
+	Poll    *clients.Poll
 
 	logger *zerolog.Logger
 	conns  []*grpc.ClientConn
@@ -87,7 +88,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		return nil, fmt.Errorf("failed to connect to MailSender service: %w", err)
 	}
 
-	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.ClientConfig.TimeOut, config.RateLimiters.ClientConfig.Retries, defaultGRPCMsgSize)
+	rateLimiterConn, err := connect(config.RateLimiters.Addr, config.RateLimiters.TimeOut, config.RateLimiters.Retries, defaultGRPCMsgSize)
 	if err != nil {
 		closeAll(activeConns, logger)
 		return nil, fmt.Errorf("failed to connect to RateLimiter service: %w", err)
@@ -101,6 +102,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 
 	configBoard := clients.ConfigBoard{
 		MaxBackgroundBytesSize: int(app.MaxUploadImageSize),
+		ChunkSize:              config.Board.Client.ChunkSize,
 	}
 
 	configCard := clients.CardConfig{
@@ -125,6 +127,7 @@ func NewConnector(app *config.Application, config *config.Services, logger *zero
 		Board:       clients.NewBoardClient(boardConn, configBoard),
 		Section:     clients.NewSectionClient(boardConn),
 		Card:        clients.NewCardClient(boardConn, configCard),
+		Poll:        clients.NewPollClient(boardConn),
 		Appeal:      clients.NewAppealClient(appealConn, configAppeal),
 		logger:      logger,
 		conns:       activeConns,

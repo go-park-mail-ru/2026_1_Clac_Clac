@@ -52,6 +52,7 @@ type Card struct {
 	Title        string     `json:"title" example:"Починить баг на фронтенде"`
 	DeadLine    *time.Time `json:"dead_line" example:"2026-04-12T14:35:00Z"`
 	Position   int        `json:"position" example:"2"`
+	Points       *int       `json:"points" example:"5"`
 }
 
 // CardsSection используется для возврата списка всех карточек конкретной секции.

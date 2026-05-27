@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,8 +14,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const (
+	cardChunkSize = 1024 * 1024
+)
+
 var attachmentBufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
+	New: func() any {
+		buffer := make([]byte, cardChunkSize)
+		return &buffer
+	},
 }
 
 type CardConfig struct {
@@ -94,6 +100,7 @@ func (c *Card) GetCard(ctx context.Context, infoCard domain.GetCardRequest) (dom
 		Subtasks:     subtasks,
 		Position:     int(resp.CardInfo.Position),
 		Attachments:  attachments,
+		Points:       convertInt32PtrToIntPtr(resp.CardInfo.Points),
 	}, nil
 }
 
@@ -347,40 +354,68 @@ func (c *Card) DeleteSubtask(ctx context.Context, infoSubtask domain.DeleteSubta
 }
 
 func (c *Card) CreateAttachment(ctx context.Context, infoAttachment domain.CreateAttachmentRequest) (domain.AttachmentInfo, error) {
-	buf := attachmentBufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer func() {
-		if buf.Cap() <= c.cfg.MaxAttachmentBufferSize {
-			attachmentBufferPool.Put(buf)
-		}
-	}()
-
-	if _, err := io.Copy(buf, infoAttachment.Attachment); err != nil {
-		return domain.AttachmentInfo{}, fmt.Errorf("read attachment into buffer: %w", err)
+	stream, err := c.client.CreateAttachment(ctx)
+	if err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("can not open stream client.CreateAttachment: %w", err)
 	}
 
 	req := &pb.CreateAttachmentRequest{
-		UserLink: infoAttachment.UserLink.String(),
-		TaskLink: infoAttachment.TaskLink.String(),
-		Data:     buf.Bytes(),
-		Name:     infoAttachment.Filename,
+		Request: &pb.CreateAttachmentRequest_Metadata{
+			Metadata: &pb.MetadataCreateAttachment{
+				UserLink: infoAttachment.UserLink.String(),
+				TaskLink: infoAttachment.TaskLink.String(),
+				Name:     infoAttachment.Filename,
+			},
+		},
 	}
 
-	attachment, err := c.client.CreateAttachment(ctx, req)
+	if err := stream.Send(req); err != nil {
+		return domain.AttachmentInfo{}, fmt.Errorf("metadata card stream.Send: %w", err)
+	}
+
+	bufPtr := attachmentBufferPool.Get().(*[]byte)
+	buffer := *bufPtr
+
+	defer attachmentBufferPool.Put(bufPtr)
+
+	for {
+		n, err := infoAttachment.Attachment.Read(buffer)
+		if err != nil && err != io.EOF {
+			return domain.AttachmentInfo{}, fmt.Errorf("attachment.Read: %w", err)
+		}
+
+		if n > 0 {
+			chunkReq := &pb.CreateAttachmentRequest{
+				Request: &pb.CreateAttachmentRequest_Data{
+					Data: buffer[:n],
+				},
+			}
+
+			if err := stream.Send(chunkReq); err != nil {
+				return domain.AttachmentInfo{}, fmt.Errorf("stream.Send: %w", err)
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		return domain.AttachmentInfo{}, fmt.Errorf("CardClient.CreateAttachment: %w", convertCardGRPCError(err))
 	}
 
-	attachmentLink, err := uuid.Parse(attachment.AttachmentLink)
+	attachmentLink, err := uuid.Parse(res.AttachmentLink)
 	if err != nil {
 		return domain.AttachmentInfo{}, fmt.Errorf("CardClient parse attachment link: %w", common.ErrorParseLink)
 	}
 
 	return domain.AttachmentInfo{
 		AttachmentLink: attachmentLink,
-		DisplayName:    attachment.Name,
-		Position:       int(attachment.Position),
-		Path:           attachment.Path,
+		DisplayName:    res.Name,
+		Position:       int(res.Position),
+		Path:           res.Path,
 	}, nil
 }
 
@@ -423,6 +458,27 @@ func (c *Card) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) erro
 	_, err := c.client.UpdateTimeLineTask(ctx, req)
 	if err != nil {
 		return fmt.Errorf("CardClient.UpdateTimeLine: %w", convertCardGRPCError(err))
+	}
+
+	return nil
+}
+
+func (c *Card) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	var points *int32
+	if req.Points != nil {
+		p := int32(*req.Points)
+		points = &p
+	}
+
+	pbReq := &pb.UpdateCardPointsRequest{
+		UserLink: req.UserLink.String(),
+		CardLink: req.CardLink.String(),
+		Points:   points,
+	}
+
+	_, err := c.client.UpdateCardPoints(ctx, pbReq)
+	if err != nil {
+		return fmt.Errorf("CardClient.UpdateCardPoints: %w", convertCardGRPCError(err))
 	}
 
 	return nil

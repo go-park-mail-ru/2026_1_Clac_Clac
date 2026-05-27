@@ -64,12 +64,18 @@ message UpdateBoardRequest {
 
 message UpdateBoardResponse {}
 
-// UploadBackground
-message UploadBackgroundRequest {
+message MetadataUploadBackground {
   string user_link = 1;
   string board_link = 2;
-  bytes image = 3;
-  string filename = 4;
+  string filename = 3;
+}
+
+// UploadBackground
+message UploadBackgroundRequest {
+  oneof request {
+    MetadataUploadBackground metadata = 1;
+    bytes image = 2;
+  }
 }
 
 message UploadBackgroundResponse {
@@ -169,13 +175,75 @@ message InviteInfo {
   int64 created_at = 7;
 }
 
+message CanViewRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message CanViewResponse {}
+
+message CreatePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  repeated string card_links = 3;
+  repeated string invitees = 4;
+}
+
+message CreatePollResponse {}
+
+message DeletePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message DeletePollResponse {}
+
+message NextPollCardRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message NextPollCardResponse {}
+
+message VotePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+  int32 points = 3;
+}
+
+message VotePollResponse {}
+
+// GetActivePoll
+message GetActivePollRequest {
+  string user_link = 1;
+  string board_link = 2;
+}
+
+message VoteEntry {
+  string user_link = 1;
+  int32 points = 2;
+}
+
+message PollTaskInfo {
+  string card_link = 1;
+  string title = 2;
+  repeated VoteEntry votes = 3;
+}
+
+message GetActivePollResponse {
+  string admin_link = 1;
+  int32 current_idx = 2;
+  repeated PollTaskInfo tasks = 3;
+  repeated string invitees = 4;
+}
+
 service BoardService {
   rpc GetBoards(GetBoardsRequest) returns (GetBoardsResponse);
   rpc GetBoard(GetBoardRequest) returns (GetBoardResponse);
   rpc CreateBoard(CreateBoardRequest) returns (CreateBoardResponse);
   rpc DeleteBoard(DeleteBoardRequest) returns (DeleteBoardResponse);
   rpc UpdateBoard(UpdateBoardRequest) returns (UpdateBoardResponse);
-  rpc UploadBackground(UploadBackgroundRequest) returns (UploadBackgroundResponse);
+  rpc UploadBackground(stream UploadBackgroundRequest) returns (UploadBackgroundResponse);
   rpc GetMembers(GetMembersRequest) returns (GetMembersResponse);
   rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
   rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse);
@@ -183,4 +251,10 @@ service BoardService {
   rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
   rpc RemoveMemberFromBoard(RemoveMemberFromBoardRequest) returns (RemoveMemberFromBoardResponse);
   rpc GetActiveInvites(GetActiveInvitesRequest) returns (GetActiveInvitesResponse);
+  rpc CanView(CanViewRequest) returns (CanViewResponse);
+  rpc CreatePoll(CreatePollRequest) returns (CreatePollResponse);
+  rpc DeletePoll(DeletePollRequest) returns (DeletePollResponse);
+  rpc NextPollCard(NextPollCardRequest) returns (NextPollCardResponse);
+  rpc VotePoll(VotePollRequest) returns (VotePollResponse);
+  rpc GetActivePoll(GetActivePollRequest) returns (GetActivePollResponse);
 }

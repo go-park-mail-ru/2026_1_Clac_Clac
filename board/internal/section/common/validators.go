@@ -1,6 +1,6 @@
 package common
 
-var vaildColor = map[string]struct{}{
+var validColor = map[string]struct{}{
 	"white":  {},
 	"grey":   {},
 	"red":    {},
@@ -20,6 +20,6 @@ func CheckMaxTasks(tasks int, maxValue int, minValue int) bool {
 }
 
 func CheckColor(color string) bool {
-	_, ok := vaildColor[color]
+	_, ok := validColor[color]
 	return ok
 }

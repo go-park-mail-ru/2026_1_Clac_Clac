@@ -18,6 +18,7 @@ type InfoCard struct {
 	DataStart    *time.Time `json:"data_start" example:"2026-04-01T09:00:00Z"`
 	Status       bool       `json:"status" example:"false"`
 	Position     int        `json:"position" example:"2"`
+	Points       *int       `json:"points" example:"5"`
 }
 
 // NewCard используется для запросов на создание новой карточки.

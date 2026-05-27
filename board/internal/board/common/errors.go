@@ -17,4 +17,10 @@ var (
 	ErrInviteClosed      = errors.New("invite is closed")
 	ErrInviteUserMismatch = errors.New("this invite is for a specific user")
 	ErrInviteNotForUser  = errors.New("this invite targets another user")
+
+	ErrPollAlreadyExists = errors.New("poll already exists for this board")
+	ErrPollNotFound      = errors.New("no active poll for this board")
+	ErrNotPollAdmin      = errors.New("only poll admin can perform this action")
+	ErrUserNotInvited    = errors.New("user is not invited to this poll")
+	ErrPollNoMoreCards   = errors.New("no more cards in poll")
 )

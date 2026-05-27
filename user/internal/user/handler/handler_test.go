@@ -17,7 +17,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -427,37 +429,90 @@ func TestUpdateProfile(t *testing.T) {
 	})
 }
 
+type mockUpdateAvatarStream struct {
+	grpc.ServerStream
+	ctx      context.Context
+	requests []*pb.UpdateAvatarRequest
+	callIdx  int
+	resp     *pb.AvatarResponse
+	sendErr  error
+}
+
+func (m *mockUpdateAvatarStream) Recv() (*pb.UpdateAvatarRequest, error) {
+	if m.callIdx >= len(m.requests) {
+		return nil, io.EOF
+	}
+	req := m.requests[m.callIdx]
+	m.callIdx++
+	return req, nil
+}
+
+func (m *mockUpdateAvatarStream) SendAndClose(res *pb.AvatarResponse) error {
+	m.resp = res
+	return m.sendErr
+}
+
+func (m *mockUpdateAvatarStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockUpdateAvatarStream) SetHeader(md metadata.MD) error  { return nil }
+func (m *mockUpdateAvatarStream) SendHeader(md metadata.MD) error { return nil }
+func (m *mockUpdateAvatarStream) SetTrailer(md metadata.MD)       {}
+func (m *mockUpdateAvatarStream) SendMsg(msg any) error           { return nil }
+func (m *mockUpdateAvatarStream) RecvMsg(msg any) error           { return nil }
+
 func TestUpdateAvatar(t *testing.T) {
 	t.Run("SuccessJPEG", func(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("UpdateAvatar", mock.Anything, mock.AnythingOfType("dto.UpdatedAvatar")).Return("https://cdn.example.com/avatar.jpg", nil)
 
-		resp, err := newHandler(m).UpdateAvatar(context.Background(), &pb.UpdateAvatarRequest{
-			UserLink:    fixedUUID.String(),
-			FileData:    jpegMagic,
-			ContentType: "image/jpeg",
-		})
+		stream := &mockUpdateAvatarStream{
+			ctx: context.Background(),
+			requests: []*pb.UpdateAvatarRequest{
+				{
+					Request: &pb.UpdateAvatarRequest_Metadata{
+						Metadata: &pb.MetadataUpdateAvatar{
+							UserLink:    fixedUUID.String(),
+							ContentType: "image/jpeg",
+						},
+					},
+				},
+				{
+					Request: &pb.UpdateAvatarRequest_FileData{
+						FileData: jpegMagic,
+					},
+				},
+			},
+		}
+
+		err := newHandler(m).UpdateAvatar(stream)
 
 		assert.NoError(t, err)
-		assert.Contains(t, resp.AvatarUrl, "avatar.jpg")
+		assert.Contains(t, stream.resp.AvatarUrl, "avatar.jpg")
 	})
 
 	t.Run("InvalidUUID", func(t *testing.T) {
-		_, err := newHandler(mockAuthSrv.NewAuthService(t)).UpdateAvatar(context.Background(), &pb.UpdateAvatarRequest{
-			UserLink:    "bad-uuid",
-			FileData:    jpegMagic,
-			ContentType: "image/jpeg",
-		})
+		stream := &mockUpdateAvatarStream{
+			ctx: context.Background(),
+			requests: []*pb.UpdateAvatarRequest{
+				{
+					Request: &pb.UpdateAvatarRequest_Metadata{
+						Metadata: &pb.MetadataUpdateAvatar{
+							UserLink:    "bad-uuid",
+							ContentType: "image/jpeg",
+						},
+					},
+				},
+				{
+					Request: &pb.UpdateAvatarRequest_FileData{
+						FileData: jpegMagic,
+					},
+				},
+			},
+		}
 
-		assertGRPCCode(t, err, codes.InvalidArgument)
-	})
-
-	t.Run("EmptyFile", func(t *testing.T) {
-		_, err := newHandler(mockAuthSrv.NewAuthService(t)).UpdateAvatar(context.Background(), &pb.UpdateAvatarRequest{
-			UserLink:    fixedUUID.String(),
-			FileData:    []byte{},
-			ContentType: "image/jpeg",
-		})
+		err := newHandler(mockAuthSrv.NewAuthService(t)).UpdateAvatar(stream)
 
 		assertGRPCCode(t, err, codes.InvalidArgument)
 	})
@@ -466,11 +521,26 @@ func TestUpdateAvatar(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("UpdateAvatar", mock.Anything, mock.AnythingOfType("dto.UpdatedAvatar")).Return("", common.ErrorNonexistentUser)
 
-		_, err := newHandler(m).UpdateAvatar(context.Background(), &pb.UpdateAvatarRequest{
-			UserLink:    fixedUUID.String(),
-			FileData:    jpegMagic,
-			ContentType: "image/jpeg",
-		})
+		stream := &mockUpdateAvatarStream{
+			ctx: context.Background(),
+			requests: []*pb.UpdateAvatarRequest{
+				{
+					Request: &pb.UpdateAvatarRequest_Metadata{
+						Metadata: &pb.MetadataUpdateAvatar{
+							UserLink:    fixedUUID.String(),
+							ContentType: "image/jpeg",
+						},
+					},
+				},
+				{
+					Request: &pb.UpdateAvatarRequest_FileData{
+						FileData: jpegMagic,
+					},
+				},
+			},
+		}
+
+		err := newHandler(m).UpdateAvatar(stream)
 
 		assertGRPCCode(t, err, codes.NotFound)
 	})
@@ -479,11 +549,26 @@ func TestUpdateAvatar(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		m.On("UpdateAvatar", mock.Anything, mock.AnythingOfType("dto.UpdatedAvatar")).Return("", errors.New("s3 error"))
 
-		_, err := newHandler(m).UpdateAvatar(context.Background(), &pb.UpdateAvatarRequest{
-			UserLink:    fixedUUID.String(),
-			FileData:    jpegMagic,
-			ContentType: "image/jpeg",
-		})
+		stream := &mockUpdateAvatarStream{
+			ctx: context.Background(),
+			requests: []*pb.UpdateAvatarRequest{
+				{
+					Request: &pb.UpdateAvatarRequest_Metadata{
+						Metadata: &pb.MetadataUpdateAvatar{
+							UserLink:    fixedUUID.String(),
+							ContentType: "image/jpeg",
+						},
+					},
+				},
+				{
+					Request: &pb.UpdateAvatarRequest_FileData{
+						FileData: jpegMagic,
+					},
+				},
+			},
+		}
+
+		err := newHandler(m).UpdateAvatar(stream)
 
 		assertGRPCCode(t, err, codes.Internal)
 	})

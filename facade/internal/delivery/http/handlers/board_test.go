@@ -23,13 +23,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	fixedBoardLink = uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	defaultBoardCfg = BoardConfig{
-		MultipartBackgroundFileKey: "background",
-		MaxBackgroundSize:          5 << 20,
-	}
-)
+	var (
+		fixedBoardLink = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+		defaultBoardCfg = BoardConfig{
+			MultipartBackgroundFileKey: "background",
+			MaxBackgroundSize:          5 << 20,
+			MaxDisplayName:             128,
+			MaxLenDescription:          500,
+		}
+	)
 
 func newTestBoardHandler(boardSrv BoardUsecase, profileSrv ProfileUsecase) *Board {
 	return NewBoard(boardSrv, profileSrv, defaultBoardCfg)

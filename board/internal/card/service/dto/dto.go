@@ -18,6 +18,7 @@ type InfoCard struct {
 	Subtasks     []models.SubtaskInfo
 	Position     int
 	Attachments  []models.AttachmentInfo
+	Points       *int
 }
 
 type NewCard struct {
@@ -113,4 +114,10 @@ type UpdateTimeLine struct {
 	UserLink uuid.UUID
 	DeadLine *time.Time
 	Start    *time.Time
+}
+
+type UpdateCardPoints struct {
+	CardLink uuid.UUID
+	UserLink uuid.UUID
+	Points   *int
 }

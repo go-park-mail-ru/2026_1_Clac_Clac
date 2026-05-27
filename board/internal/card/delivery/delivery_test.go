@@ -3,10 +3,13 @@ package delivery
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -61,16 +64,17 @@ func (m *testCardService) UpdateTimeLine(ctx context.Context, updateInfo service
 	return args.Error(0)
 }
 
+func (m *testCardService) UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.UUID, points *int) error {
+	args := m.Called(ctx, cardLink, userLink, points)
+	return args.Error(0)
+}
+
 func newTestCardService(t *testing.T) *testCardService {
 	return &testCardService{mockCardSrv.NewCardService(t)}
 }
 
 func grpcCode(err error) codes.Code {
 	return status.Code(err)
-}
-
-func grpcMsg(err error) string {
-	return status.Convert(err).Message()
 }
 
 func TestGetCard(t *testing.T) {
@@ -1160,17 +1164,44 @@ func TestUpdateSubtask(t *testing.T) {
 	}
 }
 
+type mockCreateAttachmentStream struct {
+	grpc.ServerStream
+	ctx      context.Context
+	requests []*pb.CreateAttachmentRequest
+	callIdx  int
+	resp     *pb.CreateAttachmentResponse
+	sendErr  error
+}
+
+func (m *mockCreateAttachmentStream) Recv() (*pb.CreateAttachmentRequest, error) {
+	if m.callIdx >= len(m.requests) {
+		return nil, io.EOF
+	}
+	req := m.requests[m.callIdx]
+	m.callIdx++
+	return req, nil
+}
+
+func (m *mockCreateAttachmentStream) SendAndClose(res *pb.CreateAttachmentResponse) error {
+	m.resp = res
+	return m.sendErr
+}
+
+func (m *mockCreateAttachmentStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockCreateAttachmentStream) SetHeader(md metadata.MD) error  { return nil }
+func (m *mockCreateAttachmentStream) SendHeader(md metadata.MD) error { return nil }
+func (m *mockCreateAttachmentStream) SetTrailer(md metadata.MD)       {}
+func (m *mockCreateAttachmentStream) SendMsg(msg any) error           { return nil }
+func (m *mockCreateAttachmentStream) RecvMsg(msg any) error           { return nil }
+
 func TestCreateAttachment(t *testing.T) {
 	targetTaskLink := uuid.New()
 	targetUserLink := uuid.New()
 	attachmentLink := uuid.New()
-
-	validReq := &pb.CreateAttachmentRequest{
-		TaskLink: targetTaskLink.String(),
-		UserLink: targetUserLink.String(),
-		Data:     []byte("fake-image-data"),
-		Name:     "photo.png",
-	}
+	sampleData := []byte("fake-image-data")
 
 	serviceResult := serviceDto.AttachmentInfo{
 		AttachmentLink: attachmentLink,
@@ -1179,43 +1210,67 @@ func TestCreateAttachment(t *testing.T) {
 		DisplayName:    "photo.png",
 	}
 
+	buildStream := func(taskLink, userLink, name string, data []byte) *mockCreateAttachmentStream {
+		requests := []*pb.CreateAttachmentRequest{
+			{
+				Request: &pb.CreateAttachmentRequest_Metadata{
+					Metadata: &pb.MetadataCreateAttachment{
+						TaskLink: taskLink,
+						UserLink: userLink,
+						Name:     name,
+					},
+				},
+			},
+		}
+		if len(data) > 0 {
+			requests = append(requests, &pb.CreateAttachmentRequest{
+				Request: &pb.CreateAttachmentRequest_Data{
+					Data: data,
+				},
+			})
+		}
+		return &mockCreateAttachmentStream{
+			ctx:      context.Background(),
+			requests: requests,
+		}
+	}
+
 	tests := []struct {
 		nameTest     string
-		req          *pb.CreateAttachmentRequest
+		stream       *mockCreateAttachmentStream
 		mockBehavior func(m *testCardService)
 		expectedCode codes.Code
-		checkResp    func(t *testing.T, resp *pb.CreateAttachmentResponse)
+		checkResp    func(t *testing.T, stream *mockCreateAttachmentStream)
 	}{
 		{
 			nameTest: "Success create attachment",
-			req:      validReq,
+			stream:   buildStream(targetTaskLink.String(), targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: func(m *testCardService) {
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceResult, nil)
 			},
 			expectedCode: codes.OK,
-			checkResp: func(t *testing.T, resp *pb.CreateAttachmentResponse) {
-				assert.NotNil(t, resp)
-				assert.Equal(t, attachmentLink.String(), resp.AttachmentLink)
-				assert.Equal(t, "https://s3.example.com/file.png", resp.Path)
-				assert.Equal(t, int64(1), resp.Position)
-				assert.Equal(t, "photo.png", resp.Name)
+			checkResp: func(t *testing.T, stream *mockCreateAttachmentStream) {
+				assert.Equal(t, attachmentLink.String(), stream.resp.AttachmentLink)
+				assert.Equal(t, "https://s3.example.com/file.png", stream.resp.Path)
+				assert.Equal(t, int64(1), stream.resp.Position)
+				assert.Equal(t, "photo.png", stream.resp.Name)
 			},
 		},
 		{
 			nameTest:     "Error invalid task uuid",
-			req:          &pb.CreateAttachmentRequest{TaskLink: "invalid", UserLink: targetUserLink.String()},
+			stream:       buildStream("invalid", targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest:     "Error invalid user uuid",
-			req:          &pb.CreateAttachmentRequest{TaskLink: targetTaskLink.String(), UserLink: "invalid"},
+			stream:       buildStream(targetTaskLink.String(), "invalid", "photo.png", sampleData),
 			mockBehavior: nil,
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			nameTest: "Error permission denied",
-			req:      validReq,
+			stream:   buildStream(targetTaskLink.String(), targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: func(m *testCardService) {
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, rbac.ErrActionDenied)
 			},
@@ -1223,7 +1278,7 @@ func TestCreateAttachment(t *testing.T) {
 		},
 		{
 			nameTest: "Error missing required field",
-			req:      validReq,
+			stream:   buildStream(targetTaskLink.String(), targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: func(m *testCardService) {
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, common.ErrMissingRequiredField)
 			},
@@ -1231,7 +1286,7 @@ func TestCreateAttachment(t *testing.T) {
 		},
 		{
 			nameTest: "Error attachment limit reached",
-			req:      validReq,
+			stream:   buildStream(targetTaskLink.String(), targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: func(m *testCardService) {
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, common.ErrAttachmentLimitReached)
 			},
@@ -1239,7 +1294,7 @@ func TestCreateAttachment(t *testing.T) {
 		},
 		{
 			nameTest: "Error internal server",
-			req:      validReq,
+			stream:   buildStream(targetTaskLink.String(), targetUserLink.String(), "photo.png", sampleData),
 			mockBehavior: func(m *testCardService) {
 				m.On("CreateAttachment", mock.Anything, mock.Anything).Return(serviceDto.AttachmentInfo{}, errors.New("s3 error"))
 			},
@@ -1255,11 +1310,11 @@ func TestCreateAttachment(t *testing.T) {
 			}
 
 			handler := NewHandler(mockService, Config{})
-			resp, err := handler.CreateAttachment(context.Background(), test.req)
+			err := handler.CreateAttachment(test.stream)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			if test.checkResp != nil {
-				test.checkResp(t, resp)
+				test.checkResp(t, test.stream)
 			}
 		})
 	}

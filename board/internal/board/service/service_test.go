@@ -105,7 +105,7 @@ func TestGetBoards(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 
 			boards, err := svc.GetBoards(ctx, test.UserLink)
 
@@ -178,7 +178,7 @@ func TestCreateBoard(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 
 			board, err := svc.CreateBoard(ctx, test.BoardInfo, test.AuthorLink)
 
@@ -237,7 +237,7 @@ func TestDeleteBoard(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			err := svc.DeleteBoard(ctx, boardLink, userLink)
 
 			if test.ExpectError != nil {
@@ -296,7 +296,7 @@ func TestUpdateBoard(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			err := svc.UpdateBoard(ctx, boardInfo, userLink)
 
 			if test.ExpectError {
@@ -373,7 +373,7 @@ func TestGetBoard(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			board, err := svc.GetBoard(ctx, boardLink, userLink)
 
 			if test.ExpectError {
@@ -464,7 +464,7 @@ func TestUpdateBackground(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			key, err := svc.UpdateBackground(ctx, file, contentType, extension, boardLink, userLink)
 
 			if test.ExpectError {
@@ -551,7 +551,7 @@ func TestGetUsersOfBoard(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			members, err := svc.GetUsersOfBoard(ctx, boardLink, userLink)
 
 			if test.ExpectError {
@@ -645,7 +645,7 @@ func TestCreateInvite(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			_, err := svc.CreateInvite(ctx, test.InviteInfo, test.CreatorLink)
 
 			if test.ExpectError {
@@ -798,7 +798,7 @@ func TestAcceptInvite(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			_, err := svc.AcceptInvite(ctx, test.InviteLink, test.UserLink)
 
 			if test.ExpectError {
@@ -879,7 +879,7 @@ func TestCloseInvite(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			err := svc.CloseInvite(ctx, inviteLink, userLink)
 
 			if test.ExpectError {
@@ -958,7 +958,7 @@ func TestUpdateMemberRoleService(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			var err error
 			if test.Name == "self role change" {
 				err = svc.UpdateMemberRole(ctx, boardLink, callerLink, rbac.Roles.Editor, callerLink)
@@ -1074,8 +1074,66 @@ func TestRemoveMemberFromBoardService(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			err := svc.RemoveMemberFromBoard(ctx, test.BoardLink, test.TargetLink, test.CallerLink)
+
+			if test.ExpectError {
+				assert.Error(t, err)
+				if test.ErrorIs != nil {
+					assert.ErrorIs(t, err, test.ErrorIs)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+			mockRepo.AssertExpectations(t)
+			mockPerm.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCanView(t *testing.T) {
+	ctx := context.Background()
+	boardLink := uuid.New()
+	userLink := uuid.New()
+
+	tests := []struct {
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		ExpectError bool
+		ErrorIs     error
+	}{
+		{
+			Name: "success can view",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(nil).Once()
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "permission denied",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(rbac.ErrActionDenied).Once()
+			},
+			ExpectError: true,
+			ErrorIs:     rbac.ErrActionDenied,
+		},
+		{
+			Name: "permission checker error",
+			MockSetup: func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService) {
+				mockPerm.On("CheckPermissionOnBoard", ctx, boardLink, userLink, rbac.Actions.View).Return(fmt.Errorf("db error")).Once()
+			},
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			mockRepo := new(mocks.BoardRepository)
+			mockPerm := new(mockRbacService)
+			test.MockSetup(mockRepo, mockPerm)
+
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
+			err := svc.CanView(ctx, boardLink, userLink)
 
 			if test.ExpectError {
 				assert.Error(t, err)
@@ -1133,7 +1191,7 @@ func TestGetActiveInvitesService(t *testing.T) {
 			mockPerm := new(mockRbacService)
 			test.MockSetup(mockRepo, mockPerm)
 
-			svc := service.NewService(mockRepo, mockPerm)
+			svc := service.NewService(mockRepo, mockPerm, nil, nil)
 			_, err := svc.GetActiveInvites(ctx, boardLink, userLink)
 
 			if test.ExpectError {

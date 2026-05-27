@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	mockUserClient "github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/usecase/mock_user_client"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +38,7 @@ func TestProcessUserWithVK(t *testing.T) {
 			accessToken: "bad_token",
 			email:       "test@vk.com",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ProcessUserWithVK", context.Background(), "bad_token", "test@vk.com").Return(uuid.Nil, testError)
+				m.On("ProcessUserWithVK", context.Background(), "bad_token", "test@vk.com").Return(uuid.Nil, errTest)
 			},
 			expectedLink: uuid.Nil,
 			expectError:  true,
@@ -245,7 +247,7 @@ func TestUpdateProfile(t *testing.T) {
 }
 
 func TestUpdateAvatar(t *testing.T) {
-	info := domain.AvatarInfo{UserLink: fixedUserLink, FileData: []byte{0xFF, 0xD8}, ContentType: "image/jpeg"}
+	info := domain.AvatarInfo{UserLink: fixedUserLink, FileData: bytes.NewReader([]byte{0xFF, 0xD8}), ContentType: "image/jpeg"}
 
 	tests := []struct {
 		name         string
@@ -256,7 +258,7 @@ func TestUpdateAvatar(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("UpdateAvatar", context.Background(), info).Return("https://cdn.example.com/avatar.jpg", nil)
+				m.On("UpdateAvatar", mock.Anything, mock.Anything).Return("https://cdn.example.com/avatar.jpg", nil)
 			},
 			expectedURL: "https://cdn.example.com/avatar.jpg",
 			expectError: false,
@@ -264,7 +266,7 @@ func TestUpdateAvatar(t *testing.T) {
 		{
 			name: "UserNotFound",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("UpdateAvatar", context.Background(), info).Return("", common.ErrorNonexistentUser)
+				m.On("UpdateAvatar", mock.Anything, mock.Anything).Return("", common.ErrorNonexistentUser)
 			},
 			expectedURL: "",
 			expectError: true,
@@ -306,7 +308,7 @@ func TestResetPassword(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ResetPassword", context.Background(), updatedPassword).Return(testError)
+				m.On("ResetPassword", context.Background(), updatedPassword).Return(errTest)
 			},
 			expectError: true,
 		},

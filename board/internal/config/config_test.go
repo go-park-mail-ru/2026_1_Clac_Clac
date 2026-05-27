@@ -22,6 +22,7 @@ func TestConfigReading(t *testing.T) {
 		},
 		Database: config.DefaultPostgresConfig(),
 		Redis:    config.DefaultRedisConfig(),
+		Broker:   config.DefaultBrokerConfig(),
 		S3:       config.S3{},
 		Board:    config.DefaultBoardConfig(),
 		Section: config.Section{
@@ -64,7 +65,7 @@ engine:
 	v.SetConfigType("yaml")
 	err := v.ReadConfig(bytes.NewBuffer(yamlTest))
 
-	require.NoError(t, err, "reading should not returt error")
+	require.NoError(t, err, "reading should not return error")
 
 	conf := config.DefaultConfig()
 	err = v.Unmarshal(&conf)
@@ -92,8 +93,8 @@ engine:
 		var envTest = []byte(`MAIL_SENDER_HOST=test.ru`)
 
 		tempDir := t.TempDir()
-		os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
-		os.WriteFile(filepath.Join(tempDir, envFilename), envTest, 0644)
+		_ = os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
+		_ = os.WriteFile(filepath.Join(tempDir, envFilename), envTest, 0644)
 
 		v, err := config.SetupViper(tempDir)
 

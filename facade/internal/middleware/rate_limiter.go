@@ -55,12 +55,12 @@ func RateLimiterMiddleware(client CheckLimit, configRateLimiter domain.RateLimit
 			if err != nil {
 				logger.Error().Err(err).Msg("CRITICAL: rate limiter for login/register is down")
 
-				api.RespondError(w, http.StatusInternalServerError, "service temporarily unavailable")
+				_, _ = api.RespondError(w, http.StatusInternalServerError, "service temporarily unavailable")
 				return
 			}
 
 			if isFull {
-				api.RespondError(w, http.StatusTooManyRequests, failUpdateMessage)
+				_, _ = api.RespondError(w, http.StatusTooManyRequests, failUpdateMessage)
 				return
 			}
 

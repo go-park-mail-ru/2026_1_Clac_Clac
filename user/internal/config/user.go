@@ -1,10 +1,6 @@
 package config
 
 const (
-	authConfigDefaultValue          = ""
-	authConfigDefaultMaxLenPassword = 128
-	authConfigDefaultMinLenPassword = 8
-
 	profileConfigDefaultSiganatureBytes       = 512
 	profileConfigDefaultMaxReadBytes          = 5 << 20
 	profileConfigDefaultMaxLenNameUser        = 128

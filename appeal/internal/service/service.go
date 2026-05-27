@@ -149,7 +149,7 @@ func (s *Service) GetAppeals(ctx context.Context, userLink uuid.UUID) (dto.Appea
 		return dto.Appeals{}, fmt.Errorf("s.GetUserRole: %w", err)
 	}
 
-	var rawAppeals = make([]repositoryDto.AppealEntry, 0)
+	var rawAppeals []repositoryDto.AppealEntry
 	switch userRole {
 	case rbac.Roles.Support, rbac.Roles.Admin:
 		rawAppeals, err = s.rep.GetOpenAppeals(ctx, userLink)

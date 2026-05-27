@@ -1,12 +1,11 @@
 package delivery
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/appealRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/appeal/v1"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -44,6 +44,13 @@ var (
 	ErrCannotDeleteAppeal     = errors.New("cannot delete appeal")
 	ErrCannotGetStats         = errors.New("cannot get stats")
 	ErrCannotChangeStatus     = errors.New("cannot change status")
+
+	ErrAbortConnection      = errors.New("connection is failed")
+	ErrInvalidMetadata      = errors.New("invalid metadata for attachment")
+	ErrCannotCreateFile     = errors.New("can not create file for download image")
+	ErrWriteInFile          = errors.New("invalid write in file")
+	ErrCursorOffset         = errors.New("invalid cursor offset")
+	ErrCannotGetContentType = errors.New("can not get content type")
 )
 
 //go:generate mockery --name=AppealService --output mock_appeal_srv
@@ -249,40 +256,84 @@ func (h *Handler) GetAppeals(ctx context.Context, req *pb.GetAppealsRequest) (*p
 	}, nil
 }
 
-func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachmentRequest) (*pb.UploadAttachmentResponse, error) {
+func (h *Handler) UploadAttachment(stream grpc.ClientStreamingServer[pb.UploadAttachmentRequest, pb.UploadAttachmentResponse]) error {
+	ctx := stream.Context()
 	logger := zerolog.Ctx(ctx)
 
-	rawUserLink := req.GetUserLink()
+	req, err := stream.Recv()
+	if err != nil {
+		return status.Error(codes.Aborted, ErrAbortConnection.Error())
+	}
+
+	metadata := req.GetMetadata()
+	if metadata == nil {
+		return status.Error(codes.InvalidArgument, ErrInvalidMetadata.Error())
+	}
+
+	validFileName := filepath.Base(metadata.Filename)
+
+	extension := filepath.Ext(validFileName)
+
+	uniqueFileName := fmt.Sprintf("%s_%s", uuid.New().String(), validFileName)
+	tempFilePath := filepath.Join(os.TempDir(), uniqueFileName)
+
+	file, err := os.Create(tempFilePath)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateFile.Error())
+	}
+
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Aborted, ErrAbortConnection.Error())
+		}
+
+		chunk := req.GetImage()
+		if _, err := file.Write(chunk); err != nil {
+			return status.Error(codes.Internal, ErrWriteInFile.Error())
+		}
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return status.Error(codes.Internal, ErrCursorOffset.Error())
+	}
+
+	contentType, err := GetContentType(file)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotGetContentType.Error())
+	}
+	if !strings.HasPrefix(contentType, "image/") {
+		return status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
+	}
+
+	rawUserLink := metadata.UserLink
 	userLink, err := uuid.Parse(rawUserLink)
 	if err != nil {
 		logger.Error().Err(err).Str("user_link", rawUserLink).Msg("invalid user link")
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	rawAppealLink := req.GetAppealLink()
+	rawAppealLink := metadata.AppealLink
 	appealLink, err := uuid.Parse(rawAppealLink)
 	if err != nil {
 		logger.Error().Err(err).Str("appeal_link", rawAppealLink).Msg("invalid appeal link")
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidAppealLink.Error())
 	}
 
-	image := req.GetImage()
-
-	contentType := http.DetectContentType(image)
-	if !strings.HasPrefix(contentType, "image/") {
-		logger.Error().Str("content_type", contentType).Msg("invalid content type")
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
-	}
-
-	filename := req.GetFilename()
-	extension := filepath.Ext(filename)
-
-	attachmentKey, err := h.srv.UploadAttachment(ctx, bytes.NewReader(image), contentType, extension, appealLink, userLink)
+	attachmentKey, err := h.srv.UploadAttachment(ctx, file, contentType, extension, appealLink, userLink)
 	if err != nil {
 		logger.Error().Err(fmt.Errorf("srv.UploadAttachment: %w", err)).Msg("failed to upload attachment")
 
 		if errors.Is(err, common.ErrorAppealNotFound) {
-			return nil, status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
+			return status.Error(codes.NotFound, common.ErrorAppealNotFound.Error())
 		}
 
 		errLog := fmt.Errorf("srv.UploadAttachment: %w", err)
@@ -292,12 +343,17 @@ func (h *Handler) UploadAttachment(ctx context.Context, req *pb.UploadAttachment
 			"appeal_link": rawAppealLink,
 			"action":      "upload_attachment",
 		})
-		return nil, status.Error(codes.Internal, ErrCannotUploadAttachment.Error())
+		return status.Error(codes.Internal, ErrCannotUploadAttachment.Error())
 	}
 
-	return &pb.UploadAttachmentResponse{
+	err = stream.SendAndClose(&pb.UploadAttachmentResponse{
 		AttachmentUrl: fmt.Sprintf("%s/%s", h.conf.AttachmentBaseURL, attachmentKey),
-	}, nil
+	})
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotUploadAttachment.Error())
+	}
+
+	return nil
 }
 
 func (h *Handler) DeleteAppeal(ctx context.Context, req *pb.DeleteAppealRequest) (*pb.DeleteAppealResponse, error) {

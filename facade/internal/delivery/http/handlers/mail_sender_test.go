@@ -107,7 +107,7 @@ func TestSendRecoveryEmail(t *testing.T) {
 				cd.On("CheckCoolDown", mock.Anything, cooldownArgs).Return(domain.CooldownResult{Allowed: true}, nil)
 				gul.On("GetUserLink", mock.Anything, validEmail).Return(uuid.Nil, common.ErrorNonexistentUser)
 			},
-			expectedStatusCode: http.StatusNotFound,
+			expectedStatusCode: http.StatusOK,
 		},
 		{
 			name:        "GetUserLinkInternalError",

@@ -63,14 +63,20 @@ services:
       addr: "nexus-board-service:8080"
       timeout: 5s
       retries: 5
+      chunk_size: 1048576
     handler:
       multipart_background_file_key: "background"
+      max_display_name: 128
+      max_len_description: 500
 
   section:
     client:
       addr: "nexus-board-service:8080"
       timeout: 5s
       retries: 5
+    handler:
+      max_len_display_name: 128
+      max_quantity_tasks: 200
 
   card:
     client:
@@ -80,6 +86,11 @@ services:
     handler:
       max_len_title: 128
       max_len_description: 500
+      max_len_comment: 2000
+      max_len_subtask_description: 500
+      min_points: 0
+      max_points: 21
+      multipart_attachment_file_key: "attachment"
 
   rate_limiters:
     addr: "nexus-rate-limiter-service:8080"
@@ -105,6 +116,8 @@ services:
       retries: 5
     handler:
       multipart_attachment_file_key: "attachment"
+      max_len_display_name: 128
+      max_len_description: 500
 
   sentry:
     environment: "production"

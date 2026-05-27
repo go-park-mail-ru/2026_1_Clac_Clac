@@ -63,11 +63,17 @@ message GetAppealsResponse {
 }
 
 // UploadAttachment
-message UploadAttachmentRequest {
+message MetadataUploadAttachment {
   string user_link = 1;
   string appeal_link = 2;
   string filename = 3;
-  bytes image = 4;
+}
+
+message UploadAttachmentRequest {
+  oneof request {
+    MetadataUploadAttachment metadata = 1;
+    bytes image = 2;
+  }
 }
 
 message UploadAttachmentResponse {
@@ -106,7 +112,7 @@ message ChangeAppealStatusResponse {}
 service AppealService {
   rpc CreateAppeal(CreateAppealRequest) returns (CreateAppealResponse);
   rpc GetAppeals(GetAppealsRequest) returns (GetAppealsResponse);
-  rpc UploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse);
+  rpc UploadAttachment(stream UploadAttachmentRequest) returns (UploadAttachmentResponse);
   rpc DeleteAppeal(DeleteAppealRequest) returns (DeleteAppealResponse);
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
   rpc ChangeAppealStatus(ChangeAppealStatusRequest) returns (ChangeAppealStatusResponse);

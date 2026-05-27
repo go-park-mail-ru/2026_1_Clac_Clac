@@ -39,7 +39,7 @@ spec:
                 name: {{ $svcName }}-secret
           {{- end }}
 
-          {{- if or (and $svc.hasSecrets $svc.database.enabled) (and $svc.hasSecrets $svc.redis.enabled) }}
+          {{- if or (and $svc.hasSecrets $svc.database.enabled) (and $svc.hasSecrets $svc.redis.enabled) (and $svc.hasSecrets $svc.broker.enabled) }}
           env:
             {{- if and $svc.hasSecrets $svc.database.enabled }}
             - name: DATABASE_HOST
@@ -62,6 +62,12 @@ spec:
               value: {{ $.Chart.Name }}-{{ $svcName }}-redis-service
             - name: REDIS_PORT
               value: {{ $.Values.redis.port | quote }}
+            {{- end }}
+            {{- if and $svc.hasSecrets $svc.broker.enabled }}
+            - name: BROKER_HOST
+              value: {{ $.Chart.Name }}-broker-service
+            - name: BROKER_PORT
+              value: {{ $.Values.broker.port | quote }}
             {{- end }}
           {{- end }}
 

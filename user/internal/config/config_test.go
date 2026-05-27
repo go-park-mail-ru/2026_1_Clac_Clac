@@ -56,7 +56,7 @@ engine:
 `)
 
 		tempDir := t.TempDir()
-		os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
+		_ = os.WriteFile(filepath.Join(tempDir, configFilename), yamlTest, 0644)
 
 		v, err := config.SetupViper(tempDir)
 

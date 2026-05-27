@@ -36,6 +36,7 @@ type CardUsecase interface {
 	DeleteAttachment(ctx context.Context, infoAttachment domain.DeleteAttachmentRequest) error
 	UpdateStatusTask(ctx context.Context, info domain.NewStatusTask) error
 	UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error
+	UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error
 }
 
 const (
@@ -77,8 +78,12 @@ const (
 )
 
 type CardConfig struct {
-	MaxLenTitle       int
-	MaxLenDescription int
+	MaxLenTitle              int
+	MaxLenDescription        int
+	MaxLenComment            int
+	MaxLenSubtaskDescription int
+	MinPoints                int
+	MaxPoints                int
 
 	MultipartAttachmentFileKey string
 	MaxAttachmentSize          int64
@@ -130,11 +135,11 @@ func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		errLog := fmt.Errorf("card.GetCard: %w", err)
@@ -144,11 +149,11 @@ func (c *Card) GetCard(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "get_card",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailGetCard)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailGetCard)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToCardResponse(cardLink, card)))
+	_ = api.HandleError(api.RespondOk(w, convertToCardResponse(cardLink, card)))
 }
 
 // DeleteCard удаляет карточку
@@ -185,11 +190,11 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		errLog := fmt.Errorf("card.DeleteCard: %w", err)
@@ -199,11 +204,11 @@ func (c *Card) DeleteCard(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "delete_card",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteCard)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailDeleteCard)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // UpdateCard обновляет карточку
@@ -239,19 +244,19 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.UpdateCardRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
 
 	if err := common.ValidateTextInfo(req.Title, c.cfg.MaxLenTitle); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect title: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect title: %s", err.Error()))
 		return
 	}
 
 	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenDescription); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -259,7 +264,7 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 	if req.ExecutorLink != nil && *req.ExecutorLink != "" {
 		parsed, err := uuid.Parse(*req.ExecutorLink)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 			return
 		}
 		executorLink = &parsed
@@ -276,19 +281,19 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorCardAlreadyExists) {
-			api.RespondError(w, http.StatusConflict, msgCardAlreadyExists)
+			_, _ = api.RespondError(w, http.StatusConflict, msgCardAlreadyExists)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.UpdateCard: %w", err)
@@ -298,11 +303,11 @@ func (c *Card) UpdateCard(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "update_card",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateCard)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateCard)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // ReorderCards изменяет позицию карточки
@@ -337,18 +342,18 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.ReorderCardsRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	sectionLink, err := uuid.Parse(req.SectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.Position < 1 {
-		api.RespondError(w, http.StatusBadRequest, msgInvalidPositionCard)
+		_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidPositionCard)
 		return
 	}
 
@@ -360,27 +365,27 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgSectionNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgSectionNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		if errors.Is(err, common.ErrorTaskLimitReached) {
-			api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
 			return
 		}
 		if errors.Is(err, common.ErrCannotSkipMandatorySection) {
-			api.RespondError(w, http.StatusBadRequest, msgMissMandatorySection)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgMissMandatorySection)
 			return
 		}
 
@@ -391,11 +396,11 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "reorder_cards",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailReorderCards)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailReorderCards)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // CreateCard создаёт карточку
@@ -408,7 +413,7 @@ func (c *Card) ReorderCards(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			input	body		dto.CreateCardRequest					true	"Данные карточки"
 //	@Success		200		{object}	api.OkResponse[dto.CreateCardResponse]	"Карточка создана"
-//	@Failure		400		{object}	api.ErrorResponse						"Некорректные данные или лимит задач"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректные данные или лимит задач / incorrect title / incorrect description"
 //	@Failure		401		{object}	api.ErrorResponse						"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse						"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse						"Секция не найдена"
@@ -425,20 +430,25 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.CreateCardRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
 
 	if err := common.ValidateTextInfo(req.Title, c.cfg.MaxLenTitle); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect title: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect title: %s", err.Error()))
+		return
+	}
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenDescription); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
 	sectionLink, err := uuid.Parse(req.SectionLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -446,7 +456,7 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 	if req.ExecutorLink != nil && *req.ExecutorLink != "" {
 		parsed, err := uuid.Parse(*req.ExecutorLink)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 			return
 		}
 		executorLink = &parsed
@@ -461,23 +471,23 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSectionNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgSectionNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgSectionNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorCardAlreadyExists) {
-			api.RespondError(w, http.StatusConflict, msgCardAlreadyExists)
+			_, _ = api.RespondError(w, http.StatusConflict, msgCardAlreadyExists)
 			return
 		}
 		if errors.Is(err, common.ErrorTaskLimitReached) {
-			api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgTaskLimitReached)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.CreateCard: %w", err)
@@ -487,11 +497,11 @@ func (c *Card) CreateCard(w http.ResponseWriter, r *http.Request) {
 			"section_link": sectionLink,
 			"action":       "create_card",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailCreateCard)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailCreateCard)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToCreateCardResponse(created)))
+	_ = api.HandleError(api.RespondOk(w, convertToCreateCardResponse(created)))
 }
 
 // GetComments возвращает список комментариев к карточке
@@ -528,11 +538,11 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		errLog := fmt.Errorf("card.GetComments: %w", err)
@@ -542,11 +552,11 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "get_comments",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailGetComments)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailGetComments)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToCommentsResponse(comments)))
+	_ = api.HandleError(api.RespondOk(w, convertToCommentsResponse(comments)))
 }
 
 // CreateComment создаёт комментарий к карточке
@@ -560,7 +570,7 @@ func (c *Card) GetComments(w http.ResponseWriter, r *http.Request) {
 //	@Param			link	path		string										true	"UUID карточки"
 //	@Param			input	body		dto.CreateCommentRequest					true	"Данные комментария"
 //	@Success		200		{object}	api.OkResponse[dto.CreateCommentResponse]	"Комментарий создан"
-//	@Failure		400		{object}	api.ErrorResponse							"Некорректные данные"
+//	@Failure		400		{object}	api.ErrorResponse							"Некорректные данные / incorrect comment text"
 //	@Failure		401		{object}	api.ErrorResponse							"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse							"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse							"Карточка не найдена"
@@ -581,17 +591,22 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.CreateCommentRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
 
+	if err := common.ValidateTextInfo(req.Text, c.cfg.MaxLenComment); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect comment text: %s", err.Error()))
+		return
+	}
+
 	var parentLink *uuid.UUID
 	if req.ParentLink != nil && *req.ParentLink != "" {
 		parsed, err := uuid.Parse(*req.ParentLink)
 		if err != nil {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 			return
 		}
 		parentLink = &parsed
@@ -605,15 +620,15 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.CreateComment: %w", err)
@@ -623,11 +638,11 @@ func (c *Card) CreateComment(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "create_comment",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailCreateComment)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailCreateComment)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToCreateCommentResponse(created)))
+	_ = api.HandleError(api.RespondOk(w, convertToCreateCommentResponse(created)))
 }
 
 // DeleteComment удаляет комментарий
@@ -651,7 +666,7 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	commentLinkParam := mux.Vars(r)[commentLinkKey]
 	commentLink, err := uuid.Parse(commentLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -666,11 +681,11 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCommentNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCommentNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCommentNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		errLog := fmt.Errorf("card.DeleteComment: %w", err)
@@ -680,11 +695,11 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 			"comment_link": commentLink,
 			"action":       "delete_comment",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteComment)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailDeleteComment)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // UpdateComment обновляет текст комментария
@@ -698,7 +713,7 @@ func (c *Card) DeleteComment(w http.ResponseWriter, r *http.Request) {
 //	@Param			comment_link	path		string						true	"UUID комментария"
 //	@Param			input			body		dto.UpdateCommentRequest	true	"Новый текст"
 //	@Success		200				{object}	api.Response				"Комментарий обновлён"
-//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные"
+//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные / incorrect comment text"
 //	@Failure		401				{object}	api.ErrorResponse			"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Комментарий не найден"
@@ -710,7 +725,7 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	commentLinkParam := mux.Vars(r)[commentLinkKey]
 	commentLink, err := uuid.Parse(commentLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -721,11 +736,16 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.UpdateCommentRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Text, c.cfg.MaxLenComment); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect comment text: %s", err.Error()))
+		return
+	}
 
 	err = c.card.UpdateComment(r.Context(), domain.UpdateCommentRequest{
 		UserLink:    userLink,
@@ -734,15 +754,15 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCommentNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCommentNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCommentNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.UpdateComment: %w", err)
@@ -752,11 +772,11 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 			"comment_link": commentLink,
 			"action":       "update_comment",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateComment)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateComment)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // CreateSubtask создаёт подзадачу карточки
@@ -770,7 +790,7 @@ func (c *Card) UpdateComment(w http.ResponseWriter, r *http.Request) {
 //	@Param			link	path		string								true	"UUID карточки"
 //	@Param			input	body		dto.CreateSubtaskRequest			true	"Данные подзадачи"
 //	@Success		200		{object}	api.OkResponse[dto.SubtaskResponse]	"Подзадача создана"
-//	@Failure		400		{object}	api.ErrorResponse					"Некорректные данные"
+//	@Failure		400		{object}	api.ErrorResponse					"Некорректные данные / incorrect subtask description"
 //	@Failure		401		{object}	api.ErrorResponse					"Пользователь не авторизован"
 //	@Failure		403		{object}	api.ErrorResponse					"Нет прав доступа"
 //	@Failure		404		{object}	api.ErrorResponse					"Карточка не найдена"
@@ -791,11 +811,16 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.CreateSubtaskRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenSubtaskDescription); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect subtask description: %s", err.Error()))
+		return
+	}
 
 	subtask, err := c.card.CreateSubtask(r.Context(), domain.CreateSubtaskRequest{
 		UserLink:    userLink,
@@ -804,15 +829,15 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.CreateSubtask: %w", err)
@@ -822,11 +847,11 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "create_subtask",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailCreateSubtask)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailCreateSubtask)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToSubtaskResponse(subtask)))
+	_ = api.HandleError(api.RespondOk(w, convertToSubtaskResponse(subtask)))
 }
 
 // UpdateSubtask обновляет подзадачу
@@ -840,7 +865,7 @@ func (c *Card) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 //	@Param			subtask_link	path		string						true	"UUID подзадачи"
 //	@Param			input			body		dto.UpdateSubtaskRequest	true	"Данные подзадачи"
 //	@Success		200				{object}	api.Response				"Подзадача обновлена"
-//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные"
+//	@Failure		400				{object}	api.ErrorResponse			"Некорректные данные / incorrect subtask description"
 //	@Failure		401				{object}	api.ErrorResponse			"Пользователь не авторизован"
 //	@Failure		403				{object}	api.ErrorResponse			"Нет прав доступа"
 //	@Failure		404				{object}	api.ErrorResponse			"Подзадача не найдена"
@@ -852,7 +877,7 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 	subtaskLinkParam := mux.Vars(r)[subtaskLinkKey]
 	subtaskLink, err := uuid.Parse(subtaskLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -863,11 +888,16 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.UpdateSubtaskRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
+
+	if err := common.ValidateTextInfo(req.Description, c.cfg.MaxLenSubtaskDescription); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect subtask description: %s", err.Error()))
+		return
+	}
 
 	err = c.card.UpdateSubtask(r.Context(), domain.UpdateSubtaskRequest{
 		UserLink:    userLink,
@@ -877,15 +907,15 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSubtaskNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgSubtaskNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgSubtaskNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidInput) {
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		}
 		errLog := fmt.Errorf("card.UpdateSubtask: %w", err)
@@ -895,11 +925,11 @@ func (c *Card) UpdateSubtask(w http.ResponseWriter, r *http.Request) {
 			"subtask_link": subtaskLink,
 			"action":       "update_subtask",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateSubtask)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateSubtask)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // DeleteSubtask удаляет подзадачу
@@ -923,7 +953,7 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 	subtaskLinkParam := mux.Vars(r)[subtaskLinkKey]
 	subtaskLink, err := uuid.Parse(subtaskLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -938,11 +968,11 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorSubtaskNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgSubtaskNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgSubtaskNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 		errLog := fmt.Errorf("card.DeleteSubtask: %w", err)
@@ -952,11 +982,11 @@ func (c *Card) DeleteSubtask(w http.ResponseWriter, r *http.Request) {
 			"subtask_link": subtaskLink,
 			"action":       "delete_subtask",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteSubtask)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailDeleteSubtask)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // CreateAttachment загружает вложение к карточке
@@ -994,9 +1024,9 @@ func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(err).Msg("parse multipart form")
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusRequestEntityTooLarge, ErrParseMultipartForm.Error())
 		} else {
-			api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, ErrParseMultipartForm.Error())
 		}
 		return
 	}
@@ -1004,7 +1034,7 @@ func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile(c.cfg.MultipartAttachmentFileKey)
 	if err != nil {
 		logger.Error().Err(err).Str("expected key", c.cfg.MultipartAttachmentFileKey).Msg("cannot find attachment key")
-		api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, ErrCannotFindAttachment.Error())
 		return
 	}
 
@@ -1023,16 +1053,16 @@ func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		case errors.Is(err, common.ErrorInvalidInput):
-			api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidInput)
 			return
 		case errors.Is(err, common.ErrorAttachmentLimitReached):
-			api.RespondError(w, http.StatusBadRequest, msgAttachmentLimit)
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgAttachmentLimit)
 			return
 		case errors.Is(err, common.ErrorCardNotFound):
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 
@@ -1042,11 +1072,11 @@ func (c *Card) CreateAttachment(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "create_attachment",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailCreateAttachment)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailCreateAttachment)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.AttachmentResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.AttachmentResponse{
 		AttachmentLink: attachment.AttachmentLink,
 		Path:           attachment.Path,
 		DisplayName:    attachment.DisplayName,
@@ -1080,7 +1110,7 @@ func (c *Card) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	rawAttachmentLink := mux.Vars(r)[attachmentLink]
 	parsedAttachmentLink, err := uuid.Parse(rawAttachmentLink)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -1091,10 +1121,10 @@ func (c *Card) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, common.ErrorAttachmentNotFound):
-			api.RespondError(w, http.StatusNotFound, msgAttachmentNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgAttachmentNotFound)
 			return
 		case errors.Is(err, common.ErrorPermissionDenied):
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 
@@ -1105,11 +1135,11 @@ func (c *Card) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
 			"attachment_link": parsedAttachmentLink,
 			"action":          "delete_attachment",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAttachment)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAttachment)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // UpdateStatusTask обновляет статус карточки
@@ -1144,7 +1174,7 @@ func (c *Card) UpdateStatusTask(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.NewStatusTask
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
@@ -1155,11 +1185,11 @@ func (c *Card) UpdateStatusTask(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 
@@ -1170,11 +1200,11 @@ func (c *Card) UpdateStatusTask(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "update_status_task",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateStatusTask)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateStatusTask)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // UpdateTimeLine обновляет временные рамки карточки
@@ -1209,12 +1239,12 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 
 	var req dto.NewTimeLine
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if req.Start.After(req.DeadLine) {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrSetTimeLine.Error())
 		return
 	}
 
@@ -1226,11 +1256,11 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorCardNotFound) {
-			api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
 			return
 		}
 		if errors.Is(err, common.ErrorPermissionDenied) {
-			api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
 			return
 		}
 
@@ -1241,18 +1271,87 @@ func (c *Card) UpdateTimeLine(w http.ResponseWriter, r *http.Request) {
 			"card_link": cardLink,
 			"action":    "update_time_line",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateTimeLime)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateTimeLime)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
+}
+
+// UpdatePoints устанавливает оценку (story points) на карточку
+//
+//	@Summary		Установить оценку на карточку
+//	@Description	Администратор/создатель доски устанавливает финальную оценку (story points) на карточку. Если активен полл — только администратор полла может установить оценку.
+//	@Tags			Cards
+//	@Security		sessionCookie
+//	@Accept			json
+//	@Produce		json
+//	@Param			link	path		string							true	"UUID карточки" Format(uuid)
+//	@Param			request	body		dto.UpdateCardPointsRequest		true	"Оценка"
+//	@Success		200		{object}	api.Response					"points updated"
+//	@Failure		400		{object}	api.ErrorResponse				"invalid card link / invalid request / points out of range"
+//	@Failure		401		{object}	api.ErrorResponse				"unauthorized"
+//	@Failure		403		{object}	api.ErrorResponse				"permission denied / not poll admin"
+//	@Failure		404		{object}	api.ErrorResponse				"card not found"
+//	@Failure		500		{object}	api.ErrorResponse				"cannot update points"
+//	@Router			/cards/{link}/points [put]
+func (c *Card) UpdatePoints(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
+	cardLink, ok := parseCardLink(w, r)
+	if !ok {
+		return
+	}
+
+	userLink, ok := getUserLink(w, r)
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateCardPointsRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		return
+	}
+
+	if req.Points != nil && (*req.Points < c.cfg.MinPoints || *req.Points > c.cfg.MaxPoints) {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("points must be between %d and %d", c.cfg.MinPoints, c.cfg.MaxPoints))
+		return
+	}
+
+	err := c.card.UpdateCardPoints(r.Context(), domain.UpdateCardPointsRequest{
+		UserLink: userLink,
+		CardLink: cardLink,
+		Points:   req.Points,
+	})
+	if err != nil {
+		if errors.Is(err, common.ErrorCardNotFound) {
+			_, _ = api.RespondError(w, http.StatusNotFound, msgCardNotFound)
+			return
+		}
+		if errors.Is(err, common.ErrorPermissionDenied) {
+			_, _ = api.RespondError(w, http.StatusForbidden, msgPermissionDenied)
+			return
+		}
+		errLog := fmt.Errorf("card.UpdateCardPoints: %w", err)
+		logger.Error().Err(errLog).Msg("card.UpdateCardPoints failed")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateCardPoints", map[string]interface{}{
+			"user_link": userLink,
+			"card_link": cardLink,
+			"action":    "update_card_points",
+		})
+		_, _ = api.RespondError(w, http.StatusInternalServerError, "cannot update points")
+		return
+	}
+
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 func parseCardLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	linkParam := mux.Vars(r)[cardLinkKey]
 	cardLink, err := uuid.Parse(linkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return uuid.Nil, false
 	}
 	return cardLink, true
@@ -1262,7 +1361,7 @@ func getUserLink(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return uuid.Nil, false
 	}
 	return userLink, true
@@ -1306,6 +1405,7 @@ func convertToCardResponse(cardLink uuid.UUID, card domain.CardFullInfo) dto.Car
 		Subtasks:     subtasks,
 		Position:     card.Position,
 		Attachments:  attachments,
+		Points:       card.Points,
 	}
 }
 

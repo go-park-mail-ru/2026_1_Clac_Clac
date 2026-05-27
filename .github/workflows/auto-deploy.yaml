@@ -10,7 +10,15 @@ on:
       - "**/*.go"
 
 jobs:
+  check-generated-code-consistency:
+    uses: ./.github/workflows/generated-code-consistency.yaml
+
+  linter-and-tests:
+    needs: check-generated-code-consistency
+    uses: ./.github/workflows/linter-and-tests.yaml
+
   detect-changes:
+    needs: linter-and-tests
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -46,12 +54,15 @@ jobs:
             user:
               - 'user/**'
               - 'deployments/user/**'
+            realtime:
+              - 'realtime/**'
+              - 'deployments/realtime/**'
 
       - name: Generate Build Matrix
         id: set-matrix
         run: |
           if [[ "${{ steps.filter.outputs.shared }}" == 'true' ]]; then
-            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user", "realtime"]' >> $GITHUB_OUTPUT
             echo 'has_changes=true' >> $GITHUB_OUTPUT
           else
             CHANGES='${{ steps.filter.outputs.changes }}'
@@ -76,7 +87,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-docs:
-    needs: run-deployment
+    needs: linter-and-tests
     uses: ./.github/workflows/deploy-docs.yaml
     with:
       endpoint-url: hb.ru-msk.vkcloud-storage.ru

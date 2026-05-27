@@ -8,7 +8,7 @@ service UserService {
   rpc GetProfile(UserLinkRequest) returns (ProfileResponse);
   rpc GetProfiles(GetProfilesRequest) returns (GetProfilesResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
-  rpc UpdateAvatar(UpdateAvatarRequest) returns (AvatarResponse);
+  rpc UpdateAvatar(stream UpdateAvatarRequest) returns (AvatarResponse);
   rpc DeleteAvatar(UserLinkRequest) returns (DeleteAvatarResponse);
 
   rpc GetUser(GetUserRequest) returns (UserResponse);
@@ -38,12 +38,19 @@ message UpdateProfileRequest {
   string display_name = 2;
   string description = 3;
 }
-message UpdateAvatarRequest {
+message MetadataUpdateAvatar {
   string user_link = 1;
-  bytes file_data = 2;
-  string content_type = 3;
-  string file_extension = 4;
+  string content_type = 2;
+  string file_extension = 3;
 }
+
+message UpdateAvatarRequest {
+  oneof request {
+    MetadataUpdateAvatar metadata = 1;
+    bytes file_data = 2;
+  }
+}
+
 message AvatarResponse {
   string avatar_url = 1;
 }
