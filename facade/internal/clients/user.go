@@ -1,9 +1,9 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/facade/internal/common"
@@ -13,8 +13,15 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	userChunkSize = 1024 * 1024
+)
+
 var avatarBufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
+	New: func() any {
+		buffer := make([]byte, userChunkSize)
+		return &buffer
+	},
 }
 
 type ConfigUser struct {
@@ -107,28 +114,59 @@ func (u *User) UpdateProfile(ctx context.Context, updatedInfo domain.UpdatedInfo
 }
 
 func (u *User) UpdateAvatar(ctx context.Context, avatarInfo domain.AvatarInfo) (string, error) {
-	buf := avatarBufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-
-	defer func() {
-		if buf.Cap() <= u.cfg.MaxUserAvatarBytesSize {
-			avatarBufferPool.Put(buf)
-		}
-	}()
-
-	req := &pb.UpdateAvatarRequest{
-		UserLink:      avatarInfo.UserLink.String(),
-		FileData:      avatarInfo.FileData,
-		ContentType:   avatarInfo.ContentType,
-		FileExtension: avatarInfo.FileExtension,
+	stream, err := u.client.UpdateAvatar(ctx)
+	if err != nil {
+		return "", fmt.Errorf("can not open stream client.UpdateAvatar: %w", err)
 	}
 
-	avatarURL, err := u.client.UpdateAvatar(ctx, req)
+	req := &pb.UpdateAvatarRequest{
+		Request: &pb.UpdateAvatarRequest_Metadata{
+			Metadata: &pb.MetadataUpdateAvatar{
+				UserLink:      avatarInfo.UserLink.String(),
+				ContentType:   avatarInfo.ContentType,
+				FileExtension: avatarInfo.FileExtension,
+			},
+		},
+	}
+
+	if err := stream.Send(req); err != nil {
+		return "", fmt.Errorf("metadata avatar stream.Send: %w", err)
+	}
+
+	bufPtr := avatarBufferPool.Get().(*[]byte)
+	buffer := *bufPtr
+
+	defer avatarBufferPool.Put(bufPtr)
+
+	for {
+		n, err := avatarInfo.FileData.Read(buffer)
+		if err != nil && err != io.EOF {
+			return "", fmt.Errorf("avatar.Read: %w", err)
+		}
+
+		if n > 0 {
+			chunkReq := &pb.UpdateAvatarRequest{
+				Request: &pb.UpdateAvatarRequest_FileData{
+					FileData: buffer[:n],
+				},
+			}
+
+			if err := stream.Send(chunkReq); err != nil {
+				return "", fmt.Errorf("stream.Send: %w", err)
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	res, err := stream.CloseAndRecv()
 	if err != nil {
 		return "", fmt.Errorf("UserClient.UpdateAvatar: %w", convertGRPCError(err))
 	}
 
-	return avatarURL.AvatarUrl, nil
+	return res.AvatarUrl, nil
 }
 
 func (u *User) DeleteAvatar(ctx context.Context, userLink uuid.UUID) error {

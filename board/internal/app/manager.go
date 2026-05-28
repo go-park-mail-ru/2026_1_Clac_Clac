@@ -10,21 +10,25 @@ import (
 )
 
 type Manager struct {
-	Board   *board.Service
-	Section *section.Service
-	Card    *card.Service
+	Board             *board.Service
+	Section           *section.Service
+	Card              *card.Service
+	PermissionChecker rbac.Service
 }
 
 func NewManager(store *Store, conf *config.Config) *Manager {
 	permissionChecker := rbac.NewCachedService(store.PermissionChecker, store.RedisClient)
+
+	pollStore := board.NewPollStore()
 
 	configCard := card.Config{
 		BaseURLAttachment: s3.GetURL(conf.S3.Endpoint, conf.S3.CardsAttachmentBucket),
 	}
 
 	return &Manager{
-		Board:   board.NewService(store.Board, permissionChecker),
-		Section: section.NewService(store.Section, permissionChecker),
-		Card:    card.NewService(store.Card, permissionChecker, configCard),
+		Board:             board.NewService(store.Board, permissionChecker, pollStore, store.Publisher),
+		Section:           section.NewService(store.Section, permissionChecker),
+		Card:              card.NewService(store.Card, permissionChecker, pollStore, store.Publisher, configCard),
+		PermissionChecker: permissionChecker,
 	}
 }

@@ -19,7 +19,7 @@ var (
 	fixedSubtaskLink    = uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
 	fixedUserLink       = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 	fixedAttachmentLink = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
-	cardTestError       = errors.New("card client error")
+	errCardTest       = errors.New("card client error")
 )
 
 type mockCardClient struct {
@@ -106,6 +106,11 @@ func (m *mockCardClient) UpdateTimeLine(ctx context.Context, info domain.NewTime
 	return args.Error(0)
 }
 
+func (m *mockCardClient) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
 func TestCardUsecase_GetCard(t *testing.T) {
 	req := domain.GetCardRequest{UserLink: fixedUserLink, CardLink: fixedCardLink}
 	expectedCard := domain.CardFullInfo{CardLink: fixedCardLink, Title: "Test Card"}
@@ -127,7 +132,7 @@ func TestCardUsecase_GetCard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("GetCard", mock.Anything, req).Return(domain.CardFullInfo{}, cardTestError)
+				m.On("GetCard", mock.Anything, req).Return(domain.CardFullInfo{}, errCardTest)
 			},
 			expectedCard: domain.CardFullInfo{},
 			expectError:  true,
@@ -144,7 +149,7 @@ func TestCardUsecase_GetCard(t *testing.T) {
 			assert.Equal(t, tc.expectedCard, card)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -170,7 +175,7 @@ func TestCardUsecase_DeleteCard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("DeleteCard", mock.Anything, req).Return(cardTestError)
+				m.On("DeleteCard", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -185,7 +190,7 @@ func TestCardUsecase_DeleteCard(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -216,7 +221,7 @@ func TestCardUsecase_UpdateCard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("UpdateCard", mock.Anything, req).Return(cardTestError)
+				m.On("UpdateCard", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -231,7 +236,7 @@ func TestCardUsecase_UpdateCard(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -262,7 +267,7 @@ func TestCardUsecase_ReorderCards(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("ReorderCards", mock.Anything, req).Return(cardTestError)
+				m.On("ReorderCards", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -277,7 +282,7 @@ func TestCardUsecase_ReorderCards(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -314,7 +319,7 @@ func TestCardUsecase_CreateCard(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("CreateCard", mock.Anything, req).Return(domain.CreateCardResponse{}, cardTestError)
+				m.On("CreateCard", mock.Anything, req).Return(domain.CreateCardResponse{}, errCardTest)
 			},
 			expectedResp: domain.CreateCardResponse{},
 			expectError:  true,
@@ -331,7 +336,7 @@ func TestCardUsecase_CreateCard(t *testing.T) {
 			assert.Equal(t, tc.expectedResp, resp)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -364,7 +369,7 @@ func TestCardUsecase_GetComments(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("GetComments", mock.Anything, req).Return(domain.GetCommentsResponse{}, cardTestError)
+				m.On("GetComments", mock.Anything, req).Return(domain.GetCommentsResponse{}, errCardTest)
 			},
 			expectedResp: domain.GetCommentsResponse{},
 			expectError:  true,
@@ -381,7 +386,7 @@ func TestCardUsecase_GetComments(t *testing.T) {
 			assert.Equal(t, tc.expectedResp, resp)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -414,7 +419,7 @@ func TestCardUsecase_CreateComment(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("CreateComment", mock.Anything, req).Return(domain.CreateCommentResponse{}, cardTestError)
+				m.On("CreateComment", mock.Anything, req).Return(domain.CreateCommentResponse{}, errCardTest)
 			},
 			expectedResp: domain.CreateCommentResponse{},
 			expectError:  true,
@@ -431,7 +436,7 @@ func TestCardUsecase_CreateComment(t *testing.T) {
 			assert.Equal(t, tc.expectedResp, resp)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -457,7 +462,7 @@ func TestCardUsecase_DeleteComment(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("DeleteComment", mock.Anything, req).Return(cardTestError)
+				m.On("DeleteComment", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -472,7 +477,7 @@ func TestCardUsecase_DeleteComment(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -502,7 +507,7 @@ func TestCardUsecase_UpdateComment(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("UpdateComment", mock.Anything, req).Return(cardTestError)
+				m.On("UpdateComment", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -517,7 +522,7 @@ func TestCardUsecase_UpdateComment(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -555,7 +560,7 @@ func TestCardUsecase_CreateSubtask(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("CreateSubtask", mock.Anything, req).Return(domain.SubtaskInfo{}, cardTestError)
+				m.On("CreateSubtask", mock.Anything, req).Return(domain.SubtaskInfo{}, errCardTest)
 			},
 			expectedSubtask: domain.SubtaskInfo{},
 			expectError:     true,
@@ -572,7 +577,7 @@ func TestCardUsecase_CreateSubtask(t *testing.T) {
 			assert.Equal(t, tc.expectedSubtask, subtask)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -603,7 +608,7 @@ func TestCardUsecase_UpdateSubtask(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("UpdateSubtask", mock.Anything, req).Return(cardTestError)
+				m.On("UpdateSubtask", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -618,7 +623,7 @@ func TestCardUsecase_UpdateSubtask(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -644,7 +649,7 @@ func TestCardUsecase_DeleteSubtask(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("DeleteSubtask", mock.Anything, req).Return(cardTestError)
+				m.On("DeleteSubtask", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -659,7 +664,7 @@ func TestCardUsecase_DeleteSubtask(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -697,7 +702,7 @@ func TestCardUsecase_CreateAttachment(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("CreateAttachment", mock.Anything, req).Return(domain.AttachmentInfo{}, cardTestError)
+				m.On("CreateAttachment", mock.Anything, req).Return(domain.AttachmentInfo{}, errCardTest)
 			},
 			expected:    domain.AttachmentInfo{},
 			expectError: true,
@@ -714,7 +719,7 @@ func TestCardUsecase_CreateAttachment(t *testing.T) {
 			assert.Equal(t, tc.expected, result)
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -743,7 +748,7 @@ func TestCardUsecase_DeleteAttachment(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("DeleteAttachment", mock.Anything, req).Return(cardTestError)
+				m.On("DeleteAttachment", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -758,7 +763,7 @@ func TestCardUsecase_DeleteAttachment(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -788,7 +793,7 @@ func TestCardUsecase_UpdateStatusTask(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("UpdateStatusTask", mock.Anything, req).Return(cardTestError)
+				m.On("UpdateStatusTask", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -803,7 +808,7 @@ func TestCardUsecase_UpdateStatusTask(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -834,7 +839,7 @@ func TestCardUsecase_UpdateTimeLine(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockCardClient) {
-				m.On("UpdateTimeLine", mock.Anything, req).Return(cardTestError)
+				m.On("UpdateTimeLine", mock.Anything, req).Return(errCardTest)
 			},
 			expectError: true,
 		},
@@ -849,7 +854,7 @@ func TestCardUsecase_UpdateTimeLine(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, cardTestError))
+				assert.True(t, errors.Is(err, errCardTest))
 			} else {
 				require.NoError(t, err)
 			}

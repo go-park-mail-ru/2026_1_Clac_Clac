@@ -148,7 +148,7 @@ func LoggerMiddleware(logger *zerolog.Logger) mux.MiddlewareFunc {
 			if isResponseError {
 				if r.Body != nil {
 					remaning := io.LimitReader(r.Body, requestBodyLengthLimit)
-					io.Copy(io.Discard, remaning)
+					_, _ = io.Copy(io.Discard, remaning)
 				}
 
 				logEvent = logEvent.Bytes("body", buf.Bytes())

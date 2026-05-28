@@ -32,7 +32,6 @@ type UpdateBoardRequest struct {
 type UploadBackgroundRequest struct {
 	UserLink  uuid.UUID
 	BoardLink uuid.UUID
-	Image     []byte
 	Filename  string
 }
 

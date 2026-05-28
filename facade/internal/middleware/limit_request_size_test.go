@@ -12,7 +12,7 @@ import (
 )
 
 var bodyReader = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 	if _, err := io.ReadAll(r.Body); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

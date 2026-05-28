@@ -1,7 +1,6 @@
 package clients
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -14,12 +13,20 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	oneMegaByte = 1024 * 1024
+)
+
 var boardBufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
+	New: func() any {
+		buffer := make([]byte, oneMegaByte)
+		return &buffer
+	},
 }
 
 type ConfigBoard struct {
 	MaxBackgroundBytesSize int
+	ChunkSize              int
 }
 
 type Board struct {
@@ -143,28 +150,56 @@ func (b *Board) UpdateBoard(ctx context.Context, boardInfo domain.UpdateBoardReq
 }
 
 func (b *Board) UploadBackground(ctx context.Context, backgroundInfo domain.UploadBackgroundRequest, image io.Reader) (domain.UploadBackgroundResponse, error) {
-	buf := boardBufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer func() {
-		if buf.Cap() <= b.cfg.MaxBackgroundBytesSize {
-			boardBufferPool.Put(buf)
-		}
-	}()
-
-	if _, err := io.Copy(buf, image); err != nil {
-		return domain.UploadBackgroundResponse{}, fmt.Errorf("read image into buffer: %w", err)
+	stream, err := b.client.UploadBackground(ctx)
+	if err != nil {
+		return domain.UploadBackgroundResponse{}, fmt.Errorf("can not open stream client.UploadBackground: %w", err)
 	}
 
 	req := &pb.UploadBackgroundRequest{
-		UserLink:  backgroundInfo.UserLink.String(),
-		BoardLink: backgroundInfo.BoardLink.String(),
-		Image:     buf.Bytes(),
-		Filename:  backgroundInfo.Filename,
+		Request: &pb.UploadBackgroundRequest_Metadata{
+			Metadata: &pb.MetadataUploadBackground{
+				UserLink:  backgroundInfo.UserLink.String(),
+				BoardLink: backgroundInfo.BoardLink.String(),
+				Filename:  backgroundInfo.Filename,
+			},
+		},
 	}
 
-	res, err := b.client.UploadBackground(ctx, req)
+	if err := stream.Send(req); err != nil {
+		return domain.UploadBackgroundResponse{}, fmt.Errorf("metadata background stream.Send: %w", err)
+	}
+
+	bufPtr := boardBufferPool.Get().(*[]byte)
+	buffer := *bufPtr
+
+	defer boardBufferPool.Put(bufPtr)
+
+	for {
+		n, err := image.Read(buffer)
+		if err != nil && err != io.EOF {
+			return domain.UploadBackgroundResponse{}, fmt.Errorf("image.Read: %w", err)
+		}
+
+		if n > 0 {
+			chunkReq := &pb.UploadBackgroundRequest{
+				Request: &pb.UploadBackgroundRequest_Image{
+					Image: buffer[:n],
+				},
+			}
+
+			if err := stream.Send(chunkReq); err != nil {
+				return domain.UploadBackgroundResponse{}, fmt.Errorf("stream.Send: %w", err)
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	res, err := stream.CloseAndRecv()
 	if err != nil {
-		return domain.UploadBackgroundResponse{}, fmt.Errorf("client.UploadBackground: %w", convertBoardGRPCError(err))
+		return domain.UploadBackgroundResponse{}, fmt.Errorf("stream.CloseAndRecv: %w", convertBoardGRPCError(err))
 	}
 
 	return domain.UploadBackgroundResponse{

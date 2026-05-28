@@ -31,7 +31,7 @@ func CSRFMiddleware(tokenChecker func(ctx context.Context, sessionId string, tok
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sessionCookie, err := r.Cookie(SessiondIdKey)
 			if err != nil {
-				api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
+				_, _ = api.RespondError(w, http.StatusUnauthorized, ErrUserNotAuthorized.Error())
 				return
 			}
 			sessionId := sessionCookie.Value
@@ -39,20 +39,20 @@ func CSRFMiddleware(tokenChecker func(ctx context.Context, sessionId string, tok
 			if _, isSafe := safeMethods[r.Method]; !isSafe {
 				csrfCookie, err := r.Cookie(csrfCookieKey)
 				if err != nil {
-					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					_, _ = api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
 					return
 				}
 
 				headerToken := r.Header.Get(xCsrfHeader)
 
 				if headerToken == "" || headerToken != csrfCookie.Value {
-					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					_, _ = api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
 					return
 				}
 
 				err = tokenChecker(r.Context(), sessionId, csrfCookie.Value)
 				if err != nil {
-					api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
+					_, _ = api.RespondError(w, http.StatusForbidden, ErrCSRFTokenIncorrect.Error())
 					return
 				}
 			}

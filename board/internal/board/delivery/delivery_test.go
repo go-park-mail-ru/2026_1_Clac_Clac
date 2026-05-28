@@ -3,18 +3,22 @@ package delivery_test
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	handler "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery"
 	mocks "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/mock_board_srv"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
@@ -396,6 +400,39 @@ func TestGetBoard(t *testing.T) {
 	}
 }
 
+type mockUploadStream struct {
+	grpc.ServerStream
+	ctx      context.Context
+	requests []*pb.UploadBackgroundRequest
+	callIdx  int
+	resp     *pb.UploadBackgroundResponse
+	sendErr  error
+}
+
+func (m *mockUploadStream) Recv() (*pb.UploadBackgroundRequest, error) {
+	if m.callIdx >= len(m.requests) {
+		return nil, io.EOF
+	}
+	req := m.requests[m.callIdx]
+	m.callIdx++
+	return req, nil
+}
+
+func (m *mockUploadStream) SendAndClose(res *pb.UploadBackgroundResponse) error {
+	m.resp = res
+	return m.sendErr
+}
+
+func (m *mockUploadStream) Context() context.Context {
+	return m.ctx
+}
+
+func (m *mockUploadStream) SetHeader(md metadata.MD) error  { return nil }
+func (m *mockUploadStream) SendHeader(md metadata.MD) error { return nil }
+func (m *mockUploadStream) SetTrailer(md metadata.MD)       {}
+func (m *mockUploadStream) SendMsg(msg any) error           { return nil }
+func (m *mockUploadStream) RecvMsg(msg any) error           { return nil }
+
 func TestUploadBackground(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()
@@ -403,18 +440,19 @@ func TestUploadBackground(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		req          *pb.UploadBackgroundRequest
+		metadata     *pb.MetadataUploadBackground
+		imageData    []byte
 		setupMock    func(m *mocks.BoardService)
 		expectedCode codes.Code
 	}{
 		{
 			name: "Success upload background",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("backgrounds/bg.png", nil).Once()
@@ -423,45 +461,45 @@ func TestUploadBackground(t *testing.T) {
 		},
 		{
 			name: "Error invalid user link",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  "bad-uuid",
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData:    pngImage,
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error invalid board link",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: "bad-uuid",
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData:    pngImage,
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error invalid content type",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     []byte("just a regular text string"),
 				Filename:  "text.txt",
 			},
+			imageData:    []byte("just a regular text string"),
 			setupMock:    func(m *mocks.BoardService) {},
 			expectedCode: codes.InvalidArgument,
 		},
 		{
 			name: "Error board not found",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("", common.ErrBoardNotFound).Once()
@@ -470,12 +508,12 @@ func TestUploadBackground(t *testing.T) {
 		},
 		{
 			name: "Error internal service",
-			req: &pb.UploadBackgroundRequest{
+			metadata: &pb.MetadataUploadBackground{
 				UserLink:  userLink.String(),
 				BoardLink: boardLink.String(),
-				Image:     pngImage,
 				Filename:  "bg.png",
 			},
+			imageData: pngImage,
 			setupMock: func(m *mocks.BoardService) {
 				m.On("UpdateBackground", mock.Anything, mock.Anything, "image/png", ".png", boardLink, userLink).
 					Return("", errors.New("s3 upload failed")).Once()
@@ -489,8 +527,24 @@ func TestUploadBackground(t *testing.T) {
 			mockSrv := new(mocks.BoardService)
 			test.setupMock(mockSrv)
 
+			stream := &mockUploadStream{
+				ctx: context.Background(),
+				requests: []*pb.UploadBackgroundRequest{
+					{
+						Request: &pb.UploadBackgroundRequest_Metadata{
+							Metadata: test.metadata,
+						},
+					},
+					{
+						Request: &pb.UploadBackgroundRequest_Image{
+							Image: test.imageData,
+						},
+					},
+				},
+			}
+
 			h := handler.NewHandler(mockSrv, testConf)
-			_, err := h.UploadBackground(context.Background(), test.req)
+			err := h.UploadBackground(stream)
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			mockSrv.AssertExpectations(t)
@@ -1064,6 +1118,188 @@ func TestRemoveMemberFromBoardHandler(t *testing.T) {
 
 			assert.Equal(t, test.expectedCode, grpcCode(err))
 			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestCanViewHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	tests := []struct {
+		name         string
+		req          *pb.CanViewRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success can view",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name:         "Error invalid user link",
+			req:          &pb.CanViewRequest{UserLink: "bad-uuid", BoardLink: boardLink.String()},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name:         "Error invalid board link",
+			req:          &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: "bad-uuid"},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error permission denied",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Error internal server",
+			req:  &pb.CanViewRequest{UserLink: userLink.String(), BoardLink: boardLink.String()},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("CanView", mock.Anything, boardLink, userLink).Return(errors.New("db error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			_, err := h.CanView(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetActivePollHandler(t *testing.T) {
+	userLink := uuid.New()
+	boardLink := uuid.New()
+
+	adminLink := uuid.New()
+	cardLink := uuid.New()
+	invitedUser := uuid.New()
+	points := 5
+	poll := &service.Poll{
+		BoardLink:  boardLink,
+		AdminLink:  adminLink,
+		CurrentIdx: 0,
+		Tasks: []service.PollTask{
+			{
+				CardLink: cardLink,
+				Title:    "Task 1",
+				Votes:    map[uuid.UUID]*int{invitedUser: &points},
+			},
+		},
+		Invitees: []uuid.UUID{invitedUser},
+	}
+
+	tests := []struct {
+		name         string
+		req          *pb.GetActivePollRequest
+		setupMock    func(m *mocks.BoardService)
+		expectedCode codes.Code
+	}{
+		{
+			name: "Success",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(poll, nil).Once()
+			},
+			expectedCode: codes.OK,
+		},
+		{
+			name: "Error_InvalidUserLink",
+			req: &pb.GetActivePollRequest{
+				UserLink:  "bad-uuid",
+				BoardLink: boardLink.String(),
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error_InvalidBoardLink",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: "bad-uuid",
+			},
+			setupMock:    func(m *mocks.BoardService) {},
+			expectedCode: codes.InvalidArgument,
+		},
+		{
+			name: "Error_PermissionDenied",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, rbac.ErrActionDenied).Once()
+			},
+			expectedCode: codes.PermissionDenied,
+		},
+		{
+			name: "Error_PollNotFound",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, common.ErrPollNotFound).Once()
+			},
+			expectedCode: codes.NotFound,
+		},
+		{
+			name: "Error_InternalServerError",
+			req: &pb.GetActivePollRequest{
+				UserLink:  userLink.String(),
+				BoardLink: boardLink.String(),
+			},
+			setupMock: func(m *mocks.BoardService) {
+				m.On("GetActivePoll", mock.Anything, boardLink, userLink).Return(nil, errors.New("some error")).Once()
+			},
+			expectedCode: codes.Internal,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mockSrv := new(mocks.BoardService)
+			test.setupMock(mockSrv)
+
+			h := handler.NewHandler(mockSrv, testConf)
+			resp, err := h.GetActivePoll(context.Background(), test.req)
+
+			assert.Equal(t, test.expectedCode, grpcCode(err))
+			mockSrv.AssertExpectations(t)
+
+			if test.expectedCode == codes.OK {
+				assert.NotNil(t, resp)
+				assert.Equal(t, adminLink.String(), resp.AdminLink)
+				assert.Equal(t, int32(0), resp.CurrentIdx)
+				assert.Len(t, resp.Tasks, 1)
+				assert.Equal(t, cardLink.String(), resp.Tasks[0].CardLink)
+				assert.Equal(t, "Task 1", resp.Tasks[0].Title)
+				assert.Len(t, resp.Tasks[0].Votes, 1)
+				assert.Equal(t, invitedUser.String(), resp.Tasks[0].Votes[0].UserLink)
+				assert.Equal(t, int32(5), resp.Tasks[0].Votes[0].Points)
+				assert.Len(t, resp.Invitees, 1)
+				assert.Equal(t, invitedUser.String(), resp.Invitees[0])
+			}
 		})
 	}
 }

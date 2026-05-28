@@ -133,6 +133,34 @@ func (_m *UserUsecase) ProcessUserWithVK(ctx context.Context, accessToken string
 	return r0, r1
 }
 
+// GetProfile provides a mock function with given fields: ctx, userLink
+func (_m *UserUsecase) GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error) {
+	ret := _m.Called(ctx, userLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProfile")
+	}
+
+	var r0 domain.FullInfoUser
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (domain.FullInfoUser, error)); ok {
+		return rf(ctx, userLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) domain.FullInfoUser); ok {
+		r0 = rf(ctx, userLink)
+	} else {
+		r0 = ret.Get(0).(domain.FullInfoUser)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, userLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewUserUsecase creates a new instance of UserUsecase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewUserUsecase(t interface {

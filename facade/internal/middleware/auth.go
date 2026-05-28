@@ -29,7 +29,7 @@ func AuthMiddleware(client SessionCheker, logger *zerolog.Logger, sessionLifeTim
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(SessiondIdKey)
 			if err != nil {
-				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+				_, _ = api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 
@@ -37,7 +37,7 @@ func AuthMiddleware(client SessionCheker, logger *zerolog.Logger, sessionLifeTim
 
 			userLink, err := client.CheckSession(r.Context(), tokenID)
 			if err != nil {
-				api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
+				_, _ = api.RespondError(w, http.StatusUnauthorized, unauthorizedMessage)
 				return
 			}
 

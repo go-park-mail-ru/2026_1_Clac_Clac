@@ -10,7 +10,11 @@ import (
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
+	boardCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
+	boardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/pubsub"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -22,6 +26,7 @@ type CardRepository interface {
 	UpdateCardDetails(ctx context.Context, updatedCard repositoryDto.UpdatingCardDetails) error
 	ReorderCard(ctx context.Context, updatingPlaceCard repositoryDto.PlaceCard) error
 	CreateCard(ctx context.Context, newCard repositoryDto.NewCard) (int, error)
+	GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID) (uuid.UUID, error)
 	GetComments(ctx context.Context, cardLink uuid.UUID) ([]repositoryDto.CommentInfo, error)
 	CreateComment(ctx context.Context, createCardInfo repositoryDto.CreateCommentInfo) (repositoryDto.CommentInfo, error)
 	IsCommentAuthor(ctx context.Context, commentLink uuid.UUID, userLink uuid.UUID) (bool, error)
@@ -36,6 +41,8 @@ type CardRepository interface {
 	DeleteAttachmentFromS3(ctx context.Context, key string) error
 	UpdateStatusTask(ctx context.Context, updateInfo repositoryDto.UpdateStatusTask) error
 	UpdateTimeLine(ctx context.Context, updateInfo repositoryDto.UpdateTimeLine) error
+	GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error)
+	UpdateCardPoints(ctx context.Context, dto repositoryDto.UpdateCardPoints) error
 }
 
 type Config struct {
@@ -45,14 +52,18 @@ type Config struct {
 type Service struct {
 	rep               CardRepository
 	permissionChecker rbac.Service
+	pollStore         *boardService.PollStore
 	cfg               Config
+	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
 }
 
-func NewService(rep CardRepository, permissionChecker rbac.Service, cfg Config) *Service {
+func NewService(rep CardRepository, permissionChecker rbac.Service, pollStore *boardService.PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cfg Config) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
+		pollStore:         pollStore,
 		cfg:               cfg,
+		pub:               pub,
 	}
 }
 
@@ -90,6 +101,7 @@ func (s *Service) GetCard(ctx context.Context, cardLink uuid.UUID, userLink uuid
 		Subtasks:     card.Subtasks,
 		Position:     card.Position,
 		Attachments:  card.Attachments,
+		Points:       card.Points,
 	}, nil
 }
 
@@ -244,6 +256,32 @@ func (s *Service) CreateComment(ctx context.Context, createCommentInfo dto.Creat
 		return dto.CommentInfo{}, fmt.Errorf("CardRepository.CreateComment: %w", err)
 	}
 
+	boardLink, err := s.rep.GetBoardLinkByCard(ctx, createCommentInfo.CardLink)
+	if err != nil {
+		return dto.CommentInfo{}, fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	if _, err := s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("new_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  createCommentInfo.AuthorLink.String(),
+				Data: struct {
+					Link string `json:"link"`
+					Text string `json:"text"`
+				}{
+					Link: comment.Link.String(),
+					Text: comment.Text,
+				},
+			},
+		},
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish new_comment event")
+	}
+
 	return dto.CommentInfo{
 		Link:       comment.Link,
 		ParentLink: comment.ParentLink,
@@ -280,6 +318,30 @@ func (s *Service) DeleteComment(ctx context.Context, commentLink uuid.UUID, user
 		return fmt.Errorf("CardService.DeleteComment: %w", err)
 	}
 
+	boardLink, err := s.rep.GetBoardLinkByComment(ctx, commentLink)
+	if err != nil {
+		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	if _, err := s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("delete_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  userLink.String(),
+				Data: struct {
+					Link string `json:"link"`
+				}{
+					Link: commentLink.String(),
+				},
+			},
+		},
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish delete_comment event")
+	}
+
 	return nil
 }
 
@@ -314,6 +376,32 @@ func (s *Service) UpdateComment(ctx context.Context, updateCommentInfo dto.Updat
 		return fmt.Errorf("CardRepository.UpdateComment: %w", err)
 	}
 
+	boardLink, err := s.rep.GetBoardLinkByComment(ctx, updateCommentInfo.CommentLink)
+	if err != nil {
+		return fmt.Errorf("CardRepository.GetBoardLinkByCard: %w", err)
+	}
+
+	if _, err := s.pub.Publish(
+		ctx,
+		pubsub.Channel(boardLink.String()),
+		pubsub.Event[brokerEvents.BoardUpdateEvent]{
+			Type: pubsub.Type("update_comment"),
+			Payload: brokerEvents.BoardUpdateEvent{
+				BoardLink: boardLink.String(),
+				UserLink:  updateCommentInfo.UserLink.String(),
+				Data: struct {
+					Link string `json:"link"`
+					Text string `json:"text"`
+				}{
+					Link: updateCommentInfo.CommentLink.String(),
+					Text: updateCommentInfo.Text,
+				},
+			},
+		},
+	); err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to publish update_comment event")
+	}
+
 	return nil
 }
 
@@ -336,7 +424,7 @@ func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtas
 	})
 
 	if err != nil {
-		return models.SubtaskInfo{}, fmt.Errorf("CardRepository.CreateSubtas: %w", err)
+		return models.SubtaskInfo{}, fmt.Errorf("CardRepository.CreateSubtask: %w", err)
 	}
 
 	return models.SubtaskInfo{
@@ -348,7 +436,7 @@ func (s *Service) CreateSubtask(ctx context.Context, createInfo dto.CreateSubtas
 }
 
 func (s *Service) DeleteSubtask(ctx context.Context, deleteInfo dto.DeleteSubtask, userLink uuid.UUID) error {
-	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, deleteInfo.SubTaskLink, userLink, rbac.Actions.Delete)
+	err := s.permissionChecker.CheckPermissionOnSubtask(ctx, deleteInfo.SubTaskLink, userLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return rbac.ErrActionDenied
@@ -438,7 +526,7 @@ func (s *Service) CreateAttachment(ctx context.Context, createInfo dto.CreateAtt
 }
 
 func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAttachment) error {
-	err := s.permissionChecker.CheckPermissionOnAttachment(ctx, deleteInfo.AttachmentLink, deleteInfo.UserLink, rbac.Actions.Delete)
+	err := s.permissionChecker.CheckPermissionOnAttachment(ctx, deleteInfo.AttachmentLink, deleteInfo.UserLink, rbac.Actions.Edit)
 	if err != nil {
 		if errors.Is(err, rbac.ErrActionDenied) {
 			return rbac.ErrActionDenied
@@ -448,7 +536,7 @@ func (s *Service) DeleteAttachment(ctx context.Context, deleteInfo dto.DeleteAtt
 
 	key, err := s.rep.DeleteAttachmentFromDB(ctx, deleteInfo.AttachmentLink)
 	if err != nil {
-		return fmt.Errorf("CardRepository.DeleteSubtask: %w", err)
+		return fmt.Errorf("CardRepository.DeleteAttachmentFromDB: %w", err)
 	}
 
 	if err = s.rep.DeleteAttachmentFromS3(ctx, key); err != nil {
@@ -497,4 +585,26 @@ func (s *Service) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeL
 	}
 
 	return nil
+}
+
+func (s *Service) UpdateCardPoints(ctx context.Context, cardLink, userLink uuid.UUID, points *int) error {
+	if err := s.permissionChecker.CheckPermissionOnCard(ctx, cardLink, userLink, rbac.Actions.Edit); err != nil {
+		return err
+	}
+
+	boardLink, err := s.rep.GetBoardLinkByCard(ctx, cardLink)
+	if err != nil {
+		return fmt.Errorf("rep.GetBoardLinkByCard: %w", err)
+	}
+
+	if poll, ok := s.pollStore.GetActivePoll(boardLink); ok {
+		if poll.AdminLink != userLink {
+			return boardCommon.ErrNotPollAdmin
+		}
+	}
+
+	return s.rep.UpdateCardPoints(ctx, repositoryDto.UpdateCardPoints{
+		CardLink: cardLink,
+		Points:   points,
+	})
 }

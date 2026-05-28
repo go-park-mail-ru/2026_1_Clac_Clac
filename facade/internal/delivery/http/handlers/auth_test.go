@@ -26,6 +26,7 @@ import (
 var defaultAuthCfg = AuthConfig{
 	MaxLenPassword:    128,
 	MinLenPassword:    8,
+	MaxLenNameUser:    128,
 	SessionLifetime:   24 * time.Hour,
 	VKOAuthRedirectTo: "http://localhost/oauth",
 }
@@ -37,28 +38,62 @@ func newAuthHandler(auth AuthUsecase, user UserUsecase) *Auth {
 }
 
 func TestMeHandler(t *testing.T) {
+	expectedUser := domain.FullInfoUser{
+		UserLink:    fixedLink,
+		Email:       "test@mail.ru",
+		DisplayName: "Test User",
+		Description: "Test Description",
+		AvatarURL:   "http://example.com/avatar.jpg",
+	}
+
 	tests := []struct {
 		name               string
 		setContext         bool
+		mockBehavior       func(userMock *mockUserUC.UserUsecase)
 		expectedStatusCode int
 		expectedContains   string
 	}{
 		{
-			name:               "Success",
-			setContext:         true,
+			name:       "Success",
+			setContext: true,
+			mockBehavior: func(userMock *mockUserUC.UserUsecase) {
+				userMock.On("GetProfile", mock.Anything, fixedLink).Return(expectedUser, nil)
+			},
 			expectedStatusCode: http.StatusOK,
-			expectedContains:   "",
+			expectedContains:   "test@mail.ru",
 		},
 		{
-			name:               "Unauthorized",
+			name:               "Unauthorized (No Context)",
 			setContext:         false,
+			mockBehavior:       func(userMock *mockUserUC.UserUsecase) {},
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedContains:   handlerCommon.ErrUserNotAuthorized.Error(),
+		},
+		{
+			name:       "Unauthorized (User NotFound)",
+			setContext: true,
+			mockBehavior: func(userMock *mockUserUC.UserUsecase) {
+				userMock.On("GetProfile", mock.Anything, fixedLink).Return(domain.FullInfoUser{}, common.ErrorNonexistentUser)
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedContains:   handlerCommon.ErrUserNotAuthorized.Error(),
+		},
+		{
+			name:       "Internal Server Error",
+			setContext: true,
+			mockBehavior: func(userMock *mockUserUC.UserUsecase) {
+				userMock.On("GetProfile", mock.Anything, fixedLink).Return(domain.FullInfoUser{}, assert.AnError)
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedContains:   handlerCommon.ErrInternalServerError.Error(),
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			userMock := mockUserUC.NewUserUsecase(t)
+			tc.mockBehavior(userMock)
+
 			req := httptest.NewRequest(http.MethodGet, "/me", nil)
 			if tc.setContext {
 				ctx := context.WithValue(req.Context(), middleware.UserContextLink{}, fixedLink)
@@ -66,7 +101,7 @@ func TestMeHandler(t *testing.T) {
 			}
 			rr := httptest.NewRecorder()
 
-			newAuthHandler(nil, nil).MeHandler(rr, req)
+			newAuthHandler(nil, userMock).MeHandler(rr, req)
 
 			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 			if tc.expectedContains != "" {

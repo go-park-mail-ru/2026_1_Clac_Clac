@@ -1,6 +1,10 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"io"
+
+	"github.com/google/uuid"
+)
 
 type FullInfoUser struct {
 	UserLink    uuid.UUID
@@ -18,7 +22,7 @@ type UpdatedInfo struct {
 
 type AvatarInfo struct {
 	UserLink      uuid.UUID
-	FileData      []byte
+	FileData      io.Reader
 	ContentType   string
 	FileExtension string
 }

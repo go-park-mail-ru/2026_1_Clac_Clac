@@ -16,7 +16,7 @@ import (
 var (
 	fixedSectionLink = uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	sectionBoardLink = uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	sectionTestErr   = errors.New("client error")
+	errSectionTest   = errors.New("client error")
 )
 
 func TestSectionGetSections(t *testing.T) {
@@ -47,7 +47,7 @@ func TestSectionGetSections(t *testing.T) {
 				m.On("GetSections", context.Background(), domain.GetSectionsRequest{
 					UserLink:  fixedUserLink,
 					BoardLink: sectionBoardLink,
-				}).Return([]domain.SectionInfo(nil), sectionTestErr)
+				}).Return([]domain.SectionInfo(nil), errSectionTest)
 			},
 			expected:    nil,
 			expectError: true,
@@ -103,7 +103,7 @@ func TestSectionGetSection(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("GetSection", context.Background(), req).Return(domain.SectionInfo{}, sectionTestErr)
+				m.On("GetSection", context.Background(), req).Return(domain.SectionInfo{}, errSectionTest)
 			},
 			expected:    domain.SectionInfo{},
 			expectError: true,
@@ -158,7 +158,7 @@ func TestSectionGetCards(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("GetCards", context.Background(), req).Return([]domain.CardInfo(nil), sectionTestErr)
+				m.On("GetCards", context.Background(), req).Return([]domain.CardInfo(nil), errSectionTest)
 			},
 			expected:    nil,
 			expectError: true,
@@ -209,7 +209,7 @@ func TestSectionCreateSection(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("CreateSection", context.Background(), req).Return(domain.SectionInfo{}, sectionTestErr)
+				m.On("CreateSection", context.Background(), req).Return(domain.SectionInfo{}, errSectionTest)
 			},
 			expected:    domain.SectionInfo{},
 			expectError: true,
@@ -258,7 +258,7 @@ func TestSectionDeleteSection(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("DeleteSection", context.Background(), req).Return(sectionTestErr)
+				m.On("DeleteSection", context.Background(), req).Return(errSectionTest)
 			},
 			expectError: true,
 		},
@@ -302,7 +302,7 @@ func TestSectionReorderSection(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("ReorderSection", context.Background(), req).Return(sectionTestErr)
+				m.On("ReorderSection", context.Background(), req).Return(errSectionTest)
 			},
 			expectError: true,
 		},
@@ -353,7 +353,7 @@ func TestSectionUpdateSection(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockSectionClient.SectionClient) {
-				m.On("UpdateSection", context.Background(), req).Return(sectionTestErr)
+				m.On("UpdateSection", context.Background(), req).Return(errSectionTest)
 			},
 			expectError: true,
 		},

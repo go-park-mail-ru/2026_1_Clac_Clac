@@ -297,6 +297,24 @@ func (_m *CardService) UpdateCardDetails(ctx context.Context, updatedCard dto.Up
 	return r0
 }
 
+// UpdateCardPoints provides a mock function with given fields: ctx, cardLink, userLink, points
+func (_m *CardService) UpdateCardPoints(ctx context.Context, cardLink uuid.UUID, userLink uuid.UUID, points *int) error {
+	ret := _m.Called(ctx, cardLink, userLink, points)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateCardPoints")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *int) error); ok {
+		r0 = rf(ctx, cardLink, userLink, points)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateComment provides a mock function with given fields: ctx, updateCommentInfo
 func (_m *CardService) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
 	ret := _m.Called(ctx, updateCommentInfo)
@@ -315,6 +333,24 @@ func (_m *CardService) UpdateComment(ctx context.Context, updateCommentInfo dto.
 	return r0
 }
 
+// UpdateStatusTask provides a mock function with given fields: ctx, updateInfo
+func (_m *CardService) UpdateStatusTask(ctx context.Context, updateInfo dto.UpdateStatusTask) error {
+	ret := _m.Called(ctx, updateInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatusTask")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateStatusTask) error); ok {
+		r0 = rf(ctx, updateInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateSubtask provides a mock function with given fields: ctx, updateInfo, userLink
 func (_m *CardService) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtask, userLink uuid.UUID) error {
 	ret := _m.Called(ctx, updateInfo, userLink)
@@ -326,6 +362,24 @@ func (_m *CardService) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateS
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateSubtask, uuid.UUID) error); ok {
 		r0 = rf(ctx, updateInfo, userLink)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateTimeLine provides a mock function with given fields: ctx, updateInfo
+func (_m *CardService) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) error {
+	ret := _m.Called(ctx, updateInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateTimeLine")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateTimeLine) error); ok {
+		r0 = rf(ctx, updateInfo)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -28,7 +28,7 @@ var (
 )
 
 func newTestSectionHandler(srv SectionUsecase) *Section {
-	return NewSection(srv)
+	return NewSection(srv, SectionConfig{MaxLenDisplayName: 128})
 }
 
 func sectionRequest(t *testing.T, method, url string, body any, withCtx bool) *http.Request {

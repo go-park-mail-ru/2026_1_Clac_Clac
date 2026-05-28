@@ -230,6 +230,66 @@ func (_m *CardRepository) DeleteSubtask(ctx context.Context, deleteInfo dto.Dele
 	return r0
 }
 
+// GetBoardLinkByCard provides a mock function with given fields: ctx, cardLink
+func (_m *CardRepository) GetBoardLinkByCard(ctx context.Context, cardLink uuid.UUID) (uuid.UUID, error) {
+	ret := _m.Called(ctx, cardLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBoardLinkByCard")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (uuid.UUID, error)); ok {
+		return rf(ctx, cardLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) uuid.UUID); ok {
+		r0 = rf(ctx, cardLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, cardLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetBoardLinkByComment provides a mock function with given fields: ctx, commentLink
+func (_m *CardRepository) GetBoardLinkByComment(ctx context.Context, commentLink uuid.UUID) (uuid.UUID, error) {
+	ret := _m.Called(ctx, commentLink)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBoardLinkByComment")
+	}
+
+	var r0 uuid.UUID
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) (uuid.UUID, error)); ok {
+		return rf(ctx, commentLink)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID) uuid.UUID); ok {
+		r0 = rf(ctx, commentLink)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(uuid.UUID)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
+		r1 = rf(ctx, commentLink)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetCard provides a mock function with given fields: ctx, linkCard
 func (_m *CardRepository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoCard, error) {
 	ret := _m.Called(ctx, linkCard)
@@ -352,6 +412,24 @@ func (_m *CardRepository) UpdateCardDetails(ctx context.Context, updatedCard dto
 	return r0
 }
 
+// UpdateCardPoints provides a mock function with given fields: ctx, _a1
+func (_m *CardRepository) UpdateCardPoints(ctx context.Context, _a1 dto.UpdateCardPoints) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateCardPoints")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateCardPoints) error); ok {
+		r0 = rf(ctx, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateComment provides a mock function with given fields: ctx, updateCommentInfo
 func (_m *CardRepository) UpdateComment(ctx context.Context, updateCommentInfo dto.UpdateCommentInfo) error {
 	ret := _m.Called(ctx, updateCommentInfo)
@@ -370,6 +448,24 @@ func (_m *CardRepository) UpdateComment(ctx context.Context, updateCommentInfo d
 	return r0
 }
 
+// UpdateStatusTask provides a mock function with given fields: ctx, updateInfo
+func (_m *CardRepository) UpdateStatusTask(ctx context.Context, updateInfo dto.UpdateStatusTask) error {
+	ret := _m.Called(ctx, updateInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStatusTask")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateStatusTask) error); ok {
+		r0 = rf(ctx, updateInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // UpdateSubtask provides a mock function with given fields: ctx, updateInfo
 func (_m *CardRepository) UpdateSubtask(ctx context.Context, updateInfo dto.UpdateSubtask) error {
 	ret := _m.Called(ctx, updateInfo)
@@ -380,6 +476,24 @@ func (_m *CardRepository) UpdateSubtask(ctx context.Context, updateInfo dto.Upda
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateSubtask) error); ok {
+		r0 = rf(ctx, updateInfo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateTimeLine provides a mock function with given fields: ctx, updateInfo
+func (_m *CardRepository) UpdateTimeLine(ctx context.Context, updateInfo dto.UpdateTimeLine) error {
+	ret := _m.Called(ctx, updateInfo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateTimeLine")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, dto.UpdateTimeLine) error); ok {
 		r0 = rf(ctx, updateInfo)
 	} else {
 		r0 = ret.Error(0)

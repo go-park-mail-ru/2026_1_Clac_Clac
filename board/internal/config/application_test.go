@@ -21,7 +21,7 @@ func TestApplicationConfig(t *testing.T) {
 
 		v := viper.New()
 		v.SetConfigType("yaml")
-		v.ReadConfig(bytes.NewBuffer(yamlTest))
+		_ = v.ReadConfig(bytes.NewBuffer(yamlTest))
 
 		conf := DefaultApplicationConfig()
 		err := v.Unmarshal(&conf)

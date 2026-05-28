@@ -834,6 +834,7 @@ func TestRepositoryGetCards(t *testing.T) {
 			Title:         "Task 1",
 			DeadLine:      &targetDeadLine,
 			Subtasks:      []models.SubtaskInfo{},
+			Status:        false,
 		},
 		{
 			CardLink:      targetCardLink2,
@@ -841,6 +842,7 @@ func TestRepositoryGetCards(t *testing.T) {
 			Title:         "Task 2",
 			DeadLine:      nil,
 			Subtasks:      []models.SubtaskInfo{},
+			Status:        true,
 		},
 	}
 
@@ -853,9 +855,9 @@ func TestRepositoryGetCards(t *testing.T) {
 		{
 			nameTest: "Success get cards",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "position", "subtasks"}).
-					AddRow(expectedCards[0].CardLink, targetExecutorLink, expectedCards[0].Title, expectedCards[0].DeadLine, expectedCards[0].Position, []byte("[]")).
-					AddRow(expectedCards[1].CardLink, nilExecutorLink, expectedCards[1].Title, expectedCards[1].DeadLine, expectedCards[1].Position, []byte("[]"))
+			rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "position", "start", "status", "points", "subtasks"}).
+				AddRow(expectedCards[0].CardLink, targetExecutorLink, expectedCards[0].Title, expectedCards[0].DeadLine, expectedCards[0].Position, nil, expectedCards[0].Status, nil, []byte("[]")).
+				AddRow(expectedCards[1].CardLink, nilExecutorLink, expectedCards[1].Title, expectedCards[1].DeadLine, expectedCards[1].Position, nil, expectedCards[1].Status, nil, []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
 					WithArgs(targetSectionLink).
@@ -867,7 +869,7 @@ func TestRepositoryGetCards(t *testing.T) {
 		{
 			nameTest: "Success get empty cards",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "subtasks"})
+				rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "position", "start", "status", "points", "subtasks"})
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
 					WithArgs(targetSectionLink).
@@ -889,8 +891,8 @@ func TestRepositoryGetCards(t *testing.T) {
 		{
 			nameTest: "Error rows scan type mismatch",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date", "position", "subtasks"}).
-					AddRow("invalid-uuid", "Name", "Title", time.Now(), 0, []byte("[]"))
+				rows := pgxmock.NewRows([]string{"task_link", "name_executer", "title", "due_date", "position", "start", "status", "subtasks"}).
+					AddRow("invalid-uuid", "Name", "Title", time.Now(), 0, nil, false, []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).
 					WithArgs(targetSectionLink).
@@ -902,8 +904,8 @@ func TestRepositoryGetCards(t *testing.T) {
 		{
 			nameTest: "Error rows iteration",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "position", "subtasks"}).
-					AddRow(expectedCards[0].CardLink, targetExecutorLink, expectedCards[0].Title, expectedCards[0].DeadLine, expectedCards[0].Position, []byte("[]")).
+				rows := pgxmock.NewRows([]string{"task_link", "executer_link", "title", "due_date", "position", "start", "status", "points", "subtasks"}).
+					AddRow(expectedCards[0].CardLink, targetExecutorLink, expectedCards[0].Title, expectedCards[0].DeadLine, expectedCards[0].Position, nil, expectedCards[0].Status, nil, []byte("[]")).
 					RowError(0, errors.New("iteration error"))
 
 				m.ExpectQuery(`(?s)SELECT.*FROM task_actual.*WHERE t\.section_link = \$1.*`).

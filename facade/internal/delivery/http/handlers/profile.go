@@ -86,14 +86,14 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return
 	}
 
 	user, err := p.profile.GetProfile(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
 		errLog := fmt.Errorf("profile.GetProfile: %w", err)
@@ -102,11 +102,11 @@ func (p *Profile) GetProfile(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "get_profile",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
+	_ = api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
 }
 
 // GetProfileByLink возвращает профиль пользователя по UUID
@@ -129,14 +129,14 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 	userLinkParam := mux.Vars(r)["user_link"]
 	userLink, err := uuid.Parse(userLinkParam)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, "invalid user link format")
+		_, _ = api.RespondError(w, http.StatusBadRequest, "invalid user link format")
 		return
 	}
 
 	user, err := p.profile.GetProfile(r.Context(), userLink)
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
 		errLog := fmt.Errorf("profile.GetProfile: %w", err)
@@ -145,11 +145,11 @@ func (p *Profile) GetProfileByLink(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "get_profile_by_link",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailGetProfile)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
+	_ = api.HandleError(api.RespondOk(w, convertToProfileResponse(user)))
 }
 
 // UpdateProfile обновляет текстовые данные профиля (имя, описание)
@@ -173,25 +173,25 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return
 	}
 
 	var req dto.UpdateProfileRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &req); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	req.Sanitize()
 
 	if err := common.ValidateTextInfo(req.DisplayName, p.cfg.MaxLenNameUser); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect name: %s", err.Error()))
 		return
 	}
 
 	if err := common.ValidateTextInfo(req.Description, p.cfg.MaxLenDescriptionUser); err != nil {
-		api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect description: %s", err.Error()))
 		return
 	}
 
@@ -202,11 +202,11 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorMissingRequiredField) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorMissingRequiredField.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorMissingRequiredField.Error())
 			return
 		}
 		if errors.Is(err, common.ErrorInvalidProfileData) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidProfileData.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorInvalidProfileData.Error())
 			return
 		}
 		errLog := fmt.Errorf("profile.UpdateProfile: %w", err)
@@ -215,11 +215,11 @@ func (p *Profile) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "update_profile",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateProfile)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateProfile)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // UpdateAvatar загружает новый аватар
@@ -246,20 +246,25 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return
 	}
 
 	if err := r.ParseMultipartForm(p.cfg.MaxReadBytes); err != nil {
-		logger.Error().Err(err).Msg(msgTooLargeAvatar)
-		api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
+		logger.Error().Err(err).Msg("parse multipart form")
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			_, _ = api.RespondError(w, http.StatusRequestEntityTooLarge, msgTooLargeAvatar)
+		} else {
+			_, _ = api.RespondError(w, http.StatusBadRequest, msgTooLargeAvatar)
+		}
 		return
 	}
-	defer r.MultipartForm.RemoveAll()
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
 
 	file, header, err := r.FormFile(nameAvatarBlock)
 	if err != nil {
-		api.RespondError(w, http.StatusBadRequest, msgInvalidFile)
+		_, _ = api.RespondError(w, http.StatusBadRequest, msgInvalidFile)
 		return
 	}
 	defer func() {
@@ -277,31 +282,19 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "read_signature_bytes",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgInvalidFile)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgInvalidFile)
 		return
 	}
 
 	mimeType := http.DetectContentType(sigBuf[:n])
 	if _, ok := p.cfg.ValidExtensions[mimeType]; !ok {
-		api.RespondError(w, http.StatusUnsupportedMediaType, msgIncorrectType)
+		_, _ = api.RespondError(w, http.StatusUnsupportedMediaType, msgIncorrectType)
 		return
 	}
 
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		logger.Error().Err(err).Msg("failed to seek file")
-		api.RespondError(w, http.StatusUnprocessableEntity, msgFailProcessFile)
-		return
-	}
-
-	fileData, err := io.ReadAll(file)
-	if err != nil {
-		errLog := fmt.Errorf("io.ReadAll avatar: %w", err)
-		logger.Error().Err(errLog).Msg("failed to read all file data")
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "UpdateAvatar", map[string]interface{}{
-			"user_link": userLink,
-			"action":    "read_file_data",
-		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailProcessFile)
+		_, _ = api.RespondError(w, http.StatusUnprocessableEntity, msgFailProcessFile)
 		return
 	}
 
@@ -312,13 +305,13 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 
 	avatarURL, err := p.profile.UpdateAvatar(r.Context(), domain.AvatarInfo{
 		UserLink:      userLink,
-		FileData:      fileData,
+		FileData:      file,
 		ContentType:   mimeType,
 		FileExtension: ext,
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
 		errLog := fmt.Errorf("profile.UpdateAvatar: %w", err)
@@ -327,11 +320,11 @@ func (p *Profile) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "update_avatar",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailUpdateAvatar)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailUpdateAvatar)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, dto.AvatarResponse{AvatarURL: avatarURL}))
+	_ = api.HandleError(api.RespondOk(w, dto.AvatarResponse{AvatarURL: avatarURL}))
 }
 
 // DeleteAvatar удаляет аватар пользователя
@@ -353,13 +346,13 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	value := r.Context().Value(middleware.UserContextLink{})
 	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
+		_, _ = api.RespondError(w, http.StatusUnauthorized, msgUnauthorized)
 		return
 	}
 
 	if err := p.profile.DeleteAvatar(r.Context(), userLink); err != nil {
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, msgUserNotFound)
+			_, _ = api.RespondError(w, http.StatusNotFound, msgUserNotFound)
 			return
 		}
 		errLog := fmt.Errorf("profile.DeleteAvatar: %w", err)
@@ -368,11 +361,11 @@ func (p *Profile) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "delete_avatar",
 		})
-		api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAvatar)
+		_, _ = api.RespondError(w, http.StatusInternalServerError, msgFailDeleteAvatar)
 		return
 	}
 
-	api.HandleError(api.RespondOk(w, api.StatusOK))
+	_ = api.HandleError(api.RespondOk(w, api.StatusOK))
 }
 
 // ResetUserPassword устанавливает новый пароль
@@ -393,12 +386,12 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	var request dto.NewPasswordRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if err := ValidatorRequestNewPassword(request.Password, request.RepeatedPassword, p.cfg.MaxLenPassword, p.cfg.MinLenPassword); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -407,14 +400,14 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(errLog).Msg("mailSender.CheckRecoveryCode failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
-			api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, common.ErrorResetTokenNotFound.Error())
 			return
 		}
 
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
 			"action": "check_recovery_code",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}
 
@@ -426,14 +419,14 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(errLog).Msg("mailSender.ExchangeTokenForUser failed")
 
 		if errors.Is(err, common.ErrorResetTokenNotFound) {
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrResetTokenNotExistOrExpired.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, handlerCommon.ErrResetTokenNotExistOrExpired.Error())
 			return
 		}
 
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "ResetUserPassword", map[string]interface{}{
 			"action": "exchange_token_for_user",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -445,12 +438,12 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(errLog).Msg("profile.ResetPassword failed")
 
 		if errors.Is(err, common.ErrorNotNullValue) {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
 			return
 		}
 
 		if errors.Is(err, common.ErrorNonexistentUser) {
-			api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, common.ErrorNonexistentUser.Error())
 			return
 		}
 
@@ -458,11 +451,11 @@ func (p *Profile) ResetUserPassword(w http.ResponseWriter, r *http.Request) {
 			"user_link": userLink,
 			"action":    "reset_password",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrCannotResetPassword.Error())
 		return
 	}
 
-	api.Respond(w, http.StatusOK, api.StatusOK)
+	_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 func convertToProfileResponse(u domain.FullInfoUser) dto.ProfileResponse {

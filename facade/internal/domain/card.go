@@ -18,6 +18,7 @@ type CardFullInfo struct {
 	Subtasks     []SubtaskInfo
 	Position     int
 	Attachments  []AttachmentInfo
+	Points       *int
 }
 
 type AttachmentInfo struct {
@@ -153,4 +154,10 @@ type NewTimeLine struct {
 	CardLink uuid.UUID
 	DeadLine time.Time
 	Start    time.Time
+}
+
+type UpdateCardPointsRequest struct {
+	UserLink uuid.UUID
+	CardLink uuid.UUID
+	Points   *int
 }

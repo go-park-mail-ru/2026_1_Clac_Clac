@@ -114,6 +114,13 @@ definitions:
       status:
         type: string
     type: object
+  ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse
+  : properties:
+      data:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse'
+      status:
+        type: string
+    type: object
   ? github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_ProfileResponse
   : properties:
       data:
@@ -270,9 +277,18 @@ definitions:
       link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+      points:
+        example: 5
+        type: integer
       position:
         example: 2
         type: integer
+      start:
+        example: "2026-04-12T14:35:00Z"
+        type: string
+      status:
+        example: false
+        type: boolean
       subtasks:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskInfo'
@@ -300,9 +316,18 @@ definitions:
       executor_link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+      points:
+        example: 5
+        type: integer
       position:
         example: 2
         type: integer
+      start:
+        example: "2026-04-12T14:35:00Z"
+        type: string
+      status:
+        example: false
+        type: boolean
       subtasks:
         items:
           $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.SubtaskResponse'
@@ -383,8 +408,6 @@ definitions:
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateCardRequest:
     description: Данные для создания новой карточки в секции
     properties:
-      deadline:
-        type: string
       description:
         type: string
       executor_link:
@@ -454,6 +477,18 @@ definitions:
         type: string
       target_user_link:
         type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreatePollRequest:
+    description: Данные для создания комнаты Planning Poker
+    properties:
+      card_links:
+        items:
+          type: string
+        type: array
+      invitees:
+        items:
+          type: string
+        type: array
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreateSectionRequest:
     description: Данные для создания новой секции на доске
@@ -544,9 +579,30 @@ definitions:
         example: p@ssword123
         type: string
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MeResponse:
+    description: Информация об авторизованном пользователе
+    properties:
+      profile:
+        $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.ProfileResponse'
+      user_link:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.MemberInfo:
     description: Информация об участнике доски
     properties:
+      avatar_url:
+        example: https://s3.example.com/backgrounds/bg.jpg
+        type: string
+      description:
+        example: gofer
+        type: string
+      display_name:
+        example: artem
+        type: string
+      email:
+        example: ivan@mail.com
+        type: string
       link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
@@ -565,6 +621,20 @@ definitions:
         type: string
       token_id:
         example: uuid-token-string
+        type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewStatusTask:
+    description: Статус выполнения карточки (done = true / false)
+    properties:
+      done:
+        type: boolean
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewTimeLine:
+    description: Временные рамки карточки (начало и дедлайн)
+    properties:
+      deadline:
+        type: string
+      start:
         type: string
     type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.PasswordRecoveryRequest:
@@ -690,6 +760,12 @@ definitions:
         example: My Project
         type: string
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardPointsRequest:
+    description: Данные для установки оценки (story points) на карточку
+    properties:
+      points:
+        type: integer
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardRequest:
     description: Данные для обновления карточки
     properties:
@@ -698,6 +774,8 @@ definitions:
       description:
         type: string
       executor_link:
+        type: string
+      start:
         type: string
       title:
         type: string
@@ -762,6 +840,12 @@ definitions:
       link:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
+    type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest:
+    description: Оценка (story points) участника голосования
+    properties:
+      points:
+        type: integer
     type: object
 host: clac-clac.ru
 info:
@@ -1073,6 +1157,232 @@ paths:
       summary: Создать новую доску
       tags:
       - Boards
+  /boards/{board_link}/polls:
+    delete:
+      description: Администратор завершает голосование и удаляет комнату
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: board_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: poll deleted
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid board link
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: not poll admin
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: poll not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot delete poll
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Завершить покер-комнату
+      tags:
+      - Polls
+    get:
+      description: Возвращает текущий активный Planning Poker для доски, включая задачи,
+        голоса и приглашённых участников
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: board_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: active poll data
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid board link
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: access to board denied
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: no active poll for this board
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot get active poll
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Получить активный опрос
+      tags:
+      - Polls
+    post:
+      consumes:
+      - application/json
+      description: Создаёт комнату для оценки задач методом Planning Poker. Требует
+        прав Admin/Creator.
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: board_link
+        required: true
+        type: string
+      - description: Карточки и приглашённые участники
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.CreatePollRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: poll created
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid board link / invalid request schema
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: action denied (not admin/creator)
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "409":
+          description: poll already exists
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot create poll
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Создать покер-комнату
+      tags:
+      - Polls
+    put:
+      consumes:
+      - application/json
+      description: Приглашённый участник ставит оценку текущей активной карточке
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: board_link
+        required: true
+        type: string
+      - description: Оценка
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: vote accepted
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid board link / invalid request schema
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: user not invited
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: poll not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot vote
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Проголосовать
+      tags:
+      - Polls
+  /boards/{board_link}/polls/next:
+    post:
+      description: Администратор переходит к следующей карточке в очереди. Если карточек
+        больше нет — комната автоматически удаляется.
+      parameters:
+      - description: UUID доски
+        format: uuid
+        in: path
+        name: board_link
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: moved to next card or poll finished
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid board link
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: not poll admin
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: poll not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot advance poll
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Следующая карточка
+      tags:
+      - Polls
   /boards/{board_link}/sections:
     get:
       description: Возвращает массив всех секций, привязанных к конкретной доске
@@ -1500,7 +1810,8 @@ paths:
       - Boards
   /boards/{link}/users:
     get:
-      description: Возвращает список участников доски с их ролями
+      description: Возвращает список участников доски с ролями, аватарами, именами,
+        описаниями и email
       parameters:
       - description: UUID доски
         format: uuid
@@ -1516,7 +1827,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_GetMembersResponse'
         "400":
-          description: invalid board link / board link missing
+          description: invalid board link / board link missing / invalid input
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -1528,11 +1839,11 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "404":
-          description: board not found
+          description: board not found / user not found
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
-          description: cannot get members
+          description: cannot get members / cannot get profiles
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       summary: Получить участников доски
@@ -1862,6 +2173,58 @@ paths:
       summary: Создать комментарий
       tags:
       - Cards
+  /cards/{link}/points:
+    put:
+      consumes:
+      - application/json
+      description: Администратор/создатель доски устанавливает финальную оценку (story
+        points) на карточку. Если активен полл — только администратор полла может
+        установить оценку.
+      parameters:
+      - description: UUID карточки
+        format: uuid
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Оценка
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.UpdateCardPointsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: points updated
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: invalid card link / invalid request
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: unauthorized
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: permission denied / not poll admin
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: card not found
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: cannot update points
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Установить оценку на карточку
+      tags:
+      - Cards
   /cards/{link}/reorder:
     patch:
       consumes:
@@ -1911,6 +2274,55 @@ paths:
       summary: Переместить карточку
       tags:
       - Cards
+  /cards/{link}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет статус выполнения карточки (done / not done).
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Новый статус
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewStatusTask'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус обновлён
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: Нет прав доступа
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Обновить статус карточки
+      tags:
+      - Cards
   /cards/{link}/subtasks:
     post:
       consumes:
@@ -1958,6 +2370,55 @@ paths:
       security:
       - sessionCookie: []
       summary: Создать подзадачу
+      tags:
+      - Cards
+  /cards/{link}/timeline:
+    patch:
+      consumes:
+      - application/json
+      description: Изменяет дедлайн и/или время начала карточки.
+      parameters:
+      - description: UUID карточки
+        in: path
+        name: link
+        required: true
+        type: string
+      - description: Новые временные рамки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewTimeLine'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Временные рамки обновлены
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "401":
+          description: Пользователь не авторизован
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "403":
+          description: Нет прав доступа
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "404":
+          description: Карточка не найдена
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+      security:
+      - sessionCookie: []
+      summary: Обновить временные рамки карточки
       tags:
       - Cards
   /check-code:
@@ -2280,17 +2741,21 @@ paths:
       - Auth
   /me:
     get:
-      description: Возвращает 200 если сессия активна (пользователь авторизован).
-        Используется для проверки состояния авторизации на клиенте.
+      description: Возвращает 200, userLink и профиль если сессия активна (пользователь
+        авторизован). Используется для проверки состояния авторизации на клиенте.
       produces:
       - application/json
       responses:
         "200":
           description: Пользователь авторизован
           schema:
-            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_MeResponse'
         "401":
           description: Сессия отсутствует или истекла
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера при получении профиля
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:

@@ -59,12 +59,12 @@ func (m *mockBoardServiceClient) UpdateBoard(ctx context.Context, in *pb.UpdateB
 	return args.Get(0).(*pb.UpdateBoardResponse), args.Error(1)
 }
 
-func (m *mockBoardServiceClient) UploadBackground(ctx context.Context, in *pb.UploadBackgroundRequest, opts ...grpc.CallOption) (*pb.UploadBackgroundResponse, error) {
-	args := m.Called(ctx, in)
+func (m *mockBoardServiceClient) UploadBackground(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse], error) {
+	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*pb.UploadBackgroundResponse), args.Error(1)
+	return args.Get(0).(grpc.ClientStreamingClient[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse]), args.Error(1)
 }
 
 func (m *mockBoardServiceClient) GetMembers(ctx context.Context, in *pb.GetMembersRequest, opts ...grpc.CallOption) (*pb.GetMembersResponse, error) {
@@ -123,6 +123,54 @@ func (m *mockBoardServiceClient) GetActiveInvites(ctx context.Context, in *pb.Ge
 	return args.Get(0).(*pb.GetActiveInvitesResponse), args.Error(1)
 }
 
+func (m *mockBoardServiceClient) CanView(ctx context.Context, in *pb.CanViewRequest, opts ...grpc.CallOption) (*pb.CanViewResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.CanViewResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) CreatePoll(ctx context.Context, in *pb.CreatePollRequest, opts ...grpc.CallOption) (*pb.CreatePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.CreatePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) DeletePoll(ctx context.Context, in *pb.DeletePollRequest, opts ...grpc.CallOption) (*pb.DeletePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.DeletePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) NextPollCard(ctx context.Context, in *pb.NextPollCardRequest, opts ...grpc.CallOption) (*pb.NextPollCardResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.NextPollCardResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) VotePoll(ctx context.Context, in *pb.VotePollRequest, opts ...grpc.CallOption) (*pb.VotePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.VotePollResponse), args.Error(1)
+}
+
+func (m *mockBoardServiceClient) GetActivePoll(ctx context.Context, in *pb.GetActivePollRequest, opts ...grpc.CallOption) (*pb.GetActivePollResponse, error) {
+	args := m.Called(ctx, in)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pb.GetActivePollResponse), args.Error(1)
+}
+
 func TestBoardCreateInvite(t *testing.T) {
 	userLink := uuid.New()
 	boardLink := uuid.New()
@@ -160,12 +208,12 @@ func TestBoardCreateInvite(t *testing.T) {
 			setupMock: func(m *mockBoardServiceClient) {
 				target := targetUser.String()
 				resp := &pb.CreateInviteResponse{
-					InviteLink:      inviteLink.String(),
-					BoardLink:       boardLink.String(),
-					TargetUserLink:  &target,
-					DefaultRole:     "viewer",
-					Status:          "active",
-					CreatedAt:       100,
+					InviteLink:     inviteLink.String(),
+					BoardLink:      boardLink.String(),
+					TargetUserLink: &target,
+					DefaultRole:    "viewer",
+					Status:         "active",
+					CreatedAt:      100,
 				}
 				m.On("CreateInvite", mock.Anything, mock.Anything).Return(resp, nil)
 			},

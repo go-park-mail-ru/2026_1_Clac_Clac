@@ -48,8 +48,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Success get card",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, nil, false, []byte("[]"), []byte("[]"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow(expectedInfo.Title, expectedInfo.Description, expectedInfo.DataDeadLine, expectedInfo.ExecutorLink, expectedInfo.Position, nil, false, nil, []byte("[]"), []byte("[]"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -84,8 +84,8 @@ func TestRepositoryGetCard(t *testing.T) {
 				attJSON, _ := json.Marshal([]rawAttachment{
 					{AttachmentLink: targetAttLink.String(), Name: "photo.png", Path: "cards-attachments/uuid.png", Position: 1},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, nil, []byte("[]"), attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -114,8 +114,8 @@ func TestRepositoryGetCard(t *testing.T) {
 					{AttachmentLink: targetAttLink1.String(), Name: "doc.pdf", Path: "cards-attachments/doc.pdf", Position: 1},
 					{AttachmentLink: targetAttLink2.String(), Name: "img.png", Path: "cards-attachments/img.png", Position: 2},
 				})
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, nil, false, subJSON, attJSON)
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 2, nil, false, nil, subJSON, attJSON)
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -140,8 +140,8 @@ func TestRepositoryGetCard(t *testing.T) {
 		{
 			nameTest: "Error invalid attachments json",
 			mockBehavior: func(m pgxmock.PgxPoolIface) {
-				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "subtasks", "attachments"}).
-					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, []byte("[]"), []byte("{invalid"))
+				rows := pgxmock.NewRows([]string{"title", "description", "due_date", "executer_link", "position", "start", "status", "points", "subtasks", "attachments"}).
+					AddRow("Task", "Desc", &targetDeadLine, &targetExecutorLink, 1, nil, false, nil, []byte("[]"), []byte("{invalid"))
 
 				m.ExpectQuery(`(?s)SELECT.*t.title.*FROM task_actual.*WHERE t.task_link = \$1`).
 					WithArgs(targetLink).
@@ -1875,6 +1875,156 @@ func TestRepositoryDeleteAttachmentFromDB(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expectedKey, key)
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryGetBoardLinkByCard(t *testing.T) {
+	ctx := context.Background()
+	targetCardLink := uuid.New()
+	targetBoardLink := uuid.New()
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedData  uuid.UUID
+		expectedError error
+	}{
+		{
+			nameTest: "Success get board link by card",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*WHERE t.task_link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCardLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link"}).AddRow(targetBoardLink))
+			},
+			expectedData:  targetBoardLink,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error card not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*WHERE t.task_link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCardLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expectedData:  uuid.Nil,
+			expectedError: common.ErrCardNotFound,
+		},
+		{
+			nameTest: "Error query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*WHERE t.task_link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCardLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedData:  uuid.Nil,
+			expectedError: errors.New("pool.QueryRow: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
+			result, err := repo.GetBoardLinkByCard(ctx, targetCardLink)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrCardNotFound) {
+						assert.ErrorIs(t, err, common.ErrCardNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				if assert.NoError(t, err) {
+					assert.Equal(t, test.expectedData, result)
+				}
+			}
+
+			assert.NoError(t, mockDB.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestRepositoryGetBoardLinkByComment(t *testing.T) {
+	ctx := context.Background()
+	targetCommentLink := uuid.New()
+	targetBoardLink := uuid.New()
+
+	tests := []struct {
+		nameTest      string
+		mockBehavior  func(m pgxmock.PgxPoolIface)
+		expectedData  uuid.UUID
+		expectedError error
+	}{
+		{
+			nameTest: "Success get board link by comment",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnRows(pgxmock.NewRows([]string{"board_link"}).AddRow(targetBoardLink))
+			},
+			expectedData:  targetBoardLink,
+			expectedError: nil,
+		},
+		{
+			nameTest: "Error comment not found",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expectedData:  uuid.Nil,
+			expectedError: common.ErrCommentNotFound,
+		},
+		{
+			nameTest: "Error query fail",
+			mockBehavior: func(m pgxmock.PgxPoolIface) {
+				m.ExpectQuery(`(?s)SELECT s.board_link.*FROM section s.*JOIN task_actual t.*JOIN comment_task c.*WHERE c.link = \$1 AND s.deleted_at IS NULL`).
+					WithArgs(targetCommentLink).
+					WillReturnError(errors.New("db disconnect"))
+			},
+			expectedData:  uuid.Nil,
+			expectedError: errors.New("pool.QueryRow: db disconnect"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.nameTest, func(t *testing.T) {
+			mockDB, err := pgxmock.NewPool()
+			if !assert.NoError(t, err) {
+				return
+			}
+			defer mockDB.Close()
+
+			test.mockBehavior(mockDB)
+
+			repo := NewRepository(mockDB, nil, Config{MaxAttachments: 100})
+			result, err := repo.GetBoardLinkByComment(ctx, targetCommentLink)
+
+			if test.expectedError != nil {
+				if assert.Error(t, err) {
+					if errors.Is(test.expectedError, common.ErrCommentNotFound) {
+						assert.ErrorIs(t, err, common.ErrCommentNotFound)
+					} else {
+						assert.EqualError(t, err, test.expectedError.Error())
+					}
+				}
+			} else {
+				if assert.NoError(t, err) {
+					assert.Equal(t, test.expectedData, result)
+				}
 			}
 
 			assert.NoError(t, mockDB.ExpectationsWereMet())

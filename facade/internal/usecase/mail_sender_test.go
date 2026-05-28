@@ -14,7 +14,7 @@ import (
 
 var (
 	testUserLink = uuid.New()
-	testError    = errors.New("test client error")
+	errTest    = errors.New("test client error")
 )
 
 func TestSendRecoveryCode(t *testing.T) {
@@ -35,7 +35,7 @@ func TestSendRecoveryCode(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockMailClient.MailSenderClient) {
-				m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(testError)
+				m.On("SendRecoveryCode", context.Background(), recoveryInfo).Return(errTest)
 			},
 			expectError: true,
 		},
@@ -50,7 +50,7 @@ func TestSendRecoveryCode(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, testError))
+				assert.True(t, errors.Is(err, errTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -76,7 +76,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 		{
 			name: "ClientError",
 			mockBehavior: func(m *mockMailClient.MailSenderClient) {
-				m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(testError)
+				m.On("CheckRecoveryCode", context.Background(), checkInfo).Return(errTest)
 			},
 			expectError: true,
 		},
@@ -91,7 +91,7 @@ func TestCheckRecoveryCode(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, testError))
+				assert.True(t, errors.Is(err, errTest))
 			} else {
 				require.NoError(t, err)
 			}
@@ -123,7 +123,7 @@ func TestExchangeTokenForUser(t *testing.T) {
 			resetToken: domain.ResetToken{Token: "invalid_token"},
 			mockBehavior: func(m *mockMailClient.MailSenderClient) {
 				m.On("ExchangeTokenForUser", context.Background(), domain.ResetToken{Token: "invalid_token"}).
-					Return(uuid.Nil, testError)
+					Return(uuid.Nil, errTest)
 			},
 			expectedLink: uuid.Nil,
 			expectError:  true,
@@ -139,7 +139,7 @@ func TestExchangeTokenForUser(t *testing.T) {
 
 			if tc.expectError {
 				require.Error(t, err)
-				assert.True(t, errors.Is(err, testError))
+				assert.True(t, errors.Is(err, errTest))
 				assert.Equal(t, uuid.Nil, resultLink)
 			} else {
 				require.NoError(t, err)

@@ -24,7 +24,7 @@ graceful_shutdown_timeout: 15
 `)
 
 		viper.SetConfigType("yaml")
-		viper.ReadConfig(bytes.NewBuffer(yamlTest))
+		_ = viper.ReadConfig(bytes.NewBuffer(yamlTest))
 
 		conf := config.DefaultEngineConfig()
 		err := viper.Unmarshal(&conf)

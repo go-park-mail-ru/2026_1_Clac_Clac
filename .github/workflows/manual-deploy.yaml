@@ -35,18 +35,31 @@ on:
         description: "user"
         type: boolean
         default: false
+      realtime:
+        description: "realtime"
+        type: boolean
+        default: false
 
 jobs:
+  check-generated-code-consistency:
+    uses: ./.github/workflows/generated-code-consistency.yaml
+
+  linter-and-tests:
+    needs: check-generated-code-consistency
+    uses: ./.github/workflows/linter-and-tests.yaml
+
   setup-build:
+    needs: linter-and-tests
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+
     steps:
       - name: Generate Build Matrix
         id: set-matrix
         run: |
           if [[ "${{ inputs.all }}" == 'true' ]]; then
-            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user"]' >> $GITHUB_OUTPUT
+            echo 'matrix=["appeal", "authorization", "board", "facade", "mail_sender", "rate_limiter", "user", "realtime"]' >> $GITHUB_OUTPUT
           else
             SERVICES=()
             [[ "${{ inputs.appeal }}" == 'true' ]] && SERVICES+=('"appeal"')
@@ -55,6 +68,7 @@ jobs:
             [[ "${{ inputs.facade }}" == 'true' ]] && SERVICES+=('"facade"')
             [[ "${{ inputs.mail_sender }}" == 'true' ]] && SERVICES+=('"mail_sender"')
             [[ "${{ inputs.rate_limiter }}" == 'true' ]] && SERVICES+=('"rate_limiter"')
+            [[ "${{ inputs.realtime }}" == 'true' ]] && SERVICES+=('"realtime"')
             [[ "${{ inputs.user }}" == 'true' ]] && SERVICES+=('"user"')
 
             if [ ${#SERVICES[@]} -eq 0 ]; then
@@ -77,7 +91,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-docs:
-    needs: run-deployment
+    needs: linter-and-tests
     uses: ./.github/workflows/deploy-docs.yaml
     with:
       endpoint-url: hb.ru-msk.vkcloud-storage.ru

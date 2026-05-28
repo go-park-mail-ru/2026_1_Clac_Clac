@@ -30,7 +30,14 @@ var (
 	fixedAttachmentLinkH = uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 )
 
-var defaultCardCfg = CardConfig{MaxLenTitle: 128, MaxLenDescription: 500}
+var defaultCardCfg = CardConfig{
+	MaxLenTitle:              128,
+	MaxLenDescription:        500,
+	MaxLenComment:            2000,
+	MaxLenSubtaskDescription: 500,
+	MinPoints:                1,
+	MaxPoints:                21,
+}
 
 type mockCardUsecase struct {
 	mock.Mock
@@ -113,6 +120,11 @@ func (m *mockCardUsecase) UpdateStatusTask(ctx context.Context, info domain.NewS
 
 func (m *mockCardUsecase) UpdateTimeLine(ctx context.Context, info domain.NewTimeLine) error {
 	args := m.Called(ctx, info)
+	return args.Error(0)
+}
+
+func (m *mockCardUsecase) UpdateCardPoints(ctx context.Context, req domain.UpdateCardPointsRequest) error {
+	args := m.Called(ctx, req)
 	return args.Error(0)
 }
 

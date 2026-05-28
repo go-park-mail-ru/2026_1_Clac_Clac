@@ -24,6 +24,9 @@ var (
 	ErrOAuthCannotSaveRefreshToken = errors.New("oauth_cannot_save_refresh_token")
 	ErrOAuthUnavailable            = errors.New("oauth_service_unavailable")
 
+	ErrInvalidSizeDisplayName = errors.New("invalid size display name")
+	ErrInvalidSizeDescription = errors.New("invalid size description")
+
 	ErrResetTokenNotExistOrExpired = errors.New("reset token not found or expired")
 
 	ErrCannotCreateCSRFToken        = errors.New("cannot create csrf token")
@@ -43,4 +46,8 @@ var (
 	ErrIncorrectUniqCard   = errors.New("link card must be unique")
 	ErrIncorrectReferences = errors.New("incorrect foreign key")
 	ErrInvalidCardData     = errors.New("invalid card data")
+
+	ErrInccorectQuantityTasks = errors.New("inccorect quantity tasks per section")
+
+	ErrInvalidCategory = errors.New("invalid category")
 )

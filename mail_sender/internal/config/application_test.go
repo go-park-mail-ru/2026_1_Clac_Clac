@@ -19,7 +19,7 @@ log_level: debug
 `)
 
 		viper.SetConfigType("yaml")
-		viper.ReadConfig(bytes.NewBuffer(yamlTest))
+		_ = viper.ReadConfig(bytes.NewBuffer(yamlTest))
 
 		conf := config.DefaultApplicationConfig()
 		err := viper.Unmarshal(&conf)

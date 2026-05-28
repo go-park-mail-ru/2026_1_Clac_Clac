@@ -93,7 +93,7 @@ func (a *App) setupMetricsServer() {
 	a.Logger.Info().Msg(fmt.Sprintf("Metrics server listening on: %s", a.Config.Metrics.MetricsPort))
 
 	if err := a.MetricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		sentryLogger.CaptureError(err, "listen and serve Prometheous", map[string]interface{}{"component": "prometheous"})
+		sentryLogger.CaptureError(err, "listen and serve Prometheus", map[string]interface{}{"component": "prometheus"})
 	}
 }
 
@@ -138,6 +138,7 @@ func (a *App) registerServices(engine *grpcEngine.Engine, manager *Manager) {
 			MaxBackgroundSize:          a.Config.Board.Handler.MaxBackgroundSize,
 		}),
 	)
+
 	sectionPB.RegisterSectionServiceServer(
 		engine.Server,
 		section.NewHandler(manager.Section, section.Config(a.Config.Section.Handler)),

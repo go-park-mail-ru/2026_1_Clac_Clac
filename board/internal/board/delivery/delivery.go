@@ -1,27 +1,27 @@
 package delivery
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/delivery/dto"
+	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	serviceDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service/dto"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	sentryLogger "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/logger"
 	pb "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/board/v1"
-	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/s3"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
@@ -41,17 +41,25 @@ var (
 	ErrCannotFindBackground   = errors.New("cannot find 'background' key")
 	ErrCannotReadFile         = errors.New("cannot read file")
 	ErrInvalidContentType     = errors.New("invalid content type")
+	ErrCannotGetContentType   = errors.New("can not get content type")
 	ErrCannotOperateWithFile  = errors.New("cannot operate with file")
 	ErrCannotUpdateBackground = errors.New("cannot update background")
 	ErrCannotGetUsersOfBoard  = errors.New("cannot get users of board")
+	ErrCloseStream            = errors.New("invalid close stream")
 
-	ErrInviteLinkRequired      = errors.New("invite link is required")
-	ErrInvalidInviteLink       = errors.New("invalid invite link")
-	ErrCannotCreateInvite      = errors.New("cannot create invite")
-	ErrCannotAcceptInvite      = errors.New("cannot accept invite")
-	ErrCannotCloseInvite       = errors.New("cannot close invite")
-	ErrRoleRequired            = errors.New("role is required")
-	ErrInvalidRole             = errors.New("invalid role")
+	ErrInviteLinkRequired = errors.New("invite link is required")
+	ErrInvalidInviteLink  = errors.New("invalid invite link")
+	ErrCannotCreateInvite = errors.New("cannot create invite")
+	ErrCannotAcceptInvite = errors.New("cannot accept invite")
+	ErrCannotCloseInvite  = errors.New("cannot close invite")
+	ErrRoleRequired       = errors.New("role is required")
+	ErrInvalidRole        = errors.New("invalid role")
+
+	ErrAbortConnection  = errors.New("connection is failed")
+	ErrInvalidMetadata  = errors.New("invalid metadata for background")
+	ErrCannotCreateFile = errors.New("can not create file for download image")
+	ErrWriteInFile      = errors.New("invalid write in file")
+	ErrCursorOffset     = errors.New("invalid cursor offset")
 )
 
 //go:generate mockery --name=BoardService --output mock_board_srv
@@ -71,6 +79,13 @@ type BoardService interface {
 	UpdateMemberRole(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, newRole rbac.Role, callerLink uuid.UUID) error
 	RemoveMemberFromBoard(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID, callerLink uuid.UUID) error
 	GetActiveInvites(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) ([]serviceDto.InviteInfo, error)
+	CanView(ctx context.Context, boardLink uuid.UUID, userLink uuid.UUID) error
+
+	CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error
+	DeletePoll(ctx context.Context, boardLink, userLink uuid.UUID) error
+	NextPollCard(ctx context.Context, boardLink, userLink uuid.UUID) error
+	VotePoll(ctx context.Context, boardLink, userLink uuid.UUID, points int) error
+	GetActivePoll(ctx context.Context, boardLink, userLink uuid.UUID) (*service.Poll, error)
 }
 
 type Config struct {
@@ -124,7 +139,7 @@ func (h *BoardHandler) GetBoards(ctx context.Context, req *pb.GetBoardsRequest) 
 		}
 
 		if strings.HasPrefix(info.Background, "backgrounds") {
-			info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+			info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 		}
 
 		boardsResponse = append(boardsResponse, info)
@@ -177,7 +192,7 @@ func (h *BoardHandler) GetBoard(ctx context.Context, req *pb.GetBoardRequest) (*
 	}
 
 	if strings.HasPrefix(info.Background, "backgrounds") {
-		info.Background = fmt.Sprintf("%s/%s", s3.GetURL("hb.ru-msk.vkcloud-storage.ru", "nexus-boards-prod"), info.Background)
+		info.Background = fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, info.Background)
 	}
 
 	return &pb.GetBoardResponse{
@@ -319,50 +334,99 @@ func (h *BoardHandler) UpdateBoard(ctx context.Context, req *pb.UpdateBoardReque
 	return &pb.UpdateBoardResponse{}, nil
 }
 
-func (h *BoardHandler) UploadBackground(ctx context.Context, req *pb.UploadBackgroundRequest) (*pb.UploadBackgroundResponse, error) {
+func (h *BoardHandler) UploadBackground(stream grpc.ClientStreamingServer[pb.UploadBackgroundRequest, pb.UploadBackgroundResponse]) error {
+	ctx := stream.Context()
 	logger := zerolog.Ctx(ctx)
 
-	rawUserLink := req.GetUserLink()
-	userLink, err := uuid.Parse(rawUserLink)
+	req, err := stream.Recv()
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+		return status.Error(codes.Aborted, ErrAbortConnection.Error())
 	}
 
-	rawBoardLink := req.GetBoardLink()
-	boardLink, err := uuid.Parse(rawBoardLink)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	metadata := req.GetMetadata()
+	if metadata == nil {
+		return status.Error(codes.InvalidArgument, ErrInvalidMetadata.Error())
 	}
 
-	image := req.GetImage()
+	validFileName := filepath.Base(metadata.Filename)
 
-	contentType := http.DetectContentType(image)
+	extension := filepath.Ext(validFileName)
+
+	uniqueFileName := fmt.Sprintf("%s_%s", uuid.New().String(), validFileName)
+	tempFilePath := filepath.Join(os.TempDir(), uniqueFileName)
+
+	file, err := os.Create(tempFilePath)
+
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotCreateFile.Error())
+	}
+
+	defer func() {
+		_ = file.Close()
+		_ = os.Remove(tempFilePath)
+	}()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Error(codes.Aborted, ErrAbortConnection.Error())
+		}
+
+		chunk := req.GetImage()
+		if _, err := file.Write(chunk); err != nil {
+			return status.Error(codes.Internal, ErrWriteInFile.Error())
+		}
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return status.Error(codes.Internal, ErrCursorOffset.Error())
+	}
+
+	contentType, err := GetContentType(file)
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotGetContentType.Error())
+	}
 	if !strings.HasPrefix(contentType, "image/") {
-		return nil, status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
+		return status.Error(codes.InvalidArgument, ErrInvalidContentType.Error())
 	}
 
-	filename := req.GetFilename()
-	extension := filepath.Ext(filename)
+	parseBoardLink, err := uuid.Parse(metadata.BoardLink)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "invalid boardLink format")
+	}
 
-	backgroundKey, err := h.srv.UpdateBackground(ctx, bytes.NewReader(image), contentType, extension, boardLink, userLink)
+	parseUserLink, err := uuid.Parse(metadata.UserLink)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "invalid userLink format")
+	}
+
+	backgroundKey, err := h.srv.UpdateBackground(ctx, file, contentType, extension, parseBoardLink, parseUserLink)
 	if err != nil {
 		if errors.Is(err, common.ErrBoardNotFound) {
-			return nil, status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
+			return status.Error(codes.NotFound, common.ErrBoardNotFound.Error())
 		}
 
 		errLog := fmt.Errorf("srv.UpdateBackground: %w", err)
 		logger.Error().Err(errLog).Msg("board service UpdateBackground")
 		sentryLogger.CaptureFromContext(ctx, errLog, "UploadBackground", map[string]interface{}{
-			"user_link":  rawUserLink,
-			"board_link": rawBoardLink,
+			"user_link":  metadata.UserLink,
+			"board_link": metadata.BoardLink,
 			"action":     "upload_background",
 		})
-		return nil, status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
+		return status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
 	}
 
-	return &pb.UploadBackgroundResponse{
+	err = stream.SendAndClose(&pb.UploadBackgroundResponse{
 		BackgroundKey: fmt.Sprintf("%s/%s", h.conf.BaseBackgroundURL, backgroundKey),
-	}, nil
+	})
+	if err != nil {
+		return status.Error(codes.Internal, ErrCannotUpdateBackground.Error())
+	}
+
+	return nil
 }
 
 func (h *BoardHandler) GetMembers(ctx context.Context, req *pb.GetMembersRequest) (*pb.GetMembersResponse, error) {
@@ -477,19 +541,19 @@ func (h *BoardHandler) CreateInvite(ctx context.Context, req *pb.CreateInviteReq
 		errLog := fmt.Errorf("srv.CreateInvite: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.CreateInvite")
 		sentryLogger.CaptureFromContext(ctx, errLog, "CreateInvite", map[string]interface{}{
-			"user_link":   rawUserLink,
-			"board_link":  rawBoardLink,
-			"action":      "create_invite",
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "create_invite",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotCreateInvite.Error())
 	}
 
 	resp := &pb.CreateInviteResponse{
-		InviteLink:   invite.InviteLink.String(),
-		BoardLink:    invite.BoardLink.String(),
-		DefaultRole:  invite.DefaultRole.String(),
-		Status:       invite.Status.String(),
-		CreatedAt:    invite.CreatedAt.Unix(),
+		InviteLink:  invite.InviteLink.String(),
+		BoardLink:   invite.BoardLink.String(),
+		DefaultRole: invite.DefaultRole.String(),
+		Status:      invite.Status.String(),
+		CreatedAt:   invite.CreatedAt.Unix(),
 	}
 
 	if invite.TargetUser != nil {
@@ -629,10 +693,10 @@ func (h *BoardHandler) UpdateMemberRole(ctx context.Context, req *pb.UpdateMembe
 		errLog := fmt.Errorf("srv.UpdateMemberRole: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.UpdateMemberRole")
 		sentryLogger.CaptureFromContext(ctx, errLog, "UpdateMemberRole", map[string]interface{}{
-			"user_link":    rawUserLink,
-			"board_link":   rawBoardLink,
-			"target_link":  rawTargetLink,
-			"action":       "update_member_role",
+			"user_link":   rawUserLink,
+			"board_link":  rawBoardLink,
+			"target_link": rawTargetLink,
+			"action":      "update_member_role",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
@@ -676,10 +740,10 @@ func (h *BoardHandler) RemoveMemberFromBoard(ctx context.Context, req *pb.Remove
 		errLog := fmt.Errorf("srv.RemoveMemberFromBoard: %w", err)
 		logger.Error().Err(errLog).Msg("BoardService.RemoveMemberFromBoard")
 		sentryLogger.CaptureFromContext(ctx, errLog, "RemoveMemberFromBoard", map[string]interface{}{
-			"user_link":    rawUserLink,
-			"board_link":   rawBoardLink,
-			"target_link":  rawTargetLink,
-			"action":       "remove_member",
+			"user_link":   rawUserLink,
+			"board_link":  rawBoardLink,
+			"target_link": rawTargetLink,
+			"action":      "remove_member",
 		})
 		return nil, status.Error(codes.Internal, ErrCannotUpdateBoard.Error())
 	}
@@ -741,5 +805,264 @@ func (h *BoardHandler) GetActiveInvites(ctx context.Context, req *pb.GetActiveIn
 
 	return &pb.GetActiveInvitesResponse{
 		Invites: pbInvites,
+	}, nil
+}
+
+func (h *BoardHandler) CanView(ctx context.Context, req *pb.CanViewRequest) (*pb.CanViewResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.CanView(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+
+		errLog := fmt.Errorf("srv.CanView: %w", err)
+		logger.Error().Err(errLog).Msg("board service CanView")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CanView", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "can_view",
+		})
+		return nil, status.Error(codes.Internal, ErrCannotGetBoards.Error())
+	}
+
+	return &pb.CanViewResponse{}, nil
+}
+
+func (h *BoardHandler) CreatePoll(ctx context.Context, req *pb.CreatePollRequest) (*pb.CreatePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	cards := make([]uuid.UUID, 0, len(req.GetCardLinks()))
+	for _, raw := range req.GetCardLinks() {
+		cardLink, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid card link in poll")
+		}
+		cards = append(cards, cardLink)
+	}
+
+	invitees := make([]uuid.UUID, 0, len(req.GetInvitees()))
+	for _, raw := range req.GetInvitees() {
+		uid, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid invitee link")
+		}
+		invitees = append(invitees, uid)
+	}
+
+	if err := h.srv.CreatePoll(ctx, boardLink, userLink, cards, invitees); err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		if errors.Is(err, common.ErrPollAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, common.ErrPollAlreadyExists.Error())
+		}
+		errLog := fmt.Errorf("srv.CreatePoll: %w", err)
+		logger.Error().Err(errLog).Msg("CreatePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "CreatePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "create_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot create poll")
+	}
+
+	return &pb.CreatePollResponse{}, nil
+}
+
+func (h *BoardHandler) DeletePoll(ctx context.Context, req *pb.DeletePollRequest) (*pb.DeletePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.DeletePoll(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
+		}
+		errLog := fmt.Errorf("srv.DeletePoll: %w", err)
+		logger.Error().Err(errLog).Msg("DeletePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "DeletePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "delete_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot delete poll")
+	}
+
+	return &pb.DeletePollResponse{}, nil
+}
+
+func (h *BoardHandler) NextPollCard(ctx context.Context, req *pb.NextPollCardRequest) (*pb.NextPollCardResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.NextPollCard(ctx, boardLink, userLink); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrNotPollAdmin) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrNotPollAdmin.Error())
+		}
+		if errors.Is(err, common.ErrPollNoMoreCards) {
+			return &pb.NextPollCardResponse{}, nil
+		}
+		errLog := fmt.Errorf("srv.NextPollCard: %w", err)
+		logger.Error().Err(errLog).Msg("NextPollCard")
+		sentryLogger.CaptureFromContext(ctx, errLog, "NextPollCard", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "next_poll_card",
+		})
+		return nil, status.Error(codes.Internal, "cannot advance poll")
+	}
+
+	return &pb.NextPollCardResponse{}, nil
+}
+
+func (h *BoardHandler) VotePoll(ctx context.Context, req *pb.VotePollRequest) (*pb.VotePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	if err := h.srv.VotePoll(ctx, boardLink, userLink, int(req.GetPoints())); err != nil {
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		if errors.Is(err, common.ErrUserNotInvited) {
+			return nil, status.Error(codes.PermissionDenied, common.ErrUserNotInvited.Error())
+		}
+		errLog := fmt.Errorf("srv.VotePoll: %w", err)
+		logger.Error().Err(errLog).Msg("VotePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "VotePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "vote_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot vote")
+	}
+
+	return &pb.VotePollResponse{}, nil
+}
+
+func (h *BoardHandler) GetActivePoll(ctx context.Context, req *pb.GetActivePollRequest) (*pb.GetActivePollResponse, error) {
+	logger := zerolog.Ctx(ctx)
+
+	rawUserLink := req.GetUserLink()
+	userLink, err := uuid.Parse(rawUserLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrUserLinkRequired.Error())
+	}
+
+	rawBoardLink := req.GetBoardLink()
+	boardLink, err := uuid.Parse(rawBoardLink)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, ErrBoardLinkRequired.Error())
+	}
+
+	poll, err := h.srv.GetActivePoll(ctx, boardLink, userLink)
+	if err != nil {
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
+		if errors.Is(err, common.ErrPollNotFound) {
+			return nil, status.Error(codes.NotFound, common.ErrPollNotFound.Error())
+		}
+		errLog := fmt.Errorf("srv.GetActivePoll: %w", err)
+		logger.Error().Err(errLog).Msg("GetActivePoll")
+		sentryLogger.CaptureFromContext(ctx, errLog, "GetActivePoll", map[string]interface{}{
+			"user_link":  rawUserLink,
+			"board_link": rawBoardLink,
+			"action":     "get_active_poll",
+		})
+		return nil, status.Error(codes.Internal, "cannot get active poll")
+	}
+
+	tasks := make([]*pb.PollTaskInfo, 0, len(poll.Tasks))
+	for _, t := range poll.Tasks {
+		votes := make([]*pb.VoteEntry, 0, len(t.Votes))
+		for userID, points := range t.Votes {
+			if points == nil {
+				continue
+			}
+			votes = append(votes, &pb.VoteEntry{
+				UserLink: userID.String(),
+				Points:   int32(*points),
+			})
+		}
+		tasks = append(tasks, &pb.PollTaskInfo{
+			CardLink: t.CardLink.String(),
+			Title:    t.Title,
+			Votes:    votes,
+		})
+	}
+
+	rawInvitees := make([]string, 0, len(poll.Invitees))
+	for _, i := range poll.Invitees {
+		rawInvitees = append(rawInvitees, i.String())
+	}
+
+	return &pb.GetActivePollResponse{
+		AdminLink:  poll.AdminLink.String(),
+		CurrentIdx: int32(poll.CurrentIdx),
+		Tasks:      tasks,
+		Invitees:   rawInvitees,
 	}, nil
 }

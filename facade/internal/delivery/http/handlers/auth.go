@@ -35,11 +35,13 @@ type UserUsecase interface {
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
 	ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
+	GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error)
 }
 
 type AuthConfig struct {
 	MaxLenPassword    int
 	MinLenPassword    int
+	MaxLenNameUser    int
 	SessionLifetime   time.Duration
 	VKOAuthRedirectTo string
 }
@@ -58,25 +60,55 @@ func NewAuthHandler(auth AuthUsecase, user UserUsecase, cfg AuthConfig) *Auth {
 	}
 }
 
-// MeHandler проверяет текущую сессию пользователя
+// MeHandler проверяет текущую сессию пользователя и возвращает его ссылку и профиль
 //
 //	@Summary		Проверка авторизации (Me)
-//	@Description	Возвращает 200 если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
+//	@Description	Возвращает 200, userLink и профиль если сессия активна (пользователь авторизован). Используется для проверки состояния авторизации на клиенте.
 //	@Tags			Auth
 //	@Security		sessionCookie
 //	@Produce		json
-//	@Success		200	{object}	api.Response		"Пользователь авторизован"
-//	@Failure		401	{object}	api.ErrorResponse	"Сессия отсутствует или истекла"
+//	@Success		200	{object}	api.OkResponse[dto.MeResponse]	"Пользователь авторизован"
+//	@Failure		401	{object}	api.ErrorResponse				"Сессия отсутствует или истекла"
+//	@Failure		500	{object}	api.ErrorResponse				"Внутренняя ошибка сервера при получении профиля"
 //	@Router			/me [get]
 func (a *Auth) MeHandler(w http.ResponseWriter, r *http.Request) {
+	logger := zerolog.Ctx(r.Context())
+
 	value := r.Context().Value(middleware.UserContextLink{})
-	_, ok := value.(uuid.UUID)
+	userLink, ok := value.(uuid.UUID)
 	if !ok {
-		api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+		_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
 		return
 	}
 
-	api.HandleError(api.Respond(w, http.StatusOK, api.StatusOK))
+	user, err := a.user.GetProfile(r.Context(), userLink)
+	if err != nil {
+		if errors.Is(err, common.ErrorNonexistentUser) {
+			_, _ = api.RespondError(w, http.StatusUnauthorized, handlerCommon.ErrUserNotAuthorized.Error())
+			return
+		}
+		errLog := fmt.Errorf("user.GetProfile: %w", err)
+		logger.Error().Err(errLog).Msg("MeHandler failed to get profile")
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "MeHandler", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile",
+		})
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		return
+	}
+
+	response := dto.MeResponse{
+		UserLink: userLink,
+		Profile: dto.ProfileResponse{
+			Link:        user.UserLink,
+			DisplayName: user.DisplayName,
+			Description: user.Description,
+			Email:       user.Email,
+			AvatarURL:   user.AvatarURL,
+		},
+	}
+
+	_ = api.HandleError(api.RespondOk(w, response))
 }
 
 // LogInUser выполняет вход пользователя
@@ -98,12 +130,12 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 
 	var request dto.LogInRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	if err := ValidatorRequestAuth(request.Email, request.Password, a.cfg.MaxLenPassword, a.cfg.MinLenPassword); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -116,7 +148,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, common.ErrorNonexistentUser) ||
 			errors.Is(err, common.ErrorWrongCredentials) {
 			logger.Err(fmt.Errorf("user.GetUser: %w", err)).Msg("get info user")
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrWrongEmailOrPassword.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, handlerCommon.ErrWrongEmailOrPassword.Error())
 			return
 		}
 
@@ -128,7 +160,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 			"action": "get_db_user",
 		})
 
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -143,7 +175,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 				"action":    "create_session_anomaly",
 			})
 
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
@@ -155,7 +187,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 			"action":    "create_session_anomaly",
 		})
 
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -164,7 +196,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 		sessionID,
 		time.Now().Add(a.cfg.SessionLifetime)))
 
-	api.HandleError(api.RespondOk(w, dto.UserInfoResponse{
+	_ = api.HandleError(api.RespondOk(w, dto.UserInfoResponse{
 		Link:        user.UserLink,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
@@ -181,7 +213,7 @@ func (a *Auth) LogInUser(w http.ResponseWriter, r *http.Request) {
 //	@Produce		json
 //	@Param			input	body		dto.RegisterRequest						true	"Данные для регистрации"
 //	@Success		201		{object}	api.OkResponse[dto.UserInfoResponse]	"Аккаунт создан, cookie session_id установлен"
-//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса, email/пароль; пароли не совпадают; некорректная длина display_name"
 //	@Failure		404		{object}	api.ErrorResponse						"Пользователь не найден (ошибка при создании сессии)"
 //	@Failure		409		{object}	api.ErrorResponse						"Пользователь с таким email уже существует"
 //	@Failure		429		{object}	api.ErrorResponse						"Слишком много попыток регистрации"
@@ -192,14 +224,19 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	var request dto.RegisterRequest
 	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
 	request.Sanitize()
 
+	if err := common.ValidateTextInfo(request.DisplayName, a.cfg.MaxLenNameUser); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, fmt.Sprintf("incorrect display name: %s", err.Error()))
+		return
+	}
+
 	if err := ValidatorWithCheckPassword(request.Email, request.Password, request.RepeatedPassword, a.cfg.MaxLenPassword, a.cfg.MinLenPassword); err != nil {
-		api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidEmailOrPassword.Error())
 		return
 	}
 
@@ -210,12 +247,12 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, common.ErrorExistingUser) {
-			api.RespondError(w, http.StatusConflict, handlerCommon.ErrUserAlreadyExists.Error())
+			_, _ = api.RespondError(w, http.StatusConflict, handlerCommon.ErrUserAlreadyExists.Error())
 			return
 		}
 
 		if errors.Is(err, common.ErrorNotNullValue) {
-			api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
+			_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrNullInNotNullField.Error())
 			return
 		}
 
@@ -227,7 +264,7 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			"display_name": request.DisplayName,
 			"action":       "create_db_record",
 		})
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -242,7 +279,7 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 				"action":    "create_session_anomaly",
 			})
 
-			api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
+			_, _ = api.RespondError(w, http.StatusNotFound, handlerCommon.ErrUserDoesNotExists.Error())
 			return
 		}
 
@@ -254,7 +291,7 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			"action":    "create_session_redis",
 		})
 
-		api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -263,7 +300,7 @@ func (a *Auth) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		sessionID,
 		time.Now().Add(a.cfg.SessionLifetime)))
 
-	api.HandleError(api.RespondCreated(w, dto.UserInfoResponse{
+	_ = api.HandleError(api.RespondCreated(w, dto.UserInfoResponse{
 		Link:        user.UserLink,
 		DisplayName: user.DisplayName,
 		Email:       user.Email,
@@ -295,7 +332,7 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, api.NewExpiredCookie(middleware.SessiondIdKey))
-	api.Respond(w, http.StatusOK, api.StatusOK)
+	_, _ = api.Respond(w, http.StatusOK, api.StatusOK)
 }
 
 // VkOAuthCallback обрабатывает коллбэк от VK
@@ -313,7 +350,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue(oauthCodeKey)
 	if code == "" {
 		logger.Err(handlerCommon.ErrOAuthCodeEmpty).Msg("vk oauth callback: missing code")
-		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadRequest, handlerCommon.ErrOAuthCodeEmpty.Error())
+		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadRequest, handlerCommon.ErrOAuthCodeEmpty.Error())
 		return
 	}
 
@@ -332,7 +369,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 			"is_vk_unavailable": errors.Is(err, common.ErrorVKOAuthUnavailable),
 		})
 
-		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
+		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
 		return
 	}
 
@@ -351,7 +388,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 			"action": "process_vk_user",
 		})
 
-		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
+		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
 		return
 	}
 
@@ -375,7 +412,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
+		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
 		return
 	}
 
@@ -384,5 +421,5 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		sessionID,
 		time.Now().Add(a.cfg.SessionLifetime)))
 
-	Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusOK, oauthSuccessAuthMessage)
+	_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusOK, oauthSuccessAuthMessage)
 }
