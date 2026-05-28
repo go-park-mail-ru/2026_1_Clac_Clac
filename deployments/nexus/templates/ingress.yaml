@@ -15,7 +15,6 @@ spec:
   - hosts:
     - {{ .Values.ingress.host }}
     - {{ .Values.docs.host }}
-    - clac-clac.mooo.com
     secretName: {{ .Chart.Name }}-tls-cert
   rules:
   - host: {{ .Values.docs.host }}
@@ -29,30 +28,6 @@ spec:
               port:
                 name: http
   - host: {{ .Values.ingress.host }}
-    http:
-      paths:
-      - path: /api/events
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Chart.Name }}-realtime-service
-            port:
-              name: http
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Chart.Name }}-facade-service
-            port:
-              name: http
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Chart.Name }}-frontend-service
-            port:
-              name: http
-  - host: clac-clac.mooo.com
     http:
       paths:
       - path: /api/events
