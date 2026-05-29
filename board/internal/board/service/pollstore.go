@@ -22,9 +22,16 @@ type Poll struct {
 }
 
 type PollTask struct {
-	CardLink uuid.UUID
-	Title    string
-	Votes    map[uuid.UUID]*int
+	CardLink    uuid.UUID
+	Title       string
+	Description string
+	Votes       map[uuid.UUID]*int
+}
+
+type CardInfo struct {
+	Link        uuid.UUID
+	Title       string
+	Description string
 }
 
 func NewPollStore() *PollStore {
@@ -33,7 +40,7 @@ func NewPollStore() *PollStore {
 	}
 }
 
-func (ps *PollStore) Create(boardLink, adminLink uuid.UUID, cards []uuid.UUID, invitees []uuid.UUID) error {
+func (ps *PollStore) Create(boardLink, adminLink uuid.UUID, cards []CardInfo, invitees []uuid.UUID) error {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -45,9 +52,10 @@ func (ps *PollStore) Create(boardLink, adminLink uuid.UUID, cards []uuid.UUID, i
 	tasks := make([]PollTask, len(cards))
 	for i, c := range cards {
 		tasks[i] = PollTask{
-			CardLink: c,
-			Title:    "",
-			Votes:    make(map[uuid.UUID]*int),
+			CardLink:    c.Link,
+			Title:       c.Title,
+			Description: c.Description,
+			Votes:       make(map[uuid.UUID]*int),
 		}
 	}
 

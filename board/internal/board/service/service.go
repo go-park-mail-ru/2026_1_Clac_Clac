@@ -40,19 +40,25 @@ type BoardRepository interface {
 	GetActiveInvitesByBoard(ctx context.Context, boardLink uuid.UUID) ([]repositoryDto.InviteEntry, error)
 }
 
+type CardInfoGetter interface {
+	GetCardTitleAndDescription(ctx context.Context, cardLink uuid.UUID) (string, string, error)
+}
+
 type Service struct {
 	rep               BoardRepository
 	permissionChecker rbac.Service
 	pollStore         *PollStore
 	pub               pubsub.Publisher[brokerEvents.BoardUpdateEvent]
+	cardGetter        CardInfoGetter
 }
 
-func NewService(rep BoardRepository, permissionChecker rbac.Service, pollStore *PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent]) *Service {
+func NewService(rep BoardRepository, permissionChecker rbac.Service, pollStore *PollStore, pub pubsub.Publisher[brokerEvents.BoardUpdateEvent], cardGetter CardInfoGetter) *Service {
 	return &Service{
 		rep:               rep,
 		permissionChecker: permissionChecker,
 		pollStore:         pollStore,
 		pub:               pub,
+		cardGetter:        cardGetter,
 	}
 }
 
@@ -435,7 +441,20 @@ func (s *Service) CreatePoll(ctx context.Context, boardLink, adminLink uuid.UUID
 		return fmt.Errorf("service.CheckPermission: %w", err)
 	}
 
-	if err := s.pollStore.Create(boardLink, adminLink, cards, invitees); err != nil {
+	cardInfos := make([]CardInfo, 0, len(cards))
+	for _, cardLink := range cards {
+		title, description, err := s.cardGetter.GetCardTitleAndDescription(ctx, cardLink)
+		if err != nil {
+			return fmt.Errorf("cardGetter.GetCardTitleAndDescription: %w", err)
+		}
+		cardInfos = append(cardInfos, CardInfo{
+			Link:        cardLink,
+			Title:       title,
+			Description: description,
+		})
+	}
+
+	if err := s.pollStore.Create(boardLink, adminLink, cardInfos, invitees); err != nil {
 		return fmt.Errorf("pollStore.Create: %w", err)
 	}
 

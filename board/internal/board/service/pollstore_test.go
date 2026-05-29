@@ -16,7 +16,7 @@ func TestPollStore_Create(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		ps := NewPollStore()
-		err := ps.Create(boardLink, adminLink, []uuid.UUID{}, invitees)
+		err := ps.Create(boardLink, adminLink, []CardInfo{}, invitees)
 		assert.NoError(t, err)
 
 		poll, ok := ps.GetActivePoll(boardLink)
@@ -28,8 +28,8 @@ func TestPollStore_Create(t *testing.T) {
 
 	t.Run("Error_AlreadyExists", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, invitees)
-		err := ps.Create(boardLink, uuid.New(), []uuid.UUID{}, invitees)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{}, invitees)
+		err := ps.Create(boardLink, uuid.New(), []CardInfo{}, invitees)
 		assert.ErrorIs(t, err, common.ErrPollAlreadyExists)
 	})
 }
@@ -41,7 +41,7 @@ func TestPollStore_Delete(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{}, nil)
 		err := ps.Delete(boardLink, adminLink)
 		assert.NoError(t, err)
 
@@ -57,7 +57,7 @@ func TestPollStore_Delete(t *testing.T) {
 
 	t.Run("Error_NotAdmin", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{}, nil)
 		err := ps.Delete(boardLink, otherLink)
 		assert.ErrorIs(t, err, common.ErrNotPollAdmin)
 	})
@@ -72,7 +72,7 @@ func TestPollStore_NextCard(t *testing.T) {
 
 	t.Run("Success_Advance", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card1, card2}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card1}, {Link: card2}}, nil)
 		poll, err := ps.NextCard(boardLink, adminLink)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, poll.CurrentIdx)
@@ -83,7 +83,7 @@ func TestPollStore_NextCard(t *testing.T) {
 
 	t.Run("Success_LastCardDeletesPoll", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card1}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card1}}, nil)
 		_, err := ps.NextCard(boardLink, adminLink)
 		assert.ErrorIs(t, err, common.ErrPollNoMoreCards)
 
@@ -99,7 +99,7 @@ func TestPollStore_NextCard(t *testing.T) {
 
 	t.Run("Error_NotAdmin", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card1, card2}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card1}, {Link: card2}}, nil)
 		_, err := ps.NextCard(boardLink, otherLink)
 		assert.ErrorIs(t, err, common.ErrNotPollAdmin)
 	})
@@ -114,7 +114,7 @@ func TestPollStore_Vote(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card}, []uuid.UUID{invitedUser})
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card}}, []uuid.UUID{invitedUser})
 		err := ps.Vote(boardLink, invitedUser, 5)
 		assert.NoError(t, err)
 
@@ -125,7 +125,7 @@ func TestPollStore_Vote(t *testing.T) {
 
 	t.Run("Success_Revote", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card}, []uuid.UUID{invitedUser})
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card}}, []uuid.UUID{invitedUser})
 		_ = ps.Vote(boardLink, invitedUser, 5)
 		err := ps.Vote(boardLink, invitedUser, 8)
 		assert.NoError(t, err)
@@ -142,7 +142,7 @@ func TestPollStore_Vote(t *testing.T) {
 
 	t.Run("Error_NotInvited", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{card}, []uuid.UUID{invitedUser})
+		_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card}}, []uuid.UUID{invitedUser})
 		err := ps.Vote(boardLink, nonInvitedUser, 5)
 		assert.ErrorIs(t, err, common.ErrUserNotInvited)
 	})
@@ -154,7 +154,7 @@ func TestPollStore_GetActivePoll(t *testing.T) {
 
 	t.Run("Exists", func(t *testing.T) {
 		ps := NewPollStore()
-		_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, nil)
+		_ = ps.Create(boardLink, adminLink, []CardInfo{}, nil)
 		poll, ok := ps.GetActivePoll(boardLink)
 		assert.True(t, ok)
 		assert.NotNil(t, poll)
@@ -174,7 +174,7 @@ func TestPollStore_IsPollAdmin(t *testing.T) {
 	otherLink := uuid.New()
 
 	ps := NewPollStore()
-	_ = ps.Create(boardLink, adminLink, []uuid.UUID{}, nil)
+	_ = ps.Create(boardLink, adminLink, []CardInfo{}, nil)
 
 	assert.True(t, ps.IsPollAdmin(boardLink, adminLink))
 	assert.False(t, ps.IsPollAdmin(boardLink, otherLink))
@@ -191,7 +191,7 @@ func TestPollStore_ConcurrentVote(t *testing.T) {
 	}
 
 	ps := NewPollStore()
-	_ = ps.Create(boardLink, adminLink, []uuid.UUID{card}, invitees)
+	_ = ps.Create(boardLink, adminLink, []CardInfo{{Link: card}}, invitees)
 
 	var wg sync.WaitGroup
 	for _, user := range invitees {

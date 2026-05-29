@@ -228,6 +228,7 @@ message PollTaskInfo {
   string card_link = 1;
   string title = 2;
   repeated VoteEntry votes = 3;
+  string description = 4;
 }
 
 message GetActivePollResponse {

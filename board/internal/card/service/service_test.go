@@ -1133,7 +1133,7 @@ func TestUpdateCardPoints(t *testing.T) {
 			nameTest: "Success_PollAdmin",
 			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				ps := boardService.NewPollStore()
-			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
+			_ = ps.Create(targetBoardLink, pollAdminLink, []boardService.CardInfo{}, nil)
 			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, pollAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				m.On("UpdateCardPoints", mock.Anything, repositoryDto.UpdateCardPoints{CardLink: targetCardLink, Points: &points}).Return(nil)
@@ -1154,7 +1154,7 @@ func TestUpdateCardPoints(t *testing.T) {
 			nameTest: "Error_NotPollAdmin",
 			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				ps := boardService.NewPollStore()
-			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
+			_ = ps.Create(targetBoardLink, pollAdminLink, []boardService.CardInfo{}, nil)
 			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, nonAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				return ps
