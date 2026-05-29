@@ -314,10 +314,9 @@ func TestVkOAuthCallback(t *testing.T) {
 	}{
 		{
 			name: "Success",
-			url:  "/oauth/vk?code=valid_code",
+			url:  "/oauth/vk?code=valid_code&code_verifier=verifier&state=state123",
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
-				authMock.On("ExchangeVKCode", mock.Anything, "valid_code").Return("vk_token", "test@vk.com", nil)
-				userMock.On("ProcessUserWithVK", mock.Anything, "vk_token", "test@vk.com").Return(fixedLink, nil)
+				userMock.On("ProcessUserWithVK", mock.Anything, "valid_code", "verifier", "state123", "").Return(fixedLink, nil)
 				authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
 			},
 			expectCookie: true,
@@ -329,10 +328,16 @@ func TestVkOAuthCallback(t *testing.T) {
 			expectCookie: false,
 		},
 		{
-			name: "ExchangeVKCodeFailed",
-			url:  "/oauth/vk?code=invalid_code",
+			name: "MissingCodeVerifier",
+			url:  "/oauth/vk?code=valid_code&state=state123",
+			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
+			expectCookie: false,
+		},
+		{
+			name: "ProcessUserWithVKFailed",
+			url:  "/oauth/vk?code=invalid_code&code_verifier=verifier&state=state123",
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
-				authMock.On("ExchangeVKCode", mock.Anything, "invalid_code").Return("", "", common.ErrorVKOAuthUnavailable)
+				userMock.On("ProcessUserWithVK", mock.Anything, "invalid_code", "verifier", "state123", "").Return(uuid.Nil, common.ErrorVKOAuthUnavailable)
 			},
 			expectCookie: false,
 		},

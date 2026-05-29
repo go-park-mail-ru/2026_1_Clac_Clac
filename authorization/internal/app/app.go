@@ -17,7 +17,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 )
 
@@ -55,8 +54,7 @@ func NewApp(conf *config.Config) (*App, error) {
 
 	manager := setupManager(store, conf)
 
-	vkOAuth := NewVKOAuth(&conf.VkOAuth)
-	delivery := setupDelivery(manager, conf, vkOAuth)
+	delivery := setupDelivery(manager)
 	delivery.Register(engine.Server)
 
 	return &App{
@@ -177,6 +175,6 @@ func setupManager(s *Store, conf *config.Config) *Manager {
 	return NewManager(s, *conf)
 }
 
-func setupDelivery(m *Manager, conf *config.Config, vkOAuth *oauth2.Config) *Delivery {
-	return NewDelivery(m, conf, vkOAuth)
+func setupDelivery(m *Manager) *Delivery {
+	return NewDelivery(m)
 }

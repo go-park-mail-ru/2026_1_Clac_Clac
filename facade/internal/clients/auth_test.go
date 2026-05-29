@@ -50,14 +50,6 @@ func (m *mockAuthServiceClient) ExtendSession(ctx context.Context, in *pb.Extend
 	return args.Get(0).(*pb.ExtendSessionResponse), args.Error(1)
 }
 
-func (m *mockAuthServiceClient) ExchangeVKCode(ctx context.Context, in *pb.ExchangeVKCodeRequest, opts ...grpc.CallOption) (*pb.ExchangeVKCodeResponse, error) {
-	args := m.Called(ctx, in)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*pb.ExchangeVKCodeResponse), args.Error(1)
-}
-
 func TestAuthCreateSession(t *testing.T) {
 	ctx := context.Background()
 	validUUID := uuid.New()
@@ -252,54 +244,3 @@ func TestRefreshSession(t *testing.T) {
 	}
 }
 
-func TestExchangeVKCode(t *testing.T) {
-	ctx := context.Background()
-
-	tests := []struct {
-		name          string
-		code          string
-		mockResp      *pb.ExchangeVKCodeResponse
-		mockErr       error
-		expectedToken string
-		expectedEmail string
-		expectedErr   error
-	}{
-		{
-			name:          "success",
-			code:          "vk-code-123",
-			mockResp:      &pb.ExchangeVKCodeResponse{AccessToken: "token-xyz", Email: "user@example.com"},
-			mockErr:       nil,
-			expectedToken: "token-xyz",
-			expectedEmail: "user@example.com",
-			expectedErr:   nil,
-		},
-		{
-			name:          "grpc error",
-			code:          "bad-code",
-			mockResp:      nil,
-			mockErr:       status.Error(codes.Unavailable, "vk unavailable"),
-			expectedToken: "",
-			expectedEmail: "",
-			expectedErr:   common.ErrorServiceUnavailable,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mc := new(mockAuthServiceClient)
-			mc.On("ExchangeVKCode", ctx, &pb.ExchangeVKCodeRequest{Code: tt.code}).
-				Return(tt.mockResp, tt.mockErr)
-
-			a := &Auth{client: mc}
-			token, email, err := a.ExchangeVKCode(ctx, tt.code)
-
-			assert.Equal(t, tt.expectedToken, token)
-			assert.Equal(t, tt.expectedEmail, email)
-			if tt.expectedErr != nil {
-				assert.ErrorIs(t, err, tt.expectedErr)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}

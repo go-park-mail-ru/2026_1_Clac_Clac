@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -34,6 +35,7 @@ const (
 
 	msgOAuthCannotRequestUserData = "oauth_cannot_request_user_data"
 	msgOAuthEmptyUserData         = "oauth_no_user_data"
+	msgOAuthInvalidParams         = "oauth_invalid_params"
 
 	msgFailParseUserLink  = "user link can not convert to uuid"
 	msgEmptyFile          = "empty file provided"
@@ -44,6 +46,9 @@ const (
 	msgCannotCreateFile   = "cannot create temp file for download avatar"
 	msgWriteInFile        = "cannot write chunk to file"
 	msgCursorOffset       = "cannot set cursor offset"
+
+	vkIDAuthEndpoint     = "https://id.vk.ru/oauth2/auth"
+	vkIDUserInfoEndpoint = "https://id.vk.ru/oauth2/user_info"
 )
 
 type AuthService interface {
@@ -62,10 +67,13 @@ type AuthService interface {
 
 type HTTPClient interface {
 	Get(url string) (*http.Response, error)
+	PostForm(url string, data url.Values) (*http.Response, error)
 }
 
 type Config struct {
-	APIMethod string
+	ClientID     string
+	ClientSecret string
+	RedirectURI  string
 }
 
 type Handler struct {
@@ -208,56 +216,111 @@ func (h *Handler) ResetPassword(ctx context.Context, req *pb.ResetPasswordReques
 func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRequest) (*pb.ProcessUserVKResponse, error) {
 	logger := zerolog.Ctx(ctx)
 
-	res, err := h.httpClient.Get(fmt.Sprintf(h.cfg.APIMethod, req.AccessToken))
+	if req.Code == "" || req.CodeVerifier == "" || req.State == "" {
+		return nil, status.Error(codes.InvalidArgument, msgOAuthInvalidParams)
+	}
+
+	tokenData := url.Values{
+		"grant_type":    {"authorization_code"},
+		"client_id":     {h.cfg.ClientID},
+		"client_secret": {h.cfg.ClientSecret},
+		"code":          {req.Code},
+		"code_verifier": {req.CodeVerifier},
+		"state":         {req.State},
+		"redirect_uri":  {h.cfg.RedirectURI},
+	}
+	if req.DeviceId != "" {
+		tokenData.Set("device_id", req.DeviceId)
+	}
+
+	tokenResp, err := h.httpClient.PostForm(vkIDAuthEndpoint, tokenData)
 	if err != nil {
-		logger.Err(err).Msg("vk api request failed")
+		logger.Err(err).Msg("vk id auth request failed")
 
 		sentryLogger.CaptureFromContext(ctx, err, "ProcessUserWithVK", map[string]interface{}{
-			"email":  req.Email,
-			"action": "vk_api_request",
+			"action": "vk_id_auth_request",
 		})
 
 		return nil, status.Error(codes.Unavailable, msgOAuthCannotRequestUserData)
 	}
 	defer func() {
-		if err := res.Body.Close(); err != nil {
-			logger.Err(err).Msg("close vk api response body")
+		if err := tokenResp.Body.Close(); err != nil {
+			logger.Err(err).Msg("close vk id auth response body")
 		}
 	}()
 
-	usersData := &api.VkAPIUsersData{}
-	if err := json.NewDecoder(res.Body).Decode(usersData); err != nil {
-		logger.Err(err).Msg("vk api decode response")
+	var token api.VkIDTokenResponse
+	if err := json.NewDecoder(tokenResp.Body).Decode(&token); err != nil {
+		logger.Err(err).Msg("vk id auth decode response")
 
 		sentryLogger.CaptureFromContext(ctx, err, "ProcessUserWithVK", map[string]interface{}{
-			"email":  req.Email,
-			"action": "vk_api_decode",
+			"action": "vk_id_auth_decode",
 		})
 
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
-	if len(usersData.Response) < 1 {
-		logger.Error().Msg("vk api: empty user data")
+	if token.AccessToken == "" {
+		logger.Error().Msg("vk id auth: empty access token")
 
-		errEmptyData := errors.New("vk api returned empty user data")
-		sentryLogger.CaptureFromContext(ctx, errEmptyData, "ProcessUserWithVK", map[string]interface{}{
-			"email":  req.Email,
-			"action": "vk_api_empty_data",
+		sentryLogger.CaptureFromContext(ctx, errors.New("vk id returned empty access token"), "ProcessUserWithVK", map[string]interface{}{
+			"action": "vk_id_empty_token",
+		})
+
+		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
+	}
+
+	userData := url.Values{
+		"client_id":    {h.cfg.ClientID},
+		"access_token": {token.AccessToken},
+	}
+
+	userResp, err := h.httpClient.PostForm(vkIDUserInfoEndpoint, userData)
+	if err != nil {
+		logger.Err(err).Msg("vk id user info request failed")
+
+		sentryLogger.CaptureFromContext(ctx, err, "ProcessUserWithVK", map[string]interface{}{
+			"action": "vk_id_user_info_request",
+		})
+
+		return nil, status.Error(codes.Unavailable, msgOAuthCannotRequestUserData)
+	}
+	defer func() {
+		if err := userResp.Body.Close(); err != nil {
+			logger.Err(err).Msg("close vk id user info response body")
+		}
+	}()
+
+	var userInfo api.VkIDUserInfoResponse
+	if err := json.NewDecoder(userResp.Body).Decode(&userInfo); err != nil {
+		logger.Err(err).Msg("vk id user info decode response")
+
+		sentryLogger.CaptureFromContext(ctx, err, "ProcessUserWithVK", map[string]interface{}{
+			"action": "vk_id_user_info_decode",
+		})
+
+		return nil, status.Error(codes.Internal, msgInternalError)
+	}
+
+	if userInfo.User.FirstName == "" {
+		logger.Error().Msg("vk id: empty user data")
+
+		sentryLogger.CaptureFromContext(ctx, errors.New("vk id returned empty user data"), "ProcessUserWithVK", map[string]interface{}{
+			"action": "vk_id_empty_user_data",
 		})
 
 		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
 	}
 
 	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.EntityUser{
-		DisplayName: usersData.Response[0].FirstName,
-		Email:       req.Email,
+		DisplayName: userInfo.User.FirstName,
+		Email:       userInfo.User.Email,
 	})
 	if err != nil {
 		logger.Err(err).Msg("EnsureUserByEmail failed")
 
 		sentryLogger.CaptureFromContext(ctx, err, "ProcessUserWithVK", map[string]interface{}{
-			"email":  req.Email,
+			"email":  userInfo.User.Email,
 			"action": "ensure_user_by_email",
 		})
 

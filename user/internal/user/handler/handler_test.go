@@ -30,7 +30,9 @@ var (
 
 func defaultConfig() Config {
 	return Config{
-		APIMethod: "https://api.vk.com/method/users.get?access_token=%s&v=5.131",
+		ClientID:     "test_client_id",
+		ClientSecret: "test_client_secret",
+		RedirectURI:  "https://example.com/oauth/vk",
 	}
 }
 
@@ -42,12 +44,16 @@ func newHandlerWithHTTP(srv *mockAuthSrv.AuthService, httpClient *mockHTTPClient
 	return NewHandler(srv, defaultConfig(), httpClient)
 }
 
-func vkAPIResponse(firstName string) io.ReadCloser {
-	return io.NopCloser(strings.NewReader(`{"response":[{"first_name":"` + firstName + `"}]}`))
+func vkAuthResponse(accessToken string) io.ReadCloser {
+	return io.NopCloser(strings.NewReader(`{"access_token":"` + accessToken + `"}`))
 }
 
-func vkAPIEmptyResponse() io.ReadCloser {
-	return io.NopCloser(strings.NewReader(`{"response":[]}`))
+func vkUserInfoResponse(firstName, email string) io.ReadCloser {
+	return io.NopCloser(strings.NewReader(`{"user":{"user_id":123,"first_name":"` + firstName + `","email":"` + email + `","avatar":""}}`))
+}
+
+func vkEmptyUserInfoResponse() io.ReadCloser {
+	return io.NopCloser(strings.NewReader(`{"user":{"user_id":0,"first_name":"","email":"","avatar":""}}`))
 }
 
 func assertGRPCCode(t *testing.T, err error, expected codes.Code) {
@@ -253,60 +259,145 @@ func TestResetPassword(t *testing.T) {
 
 func TestProcessUserWithVK(t *testing.T) {
 	const (
-		validEmail   = "user@vk.com"
-		accessToken  = "vk_access_token_abc"
-		expectedLink = "00000000-0000-0000-0000-000000000001"
+		vkCode        = "vk_auth_code"
+		vkVerifier    = "vk_verifier"
+		vkState       = "vk_state"
+		vkAccessToken = "vk_access_token_abc"
+		firstName     = "Artem"
+		vkEmail       = "user@vk.com"
+		expectedLink  = "00000000-0000-0000-0000-000000000001"
 	)
 
 	t.Run("SuccessExistingUser", func(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		httpMock := mockHTTPClient.NewHTTPClient(t)
 
-		httpMock.On("Get", mock.AnythingOfType("string")).Return(&http.Response{
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
 			StatusCode: http.StatusOK,
-			Body:       vkAPIResponse("Artem"),
+			Body:       vkAuthResponse(vkAccessToken),
+		}, nil)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/user_info", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body:       vkUserInfoResponse(firstName, vkEmail),
 		}, nil)
 
 		m.On("EnsureUserByEmail", mock.Anything, serviceDto.EntityUser{
-			DisplayName: "Artem",
-			Email:       validEmail,
+			DisplayName: firstName,
+			Email:       vkEmail,
 		}).Return(expectedLink, nil)
 
 		resp, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
-			AccessToken: accessToken,
-			Email:       validEmail,
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
 		})
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedLink, resp.UserLink)
 	})
 
-	t.Run("VKAPIRequestFails", func(t *testing.T) {
+	t.Run("MissingCode", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		_, err := newHandlerWithHTTP(m, mockHTTPClient.NewHTTPClient(t)).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			CodeVerifier: vkVerifier,
+			State:        vkState,
+		})
+
+		assertGRPCCode(t, err, codes.InvalidArgument)
+	})
+
+	t.Run("MissingCodeVerifier", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		_, err := newHandlerWithHTTP(m, mockHTTPClient.NewHTTPClient(t)).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			Code:  vkCode,
+			State: vkState,
+		})
+
+		assertGRPCCode(t, err, codes.InvalidArgument)
+	})
+
+	t.Run("MissingState", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		_, err := newHandlerWithHTTP(m, mockHTTPClient.NewHTTPClient(t)).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+		})
+
+		assertGRPCCode(t, err, codes.InvalidArgument)
+	})
+
+	t.Run("VKAuthRequestFails", func(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		httpMock := mockHTTPClient.NewHTTPClient(t)
 
-		httpMock.On("Get", mock.AnythingOfType("string")).Return((*http.Response)(nil), errors.New("network error"))
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return((*http.Response)(nil), errors.New("network error"))
 
 		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
-			AccessToken: accessToken,
-			Email:       validEmail,
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
 		})
 
 		assertGRPCCode(t, err, codes.Unavailable)
 	})
 
-	t.Run("VKAPIEmptyUserList", func(t *testing.T) {
+	t.Run("VKAuthEmptyToken", func(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		httpMock := mockHTTPClient.NewHTTPClient(t)
 
-		httpMock.On("Get", mock.AnythingOfType("string")).Return(&http.Response{
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
 			StatusCode: http.StatusOK,
-			Body:       vkAPIEmptyResponse(),
+			Body:       vkAuthResponse(""),
 		}, nil)
 
 		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
-			AccessToken: accessToken,
-			Email:       validEmail,
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
+		})
+
+		assertGRPCCode(t, err, codes.Internal)
+	})
+
+	t.Run("VKUserInfoRequestFails", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		httpMock := mockHTTPClient.NewHTTPClient(t)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body:       vkAuthResponse(vkAccessToken),
+		}, nil)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/user_info", mock.AnythingOfType("url.Values")).Return((*http.Response)(nil), errors.New("network error"))
+
+		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
+		})
+
+		assertGRPCCode(t, err, codes.Unavailable)
+	})
+
+	t.Run("VKUserInfoEmptyUser", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		httpMock := mockHTTPClient.NewHTTPClient(t)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body:       vkAuthResponse(vkAccessToken),
+		}, nil)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/user_info", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body:       vkEmptyUserInfoResponse(),
+		}, nil)
+
+		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
 		})
 
 		assertGRPCCode(t, err, codes.Internal)
@@ -316,15 +407,22 @@ func TestProcessUserWithVK(t *testing.T) {
 		m := mockAuthSrv.NewAuthService(t)
 		httpMock := mockHTTPClient.NewHTTPClient(t)
 
-		httpMock.On("Get", mock.AnythingOfType("string")).Return(&http.Response{
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
 			StatusCode: http.StatusOK,
-			Body:       vkAPIResponse("Artem"),
+			Body:       vkAuthResponse(vkAccessToken),
 		}, nil)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/user_info", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusOK,
+			Body:       vkUserInfoResponse(firstName, vkEmail),
+		}, nil)
+
 		m.On("EnsureUserByEmail", mock.Anything, mock.Anything).Return("", errors.New("db error"))
 
 		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
-			AccessToken: accessToken,
-			Email:       validEmail,
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
 		})
 
 		assertGRPCCode(t, err, codes.Internal)

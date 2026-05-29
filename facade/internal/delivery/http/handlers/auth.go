@@ -27,13 +27,12 @@ const (
 type AuthUsecase interface {
 	CreateSession(ctx context.Context, userLink uuid.UUID) (string, error)
 	DeleteSession(ctx context.Context, sessionID string) error
-	ExchangeVKCode(ctx context.Context, code string) (string, string, error)
 }
 
 type UserUsecase interface {
 	GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error)
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
-	ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error)
+	ProcessUserWithVK(ctx context.Context, code, codeVerifier, state, deviceID string) (uuid.UUID, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 	GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error)
 }
@@ -347,44 +346,28 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	code := r.FormValue(oauthCodeKey)
-	if code == "" {
-		logger.Err(handlerCommon.ErrOAuthCodeEmpty).Msg("vk oauth callback: missing code")
+	code := r.FormValue("code")
+	codeVerifier := r.FormValue("code_verifier")
+	state := r.FormValue("state")
+	deviceID := r.FormValue("device_id")
+
+	if code == "" || codeVerifier == "" || state == "" {
+		logger.Err(handlerCommon.ErrOAuthCodeEmpty).Msg("vk oauth callback: missing required params")
 		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadRequest, handlerCommon.ErrOAuthCodeEmpty.Error())
 		return
 	}
 
-	accessToken, email, err := a.auth.ExchangeVKCode(r.Context(), code)
-	if err != nil {
-		errLog := fmt.Errorf("auth.ExchangeVKCode: %w", err)
-		logger.Err(errLog).Msg("vk oauth callback: exchange code failed")
-
-		outErr := handlerCommon.ErrOAuthExchangeFailed
-		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
-			outErr = handlerCommon.ErrOAuthUnavailable
-		}
-
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
-			"action":            "exchange_code",
-			"is_vk_unavailable": errors.Is(err, common.ErrorVKOAuthUnavailable),
-		})
-
-		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
-		return
-	}
-
-	userLink, err := a.user.ProcessUserWithVK(r.Context(), accessToken, email)
+	userLink, err := a.user.ProcessUserWithVK(r.Context(), code, codeVerifier, state, deviceID)
 	if err != nil {
 		errLog := fmt.Errorf("user.ProcessUserWithVK: %w", err)
 		logger.Err(errLog).Msg("vk oauth callback: user processing failed")
 
 		outErr := handlerCommon.ErrOAuthInternalServerError
-		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
+		if errors.Is(err, common.ErrorVKOAuthUnavailable) || errors.Is(err, common.ErrorServiceUnavailable) {
 			outErr = handlerCommon.ErrOAuthCannotRequestUserData
 		}
 
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
-			"email":  email,
 			"action": "process_vk_user",
 		})
 

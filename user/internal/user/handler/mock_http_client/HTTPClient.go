@@ -4,6 +4,7 @@ package mockHTTPClient
 
 import (
 	http "net/http"
+	url "net/url"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -36,6 +37,36 @@ func (_m *HTTPClient) Get(url string) (*http.Response, error) {
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(url)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// PostForm provides a mock function with given fields: url, data
+func (_m *HTTPClient) PostForm(u string, data url.Values) (*http.Response, error) {
+	ret := _m.Called(u, data)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostForm")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, url.Values) (*http.Response, error)); ok {
+		return rf(u, data)
+	}
+	if rf, ok := ret.Get(0).(func(string, url.Values) *http.Response); ok {
+		r0 = rf(u, data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, url.Values) error); ok {
+		r1 = rf(u, data)
 	} else {
 		r1 = ret.Error(1)
 	}

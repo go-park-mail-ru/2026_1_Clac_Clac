@@ -263,10 +263,12 @@ func (u *User) ResetPassword(ctx context.Context, updatedPassword domain.Updated
 	return nil
 }
 
-func (u *User) ProcessUserWithVK(ctx context.Context, accessToken string, email string) (uuid.UUID, error) {
+func (u *User) ProcessUserWithVK(ctx context.Context, code, codeVerifier, state, deviceID string) (uuid.UUID, error) {
 	req := &pb.ProcessUserVKRequest{
-		AccessToken: accessToken,
-		Email:       email,
+		Code:         code,
+		CodeVerifier: codeVerifier,
+		State:        state,
+		DeviceId:     deviceID,
 	}
 
 	resp, err := u.client.ProcessUserWithVK(ctx, req)
