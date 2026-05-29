@@ -277,17 +277,23 @@ func (h *SectionHandler) CreateSection(ctx context.Context, req *pb.CreateSectio
 		return nil, status.Error(codes.InvalidArgument, ErrInvalidUserLink.Error())
 	}
 
-	var maxTasks int
+	var maxTasks *int
 	if req.MaxTasks != nil {
-		maxTasks = int(req.GetMaxTasks())
+		v := int(req.GetMaxTasks())
+		maxTasks = &v
+	}
+
+	color := req.GetColor()
+	if color == "" {
+		color = "white"
 	}
 
 	var newSection = dto.CreatingSection{
 		BoardLink:   boardLink,
 		SectionName: req.GetName(),
 		IsMandatory: req.GetIsMandatory(),
-		Color:       req.GetColor(),
-		MaxTasks:    &maxTasks,
+		Color:       color,
+		MaxTasks:    maxTasks,
 	}
 
 	if newSection.MaxTasks != nil && (*newSection.MaxTasks > h.cnf.MaxQuantityTasks ||
