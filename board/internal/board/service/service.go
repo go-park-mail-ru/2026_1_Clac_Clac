@@ -535,9 +535,13 @@ func (s *Service) NextPollCard(ctx context.Context, boardLink, userLink uuid.UUI
 				BoardLink: boardLink.String(),
 				UserLink:  userLink.String(),
 				Data: struct {
-					Title string `json:"title"`
+					CardLink    string `json:"card_link"`
+					Title       string `json:"title"`
+					Description string `json:"description"`
 				}{
-					Title: poll.Tasks[poll.CurrentIdx].Title,
+					CardLink:    poll.Tasks[poll.CurrentIdx].CardLink.String(),
+					Title:       poll.Tasks[poll.CurrentIdx].Title,
+					Description: poll.Tasks[poll.CurrentIdx].Description,
 				},
 			},
 		},
