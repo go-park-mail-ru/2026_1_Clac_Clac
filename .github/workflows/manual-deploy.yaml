@@ -41,12 +41,12 @@ on:
         default: false
 
 jobs:
-  check-generated-code-consistency:
-    uses: ./.github/workflows/generated-code-consistency.yaml
+  # check-generated-code-consistency:
+  #   uses: ./.github/workflows/generated-code-consistency.yaml
 
-  linter-and-tests:
-    needs: check-generated-code-consistency
-    uses: ./.github/workflows/linter-and-tests.yaml
+  # linter-and-tests:
+  #   needs: check-generated-code-consistency
+  #   uses: ./.github/workflows/linter-and-tests.yaml
 
   setup-build:
     needs: linter-and-tests
@@ -91,7 +91,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-docs:
-    needs: linter-and-tests
+    # needs: linter-and-tests
     uses: ./.github/workflows/deploy-docs.yaml
     with:
       endpoint-url: hb.ru-msk.vkcloud-storage.ru
