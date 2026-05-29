@@ -41,12 +41,12 @@ func (p PostgresConfig) ToPkg() *postgres.Config {
 
 func DefaultPostgresConfig() PostgresConfig {
 	return PostgresConfig{
-		MinConnections:        2,
-		MaxConnections:        10,
+		MinConnections:        10,
+		MaxConnections:        100,
 		MaxConnectionLifetime: time.Hour,
 		MaxHealthCheckPeriod:  30 * time.Second,
 		PingSleepTime:         2 * time.Second,
-		TimeOut:               5 * time.Second,
+		TimeOut:               10 * time.Second,
 		MaxRetries:            5,
 	}
 }
