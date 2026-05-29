@@ -841,6 +841,18 @@ definitions:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
     type: object
+  github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VkOAuthCallbackRequest:
+    description: Данные OAuth коллбэка от VK
+    properties:
+      code:
+        type: string
+      code_verifier:
+        type: string
+      device_id:
+        type: string
+      state:
+        type: string
+    type: object
   github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest:
     description: Оценка (story points) участника голосования
     properties:
@@ -866,13 +878,13 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Получить список обращений
       tags:
       - Appeals
@@ -900,17 +912,17 @@ paths:
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Создать обращение
       tags:
       - Appeals
@@ -928,21 +940,21 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
           description: Bad Request (невалидный UUID)
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Удалить обращение
       tags:
       - Appeals
@@ -969,25 +981,25 @@ paths:
         "200":
           description: OK
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "403":
           description: Forbidden (Недостаточно прав)
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Изменить статус обращения
       tags:
       - Appeals
@@ -1017,19 +1029,19 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_UploadAttachmentResponse'
         "400":
-          description: Bad Request
+          description: Bad Request / invalid description / invalid category
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Загрузить вложение к обращению
       tags:
       - Appeals
@@ -1047,17 +1059,17 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "403":
           description: Forbidden (Недостаточно прав)
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       security:
-      - BearerAuth: []
+      - sessionCookie: []
       summary: Получить статистику обращений
       tags:
       - Appeals
@@ -1143,7 +1155,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_BoardInfo'
         "400":
-          description: invalid request schema
+          description: invalid request schema / incorrect description / incorrect
+            background
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -1267,7 +1280,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: invalid board link / invalid request schema
+          description: invalid board link / invalid request schema / card links must
+            not be empty / too many cards / too many invitees
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -1316,7 +1330,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: invalid board link / invalid request schema
+          description: invalid board link / invalid request schema / points out of
+            range
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -1559,7 +1574,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: invalid request schema
+          description: invalid request schema / incorrect display name size / incorrect
+            description / incorrect background
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -1869,7 +1885,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateCardResponse'
         "400":
-          description: Некорректные данные или лимит задач
+          description: Некорректные данные или лимит задач / incorrect title / incorrect
+            description
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -2149,7 +2166,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_CreateCommentResponse'
         "400":
-          description: Некорректные данные
+          description: Некорректные данные / incorrect comment text
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -2201,7 +2218,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: invalid card link / invalid request
+          description: invalid card link / invalid request / points out of range
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -2348,7 +2365,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_SubtaskResponse'
         "400":
-          description: Некорректные данные
+          description: Некорректные данные / incorrect subtask description
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -2515,7 +2532,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: Некорректные данные
+          description: Некорректные данные / incorrect comment text
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":
@@ -2764,20 +2781,38 @@ paths:
       tags:
       - Auth
   /oauth/vk:
-    get:
-      description: Обменивает временный code от VK на access_token, находит или создаёт
-        пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд
-        — при успехе и при ошибке.
+    post:
+      consumes:
+      - application/json
+      description: Принимает JSON-тело с OAuth-параметрами, обменивает временный code
+        на access_token, находит или создаёт пользователя, создаёт сессию. Возвращает
+        JSON с профилем пользователя и устанавливает session_id cookie.
       parameters:
-      - description: Временный OAuth-код от VK
-        in: query
-        name: code
+      - description: OAuth-параметры от VK
+        in: body
+        name: input
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VkOAuthCallbackRequest'
+      produces:
+      - application/json
       responses:
-        "302":
-          description: 'Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK
-            недоступен), ?code=500 (ошибка обработки или создания сессии)'
+        "200":
+          description: Успешная авторизация, cookie session_id установлен
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_UserInfoResponse'
+        "400":
+          description: Некорректный формат запроса или отсутствуют обязательные поля
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
+        "502":
+          description: VK сервис недоступен
+          schema:
+            $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
       summary: VK OAuth Коллбэк
       tags:
       - Auth
@@ -2983,7 +3018,8 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_UserInfoResponse'
         "400":
-          description: Некорректный формат запроса, email/пароль; пароли не совпадают
+          description: Некорректный формат запроса, email/пароль; пароли не совпадают;
+            некорректная длина display_name
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "404":
@@ -3289,7 +3325,7 @@ paths:
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response'
         "400":
-          description: Некорректные данные
+          description: Некорректные данные / incorrect subtask description
           schema:
             $ref: '#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse'
         "401":

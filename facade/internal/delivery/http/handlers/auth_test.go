@@ -306,40 +306,65 @@ func TestLogOutUser(t *testing.T) {
 }
 
 func TestVkOAuthCallback(t *testing.T) {
+	successBody := dto.VkOAuthCallbackRequest{
+		Code:         "valid_code",
+		CodeVerifier: "verifier",
+		State:        "state123",
+	}
+	expectedProfile := domain.FullInfoUser{
+		UserLink:    fixedLink,
+		Email:       "vkuser@mail.ru",
+		DisplayName: "Vk User",
+		AvatarURL:   "http://example.com/vk_avatar.jpg",
+	}
+
 	tests := []struct {
-		name         string
-		url          string
-		mockBehavior func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase)
-		expectCookie bool
+		name               string
+		requestBody        any
+		mockBehavior       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase)
+		expectedStatusCode int
+		expectCookie       bool
 	}{
 		{
-			name: "Success",
-			url:  "/oauth/vk?code=valid_code&code_verifier=verifier&state=state123",
+			name:        "Success",
+			requestBody: successBody,
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
 				userMock.On("ProcessUserWithVK", mock.Anything, "valid_code", "verifier", "state123", "").Return(fixedLink, nil)
+				userMock.On("GetProfile", mock.Anything, fixedLink).Return(expectedProfile, nil)
 				authMock.On("CreateSession", mock.Anything, fixedLink).Return("session_token", nil)
 			},
-			expectCookie: true,
+			expectedStatusCode: http.StatusOK,
+			expectCookie:       true,
 		},
 		{
-			name:         "EmptyCode",
-			url:          "/oauth/vk",
+			name:               "InvalidJSON",
+			requestBody:        "{bad json}",
+			mockBehavior:       func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectCookie:       false,
+		},
+		{
+			name:        "EmptyCode",
+			requestBody: dto.VkOAuthCallbackRequest{CodeVerifier: "verifier", State: "state123"},
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
-			expectCookie: false,
+			expectedStatusCode: http.StatusBadRequest,
+			expectCookie:       false,
 		},
 		{
-			name: "MissingCodeVerifier",
-			url:  "/oauth/vk?code=valid_code&state=state123",
+			name:        "MissingCodeVerifier",
+			requestBody: dto.VkOAuthCallbackRequest{Code: "valid_code", State: "state123"},
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {},
-			expectCookie: false,
+			expectedStatusCode: http.StatusBadRequest,
+			expectCookie:       false,
 		},
 		{
-			name: "ProcessUserWithVKFailed",
-			url:  "/oauth/vk?code=invalid_code&code_verifier=verifier&state=state123",
+			name:        "ProcessUserWithVKFailed",
+			requestBody: dto.VkOAuthCallbackRequest{Code: "invalid_code", CodeVerifier: "verifier", State: "state123"},
 			mockBehavior: func(authMock *mockAuthUC.AuthUsecase, userMock *mockUserUC.UserUsecase) {
 				userMock.On("ProcessUserWithVK", mock.Anything, "invalid_code", "verifier", "state123", "").Return(uuid.Nil, common.ErrorVKOAuthUnavailable)
 			},
-			expectCookie: false,
+			expectedStatusCode: http.StatusBadGateway,
+			expectCookie:       false,
 		},
 	}
 
@@ -349,10 +374,20 @@ func TestVkOAuthCallback(t *testing.T) {
 			userMock := mockUserUC.NewUserUsecase(t)
 			tc.mockBehavior(authMock, userMock)
 
-			req := httptest.NewRequest(http.MethodGet, tc.url, nil)
+			var bodyReader *bytes.Reader
+			if strBody, ok := tc.requestBody.(string); ok {
+				bodyReader = bytes.NewReader([]byte(strBody))
+			} else {
+				b, _ := json.Marshal(tc.requestBody)
+				bodyReader = bytes.NewReader(b)
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/oauth/vk", bodyReader)
 			rr := httptest.NewRecorder()
 
 			newAuthHandler(authMock, userMock).VkOAuthCallback(rr, req)
+
+			assert.Equal(t, tc.expectedStatusCode, rr.Code)
 
 			cookies := rr.Result().Cookies()
 			if tc.expectCookie {

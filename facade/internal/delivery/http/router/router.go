@@ -157,7 +157,7 @@ func NewRouter(deps Tools, conf *config.Config, logger *zerolog.Logger) *mux.Rou
 	public.Handle("/login", loginRateMW(http.HandlerFunc(deps.Auth.LogInUser))).Methods(http.MethodPost)
 	public.Handle("/register", registerRateMW(http.HandlerFunc(deps.Auth.RegisterUser))).Methods(http.MethodPost)
 	public.HandleFunc("/logout", deps.Auth.LogOutUser).Methods(http.MethodPost)
-	public.HandleFunc("/oauth/vk", deps.Auth.VkOAuthCallback)
+	public.Handle("/oauth/vk", http.HandlerFunc(deps.Auth.VkOAuthCallback)).Methods(http.MethodPost)
 	public.HandleFunc("/forgot-password", deps.MailSender.SendRecoveryEmail).Methods(http.MethodPost)
 	public.HandleFunc("/check-code", deps.MailSender.CheckRecoveryCode).Methods(http.MethodPost)
 	public.HandleFunc("/reset-password", deps.Profile.ResetUserPassword).Methods(http.MethodPost)

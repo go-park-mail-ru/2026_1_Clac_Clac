@@ -57,6 +57,16 @@ type NewPasswordRequest struct {
 	RepeatedPassword string `json:"repeated_password" example:"new_password_123"`
 }
 
+// VkOAuthCallbackRequest содержит данные для OAuth callback от VK
+//
+//	@Description	Данные OAuth коллбэка от VK
+type VkOAuthCallbackRequest struct {
+	Code         string `json:"code"`
+	CodeVerifier string `json:"code_verifier"`
+	State        string `json:"state"`
+	DeviceID     string `json:"device_id"`
+}
+
 // RateLimitConfig содержит настройки для лимитера запросов.
 // Эта структура используется только внутри сервера (мидлвари) и не отдается наружу в API.
 type RateLimitConfig struct {
