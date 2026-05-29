@@ -48,7 +48,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-facade:sha-63649cc
+    image: nisakoo/nexus-facade:sha-4076510
     port: 8080
     database:
       enabled: false
@@ -88,7 +88,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-authorization:sha-b3a4005
+    image: nisakoo/nexus-authorization:sha-4076510
     port: 8080
     database:
       enabled: false
@@ -108,7 +108,7 @@ services:
     enabled: true
     hasConfig: true
     hasSecrets: true
-    image: nisakoo/nexus-user:sha-b3a4005
+    image: nisakoo/nexus-user:sha-4076510
     port: 8080
     database:
       enabled: true
