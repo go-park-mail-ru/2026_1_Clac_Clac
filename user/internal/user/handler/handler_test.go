@@ -49,11 +49,11 @@ func vkAuthResponse(accessToken string) io.ReadCloser {
 }
 
 func vkUserInfoResponse(firstName, email string) io.ReadCloser {
-	return io.NopCloser(strings.NewReader(`{"user":{"user_id":123,"first_name":"` + firstName + `","email":"` + email + `","avatar":""}}`))
+	return io.NopCloser(strings.NewReader(`{"user":{"user_id":"123","first_name":"` + firstName + `","email":"` + email + `","avatar":""}}`))
 }
 
 func vkEmptyUserInfoResponse() io.ReadCloser {
-	return io.NopCloser(strings.NewReader(`{"user":{"user_id":0,"first_name":"","email":"","avatar":""}}`))
+	return io.NopCloser(strings.NewReader(`{"user":{"user_id":"0","first_name":"","email":"","avatar":""}}`))
 }
 
 func assertGRPCCode(t *testing.T, err error, expected codes.Code) {

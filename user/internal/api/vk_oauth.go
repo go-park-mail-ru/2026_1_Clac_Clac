@@ -6,7 +6,7 @@ type VkIDTokenResponse struct {
 	IDToken          string `json:"id_token"`
 	TokenType        string `json:"token_type"`
 	ExpiresIn        int    `json:"expires_in"`
-	UserID           int64  `json:"user_id"`
+	UserID           string `json:"user_id"`
 	State            string `json:"state"`
 	Scope            string `json:"scope"`
 	Error            string `json:"error"`
@@ -18,7 +18,7 @@ type VkIDUserInfoResponse struct {
 }
 
 type VkIDUser struct {
-	UserID    int64  `json:"user_id"`
+	UserID    string `json:"user_id"`
 	FirstName string `json:"first_name"`
 	Email     string `json:"email"`
 	Avatar    string `json:"avatar"`
