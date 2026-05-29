@@ -221,13 +221,12 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 	}
 
 	tokenData := url.Values{
-		"grant_type":    {"authorization_code"},
-		"client_id":     {h.cfg.ClientID},
-		"client_secret": {h.cfg.ClientSecret},
-		"code":          {req.Code},
+		"grant_type":   {"authorization_code"},
+		"client_id":    {h.cfg.ClientID},
+		"code":         {req.Code},
 		"code_verifier": {req.CodeVerifier},
-		"state":         {req.State},
-		"redirect_uri":  {h.cfg.RedirectURI},
+		"state":        {req.State},
+		"redirect_uri": {h.cfg.RedirectURI},
 	}
 	if req.DeviceId != "" {
 		tokenData.Set("device_id", req.DeviceId)
@@ -260,6 +259,22 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
+	if token.Error != "" {
+		logger.Error().
+			Int("vk_status_code", tokenResp.StatusCode).
+			Str("vk_error", token.Error).
+			Str("vk_error_description", token.ErrorDescription).
+			Msg("vk id auth: vk returned error")
+
+		sentryLogger.CaptureFromContext(ctx, fmt.Errorf("vk oauth error: %s — %s", token.Error, token.ErrorDescription), "ProcessUserWithVK", map[string]interface{}{
+			"action":      "vk_id_error_response",
+			"vk_error":    token.Error,
+			"status_code": tokenResp.StatusCode,
+		})
+
+		return nil, status.Error(codes.Unavailable, msgOAuthCannotRequestUserData)
+	}
+
 	if token.AccessToken == "" {
 		logger.Error().Msg("vk id auth: empty access token")
 
@@ -267,7 +282,7 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 			"action": "vk_id_empty_token",
 		})
 
-		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
+		return nil, status.Error(codes.Unavailable, msgOAuthCannotRequestUserData)
 	}
 
 	userData := url.Values{

@@ -357,7 +357,25 @@ func TestProcessUserWithVK(t *testing.T) {
 			State:        vkState,
 		})
 
-		assertGRPCCode(t, err, codes.Internal)
+		assertGRPCCode(t, err, codes.Unavailable)
+	})
+
+	t.Run("VKAuthErrorResponse", func(t *testing.T) {
+		m := mockAuthSrv.NewAuthService(t)
+		httpMock := mockHTTPClient.NewHTTPClient(t)
+
+		httpMock.On("PostForm", "https://id.vk.ru/oauth2/auth", mock.AnythingOfType("url.Values")).Return(&http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(strings.NewReader(`{"error":"invalid_grant","error_description":"Code has expired or already been used"}`)),
+		}, nil)
+
+		_, err := newHandlerWithHTTP(m, httpMock).ProcessUserWithVK(context.Background(), &pb.ProcessUserVKRequest{
+			Code:         vkCode,
+			CodeVerifier: vkVerifier,
+			State:        vkState,
+		})
+
+		assertGRPCCode(t, err, codes.Unavailable)
 	})
 
 	t.Run("VKUserInfoRequestFails", func(t *testing.T) {
