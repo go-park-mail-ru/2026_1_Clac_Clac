@@ -717,6 +717,9 @@ func (h *CardHandler) DeleteSubtask(ctx context.Context, req *pb.DeleteSubtaskRe
 		if errors.Is(err, common.ErrSubtaskNotFound) {
 			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
 		}
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
+		}
 
 		errLog := fmt.Errorf("srv.DeleteSubtask: %w", err)
 		logger.Error().Err(errLog).Msg("CardService.DeleteSubtask")
@@ -752,6 +755,9 @@ func (h *CardHandler) UpdateSubtask(ctx context.Context, req *pb.UpdateSubtaskRe
 	if err != nil {
 		if errors.Is(err, common.ErrSubtaskNotFound) {
 			return nil, status.Error(codes.NotFound, common.ErrSubtaskNotFound.Error())
+		}
+		if errors.Is(err, rbac.ErrActionDenied) {
+			return nil, status.Error(codes.PermissionDenied, rbac.ErrActionDenied.Error())
 		}
 
 		errLog := fmt.Errorf("srv.UpdateSubtask: %w", err)

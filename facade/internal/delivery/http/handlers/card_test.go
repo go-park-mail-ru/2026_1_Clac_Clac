@@ -33,7 +33,7 @@ var (
 var defaultCardCfg = CardConfig{
 	MaxLenTitle:              128,
 	MaxLenDescription:        500,
-	MaxLenComment:            2000,
+	MaxLenComment:            1000,
 	MaxLenSubtaskDescription: 500,
 	MinPoints:                1,
 	MaxPoints:                21,

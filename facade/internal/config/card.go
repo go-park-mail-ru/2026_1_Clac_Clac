@@ -4,7 +4,7 @@ const (
 	cardConfigDefaultMaxLenTitle              = 128
 	cardConfigDefaultMaxLenDescription        = 500
 	cardConfigDefaultAttachmentFileKey        = "attachment"
-	cardConfigDefaultMaxLenComment            = 2000
+	cardConfigDefaultMaxLenComment            = 1000
 	cardConfigDefaultMaxLenSubtaskDescription = 500
 	cardConfigDefaultMinPoints                = 1
 	cardConfigDefaultMaxPoints                = 21
