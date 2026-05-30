@@ -76,16 +76,3 @@ func (a *Auth) RefreshSession(ctx context.Context, sessionID string) error {
 
 	return nil
 }
-
-func (a *Auth) ExchangeVKCode(ctx context.Context, code string) (accessToken string, email string, err error) {
-	req := &pb.ExchangeVKCodeRequest{
-		Code: code,
-	}
-
-	resp, err := a.client.ExchangeVKCode(ctx, req)
-	if err != nil {
-		return "", "", fmt.Errorf("AuthClient.ExchangeVKCode: %w", convertGRPCError(err))
-	}
-
-	return resp.AccessToken, resp.Email, nil
-}

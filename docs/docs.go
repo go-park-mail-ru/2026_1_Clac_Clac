@@ -19,7 +19,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Возвращает все обращения, созданные текущим авторизованным пользователем",
@@ -40,13 +40,13 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -54,7 +54,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Создает новое обращение (тикет) от лица авторизованного пользователя",
@@ -94,19 +94,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -116,7 +116,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Возвращает количество обращений по статусам (доступно только для support/admin)",
@@ -137,19 +137,19 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden (Недостаточно прав)",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -159,7 +159,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Удаляет конкретное обращение по его UUID",
@@ -181,25 +181,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request (невалидный UUID)",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -207,7 +207,7 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Меняет статус существующего обращения (доступно только для support/admin)",
@@ -244,31 +244,31 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden (Недостаточно прав)",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -278,7 +278,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "sessionCookie": []
                     }
                 ],
                 "description": "Загружает изображение (multipart/form-data) и прикрепляет его к обращению",
@@ -317,21 +317,21 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Bad Request / invalid description / invalid category",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
                     }
                 }
@@ -463,7 +463,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "invalid request schema",
+                        "description": "invalid request schema / incorrect description / incorrect background",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -591,7 +591,11 @@ const docTemplate = `{
                         }
                     },
                     "400": {
+<<<<<<< HEAD
                         "description": "invalid board link / invalid request schema",
+=======
+                        "description": "invalid board link / invalid request schema / points out of range",
+>>>>>>> fix/vk-oauth-again
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -666,7 +670,11 @@ const docTemplate = `{
                         }
                     },
                     "400": {
+<<<<<<< HEAD
                         "description": "invalid board link / invalid request schema",
+=======
+                        "description": "invalid board link / invalid request schema / card links must not be empty / too many cards / too many invitees",
+>>>>>>> fix/vk-oauth-again
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1032,7 +1040,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "invalid request schema",
+                        "description": "invalid request schema / incorrect display name size / incorrect description / incorrect background",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1549,7 +1557,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные или лимит задач",
+                        "description": "Некорректные данные или лимит задач / incorrect title / incorrect description",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -1979,7 +1987,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "Некорректные данные / incorrect comment text",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -2056,7 +2064,11 @@ const docTemplate = `{
                         }
                     },
                     "400": {
+<<<<<<< HEAD
                         "description": "invalid card link / invalid request",
+=======
+                        "description": "invalid card link / invalid request / points out of range",
+>>>>>>> fix/vk-oauth-again
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -2284,6 +2296,82 @@ const docTemplate = `{
                         }
                     },
                     "400": {
+                        "description": "Некорректные данные / incorrect subtask description",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Нет прав доступа",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Карточка не найдена",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cards/{link}/timeline": {
+            "patch": {
+                "security": [
+                    {
+                        "sessionCookie": []
+                    }
+                ],
+                "description": "Изменяет дедлайн и/или время начала карточки.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Обновить временные рамки карточки",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "UUID карточки",
+                        "name": "link",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые временные рамки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.NewTimeLine"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Временные рамки обновлены",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.Response"
+                        }
+                    },
+                    "400": {
                         "description": "Некорректные данные",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
@@ -2481,7 +2569,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "Некорректные данные / incorrect comment text",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -2914,24 +3002,53 @@ const docTemplate = `{
             }
         },
         "/oauth/vk": {
-            "get": {
-                "description": "Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.",
+            "post": {
+                "description": "Принимает JSON-тело с OAuth-параметрами, обменивает временный code на access_token, находит или создаёт пользователя, создаёт сессию. Возвращает JSON с профилем пользователя и устанавливает session_id cookie.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Auth"
                 ],
                 "summary": "VK OAuth Коллбэк",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Временный OAuth-код от VK",
-                        "name": "code",
-                        "in": "query",
-                        "required": true
+                        "description": "OAuth-параметры от VK",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VkOAuthCallbackRequest"
+                        }
                     }
                 ],
                 "responses": {
-                    "302": {
-                        "description": "Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
+                    "200": {
+                        "description": "Успешная авторизация, cookie session_id установлен",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.OkResponse-github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto_UserInfoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный формат запроса или отсутствуют обязательные поля",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "VK сервис недоступен",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
+                        }
                     }
                 }
             }
@@ -3249,7 +3366,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректный формат запроса, email/пароль; пароли не совпадают",
+                        "description": "Некорректный формат запроса, email/пароль; пароли не совпадают; некорректная длина display_name",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -3653,7 +3770,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Некорректные данные",
+                        "description": "Некорректные данные / incorrect subtask description",
                         "schema": {
                             "$ref": "#/definitions/github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_api.ErrorResponse"
                         }
@@ -4962,6 +5079,27 @@ const docTemplate = `{
                 }
             }
         },
+<<<<<<< HEAD
+=======
+        "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VkOAuthCallbackRequest": {
+            "description": "Данные OAuth коллбэка от VK",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "code_verifier": {
+                    "type": "string"
+                },
+                "device_id": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+>>>>>>> fix/vk-oauth-again
         "github_com_go-park-mail-ru_2026_1_Clac_Clac_facade_internal_delivery_http_dto.VotePollRequest": {
             "description": "Оценка (story points) участника голосования",
             "type": "object",

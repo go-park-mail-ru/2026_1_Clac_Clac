@@ -610,8 +610,10 @@ func TestProcessUserWithVK(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		accessToken  string
-		email        string
+		code         string
+		codeVerifier string
+		state        string
+		deviceID     string
 		mockResp     *pb.ProcessUserVKResponse
 		mockErr      error
 		expectedLink uuid.UUID
@@ -619,8 +621,9 @@ func TestProcessUserWithVK(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			accessToken:  "vk-token-abc",
-			email:        "vkuser@example.com",
+			code:         "vk-code",
+			codeVerifier: "verifier",
+			state:        "state",
 			mockResp:     &pb.ProcessUserVKResponse{UserLink: validUUID.String()},
 			mockErr:      nil,
 			expectedLink: validUUID,
@@ -628,8 +631,9 @@ func TestProcessUserWithVK(t *testing.T) {
 		},
 		{
 			name:         "grpc error",
-			accessToken:  "invalid-token",
-			email:        "vkuser@example.com",
+			code:         "invalid-code",
+			codeVerifier: "verifier",
+			state:        "state",
 			mockResp:     nil,
 			mockErr:      status.Error(codes.Unavailable, "vk unavailable"),
 			expectedLink: uuid.Nil,
@@ -637,8 +641,9 @@ func TestProcessUserWithVK(t *testing.T) {
 		},
 		{
 			name:         "invalid uuid in response",
-			accessToken:  "vk-token-abc",
-			email:        "vkuser@example.com",
+			code:         "vk-code",
+			codeVerifier: "verifier",
+			state:        "state",
 			mockResp:     &pb.ProcessUserVKResponse{UserLink: "bad-uuid"},
 			mockErr:      nil,
 			expectedLink: uuid.Nil,
@@ -650,12 +655,14 @@ func TestProcessUserWithVK(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mc := new(mockUserServiceClient)
 			mc.On("ProcessUserWithVK", ctx, &pb.ProcessUserVKRequest{
-				AccessToken: tt.accessToken,
-				Email:       tt.email,
+				Code:         tt.code,
+				CodeVerifier: tt.codeVerifier,
+				State:        tt.state,
+				DeviceId:     tt.deviceID,
 			}).Return(tt.mockResp, tt.mockErr)
 
 			u := &User{client: mc}
-			link, err := u.ProcessUserWithVK(ctx, tt.accessToken, tt.email)
+			link, err := u.ProcessUserWithVK(ctx, tt.code, tt.codeVerifier, tt.state, tt.deviceID)
 
 			assert.Equal(t, tt.expectedLink, link)
 			if tt.expectedErr != nil {

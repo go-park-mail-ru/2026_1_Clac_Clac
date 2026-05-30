@@ -600,12 +600,12 @@ func TestCreateInvite(t *testing.T) {
 	}
 
 	tests := []struct {
-		Name          string
-		MockSetup     func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
-		InviteInfo    dto.NewInviteInfo
-		CreatorLink   uuid.UUID
-		ExpectError   bool
-		ErrorIs       error
+		Name        string
+		MockSetup   func(mockRepo *mocks.BoardRepository, mockPerm *mockRbacService)
+		InviteInfo  dto.NewInviteInfo
+		CreatorLink uuid.UUID
+		ExpectError bool
+		ErrorIs     error
 	}{
 		{
 			Name: "success create invite",

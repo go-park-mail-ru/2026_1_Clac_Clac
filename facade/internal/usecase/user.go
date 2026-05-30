@@ -11,7 +11,7 @@ import (
 type UserClient interface {
 	GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error)
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
-	ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error)
+	ProcessUserWithVK(ctx context.Context, code, codeVerifier, state, deviceID string) (uuid.UUID, error)
 	ResetPassword(ctx context.Context, updatedPassword domain.UpdatedPassword) error
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 
@@ -32,8 +32,8 @@ func NewUser(user UserClient) *User {
 	}
 }
 
-func (u *User) ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error) {
-	userLink, err := u.user.ProcessUserWithVK(ctx, accessToken, email)
+func (u *User) ProcessUserWithVK(ctx context.Context, code, codeVerifier, state, deviceID string) (uuid.UUID, error) {
+	userLink, err := u.user.ProcessUserWithVK(ctx, code, codeVerifier, state, deviceID)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("user.ProcessUserWithVK: %w", err)
 	}

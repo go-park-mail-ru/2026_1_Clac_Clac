@@ -19,7 +19,7 @@ import (
 var (
 	fixedBoardLinkP = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixedUserLinkP  = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	errPollTest   = errors.New("poll error")
+	errPollTest     = errors.New("poll error")
 )
 
 type mockPollUsecase struct {

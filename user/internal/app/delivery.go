@@ -16,7 +16,9 @@ type Delivery struct {
 
 func NewDelivery(m *Manager, conf *config.Config) *Delivery {
 	userConfig := user.Config{
-		APIMethod: conf.VkOAuth.APIMethod,
+		ClientID:     conf.VkOAuth.AppID,
+		ClientSecret: conf.VkOAuth.AppKey,
+		RedirectURI:  conf.VkOAuth.RedirectURL,
 	}
 
 	httpClient := &http.Client{

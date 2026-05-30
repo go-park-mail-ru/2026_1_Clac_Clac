@@ -33,7 +33,7 @@ var (
 var defaultCardCfg = CardConfig{
 	MaxLenTitle:              128,
 	MaxLenDescription:        500,
-	MaxLenComment:            1000,
+	MaxLenComment:            2000,
 	MaxLenSubtaskDescription: 500,
 	MinPoints:                1,
 	MaxPoints:                21,
@@ -1701,11 +1701,11 @@ func TestCardHandler_UpdateTimeLine(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:       "StartAfterDeadline",
-			linkParam:  fixedCardLinkH.String(),
-			request:    invalidTimeLineReq,
-			setContext: true,
-			mockBehavior: func(m *mockCardUsecase) {},
+			name:               "StartAfterDeadline",
+			linkParam:          fixedCardLinkH.String(),
+			request:            invalidTimeLineReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{

@@ -10,7 +10,6 @@ import (
 type AuthClient interface {
 	CreateSession(ctx context.Context, userLink uuid.UUID) (string, error)
 	DeleteSession(ctx context.Context, sessionID string) error
-	ExchangeVKCode(ctx context.Context, code string) (string, string, error)
 }
 
 type Auth struct {
@@ -21,15 +20,6 @@ func NewAuth(auth AuthClient) *Auth {
 	return &Auth{
 		auth: auth,
 	}
-}
-
-func (a *Auth) ExchangeVKCode(ctx context.Context, code string) (string, string, error) {
-	accessToken, email, err := a.auth.ExchangeVKCode(ctx, code)
-	if err != nil {
-		return "", "", fmt.Errorf("auth.ExchangeVKCode: %w", err)
-	}
-
-	return accessToken, email, nil
 }
 
 func (a *Auth) CreateSession(ctx context.Context, userLink uuid.UUID) (string, error) {

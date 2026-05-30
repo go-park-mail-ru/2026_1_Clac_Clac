@@ -2,17 +2,16 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: contracts/authorization/authorization.proto
+// source: proto/authorization/v1/authorization.proto
 
-package auth
+package v1
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -31,7 +30,7 @@ type ExtendSessionRequest struct {
 
 func (x *ExtendSessionRequest) Reset() {
 	*x = ExtendSessionRequest{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[0]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +42,7 @@ func (x *ExtendSessionRequest) String() string {
 func (*ExtendSessionRequest) ProtoMessage() {}
 
 func (x *ExtendSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[0]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +55,7 @@ func (x *ExtendSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtendSessionRequest.ProtoReflect.Descriptor instead.
 func (*ExtendSessionRequest) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{0}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ExtendSessionRequest) GetSessionId() string {
@@ -74,7 +73,7 @@ type ExtendSessionResponse struct {
 
 func (x *ExtendSessionResponse) Reset() {
 	*x = ExtendSessionResponse{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[1]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +85,7 @@ func (x *ExtendSessionResponse) String() string {
 func (*ExtendSessionResponse) ProtoMessage() {}
 
 func (x *ExtendSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[1]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,7 +98,7 @@ func (x *ExtendSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExtendSessionResponse.ProtoReflect.Descriptor instead.
 func (*ExtendSessionResponse) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{1}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{1}
 }
 
 type CreateSessionRequest struct {
@@ -111,7 +110,7 @@ type CreateSessionRequest struct {
 
 func (x *CreateSessionRequest) Reset() {
 	*x = CreateSessionRequest{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[2]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +122,7 @@ func (x *CreateSessionRequest) String() string {
 func (*CreateSessionRequest) ProtoMessage() {}
 
 func (x *CreateSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[2]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +135,7 @@ func (x *CreateSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSessionRequest.ProtoReflect.Descriptor instead.
 func (*CreateSessionRequest) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{2}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateSessionRequest) GetUserLink() string {
@@ -155,7 +154,7 @@ type CreateSessionResponse struct {
 
 func (x *CreateSessionResponse) Reset() {
 	*x = CreateSessionResponse{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[3]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -167,7 +166,7 @@ func (x *CreateSessionResponse) String() string {
 func (*CreateSessionResponse) ProtoMessage() {}
 
 func (x *CreateSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[3]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -180,7 +179,7 @@ func (x *CreateSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSessionResponse.ProtoReflect.Descriptor instead.
 func (*CreateSessionResponse) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{3}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateSessionResponse) GetSessionId() string {
@@ -199,7 +198,7 @@ type GetUserLinkRequest struct {
 
 func (x *GetUserLinkRequest) Reset() {
 	*x = GetUserLinkRequest{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[4]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -211,7 +210,7 @@ func (x *GetUserLinkRequest) String() string {
 func (*GetUserLinkRequest) ProtoMessage() {}
 
 func (x *GetUserLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[4]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -224,7 +223,7 @@ func (x *GetUserLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserLinkRequest.ProtoReflect.Descriptor instead.
 func (*GetUserLinkRequest) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{4}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetUserLinkRequest) GetSessionId() string {
@@ -243,7 +242,7 @@ type GetUserLinkResponse struct {
 
 func (x *GetUserLinkResponse) Reset() {
 	*x = GetUserLinkResponse{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[5]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +254,7 @@ func (x *GetUserLinkResponse) String() string {
 func (*GetUserLinkResponse) ProtoMessage() {}
 
 func (x *GetUserLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[5]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +267,7 @@ func (x *GetUserLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserLinkResponse.ProtoReflect.Descriptor instead.
 func (*GetUserLinkResponse) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{5}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetUserLinkResponse) GetUserLink() string {
@@ -287,7 +286,7 @@ type DeleteSessionRequest struct {
 
 func (x *DeleteSessionRequest) Reset() {
 	*x = DeleteSessionRequest{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[6]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +298,7 @@ func (x *DeleteSessionRequest) String() string {
 func (*DeleteSessionRequest) ProtoMessage() {}
 
 func (x *DeleteSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[6]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,7 +311,7 @@ func (x *DeleteSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSessionRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSessionRequest) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{6}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteSessionRequest) GetSessionId() string {
@@ -330,7 +329,7 @@ type DeleteSessionResponse struct {
 
 func (x *DeleteSessionResponse) Reset() {
 	*x = DeleteSessionResponse{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[7]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +341,7 @@ func (x *DeleteSessionResponse) String() string {
 func (*DeleteSessionResponse) ProtoMessage() {}
 
 func (x *DeleteSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[7]
+	mi := &file_proto_authorization_v1_authorization_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,110 +354,14 @@ func (x *DeleteSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSessionResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSessionResponse) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{7}
+	return file_proto_authorization_v1_authorization_proto_rawDescGZIP(), []int{7}
 }
 
-type ExchangeVKCodeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
+var File_proto_authorization_v1_authorization_proto protoreflect.FileDescriptor
 
-func (x *ExchangeVKCodeRequest) Reset() {
-	*x = ExchangeVKCodeRequest{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExchangeVKCodeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExchangeVKCodeRequest) ProtoMessage() {}
-
-func (x *ExchangeVKCodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExchangeVKCodeRequest.ProtoReflect.Descriptor instead.
-func (*ExchangeVKCodeRequest) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *ExchangeVKCodeRequest) GetCode() string {
-	if x != nil {
-		return x.Code
-	}
-	return ""
-}
-
-type ExchangeVKCodeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ExchangeVKCodeResponse) Reset() {
-	*x = ExchangeVKCodeResponse{}
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ExchangeVKCodeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ExchangeVKCodeResponse) ProtoMessage() {}
-
-func (x *ExchangeVKCodeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_contracts_authorization_authorization_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ExchangeVKCodeResponse.ProtoReflect.Descriptor instead.
-func (*ExchangeVKCodeResponse) Descriptor() ([]byte, []int) {
-	return file_contracts_authorization_authorization_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *ExchangeVKCodeResponse) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *ExchangeVKCodeResponse) GetEmail() string {
-	if x != nil {
-		return x.Email
-	}
-	return ""
-}
-
-var File_contracts_authorization_authorization_proto protoreflect.FileDescriptor
-
-const file_contracts_authorization_authorization_proto_rawDesc = "" +
+const file_proto_authorization_v1_authorization_proto_rawDesc = "" +
 	"\n" +
-	"+contracts/authorization/authorization.proto\x12\x04auth\"5\n" +
+	"*proto/authorization/v1/authorization.proto\x12\rproto.auth.v1\"5\n" +
 	"\x14ExtendSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
@@ -476,82 +379,72 @@ const file_contracts_authorization_authorization_proto_rawDesc = "" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15DeleteSessionResponse\"+\n" +
-	"\x15ExchangeVKCodeRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\"Q\n" +
-	"\x16ExchangeVKCodeResponse\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email2\xfc\x02\n" +
-	"\vAuthService\x12H\n" +
-	"\rCreateSession\x12\x1a.auth.CreateSessionRequest\x1a\x1b.auth.CreateSessionResponse\x12B\n" +
-	"\vGetUserLink\x12\x18.auth.GetUserLinkRequest\x1a\x19.auth.GetUserLinkResponse\x12H\n" +
-	"\rDeleteSession\x12\x1a.auth.DeleteSessionRequest\x1a\x1b.auth.DeleteSessionResponse\x12H\n" +
-	"\rExtendSession\x12\x1a.auth.ExtendSessionRequest\x1a\x1b.auth.ExtendSessionResponse\x12K\n" +
-	"\x0eExchangeVKCode\x12\x1b.auth.ExchangeVKCodeRequest\x1a\x1c.auth.ExchangeVKCodeResponseB\x1bZ\x19./pkg/contracts/auth;authb\x06proto3"
+	"\x15DeleteSessionResponse2\xf7\x02\n" +
+	"\vAuthService\x12Z\n" +
+	"\rCreateSession\x12#.proto.auth.v1.CreateSessionRequest\x1a$.proto.auth.v1.CreateSessionResponse\x12T\n" +
+	"\vGetUserLink\x12!.proto.auth.v1.GetUserLinkRequest\x1a\".proto.auth.v1.GetUserLinkResponse\x12Z\n" +
+	"\rDeleteSession\x12#.proto.auth.v1.DeleteSessionRequest\x1a$.proto.auth.v1.DeleteSessionResponse\x12Z\n" +
+	"\rExtendSession\x12#.proto.auth.v1.ExtendSessionRequest\x1a$.proto.auth.v1.ExtendSessionResponseB?Z=github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1b\x06proto3"
 
 var (
-	file_contracts_authorization_authorization_proto_rawDescOnce sync.Once
-	file_contracts_authorization_authorization_proto_rawDescData []byte
+	file_proto_authorization_v1_authorization_proto_rawDescOnce sync.Once
+	file_proto_authorization_v1_authorization_proto_rawDescData []byte
 )
 
-func file_contracts_authorization_authorization_proto_rawDescGZIP() []byte {
-	file_contracts_authorization_authorization_proto_rawDescOnce.Do(func() {
-		file_contracts_authorization_authorization_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_contracts_authorization_authorization_proto_rawDesc), len(file_contracts_authorization_authorization_proto_rawDesc)))
+func file_proto_authorization_v1_authorization_proto_rawDescGZIP() []byte {
+	file_proto_authorization_v1_authorization_proto_rawDescOnce.Do(func() {
+		file_proto_authorization_v1_authorization_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_authorization_v1_authorization_proto_rawDesc), len(file_proto_authorization_v1_authorization_proto_rawDesc)))
 	})
-	return file_contracts_authorization_authorization_proto_rawDescData
+	return file_proto_authorization_v1_authorization_proto_rawDescData
 }
 
-var file_contracts_authorization_authorization_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_contracts_authorization_authorization_proto_goTypes = []any{
-	(*ExtendSessionRequest)(nil),   // 0: auth.ExtendSessionRequest
-	(*ExtendSessionResponse)(nil),  // 1: auth.ExtendSessionResponse
-	(*CreateSessionRequest)(nil),   // 2: auth.CreateSessionRequest
-	(*CreateSessionResponse)(nil),  // 3: auth.CreateSessionResponse
-	(*GetUserLinkRequest)(nil),     // 4: auth.GetUserLinkRequest
-	(*GetUserLinkResponse)(nil),    // 5: auth.GetUserLinkResponse
-	(*DeleteSessionRequest)(nil),   // 6: auth.DeleteSessionRequest
-	(*DeleteSessionResponse)(nil),  // 7: auth.DeleteSessionResponse
-	(*ExchangeVKCodeRequest)(nil),  // 8: auth.ExchangeVKCodeRequest
-	(*ExchangeVKCodeResponse)(nil), // 9: auth.ExchangeVKCodeResponse
+var file_proto_authorization_v1_authorization_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proto_authorization_v1_authorization_proto_goTypes = []any{
+	(*ExtendSessionRequest)(nil),  // 0: proto.auth.v1.ExtendSessionRequest
+	(*ExtendSessionResponse)(nil), // 1: proto.auth.v1.ExtendSessionResponse
+	(*CreateSessionRequest)(nil),  // 2: proto.auth.v1.CreateSessionRequest
+	(*CreateSessionResponse)(nil), // 3: proto.auth.v1.CreateSessionResponse
+	(*GetUserLinkRequest)(nil),    // 4: proto.auth.v1.GetUserLinkRequest
+	(*GetUserLinkResponse)(nil),   // 5: proto.auth.v1.GetUserLinkResponse
+	(*DeleteSessionRequest)(nil),  // 6: proto.auth.v1.DeleteSessionRequest
+	(*DeleteSessionResponse)(nil), // 7: proto.auth.v1.DeleteSessionResponse
 }
-var file_contracts_authorization_authorization_proto_depIdxs = []int32{
-	2, // 0: auth.AuthService.CreateSession:input_type -> auth.CreateSessionRequest
-	4, // 1: auth.AuthService.GetUserLink:input_type -> auth.GetUserLinkRequest
-	6, // 2: auth.AuthService.DeleteSession:input_type -> auth.DeleteSessionRequest
-	0, // 3: auth.AuthService.ExtendSession:input_type -> auth.ExtendSessionRequest
-	8, // 4: auth.AuthService.ExchangeVKCode:input_type -> auth.ExchangeVKCodeRequest
-	3, // 5: auth.AuthService.CreateSession:output_type -> auth.CreateSessionResponse
-	5, // 6: auth.AuthService.GetUserLink:output_type -> auth.GetUserLinkResponse
-	7, // 7: auth.AuthService.DeleteSession:output_type -> auth.DeleteSessionResponse
-	1, // 8: auth.AuthService.ExtendSession:output_type -> auth.ExtendSessionResponse
-	9, // 9: auth.AuthService.ExchangeVKCode:output_type -> auth.ExchangeVKCodeResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+var file_proto_authorization_v1_authorization_proto_depIdxs = []int32{
+	2, // 0: proto.auth.v1.AuthService.CreateSession:input_type -> proto.auth.v1.CreateSessionRequest
+	4, // 1: proto.auth.v1.AuthService.GetUserLink:input_type -> proto.auth.v1.GetUserLinkRequest
+	6, // 2: proto.auth.v1.AuthService.DeleteSession:input_type -> proto.auth.v1.DeleteSessionRequest
+	0, // 3: proto.auth.v1.AuthService.ExtendSession:input_type -> proto.auth.v1.ExtendSessionRequest
+	3, // 4: proto.auth.v1.AuthService.CreateSession:output_type -> proto.auth.v1.CreateSessionResponse
+	5, // 5: proto.auth.v1.AuthService.GetUserLink:output_type -> proto.auth.v1.GetUserLinkResponse
+	7, // 6: proto.auth.v1.AuthService.DeleteSession:output_type -> proto.auth.v1.DeleteSessionResponse
+	1, // 7: proto.auth.v1.AuthService.ExtendSession:output_type -> proto.auth.v1.ExtendSessionResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_contracts_authorization_authorization_proto_init() }
-func file_contracts_authorization_authorization_proto_init() {
-	if File_contracts_authorization_authorization_proto != nil {
+func init() { file_proto_authorization_v1_authorization_proto_init() }
+func file_proto_authorization_v1_authorization_proto_init() {
+	if File_proto_authorization_v1_authorization_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_contracts_authorization_authorization_proto_rawDesc), len(file_contracts_authorization_authorization_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_authorization_v1_authorization_proto_rawDesc), len(file_proto_authorization_v1_authorization_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_contracts_authorization_authorization_proto_goTypes,
-		DependencyIndexes: file_contracts_authorization_authorization_proto_depIdxs,
-		MessageInfos:      file_contracts_authorization_authorization_proto_msgTypes,
+		GoTypes:           file_proto_authorization_v1_authorization_proto_goTypes,
+		DependencyIndexes: file_proto_authorization_v1_authorization_proto_depIdxs,
+		MessageInfos:      file_proto_authorization_v1_authorization_proto_msgTypes,
 	}.Build()
-	File_contracts_authorization_authorization_proto = out.File
-	file_contracts_authorization_authorization_proto_goTypes = nil
-	file_contracts_authorization_authorization_proto_depIdxs = nil
+	File_proto_authorization_v1_authorization_proto = out.File
+	file_proto_authorization_v1_authorization_proto_goTypes = nil
+	file_proto_authorization_v1_authorization_proto_depIdxs = nil
 }

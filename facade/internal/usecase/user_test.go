@@ -17,28 +17,32 @@ import (
 func TestProcessUserWithVK(t *testing.T) {
 	tests := []struct {
 		name         string
-		accessToken  string
-		email        string
+		code         string
+		codeVerifier string
+		state        string
+		deviceID     string
 		mockBehavior func(m *mockUserClient.UserClient)
 		expectedLink uuid.UUID
 		expectError  bool
 	}{
 		{
-			name:        "Success",
-			accessToken: "vk_token",
-			email:       "test@vk.com",
+			name:         "Success",
+			code:         "vk_code",
+			codeVerifier: "verifier",
+			state:        "state",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ProcessUserWithVK", context.Background(), "vk_token", "test@vk.com").Return(fixedUserLink, nil)
+				m.On("ProcessUserWithVK", context.Background(), "vk_code", "verifier", "state", "").Return(fixedUserLink, nil)
 			},
 			expectedLink: fixedUserLink,
 			expectError:  false,
 		},
 		{
-			name:        "ClientError",
-			accessToken: "bad_token",
-			email:       "test@vk.com",
+			name:         "ClientError",
+			code:         "bad_code",
+			codeVerifier: "verifier",
+			state:        "state",
 			mockBehavior: func(m *mockUserClient.UserClient) {
-				m.On("ProcessUserWithVK", context.Background(), "bad_token", "test@vk.com").Return(uuid.Nil, errTest)
+				m.On("ProcessUserWithVK", context.Background(), "bad_code", "verifier", "state", "").Return(uuid.Nil, errTest)
 			},
 			expectedLink: uuid.Nil,
 			expectError:  true,
@@ -50,7 +54,7 @@ func TestProcessUserWithVK(t *testing.T) {
 			m := mockUserClient.NewUserClient(t)
 			tc.mockBehavior(m)
 
-			link, err := NewUser(m).ProcessUserWithVK(context.Background(), tc.accessToken, tc.email)
+			link, err := NewUser(m).ProcessUserWithVK(context.Background(), tc.code, tc.codeVerifier, tc.state, tc.deviceID)
 
 			if tc.expectError {
 				require.Error(t, err)
