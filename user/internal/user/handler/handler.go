@@ -307,6 +307,10 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 	}()
 
 	var userInfo api.VkIDUserInfoResponse
+
+	a, _ := io.ReadAll(userResp.Body)
+	logger.Info().Bytes("resp", a).Msg("vk resp")
+
 	if err := json.NewDecoder(userResp.Body).Decode(&userInfo); err != nil {
 		logger.Err(err).Msg("vk id user info decode response")
 
