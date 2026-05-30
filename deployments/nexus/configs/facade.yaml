@@ -2,7 +2,7 @@ app:
   log_level: info
   max_text_request_size: 10240
   max_upload_image_size: 10485760
-  request_timeout: 5s
+  request_timeout: 12s
   max_file_size: 10485760
 
 engine:
@@ -28,7 +28,7 @@ services:
   user:
     client:
       addr: "nexus-user-service:8080"
-      timeout: 3s
+      timeout: 12s
       retries: 5
     handler:
       signature_type_bytes: 512
@@ -46,7 +46,7 @@ services:
   auth:
     client:
       addr: "nexus-authorization-service:8080"
-      timeout: 10s
+      timeout: 12s
       retries: 5
     handler:
       max_len_password: 128
@@ -55,13 +55,13 @@ services:
 
   mail_sender:
     addr: "nexus-mail-sender-service:8080"
-    timeout: 10s
+    timeout: 12s
     retries: 5
 
   board:
     client:
       addr: "nexus-board-service:8080"
-      timeout: 5s
+      timeout: 12s
       retries: 5
       chunk_size: 1048576
     handler:
@@ -72,7 +72,7 @@ services:
   section:
     client:
       addr: "nexus-board-service:8080"
-      timeout: 5s
+      timeout: 12s
       retries: 5
     handler:
       max_len_display_name: 128
@@ -81,7 +81,7 @@ services:
   card:
     client:
       addr: "nexus-board-service:8080"
-      timeout: 5s
+      timeout: 12s
       retries: 5
     handler:
       max_len_title: 128
@@ -94,7 +94,7 @@ services:
 
   rate_limiters:
     addr: "nexus-rate-limiter-service:8080"
-    timeout: 2s
+    timeout: 12s
     retries: 5
     actions:
       login:
@@ -112,7 +112,7 @@ services:
   appeal:
     client:
       addr: "nexus-appeal-service:8080"
-      timeout: 5s
+      timeout: 12s
       retries: 5
     handler:
       multipart_attachment_file_key: "attachment"
