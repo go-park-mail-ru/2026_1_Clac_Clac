@@ -307,10 +307,6 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 	}()
 
 	var userInfo api.VkIDUserInfoResponse
-
-	a, _ := io.ReadAll(userResp.Body)
-	logger.Info().Bytes("resp", a).Msg("vk resp")
-
 	if err := json.NewDecoder(userResp.Body).Decode(&userInfo); err != nil {
 		logger.Err(err).Msg("vk id user info decode response")
 
@@ -321,6 +317,8 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
+	userInfo.User.Email = fmt.Sprintf("%s@nexus.internal", userInfo.User.UserID)
+
 	if userInfo.User.FirstName == "" {
 		logger.Error().Msg("vk id: empty user data")
 
@@ -330,8 +328,6 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 
 		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
 	}
-
-	logger.Info().Interface("user", userInfo).Msg("vk oauth")
 
 	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.EntityUser{
 		DisplayName: userInfo.User.FirstName,
