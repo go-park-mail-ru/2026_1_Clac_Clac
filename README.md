@@ -12,4 +12,4 @@ docker compose -f deployments/board/docker-compose.yaml --env-file=./board/.env 
 
 [Деплой](https://clac-clac.ru)
 
-[Frontend](https://github.com/go-park-mail-ru/2026_1_Clac_Clac)
+[Frontend](https://github.com/frontend-park-mail-ru/2026_1_Clac_Clac)
