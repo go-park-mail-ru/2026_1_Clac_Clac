@@ -1701,11 +1701,11 @@ func TestCardHandler_UpdateTimeLine(t *testing.T) {
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{
-			name:       "StartAfterDeadline",
-			linkParam:  fixedCardLinkH.String(),
-			request:    invalidTimeLineReq,
-			setContext: true,
-			mockBehavior: func(m *mockCardUsecase) {},
+			name:               "StartAfterDeadline",
+			linkParam:          fixedCardLinkH.String(),
+			request:            invalidTimeLineReq,
+			setContext:         true,
+			mockBehavior:       func(m *mockCardUsecase) {},
 			expectedStatusCode: http.StatusBadRequest,
 		},
 		{

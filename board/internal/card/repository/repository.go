@@ -169,6 +169,25 @@ func (r *Repository) GetCard(ctx context.Context, linkCard uuid.UUID) (dto.InfoC
 	return infoCard, nil
 }
 
+func (r *Repository) GetCardTitleAndDescription(ctx context.Context, linkCard uuid.UUID) (string, string, error) {
+	query := `
+		SELECT t.title, t.description
+		FROM task_actual AS t
+		WHERE t.task_link = $1;
+	`
+
+	var title, description string
+	err := r.pool.QueryRow(ctx, query, linkCard).Scan(&title, &description)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "", common.ErrCardNotFound
+		}
+		return "", "", fmt.Errorf("rep.QueryRow: %w", err)
+	}
+
+	return title, description, nil
+}
+
 func (r *Repository) DeleteCard(ctx context.Context, linkCard uuid.UUID) error {
 	query := `DELETE FROM task WHERE task_link = $1;`
 

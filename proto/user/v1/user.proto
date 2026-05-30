@@ -89,8 +89,10 @@ message ResetPasswordRequest {
 message ResetPasswordResponse {}
 
 message ProcessUserVKRequest {
-  string access_token = 1;
-  string email = 2;
+  string code = 1;
+  string code_verifier = 2;
+  string state = 3;
+  string device_id = 4;
 }
 
 message ProcessUserVKResponse {

@@ -1198,9 +1198,10 @@ func TestGetActivePollHandler(t *testing.T) {
 		CurrentIdx: 0,
 		Tasks: []service.PollTask{
 			{
-				CardLink: cardLink,
-				Title:    "Task 1",
-				Votes:    map[uuid.UUID]*int{invitedUser: &points},
+				CardLink:    cardLink,
+				Title:       "Task 1",
+				Description: "Task description",
+				Votes:       map[uuid.UUID]*int{invitedUser: &points},
 			},
 		},
 		Invitees: []uuid.UUID{invitedUser},
@@ -1294,6 +1295,7 @@ func TestGetActivePollHandler(t *testing.T) {
 				assert.Len(t, resp.Tasks, 1)
 				assert.Equal(t, cardLink.String(), resp.Tasks[0].CardLink)
 				assert.Equal(t, "Task 1", resp.Tasks[0].Title)
+				assert.Equal(t, "Task description", resp.Tasks[0].Description)
 				assert.Len(t, resp.Tasks[0].Votes, 1)
 				assert.Equal(t, invitedUser.String(), resp.Tasks[0].Votes[0].UserLink)
 				assert.Equal(t, int32(5), resp.Tasks[0].Votes[0].Points)

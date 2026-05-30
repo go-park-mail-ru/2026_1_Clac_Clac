@@ -103,9 +103,9 @@ func (_m *UserUsecase) GetUserLink(ctx context.Context, email string) (uuid.UUID
 	return r0, r1
 }
 
-// ProcessUserWithVK provides a mock function with given fields: ctx, accessToken, email
-func (_m *UserUsecase) ProcessUserWithVK(ctx context.Context, accessToken string, email string) (uuid.UUID, error) {
-	ret := _m.Called(ctx, accessToken, email)
+// ProcessUserWithVK provides a mock function with given fields: ctx, code, codeVerifier, state, deviceID
+func (_m *UserUsecase) ProcessUserWithVK(ctx context.Context, code string, codeVerifier string, state string, deviceID string) (uuid.UUID, error) {
+	ret := _m.Called(ctx, code, codeVerifier, state, deviceID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ProcessUserWithVK")
@@ -113,19 +113,19 @@ func (_m *UserUsecase) ProcessUserWithVK(ctx context.Context, accessToken string
 
 	var r0 uuid.UUID
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (uuid.UUID, error)); ok {
-		return rf(ctx, accessToken, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) (uuid.UUID, error)); ok {
+		return rf(ctx, code, codeVerifier, state, deviceID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) uuid.UUID); ok {
-		r0 = rf(ctx, accessToken, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) uuid.UUID); ok {
+		r0 = rf(ctx, code, codeVerifier, state, deviceID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(uuid.UUID)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, accessToken, email)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string) error); ok {
+		r1 = rf(ctx, code, codeVerifier, state, deviceID)
 	} else {
 		r1 = ret.Error(1)
 	}

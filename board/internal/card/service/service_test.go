@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	boardCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
+	boardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/common"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/models"
 	repositoryDto "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/repository/dto"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/dto"
-	boardCommon "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/common"
-	boardService "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/board/service"
 	mockCardRep "github.com/go-park-mail-ru/2026_1_Clac_Clac/board/internal/card/service/mock_card_rep"
 	rbac "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/boardRbac"
 	"github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/brokerEvents"
@@ -1133,8 +1133,8 @@ func TestUpdateCardPoints(t *testing.T) {
 			nameTest: "Success_PollAdmin",
 			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				ps := boardService.NewPollStore()
-			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
-			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, pollAdminLink, mock.Anything).Return(nil)
+				_ = ps.Create(targetBoardLink, pollAdminLink, []boardService.CardInfo{}, nil)
+				perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, pollAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				m.On("UpdateCardPoints", mock.Anything, repositoryDto.UpdateCardPoints{CardLink: targetCardLink, Points: &points}).Return(nil)
 				return ps
@@ -1154,8 +1154,8 @@ func TestUpdateCardPoints(t *testing.T) {
 			nameTest: "Error_NotPollAdmin",
 			mockBehavior: func(m *testCardRepository, perm *MockRbacService) *boardService.PollStore {
 				ps := boardService.NewPollStore()
-			_ = ps.Create(targetBoardLink, pollAdminLink, []uuid.UUID{}, nil)
-			perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, nonAdminLink, mock.Anything).Return(nil)
+				_ = ps.Create(targetBoardLink, pollAdminLink, []boardService.CardInfo{}, nil)
+				perm.On("CheckPermissionOnCard", mock.Anything, targetCardLink, nonAdminLink, mock.Anything).Return(nil)
 				m.On("GetBoardLinkByCard", mock.Anything, targetCardLink).Return(targetBoardLink, nil)
 				return ps
 			},

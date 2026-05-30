@@ -61,41 +61,6 @@ func (_m *AuthUsecase) DeleteSession(ctx context.Context, sessionID string) erro
 	return r0
 }
 
-// ExchangeVKCode provides a mock function with given fields: ctx, code
-func (_m *AuthUsecase) ExchangeVKCode(ctx context.Context, code string) (string, string, error) {
-	ret := _m.Called(ctx, code)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ExchangeVKCode")
-	}
-
-	var r0 string
-	var r1 string
-	var r2 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (string, string, error)); ok {
-		return rf(ctx, code)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, code)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string) string); ok {
-		r1 = rf(ctx, code)
-	} else {
-		r1 = ret.Get(1).(string)
-	}
-
-	if rf, ok := ret.Get(2).(func(context.Context, string) error); ok {
-		r2 = rf(ctx, code)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
 // NewAuthUsecase creates a new instance of AuthUsecase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewAuthUsecase(t interface {

@@ -2,13 +2,12 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.21.12
-// source: contracts/authorization/authorization.proto
+// source: proto/authorization/v1/authorization.proto
 
-package auth
+package v1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,11 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_CreateSession_FullMethodName  = "/auth.AuthService/CreateSession"
-	AuthService_GetUserLink_FullMethodName    = "/auth.AuthService/GetUserLink"
-	AuthService_DeleteSession_FullMethodName  = "/auth.AuthService/DeleteSession"
-	AuthService_ExtendSession_FullMethodName  = "/auth.AuthService/ExtendSession"
-	AuthService_ExchangeVKCode_FullMethodName = "/auth.AuthService/ExchangeVKCode"
+	AuthService_CreateSession_FullMethodName = "/proto.auth.v1.AuthService/CreateSession"
+	AuthService_GetUserLink_FullMethodName   = "/proto.auth.v1.AuthService/GetUserLink"
+	AuthService_DeleteSession_FullMethodName = "/proto.auth.v1.AuthService/DeleteSession"
+	AuthService_ExtendSession_FullMethodName = "/proto.auth.v1.AuthService/ExtendSession"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -41,8 +39,6 @@ type AuthServiceClient interface {
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
 	// Продлить время жизни сессии
 	ExtendSession(ctx context.Context, in *ExtendSessionRequest, opts ...grpc.CallOption) (*ExtendSessionResponse, error)
-	// Обменивает VK OAuth code на access_token и email пользователя
-	ExchangeVKCode(ctx context.Context, in *ExchangeVKCodeRequest, opts ...grpc.CallOption) (*ExchangeVKCodeResponse, error)
 }
 
 type authServiceClient struct {
@@ -93,16 +89,6 @@ func (c *authServiceClient) ExtendSession(ctx context.Context, in *ExtendSession
 	return out, nil
 }
 
-func (c *authServiceClient) ExchangeVKCode(ctx context.Context, in *ExchangeVKCodeRequest, opts ...grpc.CallOption) (*ExchangeVKCodeResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ExchangeVKCodeResponse)
-	err := c.cc.Invoke(ctx, AuthService_ExchangeVKCode_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -117,8 +103,6 @@ type AuthServiceServer interface {
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 	// Продлить время жизни сессии
 	ExtendSession(context.Context, *ExtendSessionRequest) (*ExtendSessionResponse, error)
-	// Обменивает VK OAuth code на access_token и email пользователя
-	ExchangeVKCode(context.Context, *ExchangeVKCodeRequest) (*ExchangeVKCodeResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -140,9 +124,6 @@ func (UnimplementedAuthServiceServer) DeleteSession(context.Context, *DeleteSess
 }
 func (UnimplementedAuthServiceServer) ExtendSession(context.Context, *ExtendSessionRequest) (*ExtendSessionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ExtendSession not implemented")
-}
-func (UnimplementedAuthServiceServer) ExchangeVKCode(context.Context, *ExchangeVKCodeRequest) (*ExchangeVKCodeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ExchangeVKCode not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -237,29 +218,11 @@ func _AuthService_ExtendSession_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_ExchangeVKCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ExchangeVKCodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).ExchangeVKCode(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_ExchangeVKCode_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).ExchangeVKCode(ctx, req.(*ExchangeVKCodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "auth.AuthService",
+	ServiceName: "proto.auth.v1.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -278,11 +241,7 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ExtendSession",
 			Handler:    _AuthService_ExtendSession_Handler,
 		},
-		{
-			MethodName: "ExchangeVKCode",
-			Handler:    _AuthService_ExchangeVKCode_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "contracts/authorization/authorization.proto",
+	Metadata: "proto/authorization/v1/authorization.proto",
 }

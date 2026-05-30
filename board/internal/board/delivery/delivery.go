@@ -1048,9 +1048,10 @@ func (h *BoardHandler) GetActivePoll(ctx context.Context, req *pb.GetActivePollR
 			})
 		}
 		tasks = append(tasks, &pb.PollTaskInfo{
-			CardLink: t.CardLink.String(),
-			Title:    t.Title,
-			Votes:    votes,
+			CardLink:    t.CardLink.String(),
+			Title:       t.Title,
+			Description: t.Description,
+			Votes:       votes,
 		})
 	}
 

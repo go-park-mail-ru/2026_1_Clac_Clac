@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto.auth.v1;
 
-option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/authorization/v1";
+option go_package = "github.com/go-park-mail-ru/2026_1_Clac_Clac/pkg/proto/auth/v1";
 
 // Сервис отвечает ИСКЛЮЧИТЕЛЬНО за управление сессиями (Redis)
 service AuthService {
@@ -18,8 +18,6 @@ service AuthService {
   // Продлить время жизни сессии
   rpc ExtendSession(ExtendSessionRequest) returns (ExtendSessionResponse);
 
-  // Обменивает VK OAuth code на access_token и email пользователя
-  rpc ExchangeVKCode(ExchangeVKCodeRequest) returns (ExchangeVKCodeResponse);
 }
 
 message ExtendSessionRequest {
@@ -49,11 +47,4 @@ message DeleteSessionRequest {
 
 message DeleteSessionResponse {}
 
-message ExchangeVKCodeRequest {
-  string code = 1;
-}
 
-message ExchangeVKCodeResponse {
-  string access_token = 1;
-  string email = 2;
-}

@@ -19,7 +19,7 @@ import (
 var (
 	fixedBoardLinkP = uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	fixedUserLinkP  = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	errPollTest   = errors.New("poll error")
+	errPollTest     = errors.New("poll error")
 )
 
 type mockPollUsecase struct {
@@ -330,9 +330,10 @@ func TestPollHandler_GetActivePoll(t *testing.T) {
 		CurrentIdx: 0,
 		Tasks: []*pb.PollTaskInfo{
 			{
-				CardLink: fixedBoardLinkP.String(),
-				Title:    "Task 1",
-				Votes:    []*pb.VoteEntry{},
+				CardLink:    fixedBoardLinkP.String(),
+				Title:       "Task 1",
+				Description: "Task description",
+				Votes:       []*pb.VoteEntry{},
 			},
 		},
 		Invitees: []string{fixedUserLinkP.String()},

@@ -19,21 +19,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	oauthCodeKey            = "code"
-	oauthSuccessAuthMessage = "success"
-)
-
 type AuthUsecase interface {
 	CreateSession(ctx context.Context, userLink uuid.UUID) (string, error)
 	DeleteSession(ctx context.Context, sessionID string) error
-	ExchangeVKCode(ctx context.Context, code string) (string, string, error)
 }
 
 type UserUsecase interface {
 	GetUser(ctx context.Context, entryUser domain.Credentials) (domain.FullInfoUser, error)
 	CreateUser(ctx context.Context, infoUser domain.NewCredentialsUser) (domain.FullInfoUser, error)
-	ProcessUserWithVK(ctx context.Context, accessToken, email string) (uuid.UUID, error)
+	ProcessUserWithVK(ctx context.Context, code, codeVerifier, state, deviceID string) (uuid.UUID, error)
 	GetUserLink(ctx context.Context, email string) (uuid.UUID, error)
 	GetProfile(ctx context.Context, userLink uuid.UUID) (domain.FullInfoUser, error)
 }
@@ -338,57 +332,62 @@ func (a *Auth) LogOutUser(w http.ResponseWriter, r *http.Request) {
 // VkOAuthCallback обрабатывает коллбэк от VK
 //
 //	@Summary		VK OAuth Коллбэк
-//	@Description	Обменивает временный code от VK на access_token, находит или создаёт пользователя, создаёт сессию. Всегда отвечает HTTP 302 редиректом на фронтенд — при успехе и при ошибке.
+//	@Description	Принимает JSON-тело с OAuth-параметрами, обменивает временный code на access_token, находит или создаёт пользователя, создаёт сессию. Возвращает JSON с профилем пользователя и устанавливает session_id cookie.
 //	@Tags			Auth
-//	@Param			code	query	string	true	"Временный OAuth-код от VK"
-//	@Success		302		"Редирект: ?code=200&message=success (cookie session_id установлен)"
-//	@Failure		302		"Редирект с ошибкой: ?code=400 (code пустой), ?code=502 (VK недоступен), ?code=500 (ошибка обработки или создания сессии)"
-//	@Router			/oauth/vk [get]
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.VkOAuthCallbackRequest				true	"OAuth-параметры от VK"
+//	@Success		200		{object}	api.OkResponse[dto.UserInfoResponse]		"Успешная авторизация, cookie session_id установлен"
+//	@Failure		400		{object}	api.ErrorResponse						"Некорректный формат запроса или отсутствуют обязательные поля"
+//	@Failure		502		{object}	api.ErrorResponse						"VK сервис недоступен"
+//	@Failure		500		{object}	api.ErrorResponse						"Внутренняя ошибка сервера"
+//	@Router			/oauth/vk [post]
 func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	logger := zerolog.Ctx(r.Context())
 
-	code := r.FormValue(oauthCodeKey)
-	if code == "" {
-		logger.Err(handlerCommon.ErrOAuthCodeEmpty).Msg("vk oauth callback: missing code")
-		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadRequest, handlerCommon.ErrOAuthCodeEmpty.Error())
+	var request dto.VkOAuthCallbackRequest
+	if err := easyjson.UnmarshalFromReader(r.Body, &request); err != nil {
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrInvalidRequestSchema.Error())
 		return
 	}
 
-	accessToken, email, err := a.auth.ExchangeVKCode(r.Context(), code)
-	if err != nil {
-		errLog := fmt.Errorf("auth.ExchangeVKCode: %w", err)
-		logger.Err(errLog).Msg("vk oauth callback: exchange code failed")
-
-		outErr := handlerCommon.ErrOAuthExchangeFailed
-		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
-			outErr = handlerCommon.ErrOAuthUnavailable
-		}
-
-		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
-			"action":            "exchange_code",
-			"is_vk_unavailable": errors.Is(err, common.ErrorVKOAuthUnavailable),
-		})
-
-		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusBadGateway, outErr.Error())
+	if request.Code == "" || request.CodeVerifier == "" || request.State == "" {
+		logger.Err(handlerCommon.ErrOAuthCodeEmpty).Msg("vk oauth callback: missing required params")
+		_, _ = api.RespondError(w, http.StatusBadRequest, handlerCommon.ErrOAuthCodeEmpty.Error())
 		return
 	}
 
-	userLink, err := a.user.ProcessUserWithVK(r.Context(), accessToken, email)
+	userLink, err := a.user.ProcessUserWithVK(r.Context(), request.Code, request.CodeVerifier, request.State, request.DeviceID)
 	if err != nil {
 		errLog := fmt.Errorf("user.ProcessUserWithVK: %w", err)
 		logger.Err(errLog).Msg("vk oauth callback: user processing failed")
 
 		outErr := handlerCommon.ErrOAuthInternalServerError
-		if errors.Is(err, common.ErrorVKOAuthUnavailable) {
+		httpCode := http.StatusInternalServerError
+		if errors.Is(err, common.ErrorVKOAuthUnavailable) || errors.Is(err, common.ErrorServiceUnavailable) {
 			outErr = handlerCommon.ErrOAuthCannotRequestUserData
+			httpCode = http.StatusBadGateway
 		}
 
 		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
-			"email":  email,
 			"action": "process_vk_user",
 		})
 
-		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
+		_, _ = api.RespondError(w, httpCode, outErr.Error())
+		return
+	}
+
+	user, err := a.user.GetProfile(r.Context(), userLink)
+	if err != nil {
+		errLog := fmt.Errorf("user.GetProfile: %w", err)
+		logger.Err(errLog).Msg("vk oauth callback: failed to get profile")
+
+		sentryLogger.CaptureFromContext(r.Context(), errLog, "VkOAuth Context", map[string]interface{}{
+			"user_link": userLink,
+			"action":    "get_profile",
+		})
+
+		_, _ = api.RespondError(w, http.StatusInternalServerError, handlerCommon.ErrInternalServerError.Error())
 		return
 	}
 
@@ -412,7 +411,7 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusInternalServerError, outErr.Error())
+		_, _ = api.RespondError(w, http.StatusInternalServerError, outErr.Error())
 		return
 	}
 
@@ -421,5 +420,10 @@ func (a *Auth) VkOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		sessionID,
 		time.Now().Add(a.cfg.SessionLifetime)))
 
-	_, _ = Redirect(w, r, a.cfg.VKOAuthRedirectTo, http.StatusOK, oauthSuccessAuthMessage)
+	_ = api.HandleError(api.RespondOk(w, dto.UserInfoResponse{
+		Link:        user.UserLink,
+		DisplayName: user.DisplayName,
+		Email:       user.Email,
+		Avatar:      user.AvatarURL,
+	}))
 }

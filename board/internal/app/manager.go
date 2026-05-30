@@ -26,7 +26,7 @@ func NewManager(store *Store, conf *config.Config) *Manager {
 	}
 
 	return &Manager{
-		Board:             board.NewService(store.Board, permissionChecker, pollStore, store.Publisher),
+		Board:             board.NewService(store.Board, permissionChecker, pollStore, store.Publisher, store.Card),
 		Section:           section.NewService(store.Section, permissionChecker),
 		Card:              card.NewService(store.Card, permissionChecker, pollStore, store.Publisher, configCard),
 		PermissionChecker: permissionChecker,
