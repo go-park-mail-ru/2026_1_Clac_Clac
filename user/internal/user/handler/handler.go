@@ -327,6 +327,8 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 		return nil, status.Error(codes.Internal, msgOAuthEmptyUserData)
 	}
 
+	logger.Info().Interface("user", userInfo).Msg("vk oauth")
+
 	userLink, err := h.srv.EnsureUserByEmail(ctx, serviceDto.EntityUser{
 		DisplayName: userInfo.User.FirstName,
 		Email:       userInfo.User.Email,
