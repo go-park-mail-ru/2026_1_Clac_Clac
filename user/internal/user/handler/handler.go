@@ -317,6 +317,8 @@ func (h *Handler) ProcessUserWithVK(ctx context.Context, req *pb.ProcessUserVKRe
 		return nil, status.Error(codes.Internal, msgInternalError)
 	}
 
+	userInfo.User.Email = fmt.Sprintf("%s@nexus.internal", userInfo.User.UserID)
+
 	if userInfo.User.FirstName == "" {
 		logger.Error().Msg("vk id: empty user data")
 
